@@ -48,8 +48,10 @@ let AppManager = exports.AppManager = {
     this.connection.on(Connection.Events.STATUS_CHANGED, this.onConnectionChanged);
 
     this.tabStore = new TabStore(this.connection);
+    this.onTabList = this.onTabList.bind(this);
     this.onTabNavigate = this.onTabNavigate.bind(this);
     this.onTabClosed = this.onTabClosed.bind(this);
+    this.tabStore.on("tab-list", this.onTabList);
     this.tabStore.on("navigate", this.onTabNavigate);
     this.tabStore.on("closed", this.onTabClosed);
 
@@ -75,6 +77,7 @@ let AppManager = exports.AppManager = {
     RuntimeScanners.off("runtime-list-updated", this._rebuildRuntimeList);
     RuntimeScanners.disable();
     this.runtimeList = null;
+    this.tabStore.off("tab-list", this.onTabList);
     this.tabStore.off("navigate", this.onTabNavigate);
     this.tabStore.off("closed", this.onTabClosed);
     this.tabStore.destroy();
@@ -86,6 +89,10 @@ let AppManager = exports.AppManager = {
   },
 
   
+
+
+
+
 
 
 
@@ -178,7 +185,7 @@ let AppManager = exports.AppManager = {
           })
           .then(() => {
             this.checkIfProjectIsRunning();
-            this.update("runtime-apps-found");
+            this.update("runtime-targets", { type: "apps" });
             front.fetchIcons();
           });
         } else {
@@ -232,8 +239,13 @@ let AppManager = exports.AppManager = {
     return this.tabStore.listTabs();
   },
 
+  onTabList: function() {
+    this.update("runtime-targets", { type: "tabs" });
+  },
+
   
   onTabNavigate: function() {
+    this.update("runtime-targets", { type: "tabs" });
     if (this.selectedProject.type !== "tab") {
       return;
     }

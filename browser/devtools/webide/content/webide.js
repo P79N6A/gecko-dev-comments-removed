@@ -204,13 +204,14 @@ let UI = {
         this.updateProjectEditorHeader();
         projectList.update();
         break;
+      case "runtime-targets":
       case "project-removed":
-        projectList.update();
+        projectList.update(details);
         break;
       case "install-progress":
         this.updateProgress(Math.round(100 * details.bytesSent / details.totalBytes));
         break;
-      case "runtime-apps-found":
+      case "runtime-targets":
         this.autoSelectProject();
         projectList.update();
         break;
@@ -1077,6 +1078,18 @@ let Cmds = {
 
   showProjectPanel: function() {
     ProjectPanel.toggle(projectList.sidebarsEnabled, true);
+
+    
+    
+    
+    
+    if (!projectList.sidebarsEnabled && AppManager.connected) {
+      return AppManager.listTabs().then(() => {
+        projectList.updateTabs();
+      }).catch(console.error);
+    }
+
+    return promise.resolve();
   },
 
   showRuntimePanel: function() {
