@@ -170,13 +170,17 @@ FilterView.prototype = {
 
 
 
-  get searchOperator() this.searchData[0],
+  get searchOperator() {
+    return this.searchData[0];
+  },
 
   
 
 
 
-  get searchArguments() this.searchData[1],
+  get searchArguments() {
+    return this.searchData[1];
+  },
 
   
 

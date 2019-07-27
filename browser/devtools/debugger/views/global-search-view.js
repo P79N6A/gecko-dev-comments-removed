@@ -50,9 +50,10 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  get hidden()
-    this.widget.getAttribute("hidden") == "true" ||
-    this._splitter.getAttribute("hidden") == "true",
+  get hidden() {
+    return this.widget.getAttribute("hidden") == "true" ||
+           this._splitter.getAttribute("hidden") == "true";
+  },
 
   
 
@@ -366,7 +367,9 @@ GlobalResults.prototype = {
   
 
 
-  get matchCount() this._store.length
+  get matchCount() {
+    return this._store.length;
+  }
 };
 
 
@@ -400,7 +403,9 @@ SourceResults.prototype = {
   
 
 
-  get matchCount() this._store.length,
+  get matchCount() {
+    return this._store.length;
+  },
 
   
 
@@ -429,21 +434,26 @@ SourceResults.prototype = {
 
 
 
-  get expanded()
-    this._resultsContainer.getAttribute("hidden") != "true" &&
-    this._arrow.hasAttribute("open"),
+  get expanded() {
+    return this._resultsContainer.getAttribute("hidden") != "true" &&
+           this._arrow.hasAttribute("open");
+  },
 
   
 
 
 
-  set expanded(aFlag) this[aFlag ? "expand" : "collapse"](),
+  set expanded(aFlag) {
+    this[aFlag ? "expand" : "collapse"]();
+  },
 
   
 
 
 
-  get target() this._target,
+  get target() {
+    return this._target;
+  },
 
   
 
@@ -547,13 +557,17 @@ LineResults.prototype = {
   
 
 
-  get matchCount() this._matchCount,
+  get matchCount() {
+    return this._matchCount;
+  },
 
   
 
 
 
-  get target() this._target,
+  get target() {
+    return this._target;
+  },
 
   
 
