@@ -382,6 +382,7 @@ struct MaybeReadFallback
 
 
 class RResumePoint;
+class RSimdBox;
 
 
 
@@ -441,6 +442,10 @@ class SnapshotIterator
     bool allocationReadable(const RValueAllocation &a, ReadMethod rm = RM_Normal);
     void writeAllocationValuePayload(const RValueAllocation &a, Value v);
     void warnUnreadableAllocation();
+
+  private:
+    friend class RSimdBox;
+    const FloatRegisters::RegisterContent *floatAllocationPointer(const RValueAllocation &a) const;
 
   public:
     
