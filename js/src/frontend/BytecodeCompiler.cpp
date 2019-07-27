@@ -156,7 +156,6 @@ static void
 MarkFunctionsWithinEvalScript(JSScript *script)
 {
     
-    
 
     if (!script->hasObjects())
         return;
@@ -292,17 +291,14 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     if (!script)
         return nullptr;
 
-    
-    JSObject *globalScope =
-        scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : nullptr;
-    MOZ_ASSERT_IF(globalScope, globalScope->isNative());
-    MOZ_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
-
+    bool insideNonGlobalEval =
+        evalStaticScope && evalStaticScope->enclosingScopeForStaticScopeIter();
     BytecodeEmitter::EmitterMode emitterMode =
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
     BytecodeEmitter bce( nullptr, &parser, &globalsc, script,
                          js::NullPtr(), options.forEval,
-                        evalCaller, evalStaticScope, !!globalScope, options.lineno, emitterMode);
+                        evalCaller, evalStaticScope, insideNonGlobalEval,
+                        options.lineno, emitterMode);
     if (!bce.init())
         return nullptr;
 
@@ -516,10 +512,17 @@ frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const cha
     if (lazy->hasBeenCloned())
         script->setHasBeenCloned();
 
+    
+
+
+
+
+
+    MOZ_ASSERT(!options.forEval);
     BytecodeEmitter bce( nullptr, &parser, pn->pn_funbox, script, lazy,
-                        options.forEval,  js::NullPtr(),
+                         false,  js::NullPtr(),
                          js::NullPtr(),
-                         true, options.lineno,
+                         false, options.lineno,
                         BytecodeEmitter::LazyFunction);
     if (!bce.init())
         return false;
@@ -532,7 +535,7 @@ frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const cha
 static bool
 CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyCompileOptions &options,
                     const AutoNameVector &formals, SourceBufferHolder &srcBuf,
-                    HandleObject enclosingScope, GeneratorKind generatorKind)
+                    HandleObject enclosingStaticScope, GeneratorKind generatorKind)
 {
     js::TraceLoggerThread *logger = js::TraceLoggerForMainThread(cx->runtime());
     js::TraceLoggerEvent event(logger, TraceLogger_AnnotateScripts, options);
@@ -633,7 +636,7 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
     if (fn->pn_funbox->function()->isInterpreted()) {
         MOZ_ASSERT(fun == fn->pn_funbox->function());
 
-        Rooted<JSScript*> script(cx, JSScript::Create(cx, enclosingScope, false, options,
+        Rooted<JSScript*> script(cx, JSScript::Create(cx, enclosingStaticScope, false, options,
                                                        0, sourceObject,
                                                        0, srcBuf.length()));
         if (!script)
@@ -641,19 +644,11 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 
         script->bindings = fn->pn_funbox->bindings;
 
-        
-
-
-
-
-
-
         BytecodeEmitter funbce( nullptr, &parser, fn->pn_funbox, script,
                                 js::NullPtr(),  false,
                                 js::NullPtr(),
                                 js::NullPtr(),
-                               fun->environment() && fun->environment()->is<GlobalObject>(),
-                               options.lineno);
+                                false, options.lineno);
         if (!funbce.init())
             return false;
 

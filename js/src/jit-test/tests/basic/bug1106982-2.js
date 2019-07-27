@@ -10,10 +10,11 @@ var p = new Proxy(t, {
     },
     get(t, id) { return t[id]; }
 });
-with (p)
+evaluate(`function testFunc() {
     x += " x";
+}`, { compileAndGo: false });
 
-
-
+var cloneFunc = clone(testFunc, p);
+cloneFunc();
 assertEq(hits, 2);
 assertEq(t.x, "undefined x");
