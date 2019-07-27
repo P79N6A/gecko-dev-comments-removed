@@ -34,26 +34,19 @@ public:
 
 
 
-
-  bool Listen(UnixSocketConnector* aConnector,
-              ConnectionOrientedSocket* aCOSocket);
-
-  
-
-
-
-
-
-
-
-
-
-  bool Listen(ConnectionOrientedSocket* aCOSocket);
+  nsresult Listen(UnixSocketConnector* aConnector,
+                  ConnectionOrientedSocket* aCOSocket);
 
   
 
 
-  void GetSocketAddr(nsAString& aAddrStr);
+
+
+
+
+
+
+  nsresult Listen(ConnectionOrientedSocket* aCOSocket);
 
   
   
