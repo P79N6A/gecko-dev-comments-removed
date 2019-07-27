@@ -339,11 +339,11 @@ KEY_MAP_GTK     (Cancel, GDK_Cancel)
 KEY_MAP_QT      (Cancel, Qt::Key_Cancel)
 
 
-KEY_MAP_WIN     (Menu, VK_APPS)
-KEY_MAP_COCOA   (Menu, kVK_PC_ContextMenu)
-KEY_MAP_GTK     (Menu, GDK_Menu)
-KEY_MAP_QT      (Menu, Qt::Key_Menu)
-KEY_MAP_ANDROID (Menu, AKEYCODE_MENU)
+KEY_MAP_WIN     (ContextMenu, VK_APPS)
+KEY_MAP_COCOA   (ContextMenu, kVK_PC_ContextMenu)
+KEY_MAP_GTK     (ContextMenu, GDK_Menu)
+KEY_MAP_QT      (ContextMenu, Qt::Key_Menu)
+KEY_MAP_ANDROID (ContextMenu, AKEYCODE_MENU)
 
 
 KEY_MAP_WIN     (Esc, VK_ESCAPE)
