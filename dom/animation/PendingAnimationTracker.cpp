@@ -48,60 +48,56 @@ PendingAnimationTracker::IsWaiting(const dom::Animation& aAnimation,
   return aSet.Contains(const_cast<dom::Animation*>(&aAnimation));
 }
 
-PLDHashOperator
-TriggerAnimationAtTime(nsRefPtrHashKey<dom::Animation>* aKey,
-                    void* aReadyTime)
-{
-  dom::Animation* animation = aKey->GetKey();
-  dom::AnimationTimeline* timeline = animation->GetTimeline();
-
-  
-  
-  
-  if (!timeline) {
-    return PL_DHASH_REMOVE;
-  }
-
-  
-  
-  
-  
-  
-  if (!timeline->TracksWallclockTime()) {
-    return PL_DHASH_NEXT;
-  }
-
-  Nullable<TimeDuration> readyTime =
-    timeline->ToTimelineTime(*static_cast<const TimeStamp*>(aReadyTime));
-  animation->TriggerOnNextTick(readyTime);
-
-  return PL_DHASH_REMOVE;
-}
-
 void
 PendingAnimationTracker::TriggerPendingAnimationsOnNextTick(const TimeStamp&
                                                         aReadyTime)
 {
-  mPlayPendingSet.EnumerateEntries(TriggerAnimationAtTime,
-                                   const_cast<TimeStamp*>(&aReadyTime));
-  mPausePendingSet.EnumerateEntries(TriggerAnimationAtTime,
-                                    const_cast<TimeStamp*>(&aReadyTime));
-}
+  auto triggerAnimationsAtReadyTime = [aReadyTime](AnimationSet& aAnimationSet)
+  {
+    for (auto iter = aAnimationSet.Iter(); !iter.Done(); iter.Next()) {
+      dom::Animation* animation = iter.Get()->GetKey();
+      dom::AnimationTimeline* timeline = animation->GetTimeline();
 
-PLDHashOperator
-TriggerAnimationNow(nsRefPtrHashKey<dom::Animation>* aKey, void*)
-{
-  aKey->GetKey()->TriggerNow();
-  return PL_DHASH_NEXT;
+      
+      
+      
+      if (!timeline) {
+        iter.Remove();
+      }
+
+      
+      
+      
+      
+      
+      
+      if (!timeline->TracksWallclockTime()) {
+        continue;
+      }
+
+      Nullable<TimeDuration> readyTime = timeline->ToTimelineTime(aReadyTime);
+      animation->TriggerOnNextTick(readyTime);
+
+      iter.Remove();
+    }
+  };
+
+  triggerAnimationsAtReadyTime(mPlayPendingSet);
+  triggerAnimationsAtReadyTime(mPausePendingSet);
 }
 
 void
 PendingAnimationTracker::TriggerPendingAnimationsNow()
 {
-  mPlayPendingSet.EnumerateEntries(TriggerAnimationNow, nullptr);
-  mPlayPendingSet.Clear();
-  mPausePendingSet.EnumerateEntries(TriggerAnimationNow, nullptr);
-  mPausePendingSet.Clear();
+  auto triggerAndClearAnimations = [](AnimationSet& aAnimationSet) {
+    for (auto iter = aAnimationSet.Iter(); !iter.Done(); iter.Next()) {
+      iter.Get()->GetKey()->TriggerNow();
+    }
+    aAnimationSet.Clear();
+  };
+
+  triggerAndClearAnimations(mPlayPendingSet);
+  triggerAndClearAnimations(mPausePendingSet);
 }
 
 void
