@@ -50,6 +50,12 @@ loop.shared.actions = (function() {
     
 
 
+    RetryCall: Action.define("retryCall", {
+    }),
+
+    
+
+
 
     ConnectCall: Action.define("connectCall", {
       
@@ -60,11 +66,17 @@ loop.shared.actions = (function() {
     
 
 
+    HangupCall: Action.define("hangupCall", {
+    }),
+
+    
+
+
 
 
     ConnectionProgress: Action.define("connectionProgress", {
       
-      state: String
+      wsState: String
     }),
 
     

@@ -177,6 +177,17 @@ loop.CallConnectionWebSocket = (function() {
     
 
 
+    mediaFail: function() {
+      this._send({
+        messageType: "action",
+        event: "terminate",
+        reason: "media-fail"
+      });
+    },
+
+    
+
+
 
 
     _send: function(data) {

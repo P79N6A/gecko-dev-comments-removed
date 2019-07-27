@@ -11,11 +11,16 @@
   "use strict";
 
   
+  document.removeEventListener('DOMContentLoaded', loop.panel.init);
+  document.removeEventListener('DOMContentLoaded', loop.conversation.init);
+
+  
   
   var PanelView = loop.panel.PanelView;
   
   var IncomingCallView = loop.conversation.IncomingCallView;
   var DesktopPendingConversationView = loop.conversationViews.PendingConversationView;
+  var CallFailedView = loop.conversationViews.CallFailedView;
 
   
   var HomeView = loop.webapp.HomeView;
@@ -245,6 +250,15 @@
                      style: {width: "260px", height: "265px"}}, 
               React.DOM.div({className: "fx-embedded"}, 
                 DesktopPendingConversationView({callState: "gather", calleeId: "Mr Smith"})
+              )
+            )
+          ), 
+
+          Section({name: "CallFailedView"}, 
+            Example({summary: "Call Failed", dashed: "true", 
+                     style: {width: "260px", height: "265px"}}, 
+              React.DOM.div({className: "fx-embedded"}, 
+                CallFailedView(null)
               )
             )
           ), 

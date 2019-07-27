@@ -10,19 +10,46 @@ loop.store = (function() {
   var sharedActions = loop.shared.actions;
   var sharedUtils = loop.shared.utils;
 
-  var CALL_STATES = {
+  
+
+
+
+  var WS_STATES = {
     
     INIT: "init",
     
-    GATHER: "gather",
+    ALERTING: "alerting",
+    
+    TERMINATED: "terminated",
     
     
     CONNECTING: "connecting",
     
     
-    ALERTING: "alerting",
+    HALF_CONNECTED: "half-connected",
     
-    TERMINATED: "terminated"
+    CONNECTED: "connected"
+  };
+
+  var CALL_STATES = {
+    
+    INIT: "cs-init",
+    
+    GATHER: "cs-gather",
+    
+    
+    CONNECTING: "cs-connecting",
+    
+    
+    ALERTING: "cs-alerting",
+    
+    ONGOING: "cs-ongoing",
+    
+    FINISHED: "cs-finished",
+    
+    CLOSE: "cs-close",
+    
+    TERMINATED: "cs-terminated"
   };
 
 
@@ -85,7 +112,10 @@ loop.store = (function() {
         "connectionFailure",
         "connectionProgress",
         "gatherCallData",
-        "connectCall"
+        "connectCall",
+        "hangupCall",
+        "cancelCall",
+        "retryCall"
       ]);
     },
 
@@ -109,19 +139,29 @@ loop.store = (function() {
 
 
     connectionProgress: function(actionData) {
-      
-      if (actionData.state === "alerting" &&
-          (this.get("callState") === CALL_STATES.CONNECTING ||
-           this.get("callState") === CALL_STATES.GATHER)) {
-        this.set({
-          callState: CALL_STATES.ALERTING
-        });
-      }
-      if (actionData.state === "connecting" &&
-          this.get("callState") === CALL_STATES.GATHER) {
-        this.set({
-          callState: CALL_STATES.CONNECTING
-        });
+      var callState = this.get("callState");
+
+      switch(actionData.wsState) {
+        case WS_STATES.INIT: {
+          if (callState === CALL_STATES.GATHER) {
+            this.set({callState: CALL_STATES.CONNECTING});
+          }
+          break;
+        }
+        case WS_STATES.ALERTING: {
+          this.set({callState: CALL_STATES.ALERTING});
+          break;
+        }
+        case WS_STATES.CONNECTING:
+        case WS_STATES.HALF_CONNECTED:
+        case WS_STATES.CONNECTED: {
+          this.set({callState: CALL_STATES.ONGOING});
+          break;
+        }
+        default: {
+          console.error("Unexpected websocket state passed to connectionProgress:",
+            actionData.wsState);
+        }
       }
     },
 
@@ -154,6 +194,63 @@ loop.store = (function() {
     connectCall: function(actionData) {
       this.set(actionData.sessionData);
       this._connectWebSocket();
+    },
+
+    
+
+
+    hangupCall: function() {
+      
+
+      
+      if (this._websocket) {
+        
+        this._websocket.mediaFail();
+        this._ensureWebSocketDisconnected();
+      }
+
+      this.set({callState: CALL_STATES.FINISHED});
+    },
+
+    
+
+
+    cancelCall: function() {
+      var callState = this.get("callState");
+      if (callState === CALL_STATES.TERMINATED) {
+        
+        this.set({callState: CALL_STATES.CLOSE});
+        return;
+      }
+
+      if (callState === CALL_STATES.CONNECTING ||
+          callState === CALL_STATES.ALERTING) {
+        if (this._websocket) {
+          
+          this._websocket.cancel();
+          this._ensureWebSocketDisconnected();
+        }
+        this.set({callState: CALL_STATES.CLOSE});
+        return;
+      }
+
+      console.log("Unsupported cancel in state", callState);
+    },
+
+    
+
+
+    retryCall: function() {
+      var callState = this.get("callState");
+      if (callState !== CALL_STATES.TERMINATED) {
+        console.error("Unexpected retry in state", callState);
+        return;
+      }
+
+      this.set({callState: CALL_STATES.GATHER});
+      if (this.get("outgoing")) {
+        this._setupOutgoingCall();
+      }
     },
 
     
@@ -192,11 +289,11 @@ loop.store = (function() {
       });
 
       this._websocket.promiseConnect().then(
-        function() {
+        function(progressState) {
           this.dispatcher.dispatch(new sharedActions.ConnectionProgress({
             
             
-            state: "connecting"
+            wsState: progressState
           }));
         }.bind(this),
         function(error) {
@@ -207,7 +304,18 @@ loop.store = (function() {
         }.bind(this)
       );
 
-      this._websocket.on("progress", this._handleWebSocketProgress, this);
+      this.listenTo(this._websocket, "progress", this._handleWebSocketProgress);
+    },
+
+    
+
+
+    _ensureWebSocketDisconnected: function() {
+     this.stopListening(this._websocket);
+
+      
+      this._websocket.close();
+      delete this._websocket;
     },
 
     
@@ -218,19 +326,18 @@ loop.store = (function() {
       var action;
 
       switch(progressData.state) {
-        case "terminated":
+        case WS_STATES.TERMINATED: {
           action = new sharedActions.ConnectionFailure({
             reason: progressData.reason
           });
           break;
-        case "alerting":
+        }
+        default: {
           action = new sharedActions.ConnectionProgress({
-            state: progressData.state
+            wsState: progressData.state
           });
           break;
-        default:
-          console.warn("Received unexpected state in _handleWebSocketProgress", progressData.state);
-          return;
+        }
       }
 
       this.dispatcher.dispatch(action);
@@ -239,6 +346,7 @@ loop.store = (function() {
 
   return {
     CALL_STATES: CALL_STATES,
-    ConversationStore: ConversationStore
+    ConversationStore: ConversationStore,
+    WS_STATES: WS_STATES
   };
 })();
