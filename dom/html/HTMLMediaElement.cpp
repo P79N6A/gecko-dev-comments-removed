@@ -1793,28 +1793,31 @@ HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded)
   }
 #endif
   OutputMediaStream* out = mOutputStreams.AppendElement();
-#ifdef DEBUG
-  
-  
-  
-  
-  
-  
-  
-  
-  
   uint8_t hints = 0;
-  if (Preferences::GetBool("media.capturestream_hints.enabled")) {
-    if (IsVideo() && GetVideoFrameContainer()) {
-      hints = DOMMediaStream::HINT_CONTENTS_VIDEO | DOMMediaStream::HINT_CONTENTS_AUDIO;
-    } else {
-      hints = DOMMediaStream::HINT_CONTENTS_AUDIO;
+  if (mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA) {
+    hints = (mHasAudio? DOMMediaStream::HINT_CONTENTS_AUDIO : 0) |
+            (mHasVideo? DOMMediaStream::HINT_CONTENTS_VIDEO : 0);
+  } else {
+#ifdef DEBUG
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (Preferences::GetBool("media.capturestream_hints.enabled")) {
+      if (IsVideo() && GetVideoFrameContainer()) {
+        hints = DOMMediaStream::HINT_CONTENTS_VIDEO | DOMMediaStream::HINT_CONTENTS_AUDIO;
+      } else {
+        hints = DOMMediaStream::HINT_CONTENTS_AUDIO;
+      }
     }
+#endif
   }
   out->mStream = DOMMediaStream::CreateTrackUnionStream(window, hints);
-#else
-  out->mStream = DOMMediaStream::CreateTrackUnionStream(window);
-#endif
   nsRefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
   out->mStream->CombineWithPrincipal(principal);
   out->mFinishWhenEnded = aFinishWhenEnded;
