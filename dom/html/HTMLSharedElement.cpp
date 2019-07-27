@@ -175,10 +175,9 @@ SetBaseURIUsingFirstBaseWithHref(nsIDocument* aDocument, nsIContent* aMustMatch)
 
       
       nsresult rv = aDocument->SetBaseURI(newBaseURI);
-      aDocument->SetChromeXHRDocBaseURI(newBaseURI);
+      aDocument->SetChromeXHRDocBaseURI(nullptr);
       if (NS_FAILED(rv)) {
         aDocument->SetBaseURI(nullptr);
-        aDocument->SetChromeXHRDocBaseURI(nullptr);
       }
       return;
     }
