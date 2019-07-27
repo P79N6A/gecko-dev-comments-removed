@@ -25,7 +25,7 @@ let isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
 let gWindow = window;
 
 
-let gDirectorySource = "data:application/json,{}";
+let gDirectorySource = 'data:application/json,{"test":1}';
 
 
 

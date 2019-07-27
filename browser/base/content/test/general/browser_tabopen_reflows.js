@@ -108,7 +108,7 @@ function test() {
 
   Services.prefs.setBoolPref(PREF_PRELOAD, false);
   
-  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, "data:application/json,{}");
+  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, 'data:application/json,{"test":1}');
 }
 
 let observer = {
