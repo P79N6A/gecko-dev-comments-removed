@@ -19,6 +19,8 @@
 
 
 
+
+
 'use strict';
 
 const Cu = Components.utils;
@@ -54,6 +56,7 @@ function debug(msg) {
 const EXCITEMENT_THRESHOLD = 500;
 const DEVICE_MOTION_EVENT = 'devicemotion';
 const SCREEN_CHANGE_EVENT = 'screenchange';
+const CAPTURE_LOGS_START_EVENT = 'capture-logs-start';
 const CAPTURE_LOGS_ERROR_EVENT = 'capture-logs-error';
 const CAPTURE_LOGS_SUCCESS_EVENT = 'capture-logs-success';
 
@@ -165,6 +168,7 @@ let LogShake = {
     if (excitement > EXCITEMENT_THRESHOLD) {
       if (!this.captureRequested) {
         this.captureRequested = true;
+        SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_START_EVENT, {});
         captureLogs().then(logResults => {
           
           SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_SUCCESS_EVENT, {
