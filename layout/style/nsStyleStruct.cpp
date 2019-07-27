@@ -333,8 +333,9 @@ nsChangeHint nsStyleMargin::CalcDifference(const nsStyleMargin& aOther) const
   }
   
   
-  return NS_CombineHint(nsChangeHint_NeedReflow,
-                        nsChangeHint_ClearAncestorIntrinsics);
+  return nsChangeHint_NeedReflow |
+         nsChangeHint_ReflowChangesSizeOrPosition |
+         nsChangeHint_ClearAncestorIntrinsics;
 }
 
 nsStylePadding::nsStylePadding()
