@@ -107,20 +107,7 @@ MarionetteComponent.prototype = {
         this.finalUiStartup = true;
         this.observerService.removeObserver(this, aTopic);
         this.observerService.addObserver(this, "xpcom-shutdown", false);
-
-        
-        
-        
-        
-        
-        
-        Services.tm.currentThread.dispatch(() => {
-          Services.tm.currentThread.dispatch(() => {
-            Services.tm.currentThread.dispatch(() => {
-              this.init();
-            }, Ci.nsIThread.DISPATCH_NORMAL);
-          }, Ci.nsIThread.DISPATCH_NORMAL);
-        }, Ci.nsIThread.DISPATCH_NORMAL);
+        this.init();
         break;
       case "domwindowopened":
         this.observerService.removeObserver(this, aTopic);
