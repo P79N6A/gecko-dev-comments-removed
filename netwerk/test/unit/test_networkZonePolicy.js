@@ -90,6 +90,7 @@ Listener.prototype = {
 
 function test_basic_NetworkZonePolicy_pref() {
   
+  
   var loadGroup = Cc["@mozilla.org/network/load-group;1"]
                   .createInstance(Ci.nsILoadGroup);
   var chan = ios.newChannel("http://localhost/failme/", null, null)
@@ -108,11 +109,19 @@ function test_basic_NetworkZonePolicy_pref() {
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
 
   
-  chan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
+  
+  var docChan = ios.newChannel("http://localhost/failme/", null, null)
+             .QueryInterface(Ci.nsIHttpChannel);
+  docChan.loadGroup = loadGroup;
+  docChan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
 
-  nzp.setPrivateNetworkPermission(chan, false);
+  nzp.setPrivateNetworkPermission(docChan, false);
+  
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, false);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), false);
+  
+  
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
   prefs.setBoolPref("network.zonepolicy.enabled", false);
@@ -120,11 +129,13 @@ function test_basic_NetworkZonePolicy_pref() {
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, false);
   
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
   prefs.setBoolPref("network.zonepolicy.enabled", true);
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, false);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), false);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
 
@@ -151,11 +162,18 @@ function test_basic_NetworkZonePolicy_and_loadGroup() {
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
 
   
-  chan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
+  
+  var docChan = ios.newChannel("http://localhost/failme/", null, null)
+             .QueryInterface(Ci.nsIHttpChannel);
+  docChan.loadGroup = loadGroup;
+  docChan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
 
-  nzp.setPrivateNetworkPermission(chan, false);
+  nzp.setPrivateNetworkPermission(docChan, false);
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, false);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), false);
+  
+  
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   run_next_test();
 }
@@ -163,32 +181,34 @@ function test_basic_NetworkZonePolicy_and_loadGroup() {
 
 
 
-function test_loadGroup_and_ancestor(loadGroup, ancestor, chan) {
+function test_loadGroup_and_ancestor(loadGroup, ancestor, chan, docChan) {
   
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, true);
   do_check_eq(ancestor.allowLoadsFromPrivateNetworks, true);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
   nzp.setPrivateNetworkPermission(chan, false);
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, true);
   do_check_eq(ancestor.allowLoadsFromPrivateNetworks, true);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
   
-  chan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
-
-  nzp.setPrivateNetworkPermission(chan, false);
+  nzp.setPrivateNetworkPermission(docChan, false);
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, false);
   do_check_eq(ancestor.allowLoadsFromPrivateNetworks, true);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), false);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
-  nzp.setPrivateNetworkPermission(chan, true);
+  nzp.setPrivateNetworkPermission(docChan, true);
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, true);
   do_check_eq(ancestor.allowLoadsFromPrivateNetworks, true);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
   ancestor.allowLoadsFromPrivateNetworks = false;
@@ -196,14 +216,17 @@ function test_loadGroup_and_ancestor(loadGroup, ancestor, chan) {
   
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, true);
   
-  nzp.setPrivateNetworkPermission(chan, true);
+  nzp.setPrivateNetworkPermission(docChan, true);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), false);
+  
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), false);
 
   
   ancestor.allowLoadsFromPrivateNetworks = true;
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
-  nzp.setPrivateNetworkPermission(chan, false);
+  nzp.setPrivateNetworkPermission(docChan, false);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), false);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 }
 
 
@@ -217,12 +240,17 @@ function test_basic_NetworkZonePolicy_loadGroup_and_parent() {
              .QueryInterface(Ci.nsIHttpChannel);
   chan.loadGroup = loadGroup;
 
+  var docChan = ios.newChannel("http://localhost/failme/", null, null)
+             .QueryInterface(Ci.nsIHttpChannel);
+  docChan.loadGroup = loadGroup;
+  docChan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
+
   var parent = Cc["@mozilla.org/network/load-group;1"]
                .createInstance(Ci.nsILoadGroup);
   loadGroupAsChild.parentLoadGroup = parent;
   do_check_eq(parent, loadGroupAsChild.parentLoadGroup);
 
-  test_loadGroup_and_ancestor(loadGroup, parent, chan);
+  test_loadGroup_and_ancestor(loadGroup, parent, chan, docChan);
 
   run_next_test();
 }
@@ -237,12 +265,17 @@ function test_basic_NetworkZonePolicy_loadGroup_and_owner() {
              .QueryInterface(Ci.nsIHttpChannel);
   chan.loadGroup = loadGroup;
 
+  var docChan = ios.newChannel("http://localhost/failme/", null, null)
+             .QueryInterface(Ci.nsIHttpChannel);
+  docChan.loadGroup = loadGroup;
+  docChan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
+
   var owner = Cc["@mozilla.org/network/load-group;1"]
               .createInstance(Ci.nsILoadGroup);
   loadGroup.loadGroup = owner;
   do_check_eq(owner, loadGroup.loadGroup);
 
-  test_loadGroup_and_ancestor(loadGroup, owner, chan);
+  test_loadGroup_and_ancestor(loadGroup, owner, chan, docChan);
 
   run_next_test();
 }
@@ -265,14 +298,20 @@ function test_basic_NetworkZonePolicy_loadGroup_and_docshell() {
              .QueryInterface(Ci.nsIHttpChannel);
   chan.loadGroup = loadGroup;
 
-  test_loadGroup_and_ancestor(loadGroup, dsParent, chan);
+  
+  var docChan = ios.newChannel("http://localhost/failme/", null, null)
+             .QueryInterface(Ci.nsIHttpChannel);
+  docChan.loadGroup = loadGroup;
+  docChan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
+
+  test_loadGroup_and_ancestor(loadGroup, dsParent, chan, docChan);
 
   run_next_test();
 }
 
 
 
-function test_loadGroup_immediate_ancestors() {
+function test_loadGroup_immediate_ancestors(isInitialDocLoad) {
   
   var docShell = Cc["@mozilla.org/docshell;1"].createInstance(Ci.nsIDocShell);
   var docShellParent = Cc["@mozilla.org/docshell;1"]
@@ -301,11 +340,18 @@ function test_loadGroup_immediate_ancestors() {
   chan.loadGroup = loadGroup;
 
   
+  var docChan = ios.newChannel("http://localhost/failme/", null, null)
+             .QueryInterface(Ci.nsIHttpChannel);
+  docChan.loadGroup = loadGroup;
+  docChan.loadFlags |= Ci.nsIChannel.LOAD_DOCUMENT_URI;
+
+  
   do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, true);
   do_check_eq(dsParent.allowLoadsFromPrivateNetworks, true);
   do_check_eq(owner.allowLoadsFromPrivateNetworks, true);
   do_check_eq(parent.allowLoadsFromPrivateNetworks, true);
   do_check_eq(nzp.checkPrivateNetworkPermission(chan), true);
+  do_check_eq(nzp.checkPrivateNetworkPermission(docChan), true);
 
   
   for (var i = 0; i < 8; i++) {
@@ -313,7 +359,10 @@ function test_loadGroup_immediate_ancestors() {
     owner.allowLoadsFromPrivateNetworks = !!(i & 2);
     parent.allowLoadsFromPrivateNetworks = !!(i & 4);
     
+    do_check_eq(loadGroup.allowLoadsFromPrivateNetworks, true);
+    
     do_check_eq(nzp.checkPrivateNetworkPermission(chan), (i == 7));
+    do_check_eq(nzp.checkPrivateNetworkPermission(docChan), (i == 7));
   }
 
   run_next_test();
@@ -352,7 +401,6 @@ function test_single_loadGroup(allowPrivateLoads,
 
 
 function test_single_loadGroup_doc_load(allowPrivateLoads,
-                                        expectSuccessfulResponse,
                                         loadGroupAllowsAfter,
                                         urlStr) {
   
@@ -369,7 +417,7 @@ function test_single_loadGroup_doc_load(allowPrivateLoads,
   loadGroup.allowLoadsFromPrivateNetworks = allowPrivateLoads;
 
   
-  var listener = new Listener(expectSuccessfulResponse, loadGroupAllowsAfter);
+  var listener = new Listener(true, loadGroupAllowsAfter);
   chan.asyncOpen(listener, null);
 }
 
@@ -421,14 +469,10 @@ function test_private_cached_entry_same_network(privateLoadAllowed) {
 
 
 
-
 function test_private_cached_entry_same_network_doc_load(privateLoadAllowed) {
   var uri = uriBase + "/failme/";
   prime_cache_entry(uri, true, ios.networkLinkID, function() {
-    test_single_loadGroup_doc_load(privateLoadAllowed,
-                                   privateLoadAllowed,
-                                   privateLoadAllowed,
-                                   uri);
+    test_single_loadGroup_doc_load(privateLoadAllowed, true, uri);
   });
 }
 
@@ -454,12 +498,9 @@ function test_private_cached_entry_diff_network_doc_load(privateLoadAllowed) {
   
   
   
-  var uri = uriBase + (privateLoadAllowed ? "/passme/" : "/failme/");
+  var uri = uriBase + "/passme/";
   prime_cache_entry(uri, true, fakeNetworkID, function() {
-    test_single_loadGroup_doc_load(privateLoadAllowed,
-                                   privateLoadAllowed,
-                                   privateLoadAllowed,
-                                   uri);
+    test_single_loadGroup_doc_load(privateLoadAllowed, true, uri);
   });
 }
 
@@ -478,8 +519,12 @@ function test_public_cached_entry_doc_load(privateCacheEntryAllowed) {
   
   var uri = uriBase + "/failme/";
   prime_cache_entry(uri, false, null, function() {
-    test_single_loadGroup_doc_load(privateCacheEntryAllowed, true, false, uri);
+    test_single_loadGroup_doc_load(privateCacheEntryAllowed, false, uri);
   });
+}
+
+function test_public_to_private_navigation() {
+
 }
 
 
@@ -542,11 +587,21 @@ function setup_and_add_tests() {
     test_basic_NetworkZonePolicy_pref,
 
     
-    test_basic_NetworkZonePolicy_and_loadGroup,
+    function test_basic_NetworkZonePolicy_and_loadGroup_non_init_doc() {
+      test_basic_NetworkZonePolicy_and_loadGroup(false);
+    },
+    function test_basic_NetworkZonePolicy_and_loadGroup_init_doc() {
+      test_basic_NetworkZonePolicy_and_loadGroup(true);
+    },
     test_basic_NetworkZonePolicy_loadGroup_and_parent,
     test_basic_NetworkZonePolicy_loadGroup_and_owner,
     test_basic_NetworkZonePolicy_loadGroup_and_docshell,
-    test_loadGroup_immediate_ancestors,
+    function test_loadGroup_immediate_ancestors_non_init_doc() {
+      test_loadGroup_immediate_ancestors(false);
+    },
+    function test_loadGroup_immediate_ancestors_init_doc() {
+      test_loadGroup_immediate_ancestors(true);
+    },
 
     
     function test_network_private_allowed() {
@@ -556,9 +611,10 @@ function setup_and_add_tests() {
 
     
     function test_network_private_allowed_doc_load() {
-      test_single_loadGroup_doc_load(true, true, true, uriBase + "/passme/"); },
+      test_single_loadGroup_doc_load(true, true, uriBase + "/passme/"); },
     function test_network_private_forbidden_doc_load() {
-      test_single_loadGroup_doc_load(false, false, false, uriBase + "/failme/"); },
+      
+      test_single_loadGroup_doc_load(false, true, uriBase + "/passme/"); },
 
     
     function test_private_cache_same_network_private_allowed() {

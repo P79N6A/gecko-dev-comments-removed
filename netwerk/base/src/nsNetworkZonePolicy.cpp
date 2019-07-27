@@ -294,7 +294,18 @@ nsNetworkZonePolicy::CheckPrivateNetworkPermission(nsIRequest *aRequest,
   }
 
   
-  bool hierarchyAllows = CheckLoadGroupHierarchy(loadGroup);
+  
+  
+  bool hierarchyAllows = false;
+
+  nsLoadFlags flags;
+  aRequest->GetLoadFlags(&flags);
+  if (!(flags & nsIChannel::LOAD_DOCUMENT_URI)) {
+    hierarchyAllows = CheckLoadGroupHierarchy(loadGroup);
+  } else {
+    NZPLOG("Doc load Request %p [%s]", aRequest, nameStr.get());
+    hierarchyAllows = CheckLoadGroupAncestorHierarchies(loadGroup);
+  }
 
   NZPLOG("LoadGroup %p for request %p [%s] is %s private loads.",
          loadGroup.get(), aRequest, nameStr.get(),
