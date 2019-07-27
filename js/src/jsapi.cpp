@@ -115,10 +115,6 @@ using js::frontend::Parser;
 #define JS_ADDRESSOF_VA_LIST(ap) (&(ap))
 #endif
 
-
-JS_STATIC_ASSERT((char16_t)-1 > 0);
-JS_STATIC_ASSERT(sizeof(char16_t) == 2);
-
 bool
 JS::CallArgs::requireAtLeast(JSContext *cx, const char *fnname, unsigned required) {
     if (length() < required) {
