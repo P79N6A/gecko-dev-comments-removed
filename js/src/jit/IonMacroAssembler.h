@@ -183,7 +183,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     mozilla::Maybe<AutoRooter> autoRooter_;
     mozilla::Maybe<IonContext> ionContext_;
     mozilla::Maybe<AutoIonContextAlloc> alloc_;
-    bool embedsNurseryPointers_;
 
     
     mozilla::Maybe<IonInstrumentation> spsInstrumentation_;
@@ -206,8 +205,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     MacroAssembler()
-      : embedsNurseryPointers_(false),
-        sps_(nullptr)
+      : sps_(nullptr)
     {
         IonContext *icx = GetIonContext();
         JSContext *cx = icx->cx;
@@ -230,8 +228,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     explicit MacroAssembler(JSContext *cx, IonScript *ion = nullptr,
                             JSScript *script = nullptr, jsbytecode *pc = nullptr)
-      : embedsNurseryPointers_(false),
-        sps_(nullptr)
+      : sps_(nullptr)
     {
         constructRoot(cx);
         ionContext_.emplace(cx, (js::jit::TempAllocator *)nullptr);
@@ -257,8 +254,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     struct AsmJSToken {};
     explicit MacroAssembler(AsmJSToken)
-      : embedsNurseryPointers_(false),
-        sps_(nullptr)
+      : sps_(nullptr)
     {
 #ifdef JS_CODEGEN_ARM
         initWithAllocator();
@@ -286,10 +282,6 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     size_t instructionsSize() const {
         return size();
-    }
-
-    bool embedsNurseryPointers() const {
-        return embedsNurseryPointers_;
     }
 
     
@@ -703,10 +695,6 @@ class MacroAssembler : public MacroAssemblerSpecific
         align(8);
         bind(&done);
     }
-
-    void branchNurseryPtr(Condition cond, const Address &ptr1, ImmMaybeNurseryPtr ptr2,
-                          Label *label);
-    void moveNurseryPtr(ImmMaybeNurseryPtr ptr, Register reg);
 
     void canonicalizeDouble(FloatRegister reg) {
         Label notNaN;

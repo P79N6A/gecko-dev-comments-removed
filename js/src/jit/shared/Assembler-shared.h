@@ -198,9 +198,32 @@ struct PatchedImmPtr {
     { }
 };
 
+class AssemblerShared;
+class ImmGCPtr;
 
-struct ImmGCPtr
+
+class ImmMaybeNurseryPtr
 {
+    friend class AssemblerShared;
+    friend class ImmGCPtr;
+    const gc::Cell *value;
+
+    ImmMaybeNurseryPtr() : value(0) {}
+
+  public:
+    explicit ImmMaybeNurseryPtr(const gc::Cell *ptr) : value(ptr)
+    {
+        MOZ_ASSERT(!IsPoisonedPtr(ptr));
+
+        
+        MOZ_ASSERT(!IsCompilingAsmJS());
+    }
+};
+
+
+class ImmGCPtr
+{
+  public:
     const gc::Cell *value;
 
     explicit ImmGCPtr(const gc::Cell *ptr) : value(ptr)
@@ -212,17 +235,13 @@ struct ImmGCPtr
         MOZ_ASSERT(!IsCompilingAsmJS());
     }
 
-  protected:
+  private:
     ImmGCPtr() : value(0) {}
-};
 
-
-struct ImmMaybeNurseryPtr : public ImmGCPtr
-{
-    explicit ImmMaybeNurseryPtr(gc::Cell *ptr)
+    friend class AssemblerShared;
+    explicit ImmGCPtr(ImmMaybeNurseryPtr ptr) : value(ptr.value)
     {
-        this->value = ptr;
-        MOZ_ASSERT(!IsPoisonedPtr(ptr));
+        MOZ_ASSERT(!IsPoisonedPtr(ptr.value));
 
         
         MOZ_ASSERT(!IsCompilingAsmJS());
@@ -835,10 +854,12 @@ class AssemblerShared
 
   protected:
     bool enoughMemory_;
+    bool embedsNurseryPointers_;
 
   public:
     AssemblerShared()
-     : enoughMemory_(true)
+     : enoughMemory_(true),
+       embedsNurseryPointers_(false)
     {}
 
     void propagateOOM(bool success) {
@@ -847,6 +868,23 @@ class AssemblerShared
 
     bool oom() const {
         return !enoughMemory_;
+    }
+
+    bool embedsNurseryPointers() const {
+        return embedsNurseryPointers_;
+    }
+
+    ImmGCPtr noteMaybeNurseryPtr(ImmMaybeNurseryPtr ptr) {
+#ifdef JSGC_GENERATIONAL
+        if (ptr.value && gc::IsInsideNursery(ptr.value)) {
+            
+            
+            
+            MOZ_ASSERT(GetIonContext()->runtime->onMainThread());
+            embedsNurseryPointers_ = true;
+        }
+#endif
+        return ImmGCPtr(ptr);
     }
 
     void append(const CallSiteDesc &desc, size_t currentOffset, size_t framePushed) {
