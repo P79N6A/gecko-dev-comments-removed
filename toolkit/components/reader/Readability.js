@@ -95,7 +95,7 @@ Readability.prototype = {
   
   
   REGEXPS: {
-    unlikelyCandidates: /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i,
+    unlikelyCandidates: /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup/i,
     okMaybeItsACandidate: /and|article|body|column|main|shadow/i,
     positive: /article|body|content|entry|hentry|main|page|pagination|post|text|blog|story/i,
     negative: /hidden|combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget/i,
@@ -1454,6 +1454,29 @@ Readability.prototype = {
 
 
 
+
+
+  _hasAncestorTag: function(node, tagName, maxDepth) {
+    maxDepth = maxDepth || 3;
+    tagName = tagName.toUpperCase();
+    var depth = 0;
+    while (node.parentNode) {
+      if (depth > maxDepth)
+        return false;
+      if (node.parentNode.tagName === tagName)
+        return true;
+      node = node.parentNode;
+      depth++;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
   _cleanConditionally: function(e, tag) {
     if (!this._flagIsActive(this.FLAG_CLEAN_CONDITIONALLY))
       return;
@@ -1493,8 +1516,7 @@ Readability.prototype = {
         var linkDensity = this._getLinkDensity(tagsList[i]);
         var contentLength = this._getInnerText(tagsList[i]).length;
         var toRemove = false;
-
-        if (img > p) {
+        if (img > p && !this._hasAncestorTag(tagsList[i], "figure")) {
           toRemove = true;
         } else if (li > p && tag !== "ul" && tag !== "ol") {
           toRemove = true;
@@ -1510,8 +1532,9 @@ Readability.prototype = {
           toRemove = true;
         }
 
-        if (toRemove)
+        if (toRemove) {
           tagsList[i].parentNode.removeChild(tagsList[i]);
+        }
       }
     }
   },

@@ -615,6 +615,7 @@
         this.childNodes[i].parentNode = null;
       }
       this.childNodes = node.childNodes;
+      this.children = node.children;
       for (var i = this.childNodes.length; --i >= 0;) {
         this.childNodes[i].parentNode = this;
       }
@@ -628,6 +629,7 @@
 
       var node = new Text();
       this.childNodes = [ node ];
+      this.children = [];
       node.textContent = text;
       node.parentNode = this;
     },
@@ -924,14 +926,59 @@
     },
 
     readScript: function (node) {
-      var index = this.html.indexOf("</script>", this.currentChar);
-      if (index === -1) {
-        index = this.html.length;
+      while (this.currentChar < this.html.length) {
+        var c = this.nextChar();
+        var nextC = this.peekNext();
+        if (c === "<") {
+          if (nextC === "!" || nextC === "?") {
+            
+            this.currentChar++;
+            node.appendChild(this.discardNextComment());
+            continue;
+          }
+          if (nextC === "/" && this.html.substr(this.currentChar, 8 ).toLowerCase() == "/script>") {
+            
+            this.currentChar--;
+            
+            return;
+          }
+        }
+        
+        
+        
+
+        var haveTextNode = node.lastChild && node.lastChild.nodeType === Node.TEXT_NODE;
+        var textNode = haveTextNode ? node.lastChild : new Text();
+        var n = this.html.indexOf("<", this.currentChar);
+        
+        
+        this.currentChar--;
+        if (n === -1) {
+          textNode.textContent += this.html.substring(this.currentChar, this.html.length);
+          this.currentChar = this.html.length;
+        } else {
+          textNode.textContent += this.html.substring(this.currentChar, n);
+          this.currentChar = n;
+        }
+        if (!haveTextNode)
+          node.appendChild(textNode);
       }
-      var txt = new Text();
-      txt.textContent = this.html.substring(this.currentChar, index === -1 ? this.html.length : index);
-      node.appendChild(txt);
-      this.currentChar = index;
+    },
+
+    discardNextComment: function() {
+      if (this.match("--")) {
+        this.discardTo("-->");
+      } else {
+        var c = this.nextChar();
+        while (c !== ">") {
+          if (c === undefined)
+            return null;
+          if (c === '"' || c === "'")
+            this.readString(c);
+          c = this.nextChar();
+        }
+      }
+      return new Comment();
     },
 
 
@@ -969,20 +1016,9 @@
       
       
       if (c === "!" || c === "?") {
+        
         this.currentChar++;
-        if (this.match("--")) {
-          this.discardTo("-->");
-        } else {
-          var c = this.nextChar();
-          while (c !== ">") {
-            if (c === undefined)
-              return null;
-            if (c === '"' || c === "'")
-              this.readString(c);
-            c = this.nextChar();
-          }
-        }
-        return new Comment();
+        return this.discardNextComment();
       }
 
       
