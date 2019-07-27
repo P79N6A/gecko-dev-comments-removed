@@ -80,10 +80,22 @@ class AutoIdVector;
 class ObjectOpResult
 {
   private:
-    uint32_t code_;
+    
+
+
+
+
+
+
+
+
+    uintptr_t code_;
 
   public:
-    enum { OkCode = 0, Uninitialized = 0xffffffff };
+    enum SpecialCodes : uintptr_t {
+        OkCode = 0,
+        Uninitialized = uintptr_t(-1)
+    };
 
     ObjectOpResult() : code_(Uninitialized) {}
 
@@ -129,7 +141,7 @@ class ObjectOpResult
 
     uint32_t failureCode() const {
         MOZ_ASSERT(!ok());
-        return code_;
+        return uint32_t(code_);
     }
 
     
