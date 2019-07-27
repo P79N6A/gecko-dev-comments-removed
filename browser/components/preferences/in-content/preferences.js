@@ -85,10 +85,6 @@ function init_all() {
   Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
 }
 
-window.addEventListener("unload", function onUnload() {
-  gSubDialog.uninit();
-});
-
 
 function init_dynamic_padding() {
   let categories = document.getElementById("categories");
