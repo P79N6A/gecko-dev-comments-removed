@@ -460,6 +460,8 @@ TimerThread::AddTimerInternal(nsTimerImpl* aTimer)
   NS_ADDREF(aTimer);
 
 #ifdef MOZ_TASK_TRACER
+  
+  
   aTimer->DispatchTracedTask();
 #endif
 
