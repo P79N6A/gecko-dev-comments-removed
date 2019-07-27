@@ -188,10 +188,6 @@ let LoopRoomsInternal = {
           if (orig) {
             checkForParticipantsUpdate(orig, room);
           }
-          
-          if ("currSize" in room) {
-            delete room.currSize;
-          }
 
           this.rooms.set(room.roomToken, room);
 
