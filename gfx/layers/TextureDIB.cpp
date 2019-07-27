@@ -145,6 +145,12 @@ DIBTextureHost::BindTextureSource(CompositableTextureSourceRef& aTexture)
 void
 DIBTextureHost::Updated(const nsIntRegion* aRegion)
 {
+  if (!mCompositor) {
+    
+    
+    return;
+  }
+
   if (!mTextureSource) {
     mTextureSource = mCompositor->CreateDataTextureSource(mFlags);
   }
