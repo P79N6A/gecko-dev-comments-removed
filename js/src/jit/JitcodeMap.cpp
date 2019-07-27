@@ -13,6 +13,41 @@
 
 namespace js {
 namespace jit {
+ 
+bool
+JitcodeGlobalEntry::MainEntry::callStackAtAddr(void *ptr, BytecodeLocationVector &results,
+                                               uint32_t *depth) const
+{
+    JS_ASSERT(containsPointer(ptr));
+    uint32_t ptrOffset = reinterpret_cast<uint8_t *>(ptr) -
+                         reinterpret_cast<uint8_t *>(nativeStartAddr());
+
+    uint32_t regionIdx = regionTable()->findRegionEntry(ptrOffset);
+    JS_ASSERT(regionIdx < regionTable()->numRegions());
+
+    JitcodeRegionEntry region = regionTable()->regionEntry(regionIdx);
+    *depth = region.scriptDepth();
+
+    JitcodeRegionEntry::ScriptPcIterator locationIter = region.scriptPcIterator();
+    JS_ASSERT(locationIter.hasMore());
+    bool first = true;
+    while (locationIter.hasMore()) {
+        uint32_t scriptIdx, pcOffset;
+        locationIter.readNext(&scriptIdx, &pcOffset);
+        
+        
+        if (first) {
+            pcOffset = region.findPcOffset(ptrOffset, pcOffset);
+            first = false;
+        }
+        JSScript *script = getScript(scriptIdx);
+        jsbytecode *pc = script->offsetToPC(pcOffset);
+        if (!results.append(BytecodeLocation(script, pc)))
+            return false;
+    }
+
+    return true;
+}
 
 void
 JitcodeGlobalEntry::MainEntry::destroy()
@@ -430,6 +465,82 @@ JitcodeRegionEntry::unpack()
     }
 
     deltaRun_ = reader.currentPosition();
+}
+
+uint32_t
+JitcodeRegionEntry::findPcOffset(uint32_t queryNativeOffset, uint32_t startPcOffset) const
+{
+    DeltaIterator iter = deltaIterator();
+    uint32_t curNativeOffset = nativeOffset();
+    uint32_t curPcOffset = startPcOffset;
+    while (iter.hasMore()) {
+        uint32_t nativeDelta;
+        int32_t pcDelta;
+        iter.readNext(&nativeDelta, &pcDelta);
+
+        
+        
+        
+        if (queryNativeOffset <= curNativeOffset + nativeDelta)
+            break;
+        curNativeOffset += nativeDelta;
+        curPcOffset += pcDelta;
+    }
+    return curPcOffset;
+}
+
+uint32_t
+JitcodeMainTable::findRegionEntry(uint32_t nativeOffset) const
+{
+    static const uint32_t LINEAR_SEARCH_THRESHOLD = 8;
+    uint32_t regions = numRegions();
+    JS_ASSERT(regions > 0);
+
+    
+    if (regions <= LINEAR_SEARCH_THRESHOLD) {
+        JitcodeRegionEntry previousEntry = regionEntry(0);
+        for (uint32_t i = 1; i < regions; i++) {
+            JitcodeRegionEntry nextEntry = regionEntry(i);
+            JS_ASSERT(nextEntry.nativeOffset() >= previousEntry.nativeOffset());
+
+            
+            
+            
+            if (nativeOffset <= nextEntry.nativeOffset())
+                return i-1;
+
+            previousEntry = nextEntry;
+        }
+        
+        return regions - 1;
+    }
+
+    
+    uint32_t idx = 0;
+    uint32_t count = regions;
+    while (count > 1) {
+        uint32_t step = count/2;
+        uint32_t mid = idx + step;
+        JitcodeRegionEntry midEntry = regionEntry(mid);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (nativeOffset <= midEntry.nativeOffset()) {
+            
+            count = step;
+        } else { 
+            
+            idx = mid;
+            count -= step;
+        }
+    }
+    return idx;
 }
 
  bool
