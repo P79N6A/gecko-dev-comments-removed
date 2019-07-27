@@ -17,7 +17,7 @@ public:
   virtual ~WMFDecoderModule();
 
   
-  nsresult Startup();
+  virtual nsresult Startup() MOZ_OVERRIDE;
 
   
   virtual nsresult Shutdown() MOZ_OVERRIDE;

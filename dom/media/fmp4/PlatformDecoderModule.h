@@ -67,6 +67,12 @@ public:
   
   
   static already_AddRefed<PlatformDecoderModule> Create();
+  
+  static already_AddRefed<PlatformDecoderModule> CreatePDM();
+
+  
+  
+  virtual nsresult Startup() { return NS_OK; };
 
 #ifdef MOZ_EME
   
