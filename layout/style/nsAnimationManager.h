@@ -9,6 +9,7 @@
 #include "mozilla/ContentEvents.h"
 #include "AnimationCommon.h"
 #include "nsCSSPseudoElements.h"
+#include "mozilla/dom/AnimationPlayer.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
 
@@ -18,8 +19,7 @@ class nsStyleContext;
 namespace mozilla {
 namespace css {
 class Declaration;
-}
-}
+} 
 
 struct AnimationEventInfo {
   nsRefPtr<mozilla::dom::Element> mElement;
@@ -48,6 +48,85 @@ struct AnimationEventInfo {
 };
 
 typedef InfallibleTArray<AnimationEventInfo> EventArray;
+
+class CSSAnimationPlayer MOZ_FINAL : public dom::AnimationPlayer
+{
+public:
+ explicit CSSAnimationPlayer(dom::AnimationTimeline* aTimeline)
+    : dom::AnimationPlayer(aTimeline)
+    , mIsStylePaused(false)
+    , mPauseShouldStick(false)
+  {
+  }
+
+  virtual CSSAnimationPlayer*
+  AsCSSAnimationPlayer() MOZ_OVERRIDE { return this; }
+
+  virtual void Play(UpdateFlags aUpdateFlags) MOZ_OVERRIDE;
+  virtual void Pause(UpdateFlags aUpdateFlags) MOZ_OVERRIDE;
+
+  void PlayFromStyle();
+  void PauseFromStyle();
+
+  bool IsStylePaused() const { return mIsStylePaused; }
+
+protected:
+  virtual ~CSSAnimationPlayer() { }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mIsStylePaused;
+  bool mPauseShouldStick;
+};
+
+} 
 
 class nsAnimationManager MOZ_FINAL
   : public mozilla::css::CommonAnimationManager
@@ -81,7 +160,7 @@ public:
                             mozilla::TimeStamp aRefreshTime,
                             mozilla::EnsureStyleRuleFlags aFlags);
   void GetEventsForCurrentTime(mozilla::AnimationPlayerCollection* aEA,
-                               EventArray &aEventsToDispatch);
+                               mozilla::EventArray &aEventsToDispatch);
 
   
   virtual void RulesMatching(ElementRuleProcessorData* aData) MOZ_OVERRIDE;
@@ -164,7 +243,7 @@ private:
   
   void DoDispatchEvents();
 
-  EventArray mPendingEvents;
+  mozilla::EventArray mPendingEvents;
 
   bool mObservingRefreshDriver;
 };
