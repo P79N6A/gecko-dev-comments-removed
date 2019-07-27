@@ -682,22 +682,20 @@ gfxUtils::ImageFormatToDepth(gfxImageFormat aFormat)
 }
 
 static void
-PathFromRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion,
-                       bool aSnap)
+PathFromRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion)
 {
   aContext->NewPath();
   nsIntRegionRectIterator iter(aRegion);
   const nsIntRect* r;
   while ((r = iter.Next()) != nullptr) {
-    aContext->Rectangle(gfxRect(r->x, r->y, r->width, r->height), aSnap);
+    aContext->Rectangle(gfxRect(r->x, r->y, r->width, r->height));
   }
 }
 
 static void
-ClipToRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion,
-                     bool aSnap)
+ClipToRegionInternal(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  PathFromRegionInternal(aContext, aRegion, aSnap);
+  PathFromRegionInternal(aContext, aRegion);
   aContext->Clip();
 }
 
@@ -735,19 +733,13 @@ ClipToRegionInternal(DrawTarget* aTarget, const nsIntRegion& aRegion)
  void
 gfxUtils::ClipToRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  ClipToRegionInternal(aContext, aRegion, false);
+  ClipToRegionInternal(aContext, aRegion);
 }
 
  void
 gfxUtils::ClipToRegion(DrawTarget* aTarget, const nsIntRegion& aRegion)
 {
   ClipToRegionInternal(aTarget, aRegion);
-}
-
- void
-gfxUtils::ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
-{
-  ClipToRegionInternal(aContext, aRegion, true);
 }
 
  gfxFloat
@@ -796,13 +788,7 @@ gfxUtils::ClampToScaleFactor(gfxFloat aVal)
  void
 gfxUtils::PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion)
 {
-  PathFromRegionInternal(aContext, aRegion, false);
-}
-
- void
-gfxUtils::PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion)
-{
-  PathFromRegionInternal(aContext, aRegion, true);
+  PathFromRegionInternal(aContext, aRegion);
 }
 
 gfxMatrix

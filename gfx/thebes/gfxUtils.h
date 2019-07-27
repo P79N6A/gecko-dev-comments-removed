@@ -98,17 +98,7 @@ public:
     
 
 
-    static void ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
-
-    
-
-
     static void PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion);
-
-    
-
-
-    static void PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
 
     
 
