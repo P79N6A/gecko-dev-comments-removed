@@ -753,7 +753,22 @@ gfx3DMatrix::ProjectTo2D()
   return *this;
 }
 
-gfxPoint gfx3DMatrix::ProjectPoint(const gfxPoint& aPoint) const
+gfxPointH3D gfx3DMatrix::ProjectPoint(const gfxPoint& aPoint) const
+{
+  
+
+  
+  
+
+  
+  float z = -(aPoint.x * _13 + aPoint.y * _23 + _43) / _33;
+
+  
+  return Transform4D(gfxPointH3D(aPoint.x, aPoint.y, z, 1));
+}
+
+gfxPointH3D ComputePerspectivePlaneIntercept(const gfxPointH3D& aFirst,
+                                             const gfxPointH3D& aSecond)
 {
   
   
@@ -762,78 +777,62 @@ gfxPoint gfx3DMatrix::ProjectPoint(const gfxPoint& aPoint) const
   
   
   
-  
-  
-  gfxPoint3D p(aPoint.x, aPoint.y, 0);
-  gfxPoint3D q(aPoint.x, aPoint.y, 1);
 
   
   
-  gfxPoint3D pback = Transform3D(p);
-  gfxPoint3D qback = Transform3D(q);
-  gfxPoint3D uback = qback - pback;
+  float w = 0.00001f;
+  float t = (w - aFirst.w) / (aSecond.w - aFirst.w);
 
   
-  
-  
-  float t = -pback.z / uback.z;
-
-  gfxPoint result(pback.x + t*uback.x, pback.y + t*uback.y);
-
-  return result;
+  return aFirst + (aSecond - aFirst) * t;
 }
 
 gfxRect gfx3DMatrix::ProjectRectBounds(const gfxRect& aRect) const
 {
-  gfxPoint points[4];
+  gfxPointH3D points[4];
 
   points[0] = ProjectPoint(aRect.TopLeft());
   points[1] = ProjectPoint(aRect.TopRight());
   points[2] = ProjectPoint(aRect.BottomLeft());
   points[3] = ProjectPoint(aRect.BottomRight());
 
-  gfxFloat min_x, max_x;
-  gfxFloat min_y, max_y;
+  gfxFloat min_x = std::numeric_limits<gfxFloat>::max();
+  gfxFloat min_y = std::numeric_limits<gfxFloat>::max();
+  gfxFloat max_x = -std::numeric_limits<gfxFloat>::max();
+  gfxFloat max_y = -std::numeric_limits<gfxFloat>::max();
 
-  min_x = max_x = points[0].x;
-  min_y = max_y = points[0].y;
+  bool foundPoint = false;
+  for (int i=0; i<4; i++) {
+    
+    if (points[i].HasPositiveWCoord()) {
+      foundPoint = true;
+      gfxPoint point2d = points[i].As2DPoint();
+      min_x = min(point2d.x, min_x);
+      max_x = max(point2d.x, max_x);
+      min_y = min(point2d.y, min_y);
+      max_y = max(point2d.y, max_y);
+    }
 
-  for (int i=1; i<4; i++) {
-    min_x = min(points[i].x, min_x);
-    max_x = max(points[i].x, max_x);
-    min_y = min(points[i].y, min_y);
-    max_y = max(points[i].y, max_y);
+    int next = (i == 3) ? 0 : i + 1;
+    if (points[i].HasPositiveWCoord() != points[next].HasPositiveWCoord()) {
+      
+      
+      gfxPointH3D intercept = ComputePerspectivePlaneIntercept(points[i], points[next]);
+      MOZ_ASSERT(intercept.HasPositiveWCoord());
+
+      gfxPoint point2d = intercept.As2DPoint();
+      min_x = min(point2d.x, min_x);
+      max_x = max(point2d.x, max_x);
+      min_y = min(point2d.y, min_y);
+      max_y = max(point2d.y, max_y);
+    }
+  }
+
+  if (!foundPoint) {
+    return gfxRect(0, 0, 0, 0);
   }
 
   return gfxRect(min_x, min_y, max_x - min_x, max_y - min_y);
-}
-
-gfxRect gfx3DMatrix::UntransformBounds(const gfxRect& aRect, const gfxRect& aChildBounds) const
-{
-  if (Is2D()) {
-    return Inverse().TransformBounds(aRect);
-  }
-  gfxRect bounds = TransformBounds(aChildBounds);
-
-  gfxRect rect = aRect.Intersect(bounds);
-
-  return Inverse().ProjectRectBounds(rect);
-}
-
-bool gfx3DMatrix::UntransformPoint(const gfxPoint& aPoint, const gfxRect& aChildBounds, gfxPoint* aOut) const
-{
-  if (Is2D()) {
-    *aOut = Inverse().Transform(aPoint);
-    return true;
-  }
-  gfxRect bounds = TransformBounds(aChildBounds);
-
-  if (!bounds.Contains(aPoint)) {
-    return false;
-  }
-
-  *aOut = Inverse().ProjectPoint(aPoint);
-  return true;
 }
 
 gfxPoint3D gfx3DMatrix::GetNormalVector() const

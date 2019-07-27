@@ -247,28 +247,12 @@ public:
   gfxPointH3D Transform4D(const gfxPointH3D& aPoint) const;
   gfxPointH3D TransposeTransform4D(const gfxPointH3D& aPoint) const;
 
-  gfxPoint ProjectPoint(const gfxPoint& aPoint) const;
+  
+
+
+
+  gfxPointH3D ProjectPoint(const gfxPoint& aPoint) const;
   gfxRect ProjectRectBounds(const gfxRect& aRect) const;
-
-  
-
-
-
-
-
-
-
-
-
-  bool UntransformPoint(const gfxPoint& aPoint, const gfxRect& aChildBounds, gfxPoint* aOut) const;
-
-
-  
-
-
-
-  gfxRect UntransformBounds(const gfxRect& aRect, const gfxRect& aChildBounds) const;
-
 
   
 

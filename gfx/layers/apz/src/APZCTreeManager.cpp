@@ -1084,7 +1084,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
   
   
   
-  gfxPoint hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
+  gfxPointH3D hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
   APZCTM_LOG("Untransformed %f %f to transient coordinates %f %f for hit-testing APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
            hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
@@ -1096,7 +1096,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
   gfx3DMatrix childUntransform = ancestorUntransform
                                * aApzc->GetCSSTransform().Inverse()
                                * gfx3DMatrix(aApzc->GetCurrentAsyncTransform()).Inverse();
-  gfxPoint hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
+  gfxPointH3D hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
   APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
            hitTestPointForChildLayers.x, hitTestPointForChildLayers.y, aApzc);
@@ -1104,14 +1104,17 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
   AsyncPanZoomController* result = nullptr;
   
   
-  for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
-    AsyncPanZoomController* match = GetAPZCAtPoint(child, hitTestPointForChildLayers, aOutInOverscrolledApzc);
-    if (match) {
-      result = match;
-      break;
+  if (hitTestPointForChildLayers.HasPositiveWCoord()) {
+    for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
+      AsyncPanZoomController* match = GetAPZCAtPoint(child, hitTestPointForChildLayers.As2DPoint(), aOutInOverscrolledApzc);
+      if (match) {
+        result = match;
+        break;
+      }
     }
   }
-  if (!result && aApzc->VisibleRegionContains(ViewAs<ParentLayerPixel>(hitTestPointForThisLayer))) {
+  if (!result && hitTestPointForThisLayer.HasPositiveWCoord() &&
+      aApzc->VisibleRegionContains(ViewAs<ParentLayerPixel>(hitTestPointForThisLayer.As2DPoint()))) {
     APZCTM_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n",
              hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
     result = aApzc;
