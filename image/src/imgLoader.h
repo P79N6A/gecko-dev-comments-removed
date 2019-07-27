@@ -329,8 +329,8 @@ public:
   
   
   
-  bool SetHasNoProxies(ImageURL *key, imgCacheEntry *entry);
-  bool SetHasProxies(ImageURL *key);
+  bool SetHasNoProxies(imgRequest *aRequest, imgCacheEntry *aEntry);
+  bool SetHasProxies(imgRequest *aRequest);
 
 private: 
 
