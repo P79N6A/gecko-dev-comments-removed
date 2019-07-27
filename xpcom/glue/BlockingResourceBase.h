@@ -46,7 +46,7 @@ template <class T> class DeadlockDetector;
 
 
 
-class NS_COM_GLUE BlockingResourceBase
+class BlockingResourceBase
 {
 public:
   

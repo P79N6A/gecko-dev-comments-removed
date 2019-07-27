@@ -24,7 +24,7 @@ namespace mozilla {
 
 
 
-class NS_COM_GLUE CondVar : BlockingResourceBase
+class CondVar : BlockingResourceBase
 {
 public:
   

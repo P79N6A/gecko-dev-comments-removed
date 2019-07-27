@@ -57,9 +57,6 @@
 #define NS_HIDDEN           NS_VISIBILITY_HIDDEN
 #define NS_EXTERNAL_VIS     NS_VISIBILITY_DEFAULT
 
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY
-
 
 
 
@@ -127,7 +124,7 @@
 #define NS_IMPORT_(type) NS_EXTERNAL_VIS_(type)
 #define NS_EXPORT NS_EXTERNAL_VIS
 #define NS_EXPORT_(type) NS_EXTERNAL_VIS_(type)
-#define NS_IMETHOD_(type) virtual IMETHOD_VISIBILITY type
+#define NS_IMETHOD_(type) virtual type
 #define NS_IMETHODIMP_(type) type
 #define NS_METHOD_(type) type
 #define NS_CALLBACK_(_type, _name) _type (* _name)
@@ -207,8 +204,7 @@
 #endif
 
 #ifdef MOZILLA_INTERNAL_API
-#  define NS_COM_GLUE
-
+   
 
 
 
@@ -217,12 +213,6 @@
 
 #  define nsAString nsAString_internal
 #  define nsACString nsACString_internal
-#else
-#  ifdef HAVE_VISIBILITY_ATTRIBUTE
-#    define NS_COM_GLUE NS_VISIBILITY_HIDDEN
-#  else
-#    define NS_COM_GLUE
-#  endif
 #endif
 
 #if (defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING))

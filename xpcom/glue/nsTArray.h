@@ -227,7 +227,7 @@ struct nsTArrayInfallibleAllocator : nsTArrayInfallibleAllocatorBase
 
 
 
-struct NS_COM_GLUE nsTArrayHeader
+struct nsTArrayHeader
 {
   static nsTArrayHeader sEmptyHdr;
 

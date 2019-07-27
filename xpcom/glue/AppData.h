@@ -16,7 +16,7 @@ namespace mozilla {
 
 
 
-class NS_COM_GLUE ScopedAppData : public nsXREAppData
+class ScopedAppData : public nsXREAppData
 {
 public:
   ScopedAppData()

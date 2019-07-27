@@ -34,7 +34,7 @@ namespace mozilla {
 
 
 
-class NS_COM_GLUE OffTheBooksMutex : BlockingResourceBase
+class OffTheBooksMutex : BlockingResourceBase
 {
 public:
   
@@ -117,7 +117,7 @@ private:
 
 
 
-class NS_COM_GLUE Mutex : public OffTheBooksMutex
+class Mutex : public OffTheBooksMutex
 {
 public:
   explicit Mutex(const char* aName)
@@ -145,7 +145,7 @@ private:
 
 
 template<typename T>
-class NS_COM_GLUE MOZ_STACK_CLASS BaseAutoLock
+class MOZ_STACK_CLASS BaseAutoLock
 {
 public:
   
@@ -191,7 +191,7 @@ typedef BaseAutoLock<OffTheBooksMutex> OffTheBooksMutexAutoLock;
 
 
 template<typename T>
-class NS_COM_GLUE MOZ_STACK_CLASS BaseAutoUnlock
+class MOZ_STACK_CLASS BaseAutoUnlock
 {
 public:
   explicit BaseAutoUnlock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)

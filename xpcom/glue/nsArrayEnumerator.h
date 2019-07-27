@@ -17,7 +17,7 @@ class nsCOMArray_base;
 
 
 
-NS_COM_GLUE nsresult
+nsresult
 NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
                       nsIArray* aArray);
 
@@ -25,7 +25,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
 
 
 
-NS_COM_GLUE nsresult
+nsresult
 NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
                       const nsCOMArray_base& aArray);
 

@@ -19,10 +19,10 @@
 #include <new>
 
 
-NS_COM_GLUE PLDHashOperator PL_DHashStubEnumRemove(PLDHashTable* aTable,
-                                                   PLDHashEntryHdr* aEntry,
-                                                   uint32_t aOrdinal,
-                                                   void* aUserArg);
+PLDHashOperator PL_DHashStubEnumRemove(PLDHashTable* aTable,
+                                       PLDHashEntryHdr* aEntry,
+                                       uint32_t aOrdinal,
+                                       void* aUserArg);
 
 
 

@@ -34,7 +34,7 @@ namespace mozilla {
 
 
 
-class NS_COM_GLUE ReentrantMonitor : BlockingResourceBase
+class ReentrantMonitor : BlockingResourceBase
 {
 public:
   
@@ -163,7 +163,7 @@ private:
 
 
 
-class NS_COM_GLUE MOZ_STACK_CLASS ReentrantMonitorAutoEnter
+class MOZ_STACK_CLASS ReentrantMonitorAutoEnter
 {
 public:
   

@@ -93,7 +93,7 @@ typedef Scoped<ScopedCloseFileTraits> ScopedCloseFile;
 
 
 
-NS_COM_GLUE bool fallocate(PRFileDesc* aFD, int64_t aLength);
+bool fallocate(PRFileDesc* aFD, int64_t aLength);
 
 
 
@@ -102,7 +102,7 @@ NS_COM_GLUE bool fallocate(PRFileDesc* aFD, int64_t aLength);
 
 
 
-NS_COM_GLUE void ReadAheadLib(nsIFile* aFile);
+void ReadAheadLib(nsIFile* aFile);
 
 
 
@@ -115,9 +115,9 @@ NS_COM_GLUE void ReadAheadLib(nsIFile* aFile);
 
 
 
-NS_COM_GLUE void ReadAheadFile(nsIFile* aFile, const size_t aOffset = 0,
-                               const size_t aCount = SIZE_MAX,
-                               filedesc_t* aOutFd = nullptr);
+void ReadAheadFile(nsIFile* aFile, const size_t aOffset = 0,
+                   const size_t aCount = SIZE_MAX,
+                   filedesc_t* aOutFd = nullptr);
 
 #endif 
 
@@ -128,7 +128,7 @@ NS_COM_GLUE void ReadAheadFile(nsIFile* aFile, const size_t aOffset = 0,
 
 
 
-NS_COM_GLUE void ReadAheadLib(pathstr_t aFilePath);
+void ReadAheadLib(pathstr_t aFilePath);
 
 
 
@@ -141,9 +141,9 @@ NS_COM_GLUE void ReadAheadLib(pathstr_t aFilePath);
 
 
 
-NS_COM_GLUE void ReadAheadFile(pathstr_t aFilePath, const size_t aOffset = 0,
-                               const size_t aCount = SIZE_MAX,
-                               filedesc_t* aOutFd = nullptr);
+void ReadAheadFile(pathstr_t aFilePath, const size_t aOffset = 0,
+                   const size_t aCount = SIZE_MAX,
+                   filedesc_t* aOutFd = nullptr);
 
 
 
@@ -157,8 +157,8 @@ NS_COM_GLUE void ReadAheadFile(pathstr_t aFilePath, const size_t aOffset = 0,
 
 
 
-NS_COM_GLUE void ReadAhead(filedesc_t aFd, const size_t aOffset = 0,
-                           const size_t aCount = SIZE_MAX);
+void ReadAhead(filedesc_t aFd, const size_t aOffset = 0,
+               const size_t aCount = SIZE_MAX);
 
 
 

@@ -402,16 +402,16 @@ typedef void (*StderrCallback)(const char* aFmt, va_list aArgs);
 extern "C" {
 #endif
 
-NS_COM_GLUE void printf_stderr(const char* aFmt, ...);
+void printf_stderr(const char* aFmt, ...);
 
-NS_COM_GLUE void vprintf_stderr(const char* aFmt, va_list aArgs);
-
-
-NS_COM_GLUE void fprintf_stderr(FILE* aFile, const char* aFmt, ...);
+void vprintf_stderr(const char* aFmt, va_list aArgs);
 
 
+void fprintf_stderr(FILE* aFile, const char* aFmt, ...);
 
-NS_COM_GLUE void set_stderr_callback(StderrCallback aCallback);
+
+
+void set_stderr_callback(StderrCallback aCallback);
 
 #ifdef __cplusplus
 }

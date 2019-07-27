@@ -18,7 +18,7 @@
 
 
 
-class NS_COM_GLUE nsCOMArray_base
+class nsCOMArray_base
 {
   friend class nsArrayBase;
 protected:

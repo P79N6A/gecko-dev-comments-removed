@@ -26,15 +26,14 @@
 
 
 
-extern NS_COM_GLUE void NS_SetThreadName(nsIThread* aThread,
-                                         const nsACString& aName);
+extern void NS_SetThreadName(nsIThread* aThread, const nsACString& aName);
 
 
 
 
 
 template<size_t LEN>
-inline NS_COM_GLUE void
+inline void
 NS_SetThreadName(nsIThread* aThread, const char (&aName)[LEN])
 {
   static_assert(LEN <= 16,
@@ -55,7 +54,7 @@ NS_SetThreadName(nsIThread* aThread, const char (&aName)[LEN])
 
 
 
-extern NS_COM_GLUE NS_METHOD
+extern NS_METHOD
 NS_NewThread(nsIThread** aResult,
              nsIRunnable* aInitialEvent = nullptr,
              uint32_t aStackSize = nsIThreadManager::DEFAULT_STACK_SIZE);
@@ -93,7 +92,7 @@ NS_NewNamedThread(const char (&aName)[LEN],
 
 
 
-extern NS_COM_GLUE NS_METHOD NS_GetCurrentThread(nsIThread** aResult);
+extern NS_METHOD NS_GetCurrentThread(nsIThread** aResult);
 
 
 
@@ -104,7 +103,7 @@ extern NS_COM_GLUE NS_METHOD NS_GetCurrentThread(nsIThread** aResult);
 
 
 
-extern NS_COM_GLUE NS_METHOD NS_DispatchToCurrentThread(nsIRunnable* aEvent);
+extern NS_METHOD NS_DispatchToCurrentThread(nsIRunnable* aEvent);
 
 
 
@@ -117,7 +116,7 @@ extern NS_COM_GLUE NS_METHOD NS_DispatchToCurrentThread(nsIRunnable* aEvent);
 
 
 
-extern NS_COM_GLUE NS_METHOD
+extern NS_METHOD
 NS_DispatchToMainThread(nsIRunnable* aEvent,
                         uint32_t aDispatchFlags = NS_DISPATCH_NORMAL);
 
@@ -137,7 +136,7 @@ NS_DispatchToMainThread(nsIRunnable* aEvent,
 
 
 
-extern NS_COM_GLUE NS_METHOD
+extern NS_METHOD
 NS_ProcessPendingEvents(nsIThread* aThread,
                         PRIntervalTime aTimeout = PR_INTERVAL_NO_TIMEOUT);
 #endif
@@ -156,7 +155,7 @@ NS_ProcessPendingEvents(nsIThread* aThread,
 
 
 
-extern NS_COM_GLUE bool NS_HasPendingEvents(nsIThread* aThread = nullptr);
+extern bool NS_HasPendingEvents(nsIThread* aThread = nullptr);
 
 
 
@@ -175,8 +174,8 @@ extern NS_COM_GLUE bool NS_HasPendingEvents(nsIThread* aThread = nullptr);
 
 
 
-extern NS_COM_GLUE bool NS_ProcessNextEvent(nsIThread* aThread = nullptr,
-                                            bool aMayWait = true);
+extern bool NS_ProcessNextEvent(nsIThread* aThread = nullptr,
+                                bool aMayWait = true);
 
 
 
@@ -204,18 +203,15 @@ do_GetMainThread()
 
 
 
-extern NS_COM_GLUE nsIThread* NS_GetCurrentThread();
+extern nsIThread* NS_GetCurrentThread();
 #endif
 
 
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY NS_COM_GLUE
 
-
-class NS_COM_GLUE nsRunnable : public nsIRunnable
+class nsRunnable : public nsIRunnable
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -228,7 +224,7 @@ protected:
 };
 
 
-class NS_COM_GLUE nsCancelableRunnable : public nsICancelableRunnable
+class nsCancelableRunnable : public nsICancelableRunnable
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -240,9 +236,6 @@ public:
 protected:
   virtual ~nsCancelableRunnable() {}
 };
-
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY
 
 
 

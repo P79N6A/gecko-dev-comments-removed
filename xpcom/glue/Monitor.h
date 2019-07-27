@@ -21,7 +21,7 @@ namespace mozilla {
 
 
 
-class NS_COM_GLUE Monitor
+class Monitor
 {
 public:
   explicit Monitor(const char* aName)
@@ -69,7 +69,7 @@ private:
 
 
 
-class NS_COM_GLUE MOZ_STACK_CLASS MonitorAutoLock
+class MOZ_STACK_CLASS MonitorAutoLock
 {
 public:
   explicit MonitorAutoLock(Monitor& aMonitor)
@@ -108,7 +108,7 @@ private:
 
 
 
-class NS_COM_GLUE MOZ_STACK_CLASS MonitorAutoUnlock
+class MOZ_STACK_CLASS MonitorAutoUnlock
 {
 public:
   explicit MonitorAutoUnlock(Monitor& aMonitor)

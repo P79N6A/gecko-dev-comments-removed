@@ -61,7 +61,7 @@ NS_ProxyRelease(nsIEventTarget* aTarget, nsRefPtr<T>& aDoomed,
 
 
 
-NS_COM_GLUE nsresult
+nsresult
 NS_ProxyRelease(nsIEventTarget* aTarget, nsISupports* aDoomed,
                 bool aAlwaysProxy = false);
 

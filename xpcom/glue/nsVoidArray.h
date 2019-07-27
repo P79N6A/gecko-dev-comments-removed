@@ -26,7 +26,7 @@ typedef size_t (*nsVoidArraySizeOfElementIncludingThisFunc)(
   const void* aElement, mozilla::MallocSizeOf aMallocSizeOf, void* aData);
 
 
-class NS_COM_GLUE nsVoidArray
+class nsVoidArray
 {
 public:
   nsVoidArray();
@@ -177,7 +177,7 @@ private:
 
 
 
-class NS_COM_GLUE nsSmallVoidArray : private nsVoidArray
+class nsSmallVoidArray : private nsVoidArray
 {
 public:
   ~nsSmallVoidArray();

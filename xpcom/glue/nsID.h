@@ -54,7 +54,7 @@ struct nsID
 
 
 
-  NS_COM_GLUE bool Parse(const char* aIDStr);
+  bool Parse(const char* aIDStr);
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
   
@@ -62,14 +62,14 @@ struct nsID
 
 
 
-  NS_COM_GLUE char* ToString() const;
+  char* ToString() const;
 
   
 
 
 
 
-  NS_COM_GLUE void ToProvidedString(char (&aDest)[NSID_LENGTH]) const;
+  void ToProvidedString(char (&aDest)[NSID_LENGTH]) const;
 
 #endif 
 
