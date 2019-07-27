@@ -114,6 +114,9 @@ public:
   
   
   
+  
+  
+  
   virtual nsresult ResetDecode();
 
   
@@ -164,15 +167,6 @@ public:
   
   virtual nsRefPtr<SeekPromise>
   Seek(int64_t aTime, int64_t aEndTime) = 0;
-
-  
-  
-  
-  
-  
-  
-  
-  virtual void CancelSeek() { };
 
   
   

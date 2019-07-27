@@ -238,8 +238,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mDropAudioUntilNextDiscontinuity(false),
   mDropVideoUntilNextDiscontinuity(false),
   mDecodeToSeekTarget(false),
-  mWaitingForDecoderSeek(false),
-  mCancelingSeek(false),
   mCurrentTimeBeforeSeek(0),
   mLastFrameStatus(MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED),
   mDecodingFrozenAtStateDecoding(false),
@@ -1890,21 +1888,52 @@ MediaDecoderStateMachine::DispatchDecodeTasksIfNeeded()
   }
 }
 
-nsresult
-MediaDecoderStateMachine::EnqueueDecodeSeekTask()
+void
+MediaDecoderStateMachine::InitiateSeek()
 {
   MOZ_ASSERT(OnStateMachineThread());
   AssertCurrentThreadInMonitor();
 
-  RefPtr<nsIRunnable> task(
-    NS_NewRunnableMethod(this, &MediaDecoderStateMachine::DecodeSeek));
-  nsresult rv = DecodeTaskQueue()->Dispatch(task);
-  if (NS_FAILED(rv)) {
-    DECODER_WARN("Dispatch DecodeSeek task failed.");
-    DecodeError();
-  }
+  mCurrentSeekTarget = mSeekTarget;
+  mSeekTarget.Reset();
+  mDropAudioUntilNextDiscontinuity = HasAudio();
+  mDropVideoUntilNextDiscontinuity = HasVideo();
 
-  return rv;
+  mDecoder->StopProgressUpdates();
+  mCurrentTimeBeforeSeek = GetMediaTime();
+
+  
+  
+  
+  StopPlayback();
+  UpdatePlaybackPositionInternal(mCurrentSeekTarget.mTime);
+
+  
+  
+  
+  nsCOMPtr<nsIRunnable> startEvent =
+      NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
+        mDecoder,
+        &MediaDecoder::SeekingStarted,
+        mCurrentSeekTarget.mEventVisibility);
+  NS_DispatchToMainThread(startEvent, NS_DISPATCH_NORMAL);
+
+  
+  
+  
+  StopAudioThread();
+  ResetPlayback();
+
+  
+  ResetDecode();
+
+  
+  mSeekRequest.Begin(ProxyMediaCall(DecodeTaskQueue(), mReader.get(), __func__,
+                                    &MediaDecoderReader::Seek, mCurrentSeekTarget.mTime,
+                                    GetEndTime())
+    ->RefableThen(mScheduler.get(), __func__, this,
+                  &MediaDecoderStateMachine::OnSeekCompleted,
+                  &MediaDecoderStateMachine::OnSeekFailed));
 }
 
 nsresult
@@ -1937,7 +1966,7 @@ MediaDecoderStateMachine::EnsureAudioDecodeTaskQueued()
   }
 
   if (!IsAudioDecoding() || mAudioDataRequest.Exists() ||
-      mAudioWaitRequest.Exists() || mWaitingForDecoderSeek) {
+      mAudioWaitRequest.Exists() || mSeekRequest.Exists()) {
     return NS_OK;
   }
 
@@ -1983,7 +2012,7 @@ MediaDecoderStateMachine::EnsureVideoDecodeTaskQueued()
   }
 
   if (!IsVideoDecoding() || mVideoDataRequest.Exists() ||
-      mVideoWaitRequest.Exists() || mWaitingForDecoderSeek) {
+      mVideoWaitRequest.Exists() || mSeekRequest.Exists()) {
     return NS_OK;
   }
 
@@ -2412,93 +2441,12 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
   return NS_OK;
 }
 
-void MediaDecoderStateMachine::DecodeSeek()
-{
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
-
-  if (mState != DECODER_STATE_SEEKING ||
-      !mSeekTarget.IsValid()) {
-    DECODER_LOG("Early returning from DecodeSeek");
-    return;
-  }
-
-  
-  if (mCurrentSeekTarget.IsValid()) {
-    
-    
-    
-    
-    
-    
-    
-    if (mWaitingForDecoderSeek && !mCancelingSeek) {
-      mReader->CancelSeek();
-      mCancelingSeek = true;
-    }
-
-    return;
-  }
-
-  mCurrentSeekTarget = mSeekTarget;
-  mSeekTarget.Reset();
-  mDropAudioUntilNextDiscontinuity = HasAudio();
-  mDropVideoUntilNextDiscontinuity = HasVideo();
-
-  int64_t seekTime = mCurrentSeekTarget.mTime;
-  mDecoder->StopProgressUpdates();
-
-  mCurrentTimeBeforeSeek = GetMediaTime();
-  
-  
-  
-  StopPlayback();
-  UpdatePlaybackPositionInternal(seekTime);
-
-  
-  
-  
-  nsCOMPtr<nsIRunnable> startEvent =
-    NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
-      mDecoder,
-      &MediaDecoder::SeekingStarted,
-      mCurrentSeekTarget.mEventVisibility);
-  NS_DispatchToMainThread(startEvent, NS_DISPATCH_NORMAL);
-
-  mDecodeToSeekTarget = false;
-
-  
-  
-  
-  StopAudioThread();
-  ResetPlayback();
-
-  nsresult res;
-  {
-    ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-    
-    
-    res = mReader->ResetDecode();
-    if (NS_SUCCEEDED(res)) {
-      mReader->Seek(seekTime, GetEndTime())
-             ->Then(DecodeTaskQueue(), __func__, this,
-                    &MediaDecoderStateMachine::OnSeekCompleted,
-                    &MediaDecoderStateMachine::OnSeekFailed);
-    }
-  }
-  if (NS_FAILED(res)) {
-    DecodeError();
-    return;
-  }
-  mWaitingForDecoderSeek = true;
-}
-
 void
 MediaDecoderStateMachine::OnSeekCompleted(int64_t aTime)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  mWaitingForDecoderSeek = false;
-  mCancelingSeek = false;
+  MOZ_ASSERT(OnStateMachineThread());
+  mSeekRequest.Complete();
 
   
   
@@ -2514,28 +2462,10 @@ void
 MediaDecoderStateMachine::OnSeekFailed(nsresult aResult)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  bool wasCanceled = mCancelingSeek;
-  mWaitingForDecoderSeek = false;
-  mCancelingSeek = false;
-
-  if (NS_FAILED(aResult)) {
-    DecodeError();
-  } else if (wasCanceled && mSeekTarget.IsValid() && mState == DECODER_STATE_SEEKING) {
-    
-    mCurrentSeekTarget = mSeekTarget;
-    mSeekTarget.Reset();
-    nsCOMPtr<nsIRunnable> startEvent =
-      NS_NewRunnableMethodWithArg<MediaDecoderEventVisibility>(
-        mDecoder,
-        &MediaDecoder::SeekingStarted,
-        mCurrentSeekTarget.mEventVisibility);
-    NS_DispatchToMainThread(startEvent, NS_DISPATCH_NORMAL);
-    mReader->Seek(mCurrentSeekTarget.mTime, mEndTime)
-           ->Then(DecodeTaskQueue(), __func__, this,
-                  &MediaDecoderStateMachine::OnSeekCompleted,
-                  &MediaDecoderStateMachine::OnSeekFailed);
-    mWaitingForDecoderSeek = true;
-  }
+  MOZ_ASSERT(OnStateMachineThread());
+  mSeekRequest.Complete();
+  MOZ_ASSERT(NS_FAILED(aResult), "Cancels should also disconnect mSeekRequest");
+  DecodeError();
 }
 
 void
@@ -2870,7 +2800,10 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
     }
 
     case DECODER_STATE_SEEKING: {
-      return EnqueueDecodeSeekTask();
+      if (mSeekTarget.IsValid()) {
+        InitiateSeek();
+      }
+      return NS_OK;
     }
 
     case DECODER_STATE_COMPLETED: {
@@ -2931,13 +2864,11 @@ MediaDecoderStateMachine::FlushDecoding()
   MOZ_ASSERT(OnStateMachineThread());
   AssertCurrentThreadInMonitor();
 
+  
+  
+  
+  ResetDecode();
   {
-    
-    
-    
-    RefPtr<nsIRunnable> task;
-    task = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::ResetDecode);
-
     
     
     
@@ -2947,7 +2878,6 @@ MediaDecoderStateMachine::FlushDecoding()
     
     
     ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-    DecodeTaskQueue()->Dispatch(task);
     DecodeTaskQueue()->AwaitIdle();
   }
 
@@ -2960,20 +2890,20 @@ MediaDecoderStateMachine::FlushDecoding()
 void
 MediaDecoderStateMachine::ResetDecode()
 {
-  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+  MOZ_ASSERT(OnStateMachineThread());
+  AssertCurrentThreadInMonitor();
 
-  if (!mReader) {
-    return;
-  }
+  mAudioDataRequest.DisconnectIfExists();
+  mAudioWaitRequest.DisconnectIfExists();
+  mVideoDataRequest.DisconnectIfExists();
+  mVideoWaitRequest.DisconnectIfExists();
+  mSeekRequest.DisconnectIfExists();
 
-  {
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    if (mWaitingForDecoderSeek && !mCancelingSeek) {
-      mReader->CancelSeek();
-      mCancelingSeek = true;
-    }
-  }
-  mReader->ResetDecode();
+  mDecodeToSeekTarget = false;
+
+  RefPtr<nsRunnable> resetTask =
+    NS_NewRunnableMethod(mReader, &MediaDecoderReader::ResetDecode);
+  DecodeTaskQueue()->Dispatch(resetTask);
 }
 
 void MediaDecoderStateMachine::RenderVideoFrame(VideoData* aData,

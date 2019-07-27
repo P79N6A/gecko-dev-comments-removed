@@ -604,7 +604,7 @@ protected:
 
   
   
-  nsresult EnqueueDecodeSeekTask();
+  void InitiateSeek();
 
   nsresult DispatchAudioDecodeTaskIfNeeded();
 
@@ -1091,13 +1091,7 @@ protected:
   bool mDecodeToSeekTarget;
 
   
-  
-  
-  bool mWaitingForDecoderSeek;
-
-  
-  
-  bool mCancelingSeek;
+  MediaPromiseConsumerHolder<MediaDecoderReader::SeekPromise> mSeekRequest;
 
   
   
