@@ -1135,6 +1135,23 @@ SpecialPowersAPI.prototype = {
     });
   },
 
+  
+  injectApp: function(aAppId, aApp) {
+    this._sendSyncMessage("SPWebAppService", {
+      op: "inject-app",
+      appId: aAppId,
+      app: aApp
+    });
+  },
+
+  
+  rejectApp: function(aAppId) {
+    this._sendSyncMessage("SPWebAppService", {
+      op: "reject-app",
+      appId: aAppId
+    });
+  },
+
   _proxiedObservers: {
     "specialpowers-http-notify-request": function(aMessage) {
       let uri = aMessage.json.uri;
