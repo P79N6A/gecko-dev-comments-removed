@@ -27,6 +27,7 @@ const L10N = new ViewHelpers.L10N(STRINGS_URI);
 
 
 
+
 const TIMELINE_BLUEPRINT = {
   "Styles": {
     group: 0,
@@ -67,6 +68,11 @@ const TIMELINE_BLUEPRINT = {
     group: 2,
     colorName: "highlight-bluegrey",
     label: L10N.getStr("timeline.label.consoleTime")
+  },
+  "GarbageCollection": {
+    group: 1,
+    colorName: "highlight-red",
+    label: L10N.getStr("timeline.label.garbageCollection")
   },
 };
 
