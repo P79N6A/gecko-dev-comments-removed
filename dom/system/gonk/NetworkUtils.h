@@ -146,6 +146,8 @@ public:
     COPY_OPT_FIELD(mDns1_long, 0)
     COPY_OPT_FIELD(mDns2_long, 0)
 
+    mLoopIndex = 0;
+
 #undef COPY_SEQUENCE_FIELD
 #undef COPY_OPT_STRING_FIELD
 #undef COPY_OPT_FIELD
@@ -198,7 +200,8 @@ public:
   long mDns2_long;
 
   
-  int mNetId;     
+  int mNetId; 
+  uint32_t mLoopIndex; 
 };
 
 
