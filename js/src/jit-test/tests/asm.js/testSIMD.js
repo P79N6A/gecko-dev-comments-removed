@@ -148,6 +148,13 @@ assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=i4(1,2,3,
 assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=e(i4(1,2,3,4),1); return x|0;} return f");
 assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=i4(1,2,3,4); return (e(x,0) > (1>>>0)) | 0;} return f");
 
+assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=i4(1,2,3,4); return e(x,-1) | 0;} return f");
+assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=i4(1,2,3,4); return e(x,4) | 0;} return f");
+assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=i4(1,2,3,4); return e(x,.5) | 0;} return f");
+assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=i4(1,2,3,4); return e(x,x) | 0;} return f");
+assertAsmTypeFail('glob', USE_ASM + I32 + EXTF4 + "function f() {var x=i4(1,2,3,4); return e(x,0) | 0;} return f");
+assertAsmTypeFail('glob', USE_ASM + I32 + EXTI4 + "function f() {var x=i4(1,2,3,4); var i=0; return e(x,i) | 0;} return f");
+
 
 function CheckSignMask(innerBody, type, expected) {
     var coerceBefore, coerceAfter, extractLane;
