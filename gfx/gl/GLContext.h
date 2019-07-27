@@ -331,6 +331,7 @@ public:
 
 
     enum GLExtensions {
+        Extension_None = 0,
         EXT_framebuffer_object,
         ARB_framebuffer_object,
         ARB_texture_rectangle,
@@ -493,6 +494,11 @@ private:
 
 
     void MarkUnsupported(GLFeature feature);
+
+    
+
+
+    bool IsFeatureProvidedByCoreSymbols(GLFeature feature);
 
 
 
