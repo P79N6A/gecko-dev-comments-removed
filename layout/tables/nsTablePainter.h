@@ -6,6 +6,8 @@
 #ifndef nsTablePainter_h__
 #define nsTablePainter_h__
 
+#include "imgIContainer.h"
+
 #include "celldata.h"
 
 
@@ -26,6 +28,8 @@ class TableBackgroundPainter
 
 
 
+
+  typedef mozilla::image::DrawResult DrawResult;
 
   public:
 
@@ -81,8 +85,11 @@ class TableBackgroundPainter
 
 
 
-    void PaintTable(nsTableFrame* aTableFrame, const nsMargin& aDeflate,
-                    bool aPaintTableBackground);
+
+
+
+    DrawResult PaintTable(nsTableFrame* aTableFrame, const nsMargin& aDeflate,
+                          bool aPaintTableBackground);
 
     
 
@@ -91,7 +98,10 @@ class TableBackgroundPainter
 
 
 
-    void PaintRowGroup(nsTableRowGroupFrame* aFrame);
+
+
+
+    DrawResult PaintRowGroup(nsTableRowGroupFrame* aFrame);
 
     
 
@@ -100,7 +110,10 @@ class TableBackgroundPainter
 
 
 
-    void PaintRow(nsTableRowFrame* aFrame);
+
+
+
+    DrawResult PaintRow(nsTableRowFrame* aFrame);
 
   private:
     struct TableBackgroundData;
@@ -114,10 +127,10 @@ class TableBackgroundPainter
 
 
 
-    void PaintTableFrame(nsTableFrame*         aTableFrame,
-                         nsTableRowGroupFrame* aFirstRowGroup,
-                         nsTableRowGroupFrame* aLastRowGroup,
-                         const nsMargin&       aDeflate);
+    DrawResult PaintTableFrame(nsTableFrame*         aTableFrame,
+                               nsTableRowGroupFrame* aFirstRowGroup,
+                               nsTableRowGroupFrame* aLastRowGroup,
+                               const nsMargin&       aDeflate);
 
     
 
@@ -125,14 +138,14 @@ class TableBackgroundPainter
 
 
 
-    void PaintRowGroup(nsTableRowGroupFrame* aFrame,
-                       TableBackgroundData   aRowGroupBGData,
-                       bool                  aPassThrough);
+    DrawResult PaintRowGroup(nsTableRowGroupFrame* aFrame,
+                             TableBackgroundData   aRowGroupBGData,
+                             bool                  aPassThrough);
 
-    void PaintRow(nsTableRowFrame* aFrame,
-                  const TableBackgroundData& aRowGroupBGData,
-                  TableBackgroundData aRowBGData,
-                  bool             aPassThrough);
+    DrawResult PaintRow(nsTableRowFrame* aFrame,
+                        const TableBackgroundData& aRowGroupBGData,
+                        TableBackgroundData aRowBGData,
+                        bool             aPassThrough);
 
     
 
@@ -145,14 +158,14 @@ class TableBackgroundPainter
 
 
 
-    void PaintCell(nsTableCellFrame* aCell,
-                   const TableBackgroundData& aRowGroupBGData,
-                   const TableBackgroundData& aRowBGData,
-                   nsRect&           aCellBGRect,
-                   nsRect&           aRowBGRect,
-                   nsRect&           aRowGroupBGRect,
-                   nsRect&           aColBGRect,
-                   bool              aPassSelf);
+    DrawResult PaintCell(nsTableCellFrame* aCell,
+                         const TableBackgroundData& aRowGroupBGData,
+                         const TableBackgroundData& aRowBGData,
+                         nsRect&           aCellBGRect,
+                         nsRect&           aRowBGRect,
+                         nsRect&           aRowGroupBGRect,
+                         nsRect&           aColBGRect,
+                         bool              aPassSelf);
 
     
 
