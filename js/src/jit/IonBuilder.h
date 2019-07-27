@@ -354,9 +354,6 @@ class IonBuilder
     MConstant* constantInt(int32_t i);
 
     
-    MConstant* constantMaybeAtomize(const Value& v);
-
-    
     bool improveTypesAtTest(MDefinition* ins, bool trueBranch, MTest* test);
     bool improveTypesAtCompare(MCompare* ins, bool trueBranch, MTest* test);
     bool improveTypesAtNullOrUndefinedCompare(MCompare* ins, bool trueBranch, MTest* test);
