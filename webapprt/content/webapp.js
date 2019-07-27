@@ -9,6 +9,7 @@ const Cu = Components.utils;
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "gAppBrowser",
                             function() document.getElementById("content"));
@@ -54,7 +55,7 @@ let progressListener = {
     
     
     
-    let title = WebappRT.config.app.manifest.name;
+    let title = WebappRT.localeManifest.name;
     if (!isSameOrigin(location.spec)) {
       title = location.prePath + " - " + title;
     }
@@ -141,10 +142,11 @@ document.addEventListener('mozfullscreenchange', function() {
 
 
 
-function updateMenuItems() {
+let updateMenuItems = Task.async(function*() {
 #ifdef XP_MACOSX
-  let installRecord = WebappRT.config.app;
-  let manifest = WebappRT.config.app.manifest;
+  yield WebappRT.configPromise;
+
+  let manifest = WebappRT.localeManifest;
   let bundle =
     Services.strings.createBundle("chrome://webapprt/locale/webapp.properties");
   let quitLabel = bundle.formatStringFromName("quitApplicationCmdMac.label",
@@ -154,7 +156,7 @@ function updateMenuItems() {
   document.getElementById("menu_FileQuitItem").setAttribute("label", quitLabel);
   document.getElementById("menu_mac_hide_app").setAttribute("label", hideLabel);
 #endif
-}
+});
 
 #ifndef XP_MACOSX
 let gEditUIVisible = true;
