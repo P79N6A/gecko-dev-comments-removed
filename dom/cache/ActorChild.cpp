@@ -15,7 +15,14 @@ namespace cache {
 void
 ActorChild::SetFeature(Feature* aFeature)
 {
-  MOZ_ASSERT(!mFeature);
+  
+  
+  
+  if (mFeature) {
+    MOZ_ASSERT(mFeature == aFeature);
+    return;
+  }
+
   mFeature = aFeature;
   if (mFeature) {
     mFeature->AddActor(this);
