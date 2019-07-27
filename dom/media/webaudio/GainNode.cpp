@@ -84,11 +84,12 @@ public:
       AllocateAudioBlock(aInput.mChannelData.Length(), aOutput);
 
       
-      
+      StreamTime tick = aStream->GetCurrentPosition();
       float computedGain[WEBAUDIO_BLOCK_SIZE];
+      mGain.GetValuesAtTime(tick, computedGain, WEBAUDIO_BLOCK_SIZE);
+
       for (size_t counter = 0; counter < WEBAUDIO_BLOCK_SIZE; ++counter) {
-        StreamTime tick = aStream->GetCurrentPosition();
-        computedGain[counter] = mGain.GetValueAtTime(tick, counter) * aInput.mVolume;
+        computedGain[counter] *= aInput.mVolume;
       }
 
       

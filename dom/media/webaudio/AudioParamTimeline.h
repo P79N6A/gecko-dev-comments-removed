@@ -44,13 +44,26 @@ public:
     return BaseClass::HasSimpleValue() && !mStream;
   }
 
+  template<class TimeType>
+  float GetValueAtTime(TimeType aTime)
+  {
+    return GetValueAtTime(aTime, 0);
+  }
+
+  
+  
+  
+  template<class TimeType>
+  float GetValueAtTime(TimeType aTime, size_t aCounter);
+
+  
   
   
   
   
   
   template<class TimeType>
-  float GetValueAtTime(TimeType aTime, size_t aCounter = 0);
+  void GetValuesAtTime(TimeType aTime, float* aBuffer, const size_t aSize);
 
   virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   {
@@ -81,7 +94,6 @@ AudioParamTimeline::GetValueAtTime(double aTime, size_t aCounter)
   return BaseClass::GetValueAtTime(aTime);
 }
 
-
 template<> inline float
 AudioParamTimeline::GetValueAtTime(int64_t aTime, size_t aCounter)
 {
@@ -93,8 +105,36 @@ AudioParamTimeline::GetValueAtTime(int64_t aTime, size_t aCounter)
     (mStream ? AudioNodeInputValue(aCounter) : 0.0f);
 }
 
+template<> inline void
+AudioParamTimeline::GetValuesAtTime(double aTime, float* aBuffer,
+                                    const size_t aSize)
+{
+  MOZ_ASSERT(aBuffer);
+  MOZ_ASSERT(aSize == 1);
+
+  
+  
+  *aBuffer = BaseClass::GetValueAtTime(aTime);
+}
+
+template<> inline void
+AudioParamTimeline::GetValuesAtTime(int64_t aTime, float* aBuffer,
+                                    const size_t aSize)
+{
+  MOZ_ASSERT(aBuffer);
+  MOZ_ASSERT(aSize <= WEBAUDIO_BLOCK_SIZE);
+  MOZ_ASSERT(aSize == 1 || !HasSimpleValue());
+
+  
+  BaseClass::GetValuesAtTime(aTime, aBuffer, aSize);
+  if (mStream) {
+    for (size_t i = 0; i < aSize; ++i) {
+      aBuffer[i] += AudioNodeInputValue(i);
+    }
+  }
+}
+
 }
 }
 
 #endif
-
