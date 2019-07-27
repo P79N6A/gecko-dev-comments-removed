@@ -416,6 +416,8 @@ UnboxedLayout::makeNativeGroup(JSContext* cx, ObjectGroup* group)
 
     RootedObjectGroup replacementGroup(cx);
 
+    const Class* clasp = layout.isArray() ? &ArrayObject::class_ : &PlainObject::class_;
+
     
     
     
@@ -447,20 +449,18 @@ UnboxedLayout::makeNativeGroup(JSContext* cx, ObjectGroup* group)
     
     
     if (layout.allocationScript()) {
-        MOZ_ASSERT(!layout.isArray());
-
         RootedScript script(cx, layout.allocationScript());
         jsbytecode* pc = layout.allocationPc();
 
-        replacementGroup = ObjectGroupCompartment::makeGroup(cx, &PlainObject::class_, proto);
+        replacementGroup = ObjectGroupCompartment::makeGroup(cx, clasp, proto);
         if (!replacementGroup)
             return false;
 
         PlainObject* templateObject = &script->getObject(pc)->as<PlainObject>();
         replacementGroup->addDefiniteProperties(cx, templateObject->lastProperty());
 
-        cx->compartment()->objectGroups.replaceAllocationSiteGroup(script, pc,
-                                                                   JSProto_Object,
+        JSProtoKey key = layout.isArray() ? JSProto_Array : JSProto_Object;
+        cx->compartment()->objectGroups.replaceAllocationSiteGroup(script, pc, key,
                                                                    replacementGroup);
 
         
@@ -469,11 +469,13 @@ UnboxedLayout::makeNativeGroup(JSContext* cx, ObjectGroup* group)
             jit::ICFallbackStub* fallback = entry.fallbackStub();
             for (jit::ICStubIterator iter = fallback->beginChain(); !iter.atEnd(); iter++)
                 iter.unlink(cx);
-            fallback->toNewObject_Fallback()->setTemplateObject(nullptr);
+            if (fallback->isNewObject_Fallback())
+                fallback->toNewObject_Fallback()->setTemplateObject(nullptr);
+            else if (fallback->isNewArray_Fallback())
+                fallback->toNewArray_Fallback()->setTemplateGroup(replacementGroup);
         }
     }
 
-    const Class* clasp = layout.isArray() ? &ArrayObject::class_ : &PlainObject::class_;
     size_t nfixed = layout.isArray() ? 0 : gc::GetGCKindSlots(layout.getAllocKind());
 
     if (layout.isArray()) {
@@ -734,7 +736,7 @@ UnboxedPlainObject::obj_defineProperty(JSContext* cx, HandleObject obj, HandleId
         if (!desc.getter() && !desc.setter() && desc.attributes() == JSPROP_ENUMERATE) {
             
             if (obj->as<UnboxedPlainObject>().setValue(cx, *property, desc.value()))
-                return true;
+                return result.succeed();
         }
 
         
@@ -742,8 +744,7 @@ UnboxedPlainObject::obj_defineProperty(JSContext* cx, HandleObject obj, HandleId
         if (!convertToNative(cx, obj))
             return false;
 
-        return DefineProperty(cx, obj, id, desc, result) &&
-               result.checkStrict(cx, obj, id);
+        return DefineProperty(cx, obj, id, desc, result);
     }
 
     
@@ -1001,13 +1002,14 @@ UnboxedArrayObject::convertToNative(JSContext* cx, JSObject* obj)
 
  UnboxedArrayObject*
 UnboxedArrayObject::create(ExclusiveContext* cx, HandleObjectGroup group, uint32_t length,
-                           NewObjectKind newKind)
+                           NewObjectKind newKind, uint32_t maxLength)
 {
     MOZ_ASSERT(length <= MaximumCapacity);
 
     MOZ_ASSERT(group->clasp() == &class_);
     uint32_t elementSize = UnboxedTypeSize(group->unboxedLayout().elementType());
-    uint32_t nbytes = offsetOfInlineElements() + elementSize * length;
+    uint32_t capacity = Min(length, maxLength);
+    uint32_t nbytes = offsetOfInlineElements() + elementSize * capacity;
 
     UnboxedArrayObject* res;
     if (nbytes <= JSObject::MAX_BYTE_SIZE) {
@@ -1015,7 +1017,7 @@ UnboxedArrayObject::create(ExclusiveContext* cx, HandleObjectGroup group, uint32
 
         
         
-        if (length == 0)
+        if (capacity == 0)
             allocKind = gc::AllocKind::OBJECT8;
 
         res = NewObjectWithGroup<UnboxedArrayObject>(cx, group, allocKind, newKind);
@@ -1023,14 +1025,20 @@ UnboxedArrayObject::create(ExclusiveContext* cx, HandleObjectGroup group, uint32
             return nullptr;
         res->setInlineElements();
 
-        size_t capacity = (GetGCKindBytes(allocKind) - offsetOfInlineElements()) / elementSize;
-        res->setCapacityIndex(exactCapacityIndex(capacity));
+        size_t actualCapacity = (GetGCKindBytes(allocKind) - offsetOfInlineElements()) / elementSize;
+        MOZ_ASSERT(actualCapacity >= capacity);
+        res->setCapacityIndex(exactCapacityIndex(actualCapacity));
     } else {
         res = NewObjectWithGroup<UnboxedArrayObject>(cx, group, gc::AllocKind::OBJECT0, newKind);
         if (!res)
             return nullptr;
 
-        res->elements_ = AllocateObjectBuffer<uint8_t>(cx, res, length * elementSize);
+        uint32_t capacityIndex = (capacity == length)
+                                 ? CapacityMatchesLengthIndex
+                                 : chooseCapacityIndex(capacity, length);
+        uint32_t actualCapacity = computeCapacity(capacityIndex, length);
+
+        res->elements_ = AllocateObjectBuffer<uint8_t>(cx, res, actualCapacity * elementSize);
         if (!res->elements_) {
             
             res->setInlineElements();
@@ -1038,7 +1046,7 @@ UnboxedArrayObject::create(ExclusiveContext* cx, HandleObjectGroup group, uint32
             return nullptr;
         }
 
-        res->setCapacityIndex(CapacityMatchesLengthIndex);
+        res->setCapacityIndex(capacityIndex);
     }
 
     res->setLength(cx, length);

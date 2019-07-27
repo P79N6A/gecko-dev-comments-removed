@@ -12,6 +12,8 @@
 #include "jsobj.h"
 #include "jspubtd.h"
 
+#include "vm/ArrayObject.h"
+
 namespace js {
 
 const uint32_t MAX_ARRAY_INDEX = 4294967294u;
@@ -35,7 +37,7 @@ IdIsIndex(jsid id, uint32_t* indexp)
 extern JSObject*
 InitArrayClass(JSContext* cx, js::HandleObject obj);
 
-class ArrayObject;
+
 
 
 extern ArrayObject * JS_FASTCALL
@@ -63,20 +65,6 @@ extern ArrayObject * JS_FASTCALL
 NewDenseFullyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = nullptr,
                             NewObjectKind newKind = GenericObject);
 
-enum AllocatingBehaviour {
-    NewArray_Unallocating,
-    NewArray_PartlyAllocating,
-    NewArray_FullyAllocating
-};
-
-
-
-
-
-extern ArrayObject*
-NewDenseArray(ExclusiveContext* cx, uint32_t length, HandleObjectGroup group,
-              AllocatingBehaviour allocating, bool convertDoubleElements = false);
-
 
 extern ArrayObject*
 NewDenseCopiedArray(JSContext* cx, uint32_t length, HandleArrayObject src,
@@ -96,10 +84,34 @@ extern JSObject*
 NewDenseCopyOnWriteArray(JSContext* cx, HandleArrayObject templateObject, gc::InitialHeap heap);
 
 
+
+extern JSObject*
+NewFullyAllocatedArrayTryUseGroup(JSContext* cx, HandleObjectGroup group, size_t length);
+
+extern JSObject*
+NewPartlyAllocatedArrayTryUseGroup(JSContext* cx, HandleObjectGroup group, size_t length);
+
 extern JSObject*
 NewFullyAllocatedArrayTryReuseGroup(JSContext* cx, JSObject* obj, size_t length,
                                     NewObjectKind newKind = GenericObject,
                                     bool forceAnalyze = false);
+
+extern JSObject*
+NewPartlyAllocatedArrayTryReuseGroup(JSContext* cx, JSObject* obj, size_t length);
+
+extern JSObject*
+NewFullyAllocatedArrayForCallingAllocationSite(JSContext* cx, size_t length,
+                                               NewObjectKind newKind = GenericObject,
+                                               bool forceAnalyze = false);
+
+extern JSObject*
+NewPartlyAllocatedArrayForCallingAllocationSite(JSContext* cx, size_t length);
+
+extern JSObject*
+NewCopiedArrayTryUseGroup(JSContext* cx, HandleObjectGroup group, const Value* vp, size_t length);
+
+extern JSObject*
+NewCopiedArrayForCallingAllocationSite(JSContext* cx, const Value* vp, size_t length);
 
 
 
@@ -193,7 +205,7 @@ array_slice_dense(JSContext* cx, HandleObject obj, int32_t begin, int32_t end, H
 extern bool
 NewbornArrayPush(JSContext* cx, HandleObject obj, const Value& v);
 
-extern ArrayObject*
+extern JSObject*
 ArrayConstructorOneArg(JSContext* cx, HandleObjectGroup group, int32_t lengthInt);
 
 #ifdef DEBUG

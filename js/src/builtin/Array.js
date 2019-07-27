@@ -253,8 +253,7 @@ function ArrayMap(callbackfn) {
         if (k in O) {
             
             var mappedValue = callFunction(callbackfn, T, O[k], k, O);
-            
-            UnsafePutElements(A, k, mappedValue);
+            _DefineDataProperty(A, k, mappedValue);
         }
     }
 
@@ -719,9 +718,6 @@ function ArrayFrom(items, mapfn=undefined, thisArg=undefined) {
     var T = thisArg;
 
     
-    var attrs = ATTR_CONFIGURABLE | ATTR_ENUMERABLE | ATTR_WRITABLE;
-
-    
     var usingIterator = GetMethod(items, std_iterator);
 
     
@@ -757,7 +753,7 @@ function ArrayFrom(items, mapfn=undefined, thisArg=undefined) {
             var mappedValue = mapping ? callFunction(mapfn, thisArg, nextValue, k) : nextValue;
 
             
-            _DefineDataProperty(A, k++, mappedValue, attrs);
+            _DefineDataProperty(A, k++, mappedValue);
         }
     }
 
@@ -782,7 +778,7 @@ function ArrayFrom(items, mapfn=undefined, thisArg=undefined) {
         var mappedValue = mapping ? callFunction(mapfn, thisArg, kValue, k) : kValue;
 
         
-        _DefineDataProperty(A, k, mappedValue, attrs);
+        _DefineDataProperty(A, k, mappedValue);
     }
 
     
