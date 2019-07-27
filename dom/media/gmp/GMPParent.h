@@ -55,7 +55,7 @@ enum GMPState {
 };
 
 class GMPParent final : public PGMPParent,
-                            public GMPSharedMem
+                        public GMPSharedMem
 {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(GMPParent)
@@ -117,6 +117,7 @@ public:
 
   const nsCString& GetDisplayName() const;
   const nsCString& GetVersion() const;
+  const nsACString& GetPluginId() const;
 
   
   bool CanBeSharedCrossNodeIds() const;
@@ -180,6 +181,7 @@ private:
   nsCString mDisplayName; 
   nsCString mDescription; 
   nsCString mVersion;
+  nsCString mPluginId;
   nsTArray<nsAutoPtr<GMPCapability>> mCapabilities;
   GMPProcessParent* mProcess;
   bool mDeleteProcessOnlyOnUnload;

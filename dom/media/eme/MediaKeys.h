@@ -43,7 +43,7 @@ CopyArrayBufferViewOrArrayBufferData(const ArrayBufferViewOrArrayBuffer& aBuffer
 
 
 class MediaKeys final : public nsISupports,
-                            public nsWrapperCache
+                        public nsWrapperCache
 {
   ~MediaKeys();
 
@@ -80,7 +80,8 @@ public:
   already_AddRefed<MediaKeySession> GetPendingSession(uint32_t aToken);
 
   
-  void OnCDMCreated(PromiseId aId, const nsACString& aNodeId);
+  void OnCDMCreated(PromiseId aId,
+                    const nsACString& aNodeId, const nsACString& aPluginId);
 
   
   
