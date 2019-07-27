@@ -93,6 +93,11 @@ enum {
     JSSLOT_DEBUGSOURCE_COUNT
 };
 
+void DebuggerObject_trace(JSTracer *trc, JSObject *obj);
+void DebuggerEnv_trace(JSTracer *trc, JSObject *obj);
+void DebuggerScript_trace(JSTracer *trc, JSObject *obj);
+void DebuggerSource_trace(JSTracer *trc, JSObject *obj);
+
 
 
 
@@ -2073,17 +2078,12 @@ Debugger::setObservesAllExecution(JSContext *cx, IsObserving observing)
 
 
 void
-Debugger::markKeysInCompartment(JSTracer *trc)
+Debugger::markCrossCompartmentEdges(JSTracer *trc)
 {
-    
-
-
-
-
-    objects.markKeys(trc);
-    environments.markKeys(trc);
-    scripts.markKeys(trc);
-    sources.markKeys(trc);
+    objects.markCrossCompartmentEdges<DebuggerObject_trace>(trc);
+    environments.markCrossCompartmentEdges<DebuggerEnv_trace>(trc);
+    scripts.markCrossCompartmentEdges<DebuggerScript_trace>(trc);
+    sources.markCrossCompartmentEdges<DebuggerSource_trace>(trc);
 }
 
 
@@ -2107,19 +2107,14 @@ Debugger::markKeysInCompartment(JSTracer *trc)
 
 
 
-
  void
-Debugger::markCrossCompartmentDebuggerObjectReferents(JSTracer *trc)
+Debugger::markAllCrossCompartmentEdges(JSTracer *trc)
 {
     JSRuntime *rt = trc->runtime();
 
-    
-
-
-
     for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
         if (!dbg->object->zone()->isCollecting())
-            dbg->markKeysInCompartment(trc);
+            dbg->markCrossCompartmentEdges(trc);
     }
 }
 
@@ -2213,7 +2208,6 @@ Debugger::markAll(JSTracer *trc)
         GlobalObjectSet &debuggees = dbg->debuggees;
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
             GlobalObject *global = e.front();
-
             MarkObjectUnbarriered(trc, &global, "Global Object");
             if (global != e.front())
                 e.rekeyFront(global);
@@ -3814,7 +3808,7 @@ GetScriptReferent(JSObject *obj)
     return static_cast<JSScript *>(obj->as<NativeObject>().getPrivate());
 }
 
-static void
+void
 DebuggerScript_trace(JSTracer *trc, JSObject *obj)
 {
     
@@ -4765,7 +4759,7 @@ GetSourceReferent(JSObject *obj)
     return static_cast<ScriptSourceObject *>(obj->as<NativeObject>().getPrivate());
 }
 
-static void
+void
 DebuggerSource_trace(JSTracer *trc, JSObject *obj)
 {
     
@@ -5845,7 +5839,7 @@ static const JSFunctionSpec DebuggerFrame_methods[] = {
 
 
 
-static void
+void
 DebuggerObject_trace(JSTracer *trc, JSObject *obj)
 {
     
@@ -6753,7 +6747,7 @@ static const JSFunctionSpec DebuggerObject_methods[] = {
 
 
 
-static void
+void
 DebuggerEnv_trace(JSTracer *trc, JSObject *obj)
 {
     

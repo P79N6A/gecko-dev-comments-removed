@@ -54,11 +54,13 @@ class DebuggerMemory;
 
 
 
-
-template <class Key, class Value, bool InvisibleKeysOk=false>
-class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
+template <class UnbarrieredKey, bool InvisibleKeysOk=false>
+class DebuggerWeakMap : private WeakMap<PreBarriered<UnbarrieredKey>, RelocatablePtrObject>
 {
   private:
+    typedef PreBarriered<UnbarrieredKey> Key;
+    typedef RelocatablePtrObject Value;
+
     typedef HashMap<JS::Zone *,
                     uintptr_t,
                     DefaultHasher<JS::Zone *>,
@@ -112,8 +114,10 @@ class DebuggerWeakMap : private WeakMap<Key, Value, DefaultHasher<Key> >
     }
 
   public:
-    void markKeys(JSTracer *tracer) {
+    template <void (traceValueEdges)(JSTracer *, JSObject *)>
+    void markCrossCompartmentEdges(JSTracer *tracer) {
         for (Enum e(*static_cast<Base *>(this)); !e.empty(); e.popFront()) {
+            traceValueEdges(tracer, e.front().value());
             Key key = e.front().key();
             gc::Mark(tracer, &key, "Debugger WeakMap key");
             if (key != e.front().key())
@@ -282,15 +286,15 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     FrameMap frames;
 
     
-    typedef DebuggerWeakMap<PreBarrieredScript, RelocatablePtrObject> ScriptWeakMap;
+    typedef DebuggerWeakMap<JSScript*> ScriptWeakMap;
     ScriptWeakMap scripts;
 
     
-    typedef DebuggerWeakMap<PreBarrieredObject, RelocatablePtrObject, true> SourceWeakMap;
+    typedef DebuggerWeakMap<JSObject*, true> SourceWeakMap;
     SourceWeakMap sources;
 
     
-    typedef DebuggerWeakMap<PreBarrieredObject, RelocatablePtrObject> ObjectWeakMap;
+    typedef DebuggerWeakMap<JSObject*> ObjectWeakMap;
     ObjectWeakMap objects;
 
     
@@ -356,7 +360,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static void traceObject(JSTracer *trc, JSObject *obj);
     void trace(JSTracer *trc);
     static void finalize(FreeOp *fop, JSObject *obj);
-    void markKeysInCompartment(JSTracer *tracer);
+    void markCrossCompartmentEdges(JSTracer *tracer);
 
     static const Class jsclass;
 
@@ -506,7 +510,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    static void markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer);
+    static void markAllCrossCompartmentEdges(JSTracer *tracer);
     static bool markAllIteratively(GCMarker *trc);
     static void markAll(JSTracer *trc);
     static void sweepAll(FreeOp *fop);
