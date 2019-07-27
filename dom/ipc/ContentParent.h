@@ -336,6 +336,12 @@ private:
     
     
     
+    void MaybeTakeCPUWakeLock(Element* aFrameElement);
+
+    
+    
+    
+    
     bool SetPriorityAndCheckIsAlive(hal::ProcessPriority aPriority);
 
     

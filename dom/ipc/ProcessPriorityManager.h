@@ -66,20 +66,6 @@ public:
 
 
 
-
-
-
-
-  static void ResetProcessPriority(dom::ContentParent* aContentParent,
-                                   bool aHandleSystemMessage);
-
-  
-
-
-
-
-
-
   static bool CurrentProcessIsForeground();
 
   
