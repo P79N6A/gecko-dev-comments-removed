@@ -156,20 +156,14 @@ protected:
 
 
 
-
-
-
-  void CheckAcquire(const CallStack& aCallContext);
+  void CheckAcquire();
 
   
 
 
 
 
-
-
-
-  void Acquire(const CallStack& aCallContext); 
+  void Acquire(); 
 
   
 

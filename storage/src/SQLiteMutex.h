@@ -88,11 +88,10 @@ public:
 
     
     
-    CallStack callContext = CallStack();
 
-    CheckAcquire(callContext);
+    CheckAcquire();
     sqlite3_mutex_enter(mMutex);
-    Acquire(callContext); 
+    Acquire(); 
   }
 
   void unlock()

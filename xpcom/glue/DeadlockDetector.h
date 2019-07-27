@@ -317,10 +317,8 @@ public:
 
 
 
-
   ResourceAcquisitionArray* CheckAcquisition(const T* aLast,
-                                             const T* aProposed,
-                                             const CallStack& aCallContext)
+                                             const T* aProposed)
   {
     if (!aLast) {
       
