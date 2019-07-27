@@ -1830,8 +1830,7 @@ WebGLContext::InitAndValidateGL()
 #ifdef XP_MACOSX
     if (gl->WorkAroundDriverBugs() &&
         gl->Vendor() == gl::GLVendor::ATI &&
-        nsCocoaFeatures::OSXVersionMajor() == 10 &&
-        nsCocoaFeatures::OSXVersionMinor() < 9)
+        !nsCocoaFeatures::IsAtLeastVersion(10,9))
     {
         
         

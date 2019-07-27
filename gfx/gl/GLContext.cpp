@@ -686,8 +686,9 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             
             
             
+            
             if (Vendor() == gl::GLVendor::NVIDIA &&
-                !nsCocoaFeatures::OnMavericksOrLater())
+                !nsCocoaFeatures::IsAtLeastVersion(10,8,3))
             {
                 MarkUnsupported(GLFeature::depth_texture);
             }
