@@ -512,6 +512,10 @@ let NetworkHelper = {
 
 
 
+
+
+
+
   parseSecurityInfo: function NH_parseSecurityInfo(securityInfo, httpActivity) {
     const info = {
       state: "insecure",
@@ -561,10 +565,26 @@ let NetworkHelper = {
     const NSSErrorsService = Cc['@mozilla.org/nss_errors_service;1']
                                .getService(Ci.nsINSSErrorsService);
     const SSLStatus = securityInfo.SSLStatus;
+    if (!NSSErrorsService.isNSSErrorCode(securityInfo.errorCode)) {
+      const state = securityInfo.securityState;
 
-    if (securityInfo.securityState & wpl.STATE_IS_SECURE) {
-      
-      info.state = "secure";
+      if (state & wpl.STATE_IS_SECURE) {
+        
+        info.state = "secure";
+      } else if (state & wpl.STATE_IS_BROKEN) {
+        
+        
+        info.state = "weak";
+        info.weaknessReasons = this.getReasonsForWeakness(state);
+      } else if (state & wpl.STATE_IS_INSECURE) {
+        
+        
+        return info;
+      } else {
+        DevToolsUtils.reportException("NetworkHelper.parseSecurityInfo",
+          "Security state " + state + " has no known STATE_IS_* flags.");
+        return info;
+      }
 
       
       info.cipherSuite = SSLStatus.cipherName;
@@ -598,14 +618,10 @@ let NetworkHelper = {
         info.hpkp = false;
       }
 
-    } else if (NSSErrorsService.isNSSErrorCode(securityInfo.errorCode)) {
+    } else {
       
       info.state = "broken";
       info.errorMessage = securityInfo.errorMessage;
-    } else {
-      
-      
-      return info;
     }
 
     return info;
@@ -682,6 +698,46 @@ let NetworkHelper = {
           "protocolVersion " + version + " is unknown.");
         return "Unknown";
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  getReasonsForWeakness: function NH_getReasonsForWeakness(state) {
+    const wpl = Ci.nsIWebProgressListener;
+
+    
+    
+    
+    let reasons = [];
+
+    if (state & wpl.STATE_IS_BROKEN) {
+      let isSSLV3 = state & wpl.STATE_USES_SSL_3;
+      let isCipher = state & wpl.STATE_USES_WEAK_CRYPTO;
+      if (isSSLV3) {
+        reasons.push("sslv3");
+      }
+
+      if (isCipher) {
+        reasons.push("cipher");
+      }
+
+      if (!isCipher && !isSSLV3) {
+        DevToolsUtils.reportException("NetworkHelper.getReasonsForWeakness",
+          "STATE_IS_BROKEN without a known reason. Full state was: " + state);
+      }
+    }
+
+    return reasons;
   },
 };
 

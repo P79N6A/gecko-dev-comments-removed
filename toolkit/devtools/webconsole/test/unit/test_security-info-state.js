@@ -95,6 +95,6 @@ function test_brokenSecurityInfo() {
   MockSecurityInfo.securityState = wpl.STATE_IS_BROKEN;
 
   let result = NetworkHelper.parseSecurityInfo(MockSecurityInfo, {});
-  equal(result.state, "insecure",
-    "state == 'insecure' if securityState contains STATE_IS_BROKEN flag");
+  equal(result.state, "weak",
+    "state == 'weak' if securityState contains STATE_IS_BROKEN flag");
 }
