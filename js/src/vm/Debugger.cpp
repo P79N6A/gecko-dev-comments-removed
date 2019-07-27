@@ -5909,15 +5909,20 @@ DebuggerFrame_setOnPop(JSContext *cx, unsigned argc, Value *vp)
 
 bool
 js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFramePtr frame,
-                  mozilla::Range<const char16_t> chars, const char *filename, unsigned lineno,
-                  MutableHandleValue rval)
+                  jsbytecode *pc, mozilla::Range<const char16_t> chars, const char *filename,
+                  unsigned lineno, MutableHandleValue rval)
 {
     assertSameCompartment(cx, env, frame);
     MOZ_ASSERT_IF(frame, thisv.get() == frame.thisValue());
+    MOZ_ASSERT_IF(frame, pc);
 
     MOZ_ASSERT(!IsPoisonedPtr(chars.start().get()));
 
     
+
+
+
+
 
 
 
@@ -5933,8 +5938,8 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFr
     RootedScript callerScript(cx, frame ? frame.script() : nullptr);
     SourceBufferHolder srcBuf(chars.start().get(), chars.length(), SourceBufferHolder::NoOwnership);
     RootedScript script(cx, frontend::CompileScript(cx, &cx->tempLifoAlloc(), env, callerScript,
-                                                    options, srcBuf,
-                                                     nullptr,
+                                                     js::NullPtr(),
+                                                    options, srcBuf,  nullptr,
                                                      frame ? 1 : 0));
     if (!script)
         return false;
@@ -6072,12 +6077,13 @@ DebuggerGenericEval(JSContext *cx, const char *fullMethodName, const Value &code
     
     RootedValue rval(cx);
     AbstractFramePtr frame = iter ? iter->abstractFramePtr() : NullFramePtr();
+    jsbytecode *pc = iter ? iter->pc() : nullptr;
     AutoStableStringChars stableChars(cx);
     if (!stableChars.initTwoByte(cx, flat))
         return false;
 
     mozilla::Range<const char16_t> chars = stableChars.twoByteRange();
-    bool ok = EvaluateInEnv(cx, env, thisv, frame, chars, url ? url : "debugger eval code",
+    bool ok = EvaluateInEnv(cx, env, thisv, frame, pc, chars, url ? url : "debugger eval code",
                             lineNumber, &rval);
     return dbg->receiveCompletionValue(ac, ok, rval, vp);
 }

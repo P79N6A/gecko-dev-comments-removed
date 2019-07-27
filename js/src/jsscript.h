@@ -1620,7 +1620,15 @@ class JSScript : public js::gc::TenuredCell
         return arr->vector[index];
     }
 
-    js::NestedScopeObject *getStaticScope(jsbytecode *pc);
+    js::NestedScopeObject *getStaticBlockScope(jsbytecode *pc);
+
+    
+    
+    JSObject *innermostStaticScopeInScript(jsbytecode *pc);
+
+    
+    
+    JSObject *innermostStaticScope(jsbytecode *pc);
 
     
 
