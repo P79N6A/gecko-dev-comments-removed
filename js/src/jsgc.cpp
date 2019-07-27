@@ -2090,25 +2090,8 @@ AutoDisableCompactingGC::~AutoDisableCompactingGC()
 }
 
 static bool
-ArenaContainsGlobal(ArenaHeader *arena)
-{
-    if (arena->getAllocKind() > FINALIZE_OBJECT_LAST)
-        return false;
-
-    for (ArenaCellIterUnderGC i(arena); !i.done(); i.next()) {
-        JSObject *obj = i.get<JSObject>();
-        if (obj->is<GlobalObject>())
-            return true;
-    }
-
-    return false;
-}
-
-static bool
 CanRelocateZone(JSRuntime *rt, Zone *zone)
 {
-    
-    
     return !rt->isAtomsZone(zone) && !rt->isSelfHostingZone(zone);
 }
 
@@ -2119,7 +2102,7 @@ CanRelocateArena(ArenaHeader *arena)
 
 
 
-    return arena->getAllocKind() <= FINALIZE_OBJECT_LAST && !ArenaContainsGlobal(arena);
+    return arena->getAllocKind() <= FINALIZE_OBJECT_LAST;
 }
 
 static bool
