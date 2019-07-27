@@ -490,9 +490,11 @@ addMessageListener("Browser:Thumbnail:CheckState", function (aMessage) {
 
 
 let AddonsChild = RemoteAddonsChild.init(this);
-addEventListener("unload", () => {
-  RemoteAddonsChild.uninit(AddonsChild);
-});
+if (AddonsChild) {
+  addEventListener("unload", () => {
+    RemoteAddonsChild.uninit(AddonsChild);
+  });
+}
 
 addMessageListener("NetworkPrioritizer:AdjustPriority", (msg) => {
   let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
