@@ -376,7 +376,8 @@ let MozLoopServiceInternal = {
     Services.prefs.setCharPref("loop.seenToS", "seen");
 
     
-    this.hawkRequest("/calls?version=" + version, "GET").then(response => {
+    this.hawkRequest(LOOP_SESSION_TYPE.GUEST,
+      "/calls?version=" + version, "GET").then(response => {
       try {
         let respData = JSON.parse(response.body);
         if (respData.calls && respData.calls[0]) {
