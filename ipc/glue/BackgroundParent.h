@@ -15,6 +15,8 @@ namespace mozilla {
 namespace dom {
 
 class ContentParent;
+class DOMFileImpl;
+class PBlobParent;
 
 } 
 
@@ -30,6 +32,7 @@ class BackgroundParent MOZ_FINAL
 
   typedef base::ProcessId ProcessId;
   typedef mozilla::dom::ContentParent ContentParent;
+  typedef mozilla::dom::DOMFileImpl DOMFileImpl;
   typedef mozilla::ipc::Transport Transport;
 
 public:
@@ -50,6 +53,11 @@ public:
   
   static already_AddRefed<ContentParent>
   GetContentParent(PBackgroundParent* aBackgroundActor);
+
+  static mozilla::dom::PBlobParent*
+  GetOrCreateActorForBlobImpl(PBackgroundParent* aBackgroundActor,
+                              DOMFileImpl* aBlobImpl,
+                              bool* aActorWasCreated = nullptr);
 
 private:
   

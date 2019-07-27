@@ -7,16 +7,28 @@
 #ifndef mozilla_dom_indexeddb_keypath_h__
 #define mozilla_dom_indexeddb_keypath_h__
 
-#include "mozilla/dom/indexedDB/IndexedDatabase.h"
-
 #include "mozilla/dom/BindingDeclarations.h"
 
-BEGIN_INDEXEDDB_NAMESPACE
+namespace mozilla {
+namespace dom {
+namespace indexedDB {
 
+class IndexMetadata;
 class Key;
+class ObjectStoreMetadata;
 
 class KeyPath
 {
+  
+  friend class IndexMetadata;
+  friend class ObjectStoreMetadata;
+
+  KeyPath()
+  : mType(NONEXISTENT)
+  {
+    MOZ_COUNT_CTOR(KeyPath);
+  }
+
 public:
   enum KeyPathType {
     NONEXISTENT,
@@ -105,6 +117,8 @@ public:
   nsTArray<nsString> mStrings;
 };
 
-END_INDEXEDDB_NAMESPACE
+} 
+} 
+} 
 
 #endif

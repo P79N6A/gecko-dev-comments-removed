@@ -187,7 +187,6 @@
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/MessagePortBinding.h"
 #include "mozilla/dom/indexedDB/IDBFactory.h"
-#include "mozilla/dom/quota/QuotaManager.h"
 
 #include "mozilla/dom/StructuredCloneTags.h"
 
@@ -1561,12 +1560,6 @@ nsGlobalWindow::FreeInnerObjects()
 
   
   mozilla::dom::workers::CancelWorkersForWindow(this);
-
-  
-  quota::QuotaManager* quotaManager = quota::QuotaManager::Get();
-  if (quotaManager) {
-    quotaManager->AbortCloseStoragesForWindow(this);
-  }
 
   ClearAllTimeouts();
 
@@ -10581,9 +10574,11 @@ GetIndexedDBEnabledForAboutURI(nsIURI *aURI)
   return flags & nsIAboutModule::ENABLE_INDEXED_DB;
 }
 
-indexedDB::IDBFactory*
+mozilla::dom::indexedDB::IDBFactory*
 nsGlobalWindow::GetIndexedDB(ErrorResult& aError)
 {
+  using mozilla::dom::indexedDB::IDBFactory;
+
   if (!mIndexedDB) {
     
     
@@ -10630,8 +10625,7 @@ nsGlobalWindow::GetIndexedDB(ErrorResult& aError)
     }
 
     
-    aError = indexedDB::IDBFactory::Create(this, nullptr,
-                                           getter_AddRefs(mIndexedDB));
+    aError = IDBFactory::CreateForWindow(this, getter_AddRefs(mIndexedDB));
   }
 
   return mIndexedDB;
