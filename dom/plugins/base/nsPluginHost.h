@@ -114,7 +114,9 @@ public:
                                nsACString & aMimeType,
                               PluginFilter aFilter = eExcludeDisabled);
 
-  void GetPlugins(nsTArray<nsRefPtr<nsPluginTag> >& aPluginArray);
+  void GetPlugins(nsTArray<nsRefPtr<nsPluginTag> >& aPluginArray,
+                  bool aIncludeDisabled = false);
+
   void FindPluginsForContent(uint32_t aPluginEpoch,
                              nsTArray<mozilla::plugins::PluginTag>* aPlugins,
                              uint32_t* aNewPluginEpoch);
