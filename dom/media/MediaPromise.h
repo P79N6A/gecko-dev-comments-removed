@@ -182,6 +182,9 @@ public:
     
     bool IsDisconnected() const { return mDisconnected; }
 
+    
+    virtual MediaPromise* CompletionPromise() = 0;
+
   protected:
     Consumer() : mComplete(false), mDisconnected(false) {}
     virtual ~Consumer() {}
@@ -229,6 +232,16 @@ protected:
     explicit ThenValueBase(AbstractThread* aResponseTarget, const char* aCallSite)
       : mResponseTarget(aResponseTarget), mCallSite(aCallSite) {}
 
+    MediaPromise* CompletionPromise() override
+    {
+      MOZ_DIAGNOSTIC_ASSERT(mResponseTarget->IsCurrentThreadIn());
+      MOZ_DIAGNOSTIC_ASSERT(!Consumer::mComplete);
+      if (!mCompletionPromise) {
+        mCompletionPromise = new MediaPromise::Private("<completion promise>");
+      }
+      return mCompletionPromise;
+    }
+
     void Dispatch(MediaPromise *aPromise)
     {
       aPromise->mMutex.AssertCurrentThreadOwns();
@@ -252,10 +265,16 @@ protected:
       MOZ_ASSERT(ThenValueBase::mResponseTarget->IsCurrentThreadIn());
       MOZ_DIAGNOSTIC_ASSERT(!Consumer::mComplete);
       Consumer::mDisconnected = true;
+
+      
+      
+      
+      
+      MOZ_DIAGNOSTIC_ASSERT(!mCompletionPromise);
     }
 
   protected:
-    virtual void DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) = 0;
+    virtual already_AddRefed<MediaPromise> DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) = 0;
 
     void DoResolveOrReject(ResolveOrRejectValue& aValue)
     {
@@ -265,10 +284,34 @@ protected:
         return;
       }
 
-      DoResolveOrRejectInternal(aValue);
+      
+      nsRefPtr<MediaPromise> p = DoResolveOrRejectInternal(aValue);
+
+      
+      
+      
+      
+      
+      
+      nsRefPtr<MediaPromise::Private> completionPromise =
+        dont_AddRef(static_cast<MediaPromise::Private*>(mCompletionPromise.forget().take()));
+      if (completionPromise) {
+        if (p) {
+          p->ChainTo(completionPromise.forget(), "<chained completion promise>");
+        } else {
+          completionPromise->ResolveOrReject(aValue, "<completion of non-promise-returning method>");
+        }
+      }
     }
 
     nsRefPtr<AbstractThread> mResponseTarget; 
+
+    
+    
+    
+    
+    nsRefPtr<MediaPromise> mCompletionPromise;
+
     const char* mCallSite;
   };
 
@@ -338,7 +381,7 @@ protected:
   }
 
   protected:
-    virtual void DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) override
+    virtual already_AddRefed<MediaPromise> DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) override
     {
       nsRefPtr<MediaPromise> completion;
       if (aValue.IsResolve()) {
@@ -352,6 +395,8 @@ protected:
       
       
       mThisVal = nullptr;
+
+      return completion.forget();
     }
 
   private:
@@ -388,7 +433,7 @@ protected:
   }
 
   protected:
-    virtual void DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) override
+    virtual already_AddRefed<MediaPromise> DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) override
     {
       
       
@@ -408,6 +453,8 @@ protected:
       
       mResolveFunction.reset();
       mRejectFunction.reset();
+
+      return completion.forget();
     }
 
   private:
@@ -533,6 +580,15 @@ public:
     MOZ_ASSERT(IsPending());
     PROMISE_LOG("%s rejecting MediaPromise (%p created at %s)", aRejectSite, this, mCreationSite);
     mValue.SetReject(aRejectValue);
+    DispatchAll();
+  }
+
+  void ResolveOrReject(ResolveOrRejectValue aValue, const char* aSite)
+  {
+    MutexAutoLock lock(mMutex);
+    MOZ_ASSERT(IsPending());
+    PROMISE_LOG("%s resolveOrRejecting MediaPromise (%p created at %s)", aSite, this, mCreationSite);
+    mValue = aValue;
     DispatchAll();
   }
 };
