@@ -14,65 +14,110 @@ class C : public SupportsWeakPtr<C>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(C)
+
   int mNum;
-  void act() {}
-};
 
-static void
-Example()
-{
-  C* ptr = new C();
+  C()
+    : mNum(0)
+  {}
 
-  
-  
-  
-  
-  WeakPtr<C> weak = ptr;
-  WeakPtr<C> other = ptr;
-
-  
-  if (weak) {
-    weak->mNum = 17;
-    weak->act();
+  ~C()
+  {
+    
+    mNum = 0xDEAD;
   }
 
-  
-  delete ptr;
+  void act() {}
 
-  MOZ_RELEASE_ASSERT(!weak, "Deleting |ptr| clears weak pointers to it.");
-  MOZ_RELEASE_ASSERT(!other, "Deleting |ptr| clears all weak pointers to it.");
+  bool isConst() {
+    return false;
+  }
+
+  bool isConst() const {
+    return true;
+  }
+};
+
+bool isConst(C*)
+{
+  return false;
 }
 
-struct A : public SupportsWeakPtr<A>
+bool isConst(const C*)
 {
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(A)
-  int mData;
-};
+  return true;
+}
 
 int
 main()
 {
-  A* a = new A;
+  C* c1 = new C;
+  MOZ_RELEASE_ASSERT(c1->mNum == 0);
 
   
   
-  A* a2 = new A;
+  
+  
+  WeakPtr<C> w1 = c1;
+  
+  MOZ_RELEASE_ASSERT(w1);
+  MOZ_RELEASE_ASSERT(w1 == c1);
+  w1->mNum = 1;
+  w1->act();
 
-  a->mData = 5;
-  WeakPtr<A> ptr = a;
+  
+  WeakPtr<C> w2 = c1;
+  MOZ_RELEASE_ASSERT(w2);
+  MOZ_RELEASE_ASSERT(w2 == c1);
+  MOZ_RELEASE_ASSERT(w2 == w1);
+  MOZ_RELEASE_ASSERT(w2->mNum == 1);
+
+  
+  WeakPtr<const C> w3const = c1;
+  MOZ_RELEASE_ASSERT(w3const);
+  MOZ_RELEASE_ASSERT(w3const == c1);
+  MOZ_RELEASE_ASSERT(w3const == w1);
+  MOZ_RELEASE_ASSERT(w3const == w2);
+  MOZ_RELEASE_ASSERT(w3const->mNum == 1);
+
+  
+  MOZ_RELEASE_ASSERT(!w1->isConst());
+  MOZ_RELEASE_ASSERT(w3const->isConst());
+  MOZ_RELEASE_ASSERT(!isConst(w1));
+  MOZ_RELEASE_ASSERT(isConst(w3const));
+
+  
+  
+  
   {
-    WeakPtr<A> ptr2 = a;
-    MOZ_RELEASE_ASSERT(ptr->mData == 5);
-    WeakPtr<A> ptr3 = a;
-    MOZ_RELEASE_ASSERT(ptr->mData == 5);
+    WeakPtr<C> w4local = c1;
+    MOZ_RELEASE_ASSERT(w4local == c1);
   }
+  
+  
+  MOZ_RELEASE_ASSERT(c1->mNum == 1);
+  
+  MOZ_RELEASE_ASSERT(w1 == c1);
+  MOZ_RELEASE_ASSERT(w2 == c1);
 
-  delete a;
-  MOZ_RELEASE_ASSERT(!ptr);
+  
+  C* c2 = new C;
+  c2->mNum = 2;
+  MOZ_RELEASE_ASSERT(w2->mNum == 1); 
+  w2 = c2;
+  MOZ_RELEASE_ASSERT(w2);
+  MOZ_RELEASE_ASSERT(w2 == c2);
+  MOZ_RELEASE_ASSERT(w2 != c1);
+  MOZ_RELEASE_ASSERT(w2 != w1);
+  MOZ_RELEASE_ASSERT(w2->mNum == 2);
 
-  delete a2;
+  
+  
+  delete c1;
+  MOZ_RELEASE_ASSERT(!w1, "Deleting an object should clear WeakPtr's to it.");
+  MOZ_RELEASE_ASSERT(!w3const, "Deleting an object should clear WeakPtr's to it.");
+  MOZ_RELEASE_ASSERT(w2, "Deleting an object should not clear WeakPtr that are not pointing to it.");
 
-  Example();
-
-  return 0;
+  delete c2;
+  MOZ_RELEASE_ASSERT(!w2, "Deleting an object should clear WeakPtr's to it.");
 }
