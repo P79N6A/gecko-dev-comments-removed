@@ -103,6 +103,10 @@ public:
 
   
   
+  virtual void ReadUpdatedMetadata(MediaInfo* aInfo) { };
+
+  
+  
   
   
   

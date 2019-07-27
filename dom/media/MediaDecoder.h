@@ -175,6 +175,12 @@
 
 
 
+
+
+
+
+
+
 #if !defined(MediaDecoder_h_)
 #define MediaDecoder_h_
 
@@ -787,16 +793,16 @@ public:
 
   
   
+  virtual void FirstFrameLoaded(MediaInfo* aInfo);
+
+  
+  
   
   void ConstructMediaTracks();
 
   
   
   virtual void RemoveMediaTracks() MOZ_OVERRIDE;
-
-  
-  
-  void FirstFrameLoaded();
 
   
   
