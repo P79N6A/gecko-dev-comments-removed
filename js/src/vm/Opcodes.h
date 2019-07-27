@@ -1520,10 +1520,12 @@
 
 
 
+
  \
     macro(JSOP_SETGNAME,      155,"setgname",  NULL,       5,  2,  1, JOF_ATOM|JOF_NAME|JOF_SET|JOF_DETECTING|JOF_GNAME|JOF_CHECKSLOPPY) \
     \
     
+
 
 
 
