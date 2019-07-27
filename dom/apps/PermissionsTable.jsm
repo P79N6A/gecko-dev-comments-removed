@@ -668,7 +668,7 @@ this.AllPossiblePermissions = [];
     AllPossiblePermissions.concat(["indexedDB", "offline-app", "pin-app"]);
 })();
 
-this.isExplicitInPermissionsTable = function(aPermName, aIntStatus) {
+this.isExplicitInPermissionsTable = function(aPermName, aIntStatus, aAppKind) {
 
   
   let appStatus;
@@ -680,7 +680,7 @@ this.isExplicitInPermissionsTable = function(aPermName, aIntStatus) {
       appStatus = "privileged";
       break;
     default: 
-      appStatus = "app";
+      appStatus = aAppKind == "hosted-trusted" ? "trusted" : "app";
       break;
   }
 
