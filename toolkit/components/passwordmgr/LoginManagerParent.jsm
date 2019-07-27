@@ -152,7 +152,9 @@ var LoginManagerParent = {
 
     XPCOMUtils.defineLazyGetter(this, "recipeParentPromise", () => {
       const { LoginRecipesParent } = Cu.import("resource://gre/modules/LoginRecipes.jsm", {});
-      this._recipeManager = new LoginRecipesParent();
+      this._recipeManager = new LoginRecipesParent({
+        defaults: Services.prefs.getComplexValue("signon.recipes.path", Ci.nsISupportsString).data,
+      });
       return this._recipeManager.initializationPromise;
     });
 
@@ -274,22 +276,30 @@ var LoginManagerParent = {
     }
 
     if (!showMasterPassword && !Services.logins.isLoggedIn) {
-      target.sendAsyncMessage("RemoteLogins:loginsFound", {
-        requestId: requestId,
-        logins: [],
-        recipes,
-      });
+      try {
+        target.sendAsyncMessage("RemoteLogins:loginsFound", {
+          requestId: requestId,
+          logins: [],
+          recipes,
+        });
+      } catch (e) {
+        log("error sending message to target", e);
+      }
       return;
     }
 
     let allLoginsCount = Services.logins.countLogins(formOrigin, "", null);
     
     if (!allLoginsCount) {
-      target.sendAsyncMessage("RemoteLogins:loginsFound", {
-        requestId: requestId,
-        logins: [],
-        recipes,
-      });
+      try {
+        target.sendAsyncMessage("RemoteLogins:loginsFound", {
+          requestId: requestId,
+          logins: [],
+          recipes,
+        });
+      } catch (e) {
+        log("error sending message to target", e);
+      }
       return;
     }
 
