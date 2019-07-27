@@ -37,8 +37,6 @@ class nsIconChannel MOZ_FINAL : public nsIChannel
     
     nsCOMPtr<nsIChannel> mRealChannel;
 
-    
-    nsresult InitWithGnome(nsIMozIconURI* aURI);
     nsresult InitWithGIO(nsIMozIconURI* aIconURI);
 };
 
