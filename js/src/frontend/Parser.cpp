@@ -1971,7 +1971,8 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
         
         
         uint32_t userbufBase = lazyOuter->begin() - lazyOuter->column();
-        tokenStream.advance(fun->lazyScript()->end() - userbufBase);
+        if (!tokenStream.advance(fun->lazyScript()->end() - userbufBase))
+            return false;
 
         *pbodyProcessed = true;
         return true;

@@ -351,9 +351,10 @@ class MOZ_STACK_CLASS TokenStream
         bool sawOctalEscape:1;  
         bool hadError:1;        
                                 
+        bool hitOOM:1;          
 
         Flags()
-          : isEOF(), isDirtyLine(), sawOctalEscape(), hadError()
+          : isEOF(), isDirtyLine(), sawOctalEscape(), hadError(), hitOOM()
         {}
     };
 
@@ -435,10 +436,15 @@ class MOZ_STACK_CLASS TokenStream
         
         
         
-        if (lookahead != 0 && srcCoords.isOnThisLine(curr.pos.end, lineno)) {
-            MOZ_ASSERT(!flags.hadError);
-            *ttp = tokens[(cursor + 1) & ntokensMask].type;
-            return true;
+        if (lookahead != 0) {
+            bool onThisLine;
+            if (!srcCoords.isOnThisLine(curr.pos.end, lineno, &onThisLine))
+                return reportError(JSMSG_OUT_OF_MEMORY);
+            if (onThisLine) {
+                MOZ_ASSERT(!flags.hadError);
+                *ttp = tokens[(cursor + 1) & ntokensMask].type;
+                return true;
+            }
         }
 
         
@@ -525,7 +531,7 @@ class MOZ_STACK_CLASS TokenStream
         Token lookaheadTokens[maxLookahead];
     };
 
-    void advance(size_t position);
+    bool advance(size_t position);
     void tell(Position*);
     void seek(const Position& pos);
     bool seek(const Position& pos, const TokenStream& other);
@@ -626,14 +632,16 @@ class MOZ_STACK_CLASS TokenStream
       public:
         SourceCoords(ExclusiveContext* cx, uint32_t ln);
 
-        void add(uint32_t lineNum, uint32_t lineStartOffset);
+        bool add(uint32_t lineNum, uint32_t lineStartOffset);
         bool fill(const SourceCoords& other);
 
-        bool isOnThisLine(uint32_t offset, uint32_t lineNum) const {
+        bool isOnThisLine(uint32_t offset, uint32_t lineNum, bool* onThisLine) const {
             uint32_t lineIndex = lineNumToIndex(lineNum);
-            MOZ_ASSERT(lineIndex + 1 < lineStartOffsets_.length());  
-            return lineStartOffsets_[lineIndex] <= offset &&
-                   offset < lineStartOffsets_[lineIndex + 1];
+            if (lineIndex + 1 >= lineStartOffsets_.length()) 
+                return false;
+            *onThisLine = lineStartOffsets_[lineIndex] <= offset &&
+                          offset < lineStartOffsets_[lineIndex + 1];
+            return true;
         }
 
         uint32_t lineNum(uint32_t offset) const;
