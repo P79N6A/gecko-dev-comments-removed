@@ -6823,7 +6823,7 @@ nsContentUtils::HasDistributedChildren(nsIContent* aContent)
   if (shadowEl && shadowEl->IsInsertionPoint()) {
     
     
-    return shadow->GetOlderShadow();
+    return shadowEl->GetOlderShadowRoot();
   }
 
   HTMLContentElement* contentEl = HTMLContentElement::FromContent(aContent);
