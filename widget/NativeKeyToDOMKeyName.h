@@ -587,6 +587,10 @@ KEY_MAP_WIN     (JunjaMode, VK_JUNJA)
 
 
 
+KEY_MAP_COCOA   (Eisu, kVK_JIS_Eisu)
+KEY_MAP_ANDROID (Eisu, AKEYCODE_EISU)
+
+
 KEY_MAP_WIN_JPN (Hankaku, VK_OEM_AUTO)
 KEY_MAP_GTK     (Hankaku, GDK_Hankaku)
 KEY_MAP_QT      (Hankaku, Qt::Key_Hankaku)
@@ -626,11 +630,8 @@ KEY_MAP_QT      (Katakana, Qt::Key_Katakana)
 
 
 KEY_MAP_WIN_JPN (Romaji, VK_OEM_BACKTAB)
-KEY_MAP_COCOA   (Romaji, kVK_JIS_Eisu) 
 KEY_MAP_GTK     (Romaji, GDK_Romaji)
 KEY_MAP_QT      (Romaji, Qt::Key_Romaji)
-
-KEY_MAP_ANDROID (Romaji, AKEYCODE_EISU) 
 
 
 KEY_MAP_WIN_JPN (Zenkaku, VK_OEM_ENLW)
