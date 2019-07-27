@@ -61,6 +61,9 @@ IsTypeSupported(const nsAString& aType)
   if (aType.IsEmpty()) {
     return NS_ERROR_DOM_INVALID_ACCESS_ERR;
   }
+  if (Preferences::GetBool("media.mediasource.ignore_codecs", false)) {
+    return NS_OK;
+  }
   
   nsContentTypeParser parser(aType);
   nsAutoString mimeType;
@@ -77,9 +80,6 @@ IsTypeSupported(const nsAString& aType)
   }
   if (!found) {
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
-  if (Preferences::GetBool("media.mediasource.ignore_codecs", false)) {
-    return NS_OK;
   }
   
   
