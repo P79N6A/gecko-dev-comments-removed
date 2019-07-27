@@ -4,6 +4,9 @@
 
 
 
+if (!this.SharedArrayBuffer)
+    quit(0);
+
 
 
 g = (function(stdlib, n, heap) {
