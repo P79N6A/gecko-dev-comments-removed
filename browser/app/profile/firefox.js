@@ -1451,6 +1451,9 @@ pref("devtools.performance.ui.enable-framerate", true);
 pref("devtools.cache.disabled", false);
 
 
+pref("devtools.serviceWorkers.testing.enabled", false);
+
+
 pref("devtools.netmonitor.enabled", true);
 
 
@@ -1871,6 +1874,11 @@ pref("dom.ipc.processHangMonitor", true);
 pref("dom.ipc.reportProcessHangs", false);
 #else
 pref("dom.ipc.reportProcessHangs", true);
+#endif
+
+#ifndef NIGHTLY_BUILD
+
+pref("reader.parse-on-load.enabled", false);
 #endif
 
 

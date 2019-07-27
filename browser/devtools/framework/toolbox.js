@@ -332,6 +332,7 @@ Toolbox.prototype = {
         this._buildOptions();
         this._buildTabs();
         this._applyCacheSettings();
+        this._applyServiceWorkersTestingSettings();
         this._addKeysToWindow();
         this._addReloadKeys();
         this._addHostListeners();
@@ -407,8 +408,13 @@ Toolbox.prototype = {
 
 
   _prefChanged: function(event, data) {
-    if (data.pref === "devtools.cache.disabled") {
+    switch(data.pref) {
+    case "devtools.cache.disabled":
       this._applyCacheSettings();
+      break;
+    case "devtools.serviceWorkers.testing.enabled":
+      this._applyServiceWorkersTestingSettings();
+      break;
     }
   },
 
@@ -744,6 +750,22 @@ Toolbox.prototype = {
 
     if (this.target.activeTab) {
       this.target.activeTab.reconfigure({"cacheDisabled": cacheDisabled});
+    }
+  },
+
+  
+
+
+
+  _applyServiceWorkersTestingSettings: function() {
+    let pref = "devtools.serviceWorkers.testing.enabled";
+    let serviceWorkersTestingEnabled =
+      Services.prefs.getBoolPref(pref) || false;
+
+    if (this.target.activeTab) {
+      this.target.activeTab.reconfigure({
+        "serviceWorkersTestingEnabled": serviceWorkersTestingEnabled
+      });
     }
   },
 
@@ -1697,7 +1719,10 @@ Toolbox.prototype = {
     
     
     if (this.target.activeTab) {
-      this.target.activeTab.reconfigure({"cacheDisabled": false});
+      this.target.activeTab.reconfigure({
+        "cacheDisabled": false,
+        "serviceWorkersTestingEnabled": false
+      });
     }
 
     
