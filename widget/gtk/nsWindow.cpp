@@ -3186,10 +3186,8 @@ nsWindow::OnVisibilityNotifyEvent(GdkEventVisibility *aEvent)
 
         mIsFullyObscured = false;
 
-        if (!nsGtkIMModule::IsVirtualKeyboardOpened()) {
-            
-            EnsureGrabs();
-        }
+        
+        EnsureGrabs();
         break;
     default: 
         mIsFullyObscured = true;

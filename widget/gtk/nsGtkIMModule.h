@@ -89,10 +89,6 @@ public:
     InputContext GetInputContext();
     void OnUpdateComposition();
 
-    
-    
-    static bool IsVirtualKeyboardOpened();
-
 protected:
     
     
