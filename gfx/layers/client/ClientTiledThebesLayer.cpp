@@ -7,7 +7,6 @@
 #include "Units.h"                      
 #include "UnitTransforms.h"             
 #include "ClientLayerManager.h"         
-#include "gfx3DMatrix.h"                
 #include "gfxPlatform.h"                
 #include "gfxPrefs.h"                   
 #include "gfxRect.h"                    
