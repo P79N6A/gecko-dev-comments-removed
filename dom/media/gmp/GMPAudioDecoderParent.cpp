@@ -140,7 +140,7 @@ nsresult
 GMPAudioDecoderParent::Close()
 {
   LOGD(("%s: %p", __FUNCTION__, this));
-  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
+  MOZ_ASSERT(!mPlugin || mPlugin->GMPThread() == NS_GetCurrentThread());
 
   
   
@@ -160,7 +160,7 @@ nsresult
 GMPAudioDecoderParent::Shutdown()
 {
   LOGD(("%s: %p", __FUNCTION__, this));
-  MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
+  MOZ_ASSERT(!mPlugin || mPlugin->GMPThread() == NS_GetCurrentThread());
 
   if (mShuttingDown) {
     return NS_OK;
