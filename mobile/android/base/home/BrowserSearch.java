@@ -441,7 +441,7 @@ public class BrowserSearch extends HomeFragment
 
             if (searchCount == 0) {
                 
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Prefetch", url.toString()));
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Prefetch", url));
             }
 
             
