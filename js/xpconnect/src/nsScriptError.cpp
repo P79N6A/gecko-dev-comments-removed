@@ -54,6 +54,15 @@ nsScriptError::GetMessageMoz(char16_t **result) {
 
 
 NS_IMETHODIMP
+nsScriptError::GetLogLevel(uint32_t* aLogLevel)
+{
+  *aLogLevel = mFlags & (uint32_t)nsIScriptError::errorFlag ?
+               nsIConsoleMessage::error : nsIConsoleMessage::warn;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsScriptError::GetErrorMessage(nsAString& aResult) {
     aResult.Assign(mMessage);
     return NS_OK;
