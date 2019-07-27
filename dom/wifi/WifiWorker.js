@@ -1947,7 +1947,6 @@ function WifiWorker() {
       if (!ok)
         return;
 
-      self.waitForScan(function firstScan() {});
       
       
       
