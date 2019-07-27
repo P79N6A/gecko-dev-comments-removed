@@ -631,19 +631,26 @@ void TickSample::PopulateContext(void* aContext)
   }
 }
 
-
 void OS::SleepMicro(int microseconds)
 {
+  if (MOZ_UNLIKELY(microseconds >= 1000000)) {
+    
+    
+    MOZ_ALWAYS_TRUE(!::usleep(microseconds));
+    return;
+  }
+
   struct timespec ts;
   ts.tv_sec  = 0;
   ts.tv_nsec = microseconds * 1000UL;
 
-  while (true) {
-    
-    
-    if (!nanosleep(&ts, &ts) || errno != EINTR) {
-      return;
-    }
-  }
-}
+  int rv = ::nanosleep(&ts, &ts);
 
+  while (rv != 0 && errno == EINTR) {
+    
+    
+    rv = ::nanosleep(&ts, &ts);
+  }
+
+  MOZ_ASSERT(!rv, "nanosleep call failed");
+}
