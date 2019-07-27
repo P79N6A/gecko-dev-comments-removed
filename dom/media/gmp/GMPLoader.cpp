@@ -14,6 +14,7 @@
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #include "mozilla/sandboxTarget.h"
+#include "mozilla/Scoped.h"
 #include "windows.h"
 #include <intrin.h>
 #include <assert.h>
@@ -31,6 +32,31 @@
 #include "rlz/lib/machine_id.h"
 #include "rlz/lib/string_utils.h"
 #include "sha256.h"
+#endif
+
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+namespace {
+
+
+struct ScopedActCtxHandleTraits
+{
+  typedef HANDLE type;
+
+  static type empty()
+  {
+    return INVALID_HANDLE_VALUE;
+  }
+
+  static void release(type aActCtxHandle)
+  {
+    if (aActCtxHandle != INVALID_HANDLE_VALUE) {
+      ReleaseActCtx(aActCtxHandle);
+    }
+  }
+};
+typedef mozilla::Scoped<ScopedActCtxHandleTraits> ScopedActCtxHandle;
+
+} 
 #endif
 
 namespace mozilla {
@@ -167,6 +193,30 @@ GMPLoaderImpl::Load(const char* aLibPath,
   {
     nodeId = std::string(aOriginSalt, aOriginSalt + aOriginSaltLen);
   }
+
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+  
+  
+  
+  
+  int pathLen = MultiByteToWideChar(CP_ACP, 0, aLibPath, -1, nullptr, 0);
+  if (pathLen == 0) {
+    return false;
+  }
+
+  wchar_t* widePath = new wchar_t[pathLen];
+  if (MultiByteToWideChar(CP_ACP, 0, aLibPath, -1, widePath, pathLen) == 0) {
+    delete[] widePath;
+    return false;
+  }
+
+  ACTCTX actCtx = { sizeof(actCtx) };
+  actCtx.dwFlags = ACTCTX_FLAG_RESOURCE_NAME_VALID;
+  actCtx.lpSource = widePath;
+  actCtx.lpResourceName = ISOLATIONAWARE_MANIFEST_RESOURCE_ID;
+  ScopedActCtxHandle actCtxHandle(CreateActCtx(&actCtx));
+  delete[] widePath;
+#endif
 
   
   
