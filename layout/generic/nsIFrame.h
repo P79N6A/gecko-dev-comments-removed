@@ -249,14 +249,6 @@ typedef uint32_t nsReflowStatus;
 
 
 
-#define NS_IS_REFLOW_ERROR(_status) (int32_t(_status) < 0)
-
-
-
-
-
-
-
 #define NS_INLINE_BREAK              0x0100
 
 
