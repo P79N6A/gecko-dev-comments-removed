@@ -928,6 +928,7 @@ MarkActiveBaselineScripts(JSRuntime *rt, const JitActivationIterator &activation
           case JitFrame_BaselineJS:
             iter.script()->baselineScript()->setActive();
             break;
+          case JitFrame_Bailout:
           case JitFrame_IonJS: {
             
             
