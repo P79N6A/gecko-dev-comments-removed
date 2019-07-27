@@ -84,6 +84,7 @@ public:
   
   IMPL_EVENT_HANDLER(dataavailable)
   IMPL_EVENT_HANDLER(error)
+  IMPL_EVENT_HANDLER(start)
   IMPL_EVENT_HANDLER(stop)
   IMPL_EVENT_HANDLER(warning)
 
@@ -112,8 +113,6 @@ protected:
   
   
   nsTArray<Session*> mSessions;
-  
-  Mutex mMutex;
   
   nsString mMimeType;
 
