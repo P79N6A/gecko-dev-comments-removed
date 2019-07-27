@@ -636,36 +636,6 @@ public:
 
 
 
-class SdpMsidSemanticAttributeList : public SdpAttribute
-{
-public:
-  SdpMsidSemanticAttributeList() : SdpAttribute(kMsidSemanticAttribute) {}
-
-  struct MsidSemantic
-  {
-    
-    std::string semantic;
-    std::vector<std::string> msids;
-  };
-
-  void
-  PushEntry(const std::string& semantic, const std::vector<std::string>& msids)
-  {
-    MsidSemantic value = {semantic, msids};
-    mMsidSemantics.push_back(value);
-  }
-
-  virtual void Serialize(std::ostream& os) const MOZ_OVERRIDE;
-
-  std::vector<MsidSemantic> mMsidSemantics;
-};
-
-
-
-
-
-
-
 class SdpRemoteCandidatesAttribute : public SdpAttribute
 {
 public:

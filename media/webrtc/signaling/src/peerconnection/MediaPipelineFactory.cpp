@@ -16,7 +16,6 @@
 #include "signaling/src/jsep/JsepTransport.h"
 
 #ifdef MOZILLA_INTERNAL_API
-#include "MediaStreamTrack.h"
 #include "nsIPrincipal.h"
 #include "nsIDocument.h"
 #include "mozilla/Preferences.h"
@@ -339,18 +338,14 @@ MediaPipelineFactory::CreateMediaPipelineReceiving(
     }
   }
 
-  
-  
-  TrackID numericTrackId = aTrackPair.mLevel + 1;
-
   if (aTrack.GetMediaType() == SdpMediaSection::kAudio) {
     pipeline = new MediaPipelineReceiveAudio(
         mPC->GetHandle(),
         mPC->GetMainThread().get(),
         mPC->GetSTSThread(),
         stream->GetMediaStream()->GetStream(),
-        aTrack.GetTrackId(),
-        numericTrackId,
+        
+        aTrackPair.mLevel + 1,
         aTrackPair.mLevel,
         static_cast<AudioSessionConduit*>(aConduit.get()), 
         aRtpFlow,
@@ -363,8 +358,8 @@ MediaPipelineFactory::CreateMediaPipelineReceiving(
         mPC->GetMainThread().get(),
         mPC->GetSTSThread(),
         stream->GetMediaStream()->GetStream(),
-        aTrack.GetTrackId(),
-        numericTrackId,
+        
+        aTrackPair.mLevel + 1,
         aTrackPair.mLevel,
         static_cast<VideoSessionConduit*>(aConduit.get()), 
         aRtpFlow,
@@ -382,15 +377,7 @@ MediaPipelineFactory::CreateMediaPipelineReceiving(
     return rv;
   }
 
-  rv = stream->StorePipeline(aTrack.GetTrackId(),
-                             RefPtr<MediaPipeline>(pipeline));
-  if (NS_FAILED(rv)) {
-    MOZ_MTLOG(ML_ERROR, "Couldn't store receiving pipeline " <<
-                        static_cast<unsigned>(rv));
-    return rv;
-  }
-
-  stream->SyncPipeline(pipeline);
+  stream->StorePipeline(aTrackPair.mLevel, SdpMediaSection::kVideo, pipeline);
   return NS_OK;
 }
 
@@ -428,17 +415,10 @@ MediaPipelineFactory::CreateMediaPipelineSending(
 
   
   RefPtr<MediaPipelineTransmit> pipeline = new MediaPipelineTransmit(
-      mPC->GetHandle(),
-      mPC->GetMainThread().get(),
-      mPC->GetSTSThread(),
-      stream->GetMediaStream(),
-      aTrack.GetTrackId(),
-      aTrackPair.mLevel,
-      aTrack.GetMediaType() == SdpMediaSection::kVideo,
-      aConduit,
-      aRtpFlow,
-      aRtcpFlow,
-      filter);
+      mPC->GetHandle(), mPC->GetMainThread().get(), mPC->GetSTSThread(),
+      stream->GetMediaStream(), aTrackPair.mLevel,
+      aTrack.GetMediaType() == SdpMediaSection::kVideo, aConduit, aRtpFlow,
+      aRtcpFlow, filter);
 
 #ifdef MOZILLA_INTERNAL_API
   
@@ -458,13 +438,7 @@ MediaPipelineFactory::CreateMediaPipelineSending(
     return rv;
   }
 
-  rv = stream->StorePipeline(aTrack.GetTrackId(),
-                             RefPtr<MediaPipeline>(pipeline));
-  if (NS_FAILED(rv)) {
-    MOZ_MTLOG(ML_ERROR, "Couldn't store receiving pipeline " <<
-                        static_cast<unsigned>(rv));
-    return rv;
-  }
+  stream->StorePipeline(aTrackPair.mLevel, pipeline);
 
   return NS_OK;
 }

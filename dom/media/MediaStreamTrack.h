@@ -44,7 +44,7 @@ public:
 
   
   virtual void GetKind(nsAString& aKind) = 0;
-  void GetId(nsAString& aID) const;
+  void GetId(nsAString& aID);
   void GetLabel(nsAString& aLabel) { aLabel.Truncate(); }
   bool Enabled() { return mEnabled; }
   void SetEnabled(bool aEnabled);
@@ -53,16 +53,12 @@ public:
   
   void NotifyEnded() { mEnded = true; }
 
-  
-  
-  void AssignId(const nsAString& aID) { mID = aID; }
-
 protected:
   virtual ~MediaStreamTrack();
 
   nsRefPtr<DOMMediaStream> mStream;
   TrackID mTrackID;
-  nsString mID;
+  nsID mID;
   bool mEnded;
   bool mEnabled;
 };

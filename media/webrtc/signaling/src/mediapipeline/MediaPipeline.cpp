@@ -547,13 +547,17 @@ nsresult MediaPipelineTransmit::Init() {
   return MediaPipeline::Init();
 }
 
-void MediaPipelineTransmit::AttachToTrack(const std::string& track_id) {
+void MediaPipelineTransmit::AttachToTrack(TrackID track_id) {
+  char track_id_string[11];
   ASSERT_ON_THREAD(main_thread_);
+
+  
+  PR_snprintf(track_id_string, sizeof(track_id_string), "%d", track_id);
 
   description_ = pc_ + "| ";
   description_ += conduit_->type() == MediaSessionConduit::AUDIO ?
       "Transmit audio[" : "Transmit video[";
-  description_ += track_id;
+  description_ += track_id_string;
   description_ += "]";
 
   
@@ -609,11 +613,10 @@ nsresult MediaPipelineTransmit::TransportReady_s(TransportInfo &info) {
 }
 
 nsresult MediaPipelineTransmit::ReplaceTrack(DOMMediaStream *domstream,
-                                             const std::string& track_id) {
+                                             TrackID track_id) {
   
-  MOZ_MTLOG(ML_DEBUG, "Reattaching pipeline " << description_ << " to stream "
-            << static_cast<void *>(domstream->GetStream())
-            << " track " << track_id << " conduit type=" <<
+  MOZ_MTLOG(ML_DEBUG, "Reattaching pipeline to stream "
+            << static_cast<void *>(domstream->GetStream()) << " conduit type=" <<
             (conduit_->type() == MediaSessionConduit::AUDIO ?"audio":"video"));
 
   if (domstream_) { 
@@ -621,7 +624,7 @@ nsresult MediaPipelineTransmit::ReplaceTrack(DOMMediaStream *domstream,
   }
   domstream_ = domstream; 
   stream_ = domstream->GetStream();
-  track_id_ = track_id;
+  
   AttachToTrack(track_id);
   return NS_OK;
 }
@@ -1162,11 +1165,15 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 #endif
 
 nsresult MediaPipelineReceiveAudio::Init() {
+  char track_id_string[11];
   ASSERT_ON_THREAD(main_thread_);
   MOZ_MTLOG(ML_DEBUG, __FUNCTION__);
 
+  
+  PR_snprintf(track_id_string, sizeof(track_id_string), "%d", track_id_);
+
   description_ = pc_ + "| Receive audio[";
-  description_ += track_id_;
+  description_ += track_id_string;
   description_ += "]";
 
   listener_->AddSelf(new AudioSegment());
@@ -1329,11 +1336,15 @@ NotifyPull(MediaStreamGraph* graph, StreamTime desired_time) {
 }
 
 nsresult MediaPipelineReceiveVideo::Init() {
+  char track_id_string[11];
   ASSERT_ON_THREAD(main_thread_);
   MOZ_MTLOG(ML_DEBUG, __FUNCTION__);
 
+  
+  PR_snprintf(track_id_string, sizeof(track_id_string), "%d", track_id_);
+
   description_ = pc_ + "| Receive video[";
-  description_ += track_id_;
+  description_ += track_id_string;
   description_ += "]";
 
 #ifdef MOZILLA_INTERNAL_API

@@ -178,18 +178,10 @@ private:
 class TracksAvailableCallback : public DOMMediaStream::OnTracksAvailableCallback
 {
 public:
-  TracksAvailableCallback(const std::list<std::string>& audioTrackIds,
-                          const std::list<std::string>& videoTrackIds,
-                          const std::set<std::string>& preexistingTrackIds,
+  TracksAvailableCallback(DOMMediaStream::TrackTypeHints aTrackTypeHints,
                           nsRefPtr<PeerConnectionObserver> aObserver)
-  : DOMMediaStream::OnTracksAvailableCallback(
-      
-      (audioTrackIds.empty() ? 0 : DOMMediaStream::HINT_CONTENTS_AUDIO) |
-      (videoTrackIds.empty() ? 0 : DOMMediaStream::HINT_CONTENTS_VIDEO))
-  , mObserver(aObserver)
-  , mAudioTrackIds(audioTrackIds)
-  , mVideoTrackIds(videoTrackIds)
-  , mPreexistingTrackIds(preexistingTrackIds) {}
+  : DOMMediaStream::OnTracksAvailableCallback(aTrackTypeHints)
+  , mObserver(aObserver) {}
 
   virtual void NotifyTracksAvailable(DOMMediaStream* aStream) MOZ_OVERRIDE
   {
@@ -205,67 +197,22 @@ public:
 
     nsTArray<nsRefPtr<MediaStreamTrack>> tracks;
     aStream->GetTracks(tracks);
-
-    for (size_t i = 0; i < tracks.Length(); i++) {
-      if (mPreexistingTrackIds.count(
-            PeerConnectionImpl::GetTrackId(*tracks[i]))) {
-        continue;
-      }
-
-      AssignNextIdToTrack(tracks[i]);
+    for (uint32_t i = 0; i < tracks.Length(); i++) {
       JSErrorResult rv;
       mObserver->OnAddTrack(*tracks[i], rv);
-      CSFLogInfo(logTag, "Calling OnAddTrack(%s)",
-                         PeerConnectionImpl::GetTrackId(*tracks[i]).c_str());
       if (rv.Failed()) {
-        CSFLogError(logTag, ": OnAddTrack(%u) failed! Error: %u",
-                    static_cast<unsigned>(i),
-                    static_cast<unsigned>(rv.ErrorCode()));
+        CSFLogError(logTag, ": OnAddTrack(%d) failed! Error: %u", i,
+                    static_cast<uint32_t>(rv.ErrorCode()));
       }
     }
-
     JSErrorResult rv;
-    CSFLogInfo(logTag, "Calling OnAddStream");
     mObserver->OnAddStream(*aStream, rv);
     if (rv.Failed()) {
       CSFLogError(logTag, ": OnAddStream() failed! Error: %u", static_cast<uint32_t>(rv.ErrorCode()));
     }
-
-    if (!mAudioTrackIds.empty() || !mVideoTrackIds.empty()) {
-      CSFLogError(logTag, "Failed to assign %u audio and %u video tracks!",
-                  static_cast<unsigned>(mAudioTrackIds.size()),
-                  static_cast<unsigned>(mVideoTrackIds.size()));
-    }
   }
-
-  void AssignNextIdToTrack(MediaStreamTrack* track)
-  {
-    std::list<std::string>* trackIds;
-
-    if (track->AsAudioStreamTrack()) {
-      trackIds = &mAudioTrackIds;
-    } else if (track->AsVideoStreamTrack()) {
-      trackIds = &mVideoTrackIds;
-    } else {
-      MOZ_ASSERT(false, "Track is neither an AudioStreamTrack nor "
-                        "VideoStreamTrack");
-      return;
-    }
-
-    if (trackIds->empty()) {
-      MOZ_ASSERT(false, "Too many new MediaStreamTracks were created");
-      return;
-    }
-
-    track->AssignId(NS_ConvertUTF8toUTF16(trackIds->front().c_str()));
-    trackIds->pop_front();
-  }
-
 private:
   nsRefPtr<PeerConnectionObserver> mObserver;
-  std::list<std::string> mAudioTrackIds;
-  std::list<std::string> mVideoTrackIds;
-  const std::set<std::string> mPreexistingTrackIds;
 };
 #endif
 
@@ -1633,11 +1580,15 @@ PeerConnectionImpl::SetRemoteDescription(int32_t action, const char* aSDP)
   } else {
     
     
-    size_t numTracks = mJsepSession->GetRemoteTrackCount();
-
     
-    std::map<std::string, std::vector<RefPtr<JsepTrack>>> tracksByStreamId;
+    
+    
+    size_t numTracks = mJsepSession->GetRemoteTrackCount();
+    MOZ_ASSERT(numTracks <= 3);
+    bool hasAudio = false;
+    bool hasVideo = false;
 
+    std::set<std::string> streamsToNotify;
     for (size_t i = 0; i < numTracks; ++i) {
       RefPtr<JsepTrack> track;
       nrv = mJsepSession->GetRemoteTrack(i, &track);
@@ -1653,17 +1604,10 @@ PeerConnectionImpl::SetRemoteDescription(int32_t action, const char* aSDP)
         continue;
       }
 
-      tracksByStreamId[track->GetStreamId()].push_back(track);
-    }
-
-    for (auto i = tracksByStreamId.begin(); i != tracksByStreamId.end(); ++i) {
-      std::string streamId = i->first;
-      std::vector<RefPtr<JsepTrack>>& tracks = i->second;
-
       nsRefPtr<RemoteSourceStreamInfo> info =
-        mMedia->GetRemoteStreamById(streamId);
+        mMedia->GetRemoteStreamById(track->GetStreamId());
       if (!info) {
-        nsresult nrv = CreateRemoteSourceStreamInfo(&info, streamId);
+        nsresult nrv = CreateRemoteSourceStreamInfo(&info, track->GetStreamId());
         if (NS_FAILED(nrv)) {
           pco->OnSetRemoteDescriptionError(
               kInternalError,
@@ -1682,35 +1626,31 @@ PeerConnectionImpl::SetRemoteDescription(int32_t action, const char* aSDP)
         }
       }
 
-      
-      std::list<std::string> newAudioTrackIds;
-      std::list<std::string> newVideoTrackIds;
-      
-      std::set<std::string> preexistingTrackIds;
+      streamsToNotify.insert(track->GetStreamId());
 
-      for (auto j = tracks.begin(); j != tracks.end(); ++j) {
-        RefPtr<JsepTrack> track = *j;
-        if (track->GetMediaType() == SdpMediaSection::kAudio) {
-          info->AddTrack(track->GetTrackId());
-          newAudioTrackIds.push_back(track->GetTrackId());
-        } else if (track->GetMediaType() == SdpMediaSection::kVideo) {
-          info->AddTrack(track->GetTrackId());
-          newVideoTrackIds.push_back(track->GetTrackId());
-        } else {
-          MOZ_ASSERT(false);
-          continue;
-        }
-
+      if (track->GetMediaType() == mozilla::SdpMediaSection::kAudio) {
+        MOZ_ASSERT(!hasAudio);
+        (void)hasAudio;
+        hasAudio = true;
+        info->mTrackTypeHints |= DOMMediaStream::HINT_CONTENTS_AUDIO;
+      } else if (track->GetMediaType() == mozilla::SdpMediaSection::kVideo) {
+        MOZ_ASSERT(!hasVideo);
+        (void)hasVideo;
+        hasVideo = true;
+        info->mTrackTypeHints |= DOMMediaStream::HINT_CONTENTS_VIDEO;
       }
+    }
 
+    for (auto i = streamsToNotify.begin(); i != streamsToNotify.end(); ++i) {
       
       
+      nsRefPtr<RemoteSourceStreamInfo> info =
+        mMedia->GetRemoteStreamById(*i);
+      MOZ_ASSERT(info);
+
 #ifdef MOZILLA_INTERNAL_API
       TracksAvailableCallback* tracksAvailableCallback =
-        new TracksAvailableCallback(newAudioTrackIds,
-                                    newVideoTrackIds,
-                                    preexistingTrackIds,
-                                    pco);
+        new TracksAvailableCallback(info->mTrackTypeHints, pco);
       info->GetMediaStream()->OnTracksAvailable(tracksAvailableCallback);
 #else
       pco->OnAddStream(info->GetMediaStream(), jrv);
@@ -1921,18 +1861,6 @@ PeerConnectionImpl::PrincipalChanged(DOMMediaStream* aMediaStream) {
 }
 #endif
 
-std::string
-PeerConnectionImpl::GetTrackId(const MediaStreamTrack& aTrack)
-{
-#ifdef MOZILLA_INTERNAL_API
-  nsString wideTrackId;
-  aTrack.GetId(wideTrackId);
-  return NS_ConvertUTF16toUTF8(wideTrackId).get();
-#else
-  return aTrack.GetId();
-#endif
-}
-
 nsresult
 PeerConnectionImpl::AddTrack(MediaStreamTrack& aTrack,
                              const Sequence<OwningNonNull<DOMMediaStream>>& aStreams)
@@ -1954,28 +1882,48 @@ PeerConnectionImpl::AddTrack(MediaStreamTrack& aTrack,
     CSFLogError(logTag, "%s: Track is not in stream", __FUNCTION__);
     return NS_ERROR_FAILURE;
   }
+  uint32_t hints = aMediaStream.GetHintContents() &
+      ((aTrack.AsAudioStreamTrack()? DOMMediaStream::HINT_CONTENTS_AUDIO : 0) |
+       (aTrack.AsVideoStreamTrack()? DOMMediaStream::HINT_CONTENTS_VIDEO : 0));
+
+  
+  
+  
+  if ((hints & DOMMediaStream::HINT_CONTENTS_AUDIO) &&
+      mNumAudioStreams > 0) {
+    CSFLogError(logTag, "%s: Only one local audio stream is supported for now",
+                __FUNCTION__);
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
+  
+  if ((hints & DOMMediaStream::HINT_CONTENTS_VIDEO) &&
+      mNumVideoStreams > 0) {
+    CSFLogError(logTag, "%s: Only one local video stream is supported for now",
+                __FUNCTION__);
+    return NS_ERROR_FAILURE;
+  }
+
   uint32_t num = mMedia->LocalStreamsLength();
 
   std::string streamId;
-  std::string trackId = PeerConnectionImpl::GetTrackId(aTrack);
   
-  nsresult res = mMedia->AddTrack(&aMediaStream, &streamId, trackId);
+  nsresult res = mMedia->AddStream(&aMediaStream, hints, &streamId);
   if (NS_FAILED(res)) {
     return res;
   }
-
-  CSFLogDebug(logTag, "Added track (%s) to stream %p",
-                      trackId.c_str(), &aMediaStream);
 
   if (num != mMedia->LocalStreamsLength()) {
     aMediaStream.AddPrincipalChangeObserver(this);
   }
 
-  if (aTrack.AsAudioStreamTrack()) {
+  if (hints & DOMMediaStream::HINT_CONTENTS_AUDIO) {
     res = mJsepSession->AddTrack(new JsepTrack(
         mozilla::SdpMediaSection::kAudio,
         streamId,
-        trackId,
+        "audio_track_id",
         JsepTrack::kJsepTrackSending));
     if (NS_FAILED(res)) {
       std::string errorString = mJsepSession->GetLastError();
@@ -1986,19 +1934,11 @@ PeerConnectionImpl::AddTrack(MediaStreamTrack& aTrack,
     mNumAudioStreams++;
   }
 
-  if (aTrack.AsVideoStreamTrack()) {
-#ifdef MOZILLA_INTERNAL_API
-    if (!Preferences::GetBool("media.peerconnection.video.enabled", true)) {
-      
-      
-      return NS_OK;
-    }
-#endif
-
+  if (hints & DOMMediaStream::HINT_CONTENTS_VIDEO) {
     res = mJsepSession->AddTrack(new JsepTrack(
         mozilla::SdpMediaSection::kVideo,
         streamId,
-        trackId,
+        "video_track_id",
         JsepTrack::kJsepTrackSending));
     if (NS_FAILED(res)) {
       std::string errorString = mJsepSession->GetLastError();
@@ -2023,73 +1963,61 @@ PeerConnectionImpl::ReplaceTrack(MediaStreamTrack& aThisTrack,
                                  DOMMediaStream& aStream) {
   PC_AUTO_ENTER_API_CALL(true);
 
-  JSErrorResult jrv;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+  TrackID withID = aWithTrack.GetTrackID();
+
+  bool success = false;
+  for(uint32_t i = 0; i < media()->LocalStreamsLength(); ++i) {
+    LocalSourceStreamInfo *info = media()->GetLocalStreamByIndex(i);
+    
+    int pipeline = info->HasTrackType(&aStream, !!(aThisTrack.AsVideoStreamTrack()));
+    if (pipeline >= 0) {
+      
+      info->ReplaceTrack(pipeline, aWithTrack.GetStream(), withID);
+      success = true;
+      break;
+    }
+  }
+  if (!success) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsRefPtr<PeerConnectionObserver> pco = do_QueryObjectReferent(mPCObserver);
   if (!pco) {
     return NS_ERROR_UNEXPECTED;
   }
+  JSErrorResult rv;
 
-  std::string origTrackId = PeerConnectionImpl::GetTrackId(aThisTrack);
-  std::string newTrackId = PeerConnectionImpl::GetTrackId(aWithTrack);
-
-  
-  
-  
-  
-  
-  
-  
-
-  if (!aStream.HasTrack(aThisTrack)) {
-    CSFLogError(logTag, "Track to replace (%s) is not in stream",
-                        origTrackId.c_str());
-    pco->OnReplaceTrackError(kInvalidMediastreamTrack,
-                             ObString("Track to replace is not in stream"),
-                             jrv);
-    return NS_OK;
-  }
-
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-
-  nsRefPtr<LocalSourceStreamInfo> info =
-    media()->GetLocalStreamByDomStream(aStream);
-
-  if (!info || !info->HasTrack(origTrackId)) {
-    CSFLogError(logTag, "Track to replace (%s) was never added",
-                        origTrackId.c_str());
-    pco->OnReplaceTrackError(kInvalidMediastreamTrack,
-                             ObString("Track to replace was never added"),
-                             jrv);
-    return NS_OK;
-  }
-
-  nsresult rv =
-    info->ReplaceTrack(origTrackId, aWithTrack.GetStream(), newTrackId);
-  if (NS_FAILED(rv)) {
-    CSFLogError(logTag, "Failed to replace track (%s)",
-                        origTrackId.c_str());
+  if (success) {
+    pco->OnReplaceTrackSuccess(rv);
+  } else {
     pco->OnReplaceTrackError(kInternalError,
                              ObString("Failed to replace track"),
-                             jrv);
-    return NS_OK;
+                             rv);
   }
-
-  pco->OnReplaceTrackSuccess(jrv);
-
-  if (jrv.Failed()) {
+  if (rv.Failed()) {
     CSFLogError(logTag, "Error firing replaceTrack callback");
     return NS_ERROR_UNEXPECTED;
   }
-
   return NS_OK;
 }
 
@@ -2734,19 +2662,16 @@ PeerConnectionImpl::BuildStatsQuery_m(
 
   
 
-  std::string trackId;
-  if (aSelector) {
-    trackId = PeerConnectionImpl::GetTrackId(*aSelector);
-  }
-
   for (int i = 0, len = mMedia->LocalStreamsLength(); i < len; i++) {
     auto& pipelines = mMedia->GetLocalStreamByIndex(i)->GetPipelines();
     if (aSelector) {
       if (mMedia->GetLocalStreamByIndex(i)->GetMediaStream()->
           HasTrack(*aSelector)) {
-        auto it = pipelines.find(trackId);
-        if (it != pipelines.end()) {
-          query->pipelines.AppendElement(it->second);
+        
+        for (auto it = pipelines.begin(); it != pipelines.end(); ++it) {
+          if (it->second->IsVideo() == !!aSelector->AsVideoStreamTrack()) {
+            query->pipelines.AppendElement(it->second);
+          }
         }
       }
     } else {
@@ -2761,9 +2686,10 @@ PeerConnectionImpl::BuildStatsQuery_m(
     if (aSelector) {
       if (mMedia->GetRemoteStreamByIndex(i)->
           GetMediaStream()->HasTrack(*aSelector)) {
-        auto it = pipelines.find(trackId);
-        if (it != pipelines.end()) {
-          query->pipelines.AppendElement(it->second);
+        for (auto it = pipelines.begin(); it != pipelines.end(); ++it) {
+          if (it->second->trackid() == aSelector->GetTrackID()) {
+            query->pipelines.AppendElement(it->second);
+          }
         }
       }
     } else {
@@ -2904,7 +2830,7 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
         NS_LITERAL_STRING("audio") : NS_LITERAL_STRING("video");
     nsString idstr = mediaType;
     idstr.AppendLiteral("_");
-    idstr.AppendInt(mp.level());
+    idstr.AppendInt(mp.trackid());
 
     
     switch (mp.direction()) {
