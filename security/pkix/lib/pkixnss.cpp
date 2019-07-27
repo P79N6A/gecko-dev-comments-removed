@@ -197,6 +197,9 @@ RegisterErrorTable()
     { "MOZILLA_PKIX_ERROR_SIGNATURE_ALGORITHM_MISMATCH",
       "The signature algorithm in the signature field of the certificate does "
       "not match the algorithm in its signatureAlgorithm field." },
+    { "MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING",
+      "The OCSP response does not include a status for the certificate being "
+      "verified." },
   };
   
   

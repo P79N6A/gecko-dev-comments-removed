@@ -109,7 +109,7 @@ function add_tests(certDB, otherTestCA) {
   add_ocsp_test("ocsp-stapling-unknown.example.com",
                 SEC_ERROR_OCSP_UNKNOWN_CERT, true);
   add_ocsp_test("ocsp-stapling-good-other.example.com",
-                SEC_ERROR_OCSP_UNKNOWN_CERT, true);
+                MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING, true);
   
   
   
