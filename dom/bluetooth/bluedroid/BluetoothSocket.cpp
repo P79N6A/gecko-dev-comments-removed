@@ -97,19 +97,19 @@ public:
     return mConsumer == nullptr;
   }
 
-  bool IsShutdownOnIOThread() const
+  bool IsShutdownOnIOThread() const override
   {
     return mShuttingDownOnIOThread;
   }
 
-  void ShutdownOnMainThread()
+  void ShutdownOnMainThread() override
   {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(!IsShutdownOnMainThread());
     mConsumer = nullptr;
   }
 
-  void ShutdownOnIOThread()
+  void ShutdownOnIOThread() override
   {
     MOZ_ASSERT(!NS_IsMainThread());
     MOZ_ASSERT(!mShuttingDownOnIOThread);
@@ -725,8 +725,8 @@ BluetoothSocket::CloseSocket()
   
   
   mImpl->ShutdownOnMainThread();
-  XRE_GetIOMessageLoop()->PostTask(
-    FROM_HERE, new SocketIOShutdownTask<DroidSocketImpl>(mImpl));
+
+  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mImpl));
 
   mImpl = nullptr;
 

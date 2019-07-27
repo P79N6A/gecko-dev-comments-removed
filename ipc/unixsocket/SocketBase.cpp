@@ -362,5 +362,31 @@ SocketIODeleteInstanceRunnable::Run()
   return NS_OK;
 }
 
+
+
+
+
+SocketIOShutdownTask::SocketIOShutdownTask(SocketIOBase* aIO)
+  : SocketIOTask<SocketIOBase>(aIO)
+{ }
+
+void
+SocketIOShutdownTask::Run()
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  SocketIOBase* io = SocketIOTask<SocketIOBase>::GetIO();
+
+  
+  
+  
+  
+  
+  MOZ_ASSERT(!io->IsShutdownOnIOThread());
+  io->ShutdownOnIOThread();
+
+  NS_DispatchToMainThread(new SocketIODeleteInstanceRunnable(io));
+}
+
 }
 }

@@ -337,7 +337,26 @@ public:
 
 
 
+  virtual bool IsShutdownOnIOThread() const = 0;
+
+  
+
+
+
+
+
   virtual bool IsShutdownOnMainThread() const = 0;
+
+  
+
+
+  virtual void ShutdownOnIOThread() = 0;
+
+  
+
+
+
+  virtual void ShutdownOnMainThread() = 0;
 
 protected:
   SocketIOBase();
@@ -452,7 +471,7 @@ public:
 
 protected:
   SocketIOTask(Tio* aIO)
-  : mIO(aIO)
+    : mIO(aIO)
   {
     MOZ_ASSERT(mIO);
   }
@@ -464,29 +483,13 @@ private:
 
 
 
-template<typename Tio>
-class SocketIOShutdownTask final : public SocketIOTask<Tio>
+
+class SocketIOShutdownTask final : public SocketIOTask<SocketIOBase>
 {
 public:
-  SocketIOShutdownTask(Tio* aIO)
-  : SocketIOTask<Tio>(aIO)
-  { }
+  SocketIOShutdownTask(SocketIOBase* aIO);
 
-  void Run() override
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-
-    Tio* io = SocketIOTask<Tio>::GetIO();
-
-    
-    
-    
-    
-    
-    io->ShutdownOnIOThread();
-
-    NS_DispatchToMainThread(new SocketIODeleteInstanceRunnable(io));
-  }
+  void Run() override;
 };
 
 }

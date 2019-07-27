@@ -56,10 +56,10 @@ public:
   
 
   bool IsShutdownOnMainThread() const override;
-  void ShutdownOnMainThread();
+  void ShutdownOnMainThread() override;
 
-  bool IsShutdownOnIOThread() const;
-  void ShutdownOnIOThread();
+  bool IsShutdownOnIOThread() const override;
+  void ShutdownOnIOThread() override;
 
   
   
@@ -669,8 +669,7 @@ StreamSocket::Close()
   
   mIO->ShutdownOnMainThread();
 
-  XRE_GetIOMessageLoop()->PostTask(
-    FROM_HERE, new SocketIOShutdownTask<StreamSocketIO>(mIO));
+  XRE_GetIOMessageLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
 
   mIO = nullptr;
 
