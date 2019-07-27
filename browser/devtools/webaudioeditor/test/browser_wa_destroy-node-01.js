@@ -10,6 +10,10 @@
 
 
 add_task(function*() {
+  
+  
+  requestLongerTimeout(2);
+
   let { target, panel } = yield initWebAudioEditor(DESTROY_NODES_URL);
   let { panelWin } = panel;
   let { gFront, $, $$, gAudioNodes } = panelWin;
