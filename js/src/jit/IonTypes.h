@@ -369,6 +369,7 @@ enum MIRType
     MIRType_MagicIsConstructing,       
     MIRType_MagicUninitializedLexical, 
     MIRType_Value,
+    MIRType_ObjectOrNull,
     MIRType_None,                      
     MIRType_Slots,                     
     MIRType_Elements,                  
