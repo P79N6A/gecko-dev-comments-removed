@@ -62,7 +62,7 @@ public:
   
   Animation* GetSource() const { return mSource; }
   AnimationTimeline* Timeline() const { return mTimeline; }
-  Nullable<double> GetStartTime() const;
+  Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   Nullable<TimeDuration> GetCurrentTime() const;
   AnimationPlayState PlayState() const;
   virtual void Play();
@@ -73,6 +73,7 @@ public:
   
   
   
+  Nullable<double> GetStartTimeAsDouble() const;
   Nullable<double> GetCurrentTimeAsDouble() const;
   virtual AnimationPlayState PlayStateFromJS() const { return PlayState(); }
   virtual void PlayFromJS() { Play(); }
