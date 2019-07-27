@@ -1671,7 +1671,15 @@ RemoteCommandLine(const char* aDesktopStartupID)
                               gArgc, gArgv, aDesktopStartupID,
                               getter_Copies(response), &success);
   
-  if (NS_FAILED(rv) || !success)
+  if (!success)
+    return REMOTE_NOT_FOUND;
+
+  
+  
+  if (response.EqualsLiteral("500 command not parseable"))
+    return REMOTE_ARG_BAD;
+
+  if (NS_FAILED(rv))
     return REMOTE_NOT_FOUND;
 
   return REMOTE_FOUND;
