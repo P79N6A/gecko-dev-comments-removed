@@ -770,6 +770,16 @@ NS_IMETHODIMP nsBaseWidget::HideWindowChrome(bool aShouldHide)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+ void
+nsBaseWidget::PerformFullscreenTransition(FullscreenTransitionStage aStage,
+                                          uint16_t aDuration,
+                                          nsISupports* aData,
+                                          nsIRunnable* aCallback)
+{
+  MOZ_ASSERT_UNREACHABLE(
+    "Should never call PerformFullscreenTransition on nsBaseWidget");
+}
+
 
 
 

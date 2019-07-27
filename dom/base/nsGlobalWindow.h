@@ -485,6 +485,9 @@ public:
   virtual void RefreshCompartmentPrincipal() override;
 
   
+  friend class FullscreenTransitionTask;
+
+  
   virtual nsresult SetFullscreenInternal(
     FullscreenReason aReason, bool aIsFullscreen,
     mozilla::gfx::VRHMDInfo *aHMD = nullptr) override final;
