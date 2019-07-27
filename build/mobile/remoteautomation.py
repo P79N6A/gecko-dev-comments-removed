@@ -280,7 +280,8 @@ class RemoteAutomation(Automation):
                 print "Robocop process name: "+self.procName
 
             
-            self.timeout = 3600
+            
+            self.timeout = 4500
             
             time.sleep(1)
 
