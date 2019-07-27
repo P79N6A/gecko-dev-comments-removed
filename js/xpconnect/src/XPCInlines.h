@@ -548,11 +548,7 @@ XPCWrappedNative::SweepTearOffs()
             
             
             if (!to->GetJSObjectPreserveColor()) {
-                nsISupports* obj = to->GetNative();
-                if (obj) {
-                    obj->Release();
-                    to->SetNative(nullptr);
-                }
+                to->SetNative(nullptr);
                 to->SetInterface(nullptr);
             }
         }
