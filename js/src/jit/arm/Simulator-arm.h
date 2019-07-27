@@ -94,7 +94,9 @@ class Simulator
         num_q_registers = 16
     };
 
+    
     static Simulator *Create();
+
     static void Destroy(Simulator *simulator);
 
     
@@ -192,6 +194,8 @@ class Simulator
         
         end_sim_pc = -2
     };
+
+    bool init();
 
     
     
