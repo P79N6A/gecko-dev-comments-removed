@@ -491,8 +491,6 @@ protected:
   static TriStateBool   sHasBogusPopupsDropShadowOnMultiMonitor;
   static bool           HasBogusPopupsDropShadowOnMultiMonitor();
 
-  static uint32_t       sOOPPPluginFocusEvent;
-
   
   
   nsIntMargin           mNonClientOffset;
