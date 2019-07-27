@@ -150,6 +150,9 @@
 #include "nsHtml5TreeOpExecutor.h"
 #include "mozilla/dom/HTMLLinkElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
+#ifdef MOZ_MEDIA_NAVIGATOR
+#include "mozilla/MediaManager.h"
+#endif 
 #ifdef MOZ_WEBRTC
 #include "IPeerConnection.h"
 #endif 
@@ -8502,6 +8505,14 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
   if (quotaManager && quotaManager->HasOpenTransactions(win)) {
    return false;
   }
+
+#ifdef MOZ_MEDIA_NAVIGATOR
+  
+  if (MediaManager::Exists() && win &&
+      MediaManager::Get()->IsWindowStillActive(win->WindowID())) {
+    return false;
+  }
+#endif 
 
 #ifdef MOZ_WEBRTC
   
