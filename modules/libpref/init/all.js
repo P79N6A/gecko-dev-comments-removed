@@ -1335,8 +1335,8 @@ pref("network.http.spdy.default-concurrent", 100);
 
 
 
-pref("network.http.altsvc.enabled", false);
-pref("network.http.altsvc.oe", false);
+pref("network.http.altsvc.enabled", true);
+pref("network.http.altsvc.oe", true);
 
 pref("network.http.diagnostics", false);
 
