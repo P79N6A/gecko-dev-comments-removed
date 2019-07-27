@@ -146,16 +146,6 @@ nsAboutProtocolHandler::NewChannel2(nsIURI* uri,
             
             
             
-            nsCOMPtr<nsILoadInfo> loadInfo;
-            (*result)->GetLoadInfo(getter_AddRefs(loadInfo));
-            if (!loadInfo) {
-                (*result)->SetLoadInfo(aLoadInfo);
-            }
-
-            
-            
-            
-            
             
             if (IsSafeForUntrustedContent(aboutMod, uri)) {
                 (*result)->SetOwner(nullptr);

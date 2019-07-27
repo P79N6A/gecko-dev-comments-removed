@@ -20,23 +20,16 @@ LoadInfo::LoadInfo(nsIPrincipal* aLoadingPrincipal,
                    nsSecurityFlags aSecurityFlags,
                    nsContentPolicyType aContentPolicyType,
                    nsIURI* aBaseURI)
-  : mLoadingPrincipal(aLoadingContext ?
-                        aLoadingContext->NodePrincipal() : aLoadingPrincipal)
+  : mLoadingPrincipal(aLoadingPrincipal)
   , mTriggeringPrincipal(aTriggeringPrincipal ?
-                           aTriggeringPrincipal : mLoadingPrincipal.get())
+                         aTriggeringPrincipal : aLoadingPrincipal)
   , mLoadingContext(do_GetWeakReference(aLoadingContext))
   , mSecurityFlags(aSecurityFlags)
   , mContentPolicyType(aContentPolicyType)
   , mBaseURI(aBaseURI)
 {
-  MOZ_ASSERT(mLoadingPrincipal);
+  MOZ_ASSERT(aLoadingPrincipal);
   MOZ_ASSERT(mTriggeringPrincipal);
-
-  
-  
-  MOZ_ASSERT(!aLoadingContext || !aLoadingPrincipal ||
-             aLoadingContext->NodePrincipal() == aLoadingPrincipal);
-
   
   if (mSecurityFlags & nsILoadInfo::SEC_SANDBOXED) {
     mSecurityFlags ^= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;

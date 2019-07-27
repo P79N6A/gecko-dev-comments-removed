@@ -100,7 +100,7 @@ nsChromeProtocolHandler::NewURI(const nsACString &aSpec,
 
 NS_IMETHODIMP
 nsChromeProtocolHandler::NewChannel2(nsIURI* aURI,
-                                     nsILoadInfo* aLoadInfo,
+                                     nsILoadInfo* aLoadinfo,
                                      nsIChannel** aResult)
 {
     nsresult rv;
@@ -147,21 +147,11 @@ nsChromeProtocolHandler::NewChannel2(nsIURI* aURI,
         return rv;
     }
 
-    
-    
-    
-    
-    if (aLoadInfo) {
-        rv = NS_NewChannelInternal(getter_AddRefs(result),
-                                   resolvedURI,
-                                   aLoadInfo);
-    }
-    else {
-        nsCOMPtr<nsIIOService> ioServ(do_GetIOService(&rv));
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = ioServ->NewChannelFromURI(resolvedURI, getter_AddRefs(result));
-    }
+    nsCOMPtr<nsIIOService> ioServ(do_GetIOService(&rv));
     NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = ioServ->NewChannelFromURI(resolvedURI, getter_AddRefs(result));
+    if (NS_FAILED(rv)) return rv;
 
 #ifdef DEBUG
     nsCOMPtr<nsIFileChannel> fileChan(do_QueryInterface(result));

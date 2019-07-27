@@ -223,13 +223,6 @@ nsJARProtocolHandler::NewChannel2(nsIURI* uri,
         return rv;
     }
 
-    
-    rv = chan->SetLoadInfo(aLoadInfo);
-    if (NS_FAILED(rv)) {
-        NS_RELEASE(chan);
-        return rv;
-    }
-
     *result = chan;
     return NS_OK;
 }

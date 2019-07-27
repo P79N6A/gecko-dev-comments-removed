@@ -106,13 +106,6 @@ nsViewSourceHandler::NewChannel2(nsIURI* uri,
         return rv;
     }
 
-    
-    rv = channel->SetLoadInfo(aLoadInfo);
-    if (NS_FAILED(rv)) {
-        NS_RELEASE(channel);
-        return rv;
-    }
-
     *result = static_cast<nsIViewSourceChannel*>(channel);
     return NS_OK;
 }
