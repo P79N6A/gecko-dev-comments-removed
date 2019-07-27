@@ -19,17 +19,59 @@ function run_test() {
   run_next_test();
 }
 
-add_test(function test_handleEnter() {
-  doSearch("", "mozilla.com", "http://www.mozilla.com", function(aController) {
-    do_check_eq(aController.input.textValue, "");
+add_test(function test_handleEnterWithDirectMatchCompleteSelectedIndex() {
+  doSearch("moz", "mozilla.com", "http://www.mozilla.com",
+    { forceComplete: true, completeSelectedIndex: true }, function(aController) {
+    do_check_eq(aController.input.textValue, "moz");
     do_check_eq(aController.getFinalCompleteValueAt(0), "http://www.mozilla.com");
-    aController.input.forceComplete = true;
     aController.handleEnter(false);
+    
     do_check_eq(aController.input.textValue, "http://www.mozilla.com");
   });
 });
 
-function doSearch(aSearchString, aResultValue, aFinalCompleteValue, aOnCompleteCallback) {
+add_test(function test_handleEnterWithDirectMatch() {
+  doSearch("mozilla", "mozilla.com", "http://www.mozilla.com",
+    { forceComplete: true, completeDefaultIndex: true }, function(aController) {
+    
+    do_check_eq(aController.input.textValue, "mozilla.com");
+    do_check_eq(aController.getFinalCompleteValueAt(0), "http://www.mozilla.com");
+    aController.handleEnter(false);
+    
+    do_check_eq(aController.input.textValue, "http://www.mozilla.com");
+  });
+});
+
+add_test(function test_handleEnterWithNoMatch() {
+  doSearch("mozilla", "mozilla.com", "http://www.mozilla.com",
+    { forceComplete: true, completeDefaultIndex: true }, function(aController) {
+    
+    do_check_eq(aController.input.textValue, "mozilla.com");
+    do_check_eq(aController.getFinalCompleteValueAt(0), "http://www.mozilla.com");
+    
+    aController.input.textValue = "mozillax";
+    
+    
+    aController.handleEnter(false);
+    do_check_eq(aController.input.textValue, "mozillax");
+  });
+});
+
+add_test(function test_handleEnterWithIndirectMatch() {
+  doSearch("com", "mozilla.com", "http://www.mozilla.com",
+    { forceComplete: true, completeDefaultIndex: true }, function(aController) {
+    
+    do_check_eq(aController.input.textValue, "com >> mozilla.com");
+    do_check_eq(aController.getFinalCompleteValueAt(0), "http://www.mozilla.com");
+    aController.handleEnter(false);
+    
+    
+    do_check_eq(aController.input.textValue, "http://www.mozilla.com");
+  });
+});
+
+function doSearch(aSearchString, aResultValue, aFinalCompleteValue,
+                  aInputProps, aOnCompleteCallback) {
   let search = new AutoCompleteSearchBase(
     "search",
     new AutoCompleteResult([ aResultValue ], [ aFinalCompleteValue ])
@@ -41,7 +83,13 @@ function doSearch(aSearchString, aResultValue, aFinalCompleteValue, aOnCompleteC
   
   
   let input = new AutoCompleteInput([ search.name ]);
+  for (var p in aInputProps) {
+    input[p] = aInputProps[p];
+  }
   input.textValue = aSearchString;
+  
+  
+  input.selectTextRange(aSearchString.length, aSearchString.length);
 
   controller.input = input;
   controller.startSearch(aSearchString);
