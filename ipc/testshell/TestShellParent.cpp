@@ -72,7 +72,8 @@ TestShellCommandParent::RunCallback(const nsString& aResponse)
   
   
   dom::AutoEntryScript aes(
-      xpc::NativeGlobal(js::GetGlobalForObjectCrossCompartment(&mCallback.toObject())));
+      xpc::NativeGlobal(js::GetGlobalForObjectCrossCompartment(&mCallback.toObject())),
+      "TestShellCommand");
   JSContext* cx = aes.cx();
   JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 

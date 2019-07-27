@@ -294,7 +294,7 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement, JSAddonId* aAd
 
   
   
-  dom::AutoEntryScript aes(global);
+  dom::AutoEntryScript aes(global, "XBL <constructor>/<destructor> invocation");
   aes.TakeOwnershipOfErrorReporting();
   JSContext* cx = aes.cx();
 

@@ -617,7 +617,8 @@ mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
     if (createdNewGlobal) {
         
         
-        dom::AutoEntryScript aes(NativeGlobal(holder->GetJSObject()));
+        dom::AutoEntryScript aes(NativeGlobal(holder->GetJSObject()),
+                                 "component loader report global");
         RootedObject global(aes.cx(), holder->GetJSObject());
         JS_FireOnNewGlobalObject(aes.cx(), global);
     }
@@ -916,7 +917,8 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo& aInfo,
         
         
         
-        dom::AutoEntryScript aes(NativeGlobal(CurrentGlobalOrNull(cx)));
+        dom::AutoEntryScript aes(NativeGlobal(CurrentGlobalOrNull(cx)),
+                                 "component loader load module");
         AutoSaveContextOptions asco(cx);
         if (aPropagateExceptions)
             ContextOptionsRef(cx).setDontReportUncaught(true);

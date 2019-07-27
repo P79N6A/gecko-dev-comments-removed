@@ -249,7 +249,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
     
     
-    AutoEntryScript entryScript(innerGlobal, true,
+    AutoEntryScript entryScript(innerGlobal, "javascript: URI", true,
                                 scriptContext->GetNativeContext());
     JSContext* cx = entryScript.cx();
     JS::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());

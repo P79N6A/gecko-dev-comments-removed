@@ -3563,7 +3563,7 @@ XULDocument::ExecuteScript(nsXULPrototypeScript *aScript)
     
     
     
-    AutoEntryScript aes(mScriptGlobalObject);
+    AutoEntryScript aes(mScriptGlobalObject, "precompiled XUL <script> element");
     aes.TakeOwnershipOfErrorReporting();
     JSContext* cx = aes.cx();
     JS::Rooted<JSObject*> baseGlobal(cx, JS::CurrentGlobalOrNull(cx));

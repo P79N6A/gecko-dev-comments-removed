@@ -1517,7 +1517,8 @@ XRE_XPCShellMain(int argc, char** argv, char** envp)
 
             
             
-            dom::AutoEntryScript aes(backstagePass);
+            dom::AutoEntryScript aes(backstagePass,
+                                     "xpcshell argument processing");
             result = ProcessArgs(aes.cx(), argv, argc, &dirprovider);
 
             JS_DropPrincipals(rt, gJSPrincipals);

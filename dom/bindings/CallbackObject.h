@@ -177,6 +177,7 @@ protected:
     
     
     CallSetup(CallbackObject* aCallback, ErrorResult& aRv,
+              const char* aExecutionReason,
               ExceptionHandling aExceptionHandling,
               JSCompartment* aCompartment = nullptr,
               bool aIsJSImplementedWebIDL = false);

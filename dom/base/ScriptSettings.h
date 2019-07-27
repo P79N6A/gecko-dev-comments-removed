@@ -319,10 +319,15 @@ private:
 
 
 
+
+
+
+
 class MOZ_STACK_CLASS AutoEntryScript : public AutoJSAPI,
                                         protected ScriptSettingsStackEntry {
 public:
-  explicit AutoEntryScript(nsIGlobalObject* aGlobalObject,
+  AutoEntryScript(nsIGlobalObject* aGlobalObject,
+                  const char *aReason,
                   bool aIsMainThread = NS_IsMainThread(),
                   
                   JSContext* aCx = nullptr);

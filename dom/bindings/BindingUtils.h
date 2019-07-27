@@ -3191,7 +3191,7 @@ WrappedJSToDictionary(nsISupports* aObject, T& aDictionary)
 
   
   
-  AutoEntryScript aes(global);
+  AutoEntryScript aes(global, "WebIDL dictionary creation");
   aes.TakeOwnershipOfErrorReporting();
 
   JS::Rooted<JS::Value> v(aes.cx(), JS::ObjectValue(*obj));

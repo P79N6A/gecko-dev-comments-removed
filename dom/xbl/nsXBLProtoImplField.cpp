@@ -402,7 +402,7 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
 
   
   
-  AutoEntryScript entryScript(globalObject, true);
+  AutoEntryScript entryScript(globalObject, "XBL <field> initialization", true);
   JSContext* cx = entryScript.cx();
 
   NS_ASSERTION(!::JS_IsExceptionPending(cx),

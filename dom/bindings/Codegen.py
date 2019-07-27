@@ -13759,9 +13759,9 @@ class CGCallback(CGClass):
         self.baseName = baseName
         self._deps = idlObject.getDeps()
         self.idlObject = idlObject
-        name = idlObject.identifier.name
+        self.name = idlObject.identifier.name
         if isJSImplementedDescriptor(descriptorProvider):
-            name = jsImplName(name)
+            self.name = jsImplName(self.name)
         
         
         
@@ -13776,11 +13776,11 @@ class CGCallback(CGClass):
                 realMethods.extend(self.getMethodImpls(method))
         realMethods.append(
             ClassMethod("operator==", "bool",
-                        [Argument("const %s&" % name, "aOther")],
+                        [Argument("const %s&" % self.name, "aOther")],
                         inline=True, bodyInHeader=True,
                         const=True,
                         body=("return %s::operator==(aOther);\n" % baseName)))
-        CGClass.__init__(self, name,
+        CGClass.__init__(self, self.name,
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods+getters+setters)
@@ -13820,6 +13820,8 @@ class CGCallback(CGClass):
         
         
         
+        args.append(Argument("const char*", "aExecutionReason",
+                             "nullptr"))
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "eReportExceptions"))
         
@@ -13835,13 +13837,17 @@ class CGCallback(CGClass):
 
         setupCall = fill(
             """
-            CallSetup s(this, aRv, aExceptionHandling, aCompartment);
+            if (!aExecutionReason) {
+              aExecutionReason = "${executionReason}";
+            }
+            CallSetup s(this, aRv, aExecutionReason, aExceptionHandling, aCompartment);
             if (!s.GetContext()) {
               aRv.Throw(NS_ERROR_UNEXPECTED);
               return${errorReturn};
             }
             """,
-            errorReturn=errorReturn)
+            errorReturn=errorReturn,
+            executionReason=method.getPrettyName())
 
         bodyWithThis = fill(
             """
@@ -14145,6 +14151,8 @@ class CallbackMember(CGNativeMember):
             
             
             if not self.rethrowContentException:
+                args.append(Argument("const char*", "aExecutionReason",
+                                     "nullptr"))
                 args.append(Argument("ExceptionHandling", "aExceptionHandling",
                                      "eReportExceptions"))
             args.append(Argument("JSCompartment*", "aCompartment", "nullptr"))
@@ -14162,10 +14170,10 @@ class CallbackMember(CGNativeMember):
         if self.rethrowContentException:
             
             
-            callSetup += ", eRethrowContentExceptions, aCompartment, /* aIsJSImplementedWebIDL = */ "
+            callSetup += ', "%s", eRethrowContentExceptions, aCompartment, /* aIsJSImplementedWebIDL = */ ' % self.getPrettyName()
             callSetup += toStringBool(isJSImplementedDescriptor(self.descriptorProvider))
         else:
-            callSetup += ", aExceptionHandling, aCompartment"
+            callSetup += ', "%s", aExceptionHandling, aCompartment' % self.getPrettyName()
         callSetup += ");\n"
         return fill(
             """

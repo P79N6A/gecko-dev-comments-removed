@@ -2703,7 +2703,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   if (createdInnerWindow) {
     
     
-    AutoEntryScript aes(newInnerWindow);
+    AutoEntryScript aes(newInnerWindow, "nsGlobalWindow report new global");
     JS::Rooted<JSObject*> global(aes.cx(), newInnerWindow->GetWrapper());
     JS_FireOnNewGlobalObject(aes.cx(), global);
   }
@@ -12323,6 +12323,13 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     sNestingLevel = timeout->mNestingLevel;
   }
 
+  const char *reason;
+  if (timeout->mIsInterval) {
+    reason = "setInterval handler";
+  } else {
+    reason = "setTimeout handler";
+  }
+
   nsCOMPtr<nsIScriptTimeoutHandler> handler(timeout->mScriptHandler);
   nsRefPtr<Function> callback = handler->GetCallback();
   if (!callback) {
@@ -12336,7 +12343,7 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
 
     
     
-    AutoEntryScript entryScript(this, true, aScx->GetNativeContext());
+    AutoEntryScript entryScript(this, reason, true, aScx->GetNativeContext());
     JS::CompileOptions options(entryScript.cx());
     options.setFileAndLine(filename, lineNo)
            .setVersion(JSVERSION_DEFAULT);
@@ -12348,7 +12355,7 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
     ErrorResult ignored;
     JS::Rooted<JS::Value> ignoredVal(CycleCollectedJSRuntime::Get()->Runtime());
-    callback->Call(me, handler->GetArgs(), &ignoredVal, ignored);
+    callback->Call(me, handler->GetArgs(), &ignoredVal, ignored, reason);
   }
 
   
