@@ -19,7 +19,7 @@
 #include "nsStringGlue.h"
 #include "nsError.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-#include "mozilla/Atomics.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/net/ReferrerPolicy.h"
 
 class imgCacheValidator;
@@ -41,6 +41,8 @@ class ImageURL;
 class ProgressTracker;
 } 
 } 
+
+struct NewPartResult;
 
 class imgRequest final : public nsIStreamListener,
                              public nsIThreadRetargetableStreamListener,
@@ -89,7 +91,7 @@ public:
   void ContinueEvict();
 
   
-  void RequestDecode() { mDecodeRequested = true; }
+  void RequestDecode();
 
   inline uint64_t InnerWindowID() const {
     return mInnerWindowId;
@@ -107,7 +109,7 @@ public:
   
   bool CacheChanged(nsIRequest* aNewRequest);
 
-  bool GetMultipart() const { return mIsMultiPartChannel; }
+  bool GetMultipart() const;
 
   
   int32_t GetCORSMode() const { return mCORSMode; }
@@ -185,7 +187,7 @@ private:
   void AdjustPriority(imgRequestProxy *aProxy, int32_t aDelta);
 
   
-  bool HasTransferredData() const { return mGotData; }
+  bool HasTransferredData() const;
 
   
   
@@ -193,6 +195,9 @@ private:
   void SetIsInCache(bool cacheable);
 
   bool HasConsumers();
+
+  
+  bool IsDecodeRequested() const;
 
 public:
   NS_DECL_NSISTREAMLISTENER
@@ -203,10 +208,16 @@ public:
   NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
 
   
-  void SetProperties(nsIChannel* aChan);
+  void SetProperties(const nsACString& aContentType,
+                     const nsACString& aContentDisposition);
 
 private:
   friend class imgMemoryReporter;
+  friend class FinishPreparingForNewPartRunnable;
+
+  already_AddRefed<Image> GetImage() const;
+
+  void FinishPreparingForNewPart(const NewPartResult& aResult);
 
   
   imgLoader* mLoader;
@@ -221,9 +232,6 @@ private:
   nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  
-  nsRefPtr<ProgressTracker> mProgressTracker;
-  nsRefPtr<Image> mImage;
   nsCOMPtr<nsIProperties> mProperties;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIChannel> mChannel;
@@ -254,11 +262,17 @@ private:
 
   nsresult mImageErrorCode;
 
-  mozilla::Atomic<bool> mDecodeRequested;
+  mutable mozilla::Mutex mMutex;
 
+  
+  
+  
+  nsRefPtr<ProgressTracker> mProgressTracker;
+  nsRefPtr<Image> mImage;
   bool mIsMultiPartChannel : 1;
   bool mGotData : 1;
   bool mIsInCache : 1;
+  bool mDecodeRequested : 1;
   bool mNewPartPending : 1;
 };
 
