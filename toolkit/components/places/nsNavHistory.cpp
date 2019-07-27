@@ -2592,12 +2592,6 @@ nsNavHistory::RemovePagesFromHost(const nsACString& aHost, bool aEntireDomain)
     CopyUTF8toUTF16(aHost, host16);
 
   
-  nsCOMPtr<nsISupportsString> hostSupports(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = hostSupports->SetData(host16);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   nsAutoString revHostDot;
   GetReversedHostname(host16, revHostDot);
   NS_ASSERTION(revHostDot[revHostDot.Length() - 1] == '.', "Invalid rev. host");
