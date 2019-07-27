@@ -58,6 +58,8 @@ ToCharPtr(const FcChar8 *aStr)
 }
 
 FT_Library gfxFcPlatformFontList::sCairoFTLibrary = nullptr;
+FcChar8* gfxFcPlatformFontList::sSentinelFirstFamily = nullptr;
+
 static cairo_user_data_key_t sFcFontlistUserFontDataKey;
 
 
@@ -1046,6 +1048,8 @@ gfxFcPlatformFontList::InitFontList()
 #endif
 
     mOtherFamilyNamesInitialized = true;
+    sSentinelFirstFamily = nullptr;
+
     return NS_OK;
 }
 
@@ -1236,13 +1240,13 @@ gfxFcPlatformFontList::FindFamily(const nsAString& aFamily,
     
     
 
-    
     const FcChar8* kSentinelName = ToFcChar8Ptr("-moz-sentinel");
-    nsAutoRef<FcPattern> sentinelSubst(FcPatternCreate());
-    FcPatternAddString(sentinelSubst, FC_FAMILY, kSentinelName);
-    FcConfigSubstitute(nullptr, sentinelSubst, FcMatchPattern);
-    FcChar8* sentinelFirstFamily = nullptr;
-    FcPatternGetString(sentinelSubst, FC_FAMILY, 0, &sentinelFirstFamily);
+    if (!sSentinelFirstFamily) {
+        nsAutoRef<FcPattern> sentinelSubst(FcPatternCreate());
+        FcPatternAddString(sentinelSubst, FC_FAMILY, kSentinelName);
+        FcConfigSubstitute(nullptr, sentinelSubst, FcMatchPattern);
+        FcPatternGetString(sentinelSubst, FC_FAMILY, 0, &sSentinelFirstFamily);
+    }
 
     
     nsAutoRef<FcPattern> fontWithSentinel(FcPatternCreate());
@@ -1259,7 +1263,8 @@ gfxFcPlatformFontList::FindFamily(const nsAString& aFamily,
          i++)
     {
         NS_ConvertUTF8toUTF16 subst(ToCharPtr(substName));
-        if (sentinelFirstFamily && FcStrCmp(substName, sentinelFirstFamily) == 0) {
+        if (sSentinelFirstFamily &&
+            FcStrCmp(substName, sSentinelFirstFamily) == 0) {
             break;
         }
         gfxFontFamily* foundFamily = gfxPlatformFontList::FindFamily(subst);
