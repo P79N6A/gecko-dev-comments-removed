@@ -117,7 +117,7 @@ const size_t gStackSize = 8192;
 
 #define NS_CC_DELAY                 6000 // ms
 
-#define NS_CC_SKIPPABLE_DELAY       400 // ms
+#define NS_CC_SKIPPABLE_DELAY       250 // ms
 
 
 static const int64_t kICCIntersliceDelay = 32; 
@@ -143,8 +143,6 @@ static const uint32_t kMaxICCDuration = 2000;
 
 
 #define NS_UNLIMITED_SCRIPT_RUNTIME (0x40000000LL << 32)
-
-#define NS_MAJOR_FORGET_SKIPPABLE_CALLS 2
 
 
 
@@ -2036,7 +2034,9 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       
       nsJSContext::RunCycleCollectorSlice();
     }
-  } else if ((sPreviousSuspectedCount + 100) <= suspected) {
+  } else if (((sPreviousSuspectedCount + 100) <= suspected) ||
+             (sCleanupsSinceLastGC < NS_MAJOR_FORGET_SKIPPABLE_CALLS)) {
+      
       
       FireForgetSkippable(suspected, false);
   }

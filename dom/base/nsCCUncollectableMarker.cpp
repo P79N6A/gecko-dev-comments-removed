@@ -394,19 +394,56 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
   }
 #endif
 
-  static bool previousWasJSCleanup = false;
+  enum ForgetSkippableCleanupState
+  {
+    eInitial = 0,
+    eUnmarkJSEventListeners = 1,
+    eUnmarkMessageManagers = 2,
+    eUnmarkStrongObservers = 3,
+    eUnmarkJSHolders = 4,
+    eDone = 5
+  };
+
+  static_assert(eDone == NS_MAJOR_FORGET_SKIPPABLE_CALLS,
+                "There must be one forgetSkippable call per cleanup state.");
+
+  static uint32_t sFSState = eDone;
+  if (prepareForCC) {
+    sFSState = eDone;
+    return NS_OK;
+  }
+
   if (cleanupJS) {
-    nsContentUtils::UnmarkGrayJSListenersInCCGenerationDocuments(sGeneration);
-    MarkMessageManagers();
+    
+    
+    
+    
+    sFSState = eInitial;
+    return NS_OK;
+  } else {
+    ++sFSState;
+  }
 
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    static_cast<nsObserverService *>(obs.get())->UnmarkGrayStrongObservers();
-
-    previousWasJSCleanup = true;
-  } else if (previousWasJSCleanup) {
-    previousWasJSCleanup = false;
-    if (!prepareForCC) {
+  switch(sFSState) {
+    case eUnmarkJSEventListeners: {
+      nsContentUtils::UnmarkGrayJSListenersInCCGenerationDocuments(sGeneration);
+      break;
+    }
+    case eUnmarkMessageManagers: {
+      MarkMessageManagers();
+      break;
+    }
+    case eUnmarkStrongObservers: {
+      nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+      static_cast<nsObserverService *>(obs.get())->UnmarkGrayStrongObservers();
+      break;
+    }
+    case eUnmarkJSHolders: {
       xpc_UnmarkSkippableJSHolders();
+      break;
+    }
+    default: {
+      break;
     }
   }
 
