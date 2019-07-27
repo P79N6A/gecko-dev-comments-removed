@@ -771,9 +771,10 @@ nsCSSValue::BufferFromString(const nsString& aValue)
 
   
   
-  buffer = nsStringBuffer::Alloc((length + 1) * sizeof(char16_t));
+  size_t sz = (length + 1) * sizeof(char16_t);
+  buffer = nsStringBuffer::Alloc(sz);
   if (MOZ_UNLIKELY(!buffer)) {
-    NS_RUNTIMEABORT("out of memory");
+    NS_ABORT_OOM(sz);
   }
 
   char16_t* data = static_cast<char16_t*>(buffer->Data());
