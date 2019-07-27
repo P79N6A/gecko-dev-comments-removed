@@ -4049,7 +4049,15 @@ pref("layers.offmainthreadcomposition.testing.enabled", false);
 pref("layers.offmainthreadcomposition.force-basic", false);
 
 
+#ifdef RELEASE_BUILD
 pref("layers.offmainthreadcomposition.async-animations", false);
+#else
+#if defined(XP_MACOSX)
+pref("layers.offmainthreadcomposition.async-animations", false);
+#else
+pref("layers.offmainthreadcomposition.async-animations", true);
+#endif
+#endif
 
 
 pref("layers.offmainthreadcomposition.log-animations", false);
