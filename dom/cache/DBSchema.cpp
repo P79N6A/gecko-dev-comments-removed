@@ -45,6 +45,9 @@ static_assert(kGrowthSize % kPageSize == 0,
               "Growth size must be multiple of page size");
 
 
+const int32_t kMaxFreePages = kGrowthPages;
+
+
 const uint32_t kWalAutoCheckpointSize = 512 * 1024;
 const uint32_t kWalAutoCheckpointPages = kWalAutoCheckpointSize / kPageSize;
 static_assert(kWalAutoCheckpointSize % kPageSize == 0,
@@ -227,28 +230,12 @@ CreateSchema(mozIStorageConnection* aConn)
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(aConn);
 
-  nsAutoCString pragmas(
-    
-    
-    
-    
-    "PRAGMA auto_vacuum = INCREMENTAL; "
-  );
-
-  nsresult rv = aConn->ExecuteSimpleSQL(pragmas);
-  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
   int32_t schemaVersion;
-  rv = aConn->GetSchemaVersion(&schemaVersion);
+  nsresult rv = aConn->GetSchemaVersion(&schemaVersion);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   if (schemaVersion == kLatestSchemaVersion) {
     
-    
-    rv = aConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "PRAGMA incremental_vacuum;"));
-    if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
-
     return rv;
   }
 
@@ -398,15 +385,9 @@ InitializeConnection(mozIStorageConnection* aConn)
     
     "PRAGMA page_size = %u; "
     
-    "PRAGMA wal_autocheckpoint = %u; "
-    
-    "PRAGMA journal_size_limit = %u; "
-    
-    "PRAGMA journal_mode = WAL; "
+    "PRAGMA auto_vacuum = INCREMENTAL; "
     "PRAGMA foreign_keys = ON; ",
-    kPageSize,
-    kWalAutoCheckpointPages,
-    kWalAutoCheckpointSize
+    kPageSize
   );
 
   
@@ -424,6 +405,44 @@ InitializeConnection(mozIStorageConnection* aConn)
     rv = NS_OK;
   }
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  
+  
+  nsPrintfCString wal(
+    
+    "PRAGMA wal_autocheckpoint = %u; "
+    
+    "PRAGMA journal_size_limit = %u; "
+    
+    "PRAGMA journal_mode = WAL; ",
+    kWalAutoCheckpointPages,
+    kWalAutoCheckpointSize
+  );
+
+  rv = aConn->ExecuteSimpleSQL(wal);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  
+  
+  
+#ifdef DEBUG
+  nsCOMPtr<mozIStorageStatement> state;
+  rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
+    "PRAGMA auto_vacuum;"
+  ), getter_AddRefs(state));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  bool hasMoreData = false;
+  rv = state->ExecuteStep(&hasMoreData);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  int32_t mode;
+  rv = state->GetInt32(0, &mode);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  
+  if (NS_WARN_IF(mode != 2)) { return NS_ERROR_UNEXPECTED; }
+#endif
 
   return NS_OK;
 }
@@ -1942,6 +1961,70 @@ CreateAndBindKeyStatement(mozIStorageConnection* aConn,
 }
 
 } 
+
+nsresult
+IncrementalVacuum(mozIStorageConnection* aConn)
+{
+  
+  nsCOMPtr<mozIStorageStatement> state;
+  nsresult rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
+    "PRAGMA freelist_count;"
+  ), getter_AddRefs(state));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  bool hasMoreData = false;
+  rv = state->ExecuteStep(&hasMoreData);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  int32_t freePages = 0;
+  rv = state->GetInt32(0, &freePages);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (freePages <= kMaxFreePages) {
+    return NS_OK;
+  }
+
+  
+  
+  int32_t pagesToRelease = freePages - kMaxFreePages;
+
+  rv = aConn->ExecuteSimpleSQL(nsPrintfCString(
+    "PRAGMA incremental_vacuum(%d);", pagesToRelease
+  ));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  
+#ifdef DEBUG
+  rv = aConn->CreateStatement(NS_LITERAL_CSTRING(
+    "PRAGMA freelist_count;"
+  ), getter_AddRefs(state));
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  hasMoreData = false;
+  rv = state->ExecuteStep(&hasMoreData);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  freePages = 0;
+  rv = state->GetInt32(0, &freePages);
+  if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
+
+  MOZ_ASSERT(freePages <= kMaxFreePages);
+#endif
+
+  return NS_OK;
+}
 
 } 
 } 

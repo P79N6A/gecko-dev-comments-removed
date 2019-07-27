@@ -32,6 +32,7 @@ namespace db {
 nsresult
 CreateSchema(mozIStorageConnection* aConn);
 
+
 nsresult
 InitializeConnection(mozIStorageConnection* aConn);
 
@@ -103,6 +104,10 @@ StorageForgetCache(mozIStorageConnection* aConn, Namespace aNamespace,
 nsresult
 StorageGetKeys(mozIStorageConnection* aConn, Namespace aNamespace,
                nsTArray<nsString>& aKeysOut);
+
+
+nsresult
+IncrementalVacuum(mozIStorageConnection* aConn);
 
 
 extern const int32_t kMaxWipeSchemaVersion;
