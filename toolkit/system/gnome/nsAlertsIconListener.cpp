@@ -109,7 +109,7 @@ nsAlertsIconListener::OnStopRequest(imgIRequest* aRequest)
   uint32_t imgStatus = imgIRequest::STATUS_ERROR;
   nsresult rv = aRequest->GetImageStatus(&imgStatus);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (imgStatus == imgIRequest::STATUS_ERROR && !mLoadedFrame) {
+  if ((imgStatus & imgIRequest::STATUS_ERROR) && !mLoadedFrame) {
     
     ShowAlert(nullptr);
   }
