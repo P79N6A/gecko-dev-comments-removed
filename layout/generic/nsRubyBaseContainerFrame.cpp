@@ -346,8 +346,8 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
   }
 
   WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
-  LogicalSize availSize(lineWM, aReflowState.AvailableWidth(),
-                        aReflowState.AvailableHeight());
+  LogicalSize availSize(lineWM, aReflowState.AvailableISize(),
+                        aReflowState.AvailableBSize());
 
   
   
