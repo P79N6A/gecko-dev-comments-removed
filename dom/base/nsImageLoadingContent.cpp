@@ -98,6 +98,9 @@ nsImageLoadingContent::nsImageLoadingContent()
   if (!nsContentUtils::GetImgLoaderForChannel(nullptr, nullptr)) {
     mLoadingEnabled = false;
   }
+
+  bool isInconsistent;
+  mMostRecentRequestChange = TimeStamp::ProcessCreation(isInconsistent);
 }
 
 void
@@ -1235,6 +1238,22 @@ nsImageLoadingContent::FireEvent(const nsAString& aEventType)
 nsRefPtr<imgRequestProxy>&
 nsImageLoadingContent::PrepareNextRequest(ImageLoadType aImageLoadType)
 {
+  nsImageFrame* frame = do_QueryFrame(GetOurPrimaryFrame());
+  if (frame) {
+    
+    
+    TimeStamp now = TimeStamp::Now();
+    TimeDuration threshold =
+      TimeDuration::FromMilliseconds(
+        gfxPrefs::ImageInferSrcAnimationThresholdMS());
+
+    
+    
+    frame->SetForceSyncDecoding(now - mMostRecentRequestChange < threshold);
+
+    mMostRecentRequestChange = now;
+  }
+
   
   
   if (!HaveSize(mCurrentRequest))

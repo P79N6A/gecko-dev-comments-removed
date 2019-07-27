@@ -233,6 +233,9 @@ protected:
 
   void NotifyNewCurrentRequest(imgIRequest *aRequest, nsresult aStatus);
 
+  
+  void SetForceSyncDecoding(bool aForce) { mForceSyncDecoding = aForce; }
+
 private:
   
   inline void SpecToURI(const nsAString& aSpec, nsIIOService *aIOService,
@@ -308,6 +311,7 @@ private:
   bool mDisplayingIcon;
   bool mFirstFrameComplete;
   bool mReflowCallbackPosted;
+  bool mForceSyncDecoding;
 
   static nsIIOService* sIOService;
   
