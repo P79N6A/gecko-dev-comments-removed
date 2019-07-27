@@ -256,13 +256,12 @@ nsTableRowGroupFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState)
 }
 
 
+
 void
 nsTableRowGroupFrame::PlaceChild(nsPresContext*         aPresContext,
                                  nsRowGroupReflowState& aReflowState,
                                  nsIFrame*              aKidFrame,
-                                 WritingMode            aWM,
-                                 const LogicalPoint&    aKidPosition,
-                                 nscoord                aContainerWidth,
+                                 nsPoint                aKidPosition,
                                  nsHTMLReflowMetrics&   aDesiredSize,
                                  const nsRect&          aOriginalKidRect,
                                  const nsRect&          aOriginalKidVisualOverflow)
@@ -272,17 +271,17 @@ nsTableRowGroupFrame::PlaceChild(nsPresContext*         aPresContext,
 
   
   FinishReflowChild(aKidFrame, aPresContext, aDesiredSize, nullptr,
-                    aWM, aKidPosition, aContainerWidth, 0);
+                    aKidPosition.x, aKidPosition.y, 0);
 
   nsTableFrame::InvalidateTableFrame(aKidFrame, aOriginalKidRect,
                                      aOriginalKidVisualOverflow, isFirstReflow);
 
   
-  aReflowState.bCoord += aDesiredSize.BSize(aWM);
+  aReflowState.y += aDesiredSize.Height();
 
   
-  if (NS_UNCONSTRAINEDSIZE != aReflowState.availSize.BSize(aWM)) {
-    aReflowState.availSize.BSize(aWM) -= aDesiredSize.BSize(aWM);
+  if (NS_UNCONSTRAINEDSIZE != aReflowState.availSize.height) {
+    aReflowState.availSize.height -= aDesiredSize.Height();
   }
 }
 
@@ -307,14 +306,13 @@ nsTableRowGroupFrame::InitChildReflowState(nsPresContext&     aPresContext,
 }
 
 static void
-CacheRowBSizesForPrinting(nsPresContext*   aPresContext,
-                          nsTableRowFrame* aFirstRow,
-                          WritingMode      aWM)
+CacheRowHeightsForPrinting(nsPresContext*   aPresContext,
+                           nsTableRowFrame* aFirstRow)
 {
   for (nsTableRowFrame* row = aFirstRow; row; row = row->GetNextRow()) {
     if (!row->GetPrevInFlow()) {
-      row->SetHasUnpaginatedBSize(true);
-      row->SetUnpaginatedBSize(aPresContext, row->BSize(aWM));
+      row->SetHasUnpaginatedHeight(true);
+      row->SetUnpaginatedHeight(aPresContext, row->GetSize().height);
     }
   }
 }
@@ -326,33 +324,21 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
                                      nsReflowStatus&        aStatus,
                                      bool*                aPageBreakBeforeEnd)
 {
-  if (aPageBreakBeforeEnd) {
+  if (aPageBreakBeforeEnd)
     *aPageBreakBeforeEnd = false;
-  }
 
-  WritingMode wm = aReflowState.reflowState.GetWritingMode();
   nsTableFrame* tableFrame = GetTableFrame();
   const bool borderCollapse = tableFrame->IsBorderCollapse();
 
   
   
-  
   bool isPaginated = aPresContext->IsPaginated() &&
-                     NS_UNCONSTRAINEDSIZE != aReflowState.availSize.BSize(wm);
+                       NS_UNCONSTRAINEDSIZE != aReflowState.availSize.height;
 
   bool haveRow = false;
   bool reflowAllKids = aReflowState.reflowState.ShouldReflowAllKids() ||
                          tableFrame->IsGeometryDirty();
-  bool needToCalcRowBSizes = reflowAllKids;
-
-  nscoord containerWidth = aReflowState.reflowState.ComputedWidth();
-  if (containerWidth == NS_UNCONSTRAINEDSIZE) {
-    containerWidth = 0; 
-                        
-  } else {
-    containerWidth +=
-      aReflowState.reflowState.ComputedPhysicalBorderPadding().LeftRight();
-  }
+  bool needToCalcRowHeights = reflowAllKids;
 
   nsIFrame *prevKidFrame = nullptr;
   for (nsIFrame* kidFrame = mFrames.FirstChild(); kidFrame;
@@ -363,7 +349,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       NS_NOTREACHED("yikes, a non-row child");
       continue;
     }
-    nscoord cellSpacingB = tableFrame->GetRowSpacing(rowFrame->GetRowIndex());
+    nscoord cellSpacingY = tableFrame->GetRowSpacing(rowFrame->GetRowIndex());
     haveRow = true;
 
     
@@ -372,7 +358,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
         (aReflowState.reflowState.mFlags.mSpecialHeightReflow &&
          (isPaginated || (kidFrame->GetStateBits() &
                           NS_FRAME_CONTAINS_RELATIVE_BSIZE)))) {
-      LogicalRect oldKidRect = kidFrame->GetLogicalRect(wm, containerWidth);
+      nsRect oldKidRect = kidFrame->GetRect();
       nsRect oldKidVisualOverflow = kidFrame->GetVisualOverflowRect();
 
       
@@ -384,7 +370,8 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       
       
       
-      LogicalSize kidAvailSize = aReflowState.availSize;
+      WritingMode wm = kidFrame->GetWritingMode();
+      LogicalSize kidAvailSize(wm, aReflowState.availSize);
       kidAvailSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
       nsHTMLReflowState kidReflowState(aPresContext, aReflowState.reflowState,
                                        kidFrame, kidAvailSize,
@@ -393,8 +380,8 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       InitChildReflowState(*aPresContext, borderCollapse, kidReflowState);
 
       
-      if (aReflowState.reflowState.IsIResize()) {
-        kidReflowState.SetIResize(true);
+      if (aReflowState.reflowState.IsHResize()) {
+        kidReflowState.SetHResize(true);
       }
 
       NS_ASSERTION(kidFrame == mFrames.FirstChild() || prevKidFrame,
@@ -405,17 +392,15 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
         kidReflowState.mFlags.mIsTopOfPage = false;
       }
 
-      LogicalPoint kidPosition(wm, 0, aReflowState.bCoord);
       ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
-                  wm, kidPosition, containerWidth, 0, aStatus);
-      kidReflowState.ApplyRelativePositioning(&kidPosition, containerWidth);
+                  0, aReflowState.y, 0, aStatus);
+      nsPoint kidPosition(0, aReflowState.y);
+      kidReflowState.ApplyRelativePositioning(&kidPosition);
 
       
-      PlaceChild(aPresContext, aReflowState, kidFrame,
-                 wm, kidPosition, containerWidth,
-                 desiredSize, oldKidRect.GetPhysicalRect(wm, containerWidth),
-                 oldKidVisualOverflow);
-      aReflowState.bCoord += cellSpacingB;
+      PlaceChild(aPresContext, aReflowState, kidFrame, kidPosition,
+                 desiredSize, oldKidRect, oldKidVisualOverflow);
+      aReflowState.y += cellSpacingY;
 
       if (!reflowAllKids) {
         if (IsSimpleRowFrame(aReflowState.tableFrame, kidFrame)) {
@@ -423,17 +408,17 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
           rowFrame->DidResize();
           
           const nsStylePosition *stylePos = StylePosition();
-          nsStyleUnit unit = stylePos->BSize(wm).GetUnit();
+          nsStyleUnit unit = stylePos->mHeight.GetUnit();
           if (aReflowState.tableFrame->IsAutoHeight() &&
               unit != eStyleUnit_Coord) {
             
             
             InvalidateFrame();
-          } else if (oldKidRect.BSize(wm) != desiredSize.BSize(wm)) {
-            needToCalcRowBSizes = true;
           }
+          else if (oldKidRect.height != desiredSize.Height())
+            needToCalcRowHeights = true;
         } else {
-          needToCalcRowBSizes = true;
+          needToCalcRowHeights = true;
         }
       }
 
@@ -447,33 +432,32 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       SlideChild(aReflowState, kidFrame);
 
       
-      nscoord bSize = kidFrame->BSize(wm) + cellSpacingB;
-      aReflowState.bCoord += bSize;
+      nscoord height = kidFrame->GetSize().height + cellSpacingY;
+      aReflowState.y += height;
 
-      if (NS_UNCONSTRAINEDSIZE != aReflowState.availSize.BSize(wm)) {
-        aReflowState.availSize.BSize(wm) -= bSize;
+      if (NS_UNCONSTRAINEDSIZE != aReflowState.availSize.height) {
+        aReflowState.availSize.height -= height;
       }
     }
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, kidFrame);
   }
 
-  if (haveRow) {
-    aReflowState.bCoord -= tableFrame->GetRowSpacing(GetStartRowIndex() +
-                                                     GetRowCount());
-  }
+  if (haveRow)
+    aReflowState.y -= tableFrame->GetRowSpacing(GetStartRowIndex() +
+                                                GetRowCount());
 
   
-  aDesiredSize.ISize(wm) = aReflowState.reflowState.AvailableISize();
-  aDesiredSize.BSize(wm) = aReflowState.bCoord;
+  aDesiredSize.Width() = aReflowState.reflowState.AvailableWidth();
+  aDesiredSize.Height() = aReflowState.y;
 
   if (aReflowState.reflowState.mFlags.mSpecialHeightReflow) {
     DidResizeRows(aDesiredSize);
     if (isPaginated) {
-      CacheRowBSizesForPrinting(aPresContext, GetFirstRow(), wm);
+      CacheRowHeightsForPrinting(aPresContext, GetFirstRow());
     }
   }
-  else if (needToCalcRowBSizes) {
-    CalculateRowBSizes(aPresContext, aDesiredSize, aReflowState.reflowState);
+  else if (needToCalcRowHeights) {
+    CalculateRowHeights(aPresContext, aDesiredSize, aReflowState.reflowState);
     if (!reflowAllKids) {
       InvalidateFrame();
     }
@@ -495,32 +479,31 @@ nsTableRowGroupFrame::GetFirstRow()
 
 
 struct RowInfo {
-  RowInfo() { bSize = pctBSize = hasStyleBSize = hasPctBSize = isSpecial = 0; }
-  unsigned bSize;       
-  unsigned pctBSize:29; 
-  unsigned hasStyleBSize:1;
-  unsigned hasPctBSize:1;
+  RowInfo() { height = pctHeight = hasStyleHeight = hasPctHeight = isSpecial = 0; }
+  unsigned height;       
+  unsigned pctHeight:29; 
+  unsigned hasStyleHeight:1;
+  unsigned hasPctHeight:1;
   unsigned isSpecial:1; 
                         
 };
 
 static void
-UpdateBSizes(RowInfo& aRowInfo,
-             nscoord  aAdditionalBSize,
-             nscoord& aTotal,
-             nscoord& aUnconstrainedTotal)
+UpdateHeights(RowInfo& aRowInfo,
+              nscoord  aAdditionalHeight,
+              nscoord& aTotal,
+              nscoord& aUnconstrainedTotal)
 {
-  aRowInfo.bSize += aAdditionalBSize;
-  aTotal         += aAdditionalBSize;
-  if (!aRowInfo.hasStyleBSize) {
-    aUnconstrainedTotal += aAdditionalBSize;
+  aRowInfo.height += aAdditionalHeight;
+  aTotal          += aAdditionalHeight;
+  if (!aRowInfo.hasStyleHeight) {
+    aUnconstrainedTotal += aAdditionalHeight;
   }
 }
 
 void
 nsTableRowGroupFrame::DidResizeRows(nsHTMLReflowMetrics& aDesiredSize)
 {
-  
   
   
   
@@ -538,7 +521,7 @@ nsTableRowGroupFrame::DidResizeRows(nsHTMLReflowMetrics& aDesiredSize)
 
 
 void
-nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext*           aPresContext,
+nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
                                           nsHTMLReflowMetrics&     aDesiredSize,
                                           const nsHTMLReflowState& aReflowState)
 {
@@ -551,17 +534,10 @@ nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext*           aPresContext,
   
   nsTableRowFrame* startRowFrame = GetFirstRow();
 
-  if (!startRowFrame) {
-    return;
-  }
+  if (!startRowFrame) return;
 
   
-  
-  WritingMode wm = aReflowState.GetWritingMode();
-  nscoord containerWidth = 0; 
-                              
-  nscoord startRowGroupBSize =
-    startRowFrame->GetLogicalNormalPosition(wm, containerWidth).B(wm);
+  nscoord startRowGroupHeight = startRowFrame->GetNormalPosition().y;
 
   int32_t numRows = GetRowCount() - (startRowFrame->GetRowIndex() - GetStartRowIndex());
   
@@ -574,30 +550,30 @@ nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext*           aPresContext,
   }
 
   bool    hasRowSpanningCell = false;
-  nscoord bSizeOfRows = 0;
-  nscoord bSizeOfUnStyledRows = 0;
+  nscoord heightOfRows = 0;
+  nscoord heightOfUnStyledRows = 0;
   
   
   
-  nscoord pctBSizeBasis = GetBSizeBasis(aReflowState);
+  nscoord pctHeightBasis = GetHeightBasis(aReflowState);
   int32_t rowIndex; 
   nsTableRowFrame* rowFrame;
   for (rowFrame = startRowFrame, rowIndex = 0; rowFrame; rowFrame = rowFrame->GetNextRow(), rowIndex++) {
-    nscoord nonPctBSize = rowFrame->GetContentBSize();
+    nscoord nonPctHeight = rowFrame->GetContentHeight();
     if (isPaginated) {
-      nonPctBSize = std::max(nonPctBSize, rowFrame->BSize(wm));
+      nonPctHeight = std::max(nonPctHeight, rowFrame->GetSize().height);
     }
     if (!rowFrame->GetPrevInFlow()) {
-      if (rowFrame->HasPctBSize()) {
-        rowInfo[rowIndex].hasPctBSize = true;
-        rowInfo[rowIndex].pctBSize = rowFrame->GetBSize(pctBSizeBasis);
+      if (rowFrame->HasPctHeight()) {
+        rowInfo[rowIndex].hasPctHeight = true;
+        rowInfo[rowIndex].pctHeight = rowFrame->GetHeight(pctHeightBasis);
       }
-      rowInfo[rowIndex].hasStyleBSize = rowFrame->HasStyleBSize();
-      nonPctBSize = std::max(nonPctBSize, rowFrame->GetFixedBSize());
+      rowInfo[rowIndex].hasStyleHeight = rowFrame->HasStyleHeight();
+      nonPctHeight = std::max(nonPctHeight, rowFrame->GetFixedHeight());
     }
-    UpdateBSizes(rowInfo[rowIndex], nonPctBSize, bSizeOfRows, bSizeOfUnStyledRows);
+    UpdateHeights(rowInfo[rowIndex], nonPctHeight, heightOfRows, heightOfUnStyledRows);
 
-    if (!rowInfo[rowIndex].hasStyleBSize) {
+    if (!rowInfo[rowIndex].hasStyleHeight) {
       if (isPaginated || tableFrame->HasMoreThanOneCell(rowIndex + startRowIndex)) {
         rowInfo[rowIndex].isSpecial = true;
         
@@ -631,69 +607,70 @@ nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext*           aPresContext,
         nsTableCellFrame* cellFrame = rowFrame->GetFirstCell();
         
         while (cellFrame) {
-          nscoord cellSpacingB = tableFrame->GetRowSpacing(startRowIndex + rowIndex);
+          nscoord cellSpacingY = tableFrame->GetRowSpacing(startRowIndex + rowIndex);
           int32_t rowSpan = tableFrame->GetEffectiveRowSpan(rowIndex + startRowIndex, *cellFrame);
           if ((rowIndex + rowSpan) > numRows) {
             
             rowSpan = numRows - rowIndex;
           }
           if (rowSpan > 1) { 
-            nscoord bsizeOfRowsSpanned = 0;
-            nscoord bsizeOfUnStyledRowsSpanned = 0;
+            nscoord heightOfRowsSpanned = 0;
+            nscoord heightOfUnStyledRowsSpanned = 0;
             nscoord numSpecialRowsSpanned = 0;
             nscoord cellSpacingTotal = 0;
             int32_t spanX;
             for (spanX = 0; spanX < rowSpan; spanX++) {
-              bsizeOfRowsSpanned += rowInfo[rowIndex + spanX].bSize;
-              if (!rowInfo[rowIndex + spanX].hasStyleBSize) {
-                bsizeOfUnStyledRowsSpanned += rowInfo[rowIndex + spanX].bSize;
+              heightOfRowsSpanned += rowInfo[rowIndex + spanX].height;
+              if (!rowInfo[rowIndex + spanX].hasStyleHeight) {
+                heightOfUnStyledRowsSpanned += rowInfo[rowIndex + spanX].height;
               }
               if (0 != spanX) {
-                cellSpacingTotal += cellSpacingB;
+                cellSpacingTotal += cellSpacingY;
               }
               if (rowInfo[rowIndex + spanX].isSpecial) {
                 numSpecialRowsSpanned++;
               }
             }
-            nscoord bsizeOfAreaSpanned = bsizeOfRowsSpanned + cellSpacingTotal;
+            nscoord heightOfAreaSpanned = heightOfRowsSpanned + cellSpacingTotal;
             
-            LogicalSize cellFrameSize = cellFrame->GetLogicalSize(wm);
-            LogicalSize cellDesSize = cellFrame->GetDesiredSize();
-            rowFrame->CalculateCellActualBSize(cellFrame, cellDesSize.BSize(wm), wm);
-            cellFrameSize.BSize(wm) = cellDesSize.BSize(wm);
+            nsSize cellFrameSize = cellFrame->GetSize();
+            nsSize cellDesSize =
+              cellFrame->GetDesiredSize().GetPhysicalSize(cellFrame->GetWritingMode());
+            rowFrame->CalculateCellActualHeight(cellFrame, cellDesSize.height);
+            cellFrameSize.height = cellDesSize.height;
             if (cellFrame->HasVerticalAlignBaseline()) {
               
               
               
-              cellFrameSize.BSize(wm) += rowFrame->GetMaxCellAscent() -
-                                         cellFrame->GetCellBaseline();
+              cellFrameSize.height += rowFrame->GetMaxCellAscent() -
+                                      cellFrame->GetCellBaseline();
             }
 
-            if (bsizeOfAreaSpanned < cellFrameSize.BSize(wm)) {
+            if (heightOfAreaSpanned < cellFrameSize.height) {
               
               
-              nscoord extra     = cellFrameSize.BSize(wm) - bsizeOfAreaSpanned;
+              nscoord extra     = cellFrameSize.height - heightOfAreaSpanned;
               nscoord extraUsed = 0;
               if (0 == numSpecialRowsSpanned) {
                 
-                bool haveUnStyledRowsSpanned = (bsizeOfUnStyledRowsSpanned > 0);
+                bool haveUnStyledRowsSpanned = (heightOfUnStyledRowsSpanned > 0);
                 nscoord divisor = (haveUnStyledRowsSpanned)
-                                  ? bsizeOfUnStyledRowsSpanned : bsizeOfRowsSpanned;
+                                  ? heightOfUnStyledRowsSpanned : heightOfRowsSpanned;
                 if (divisor > 0) {
                   for (spanX = rowSpan - 1; spanX >= 0; spanX--) {
-                    if (!haveUnStyledRowsSpanned || !rowInfo[rowIndex + spanX].hasStyleBSize) {
+                    if (!haveUnStyledRowsSpanned || !rowInfo[rowIndex + spanX].hasStyleHeight) {
                       
-                      float percent = ((float)rowInfo[rowIndex + spanX].bSize) / ((float)divisor);
+                      float percent = ((float)rowInfo[rowIndex + spanX].height) / ((float)divisor);
 
                       
                       nscoord extraForRow = (0 == spanX) ? extra - extraUsed
                                                          : NSToCoordRound(((float)(extra)) * percent);
                       extraForRow = std::min(extraForRow, extra - extraUsed);
                       
-                      UpdateBSizes(rowInfo[rowIndex + spanX], extraForRow, bSizeOfRows, bSizeOfUnStyledRows);
+                      UpdateHeights(rowInfo[rowIndex + spanX], extraForRow, heightOfRows, heightOfUnStyledRows);
                       extraUsed += extraForRow;
                       if (extraUsed >= extra) {
-                        NS_ASSERTION((extraUsed == extra), "invalid row bsize calculation");
+                        NS_ASSERTION((extraUsed == extra), "invalid row height calculation");
                         break;
                       }
                     }
@@ -701,7 +678,7 @@ nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext*           aPresContext,
                 }
                 else {
                   
-                  UpdateBSizes(rowInfo[rowIndex + rowSpan - 1], extra, bSizeOfRows, bSizeOfUnStyledRows);
+                  UpdateHeights(rowInfo[rowIndex + rowSpan - 1], extra, heightOfRows, heightOfUnStyledRows);
                 }
               }
               else {
@@ -718,10 +695,10 @@ nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext*           aPresContext,
                                           : NSToCoordRound(((float)(extra)) * percent);
                     extraForRow = std::min(extraForRow, extra - extraUsed);
                     
-                    UpdateBSizes(rowInfo[rowIndex + spanX], extraForRow, bSizeOfRows, bSizeOfUnStyledRows);
+                    UpdateHeights(rowInfo[rowIndex + spanX], extraForRow, heightOfRows, heightOfUnStyledRows);
                     extraUsed += extraForRow;
                     if (extraUsed >= extra) {
-                      NS_ASSERTION((extraUsed == extra), "invalid row bsize calculation");
+                      NS_ASSERTION((extraUsed == extra), "invalid row height calculation");
                       break;
                     }
                   }
@@ -736,112 +713,98 @@ nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext*           aPresContext,
   }
 
   
-  
-  nscoord extra = pctBSizeBasis - bSizeOfRows;
-  for (rowFrame = startRowFrame, rowIndex = 0; rowFrame && (extra > 0);
-       rowFrame = rowFrame->GetNextRow(), rowIndex++) {
+  nscoord extra = pctHeightBasis - heightOfRows;
+  for (rowFrame = startRowFrame, rowIndex = 0; rowFrame && (extra > 0); rowFrame = rowFrame->GetNextRow(), rowIndex++) {
     RowInfo& rInfo = rowInfo[rowIndex];
-    if (rInfo.hasPctBSize) {
-      nscoord rowExtra = (rInfo.pctBSize > rInfo.bSize)
-                         ? rInfo.pctBSize - rInfo.bSize: 0;
+    if (rInfo.hasPctHeight) {
+      nscoord rowExtra = (rInfo.pctHeight > rInfo.height)
+                         ? rInfo.pctHeight - rInfo.height: 0;
       rowExtra = std::min(rowExtra, extra);
-      UpdateBSizes(rInfo, rowExtra, bSizeOfRows, bSizeOfUnStyledRows);
+      UpdateHeights(rInfo, rowExtra, heightOfRows, heightOfUnStyledRows);
       extra -= rowExtra;
     }
   }
 
-  bool styleBSizeAllocation = false;
-  nscoord rowGroupBSize = startRowGroupBSize + bSizeOfRows +
+  bool styleHeightAllocation = false;
+  nscoord rowGroupHeight = startRowGroupHeight + heightOfRows +
                            tableFrame->GetRowSpacing(0, numRows-1);
   
-  if ((aReflowState.ComputedBSize() > rowGroupBSize) &&
-      (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedBSize())) {
-    nscoord extraComputedBSize = aReflowState.ComputedBSize() - rowGroupBSize;
+  if ((aReflowState.ComputedHeight() > rowGroupHeight) &&
+      (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight())) {
+    nscoord extraComputedHeight = aReflowState.ComputedHeight() - rowGroupHeight;
     nscoord extraUsed = 0;
-    bool haveUnStyledRows = (bSizeOfUnStyledRows > 0);
+    bool haveUnStyledRows = (heightOfUnStyledRows > 0);
     nscoord divisor = (haveUnStyledRows)
-                      ? bSizeOfUnStyledRows : bSizeOfRows;
+                      ? heightOfUnStyledRows : heightOfRows;
     if (divisor > 0) {
-      styleBSizeAllocation = true;
+      styleHeightAllocation = true;
       for (rowIndex = 0; rowIndex < numRows; rowIndex++) {
-        if (!haveUnStyledRows || !rowInfo[rowIndex].hasStyleBSize) {
+        if (!haveUnStyledRows || !rowInfo[rowIndex].hasStyleHeight) {
           
           
-          float percent = ((float)rowInfo[rowIndex].bSize) / ((float)divisor);
+          float percent = ((float)rowInfo[rowIndex].height) / ((float)divisor);
           
           nscoord extraForRow = (numRows - 1 == rowIndex)
-                                ? extraComputedBSize - extraUsed
-                                : NSToCoordRound(((float)extraComputedBSize) * percent);
-          extraForRow = std::min(extraForRow, extraComputedBSize - extraUsed);
+                                ? extraComputedHeight - extraUsed
+                                : NSToCoordRound(((float)extraComputedHeight) * percent);
+          extraForRow = std::min(extraForRow, extraComputedHeight - extraUsed);
           
-          UpdateBSizes(rowInfo[rowIndex], extraForRow, bSizeOfRows, bSizeOfUnStyledRows);
+          UpdateHeights(rowInfo[rowIndex], extraForRow, heightOfRows, heightOfUnStyledRows);
           extraUsed += extraForRow;
-          if (extraUsed >= extraComputedBSize) {
-            NS_ASSERTION((extraUsed == extraComputedBSize), "invalid row bsize calculation");
+          if (extraUsed >= extraComputedHeight) {
+            NS_ASSERTION((extraUsed == extraComputedHeight), "invalid row height calculation");
             break;
           }
         }
       }
     }
-    rowGroupBSize = aReflowState.ComputedBSize();
+    rowGroupHeight = aReflowState.ComputedHeight();
   }
 
-  if (wm.IsVertical()) {
-    
-    
-    containerWidth = rowGroupBSize;
-  }
-
-  nscoord bOrigin = startRowGroupBSize;
+  nscoord yOrigin = startRowGroupHeight;
   
-  for (rowFrame = startRowFrame, rowIndex = 0; rowFrame;
-       rowFrame = rowFrame->GetNextRow(), rowIndex++) {
+  for (rowFrame = startRowFrame, rowIndex = 0; rowFrame; rowFrame = rowFrame->GetNextRow(), rowIndex++) {
     nsRect rowBounds = rowFrame->GetRect();
-    LogicalSize rowBoundsSize(wm, rowBounds.Size());
     nsRect rowVisualOverflow = rowFrame->GetVisualOverflowRect();
-    nscoord deltaB =
-      bOrigin - rowFrame->GetLogicalNormalPosition(wm, containerWidth).B(wm);
+    nscoord deltaY = yOrigin - rowFrame->GetNormalPosition().y;
 
-    nscoord rowBSize = (rowInfo[rowIndex].bSize > 0) ? rowInfo[rowIndex].bSize : 0;
+    nscoord rowHeight = (rowInfo[rowIndex].height > 0) ? rowInfo[rowIndex].height : 0;
 
-    if (deltaB != 0 || (rowBSize != rowBoundsSize.BSize(wm))) {
+    if (deltaY != 0 || (rowHeight != rowBounds.height)) {
       
-      if (deltaB != 0) {
+      if (deltaY != 0) {
         rowFrame->InvalidateFrameSubtree();
       }
 
-      rowFrame->MovePositionBy(wm, LogicalPoint(wm, 0, deltaB));
-      rowFrame->SetSize(LogicalSize(wm, rowBoundsSize.ISize(wm), rowBSize));
+      rowFrame->MovePositionBy(nsPoint(0, deltaY));
+      rowFrame->SetSize(nsSize(rowBounds.width, rowHeight));
 
       nsTableFrame::InvalidateTableFrame(rowFrame, rowBounds, rowVisualOverflow,
                                          false);
 
-      if (deltaB != 0) {
+      if (deltaY != 0) {
         nsTableFrame::RePositionViews(rowFrame);
         
       }
     }
-    bOrigin += rowBSize + tableFrame->GetRowSpacing(startRowIndex + rowIndex);
+    yOrigin += rowHeight + tableFrame->GetRowSpacing(startRowIndex + rowIndex);
   }
 
-  if (isPaginated && styleBSizeAllocation) {
+  if (isPaginated && styleHeightAllocation) {
     
-    
-    CacheRowBSizesForPrinting(aPresContext, GetFirstRow(), wm);
+    CacheRowHeightsForPrinting(aPresContext, GetFirstRow());
   }
 
   DidResizeRows(aDesiredSize);
 
-  aDesiredSize.BSize(wm) = rowGroupBSize; 
+  aDesiredSize.Height() = rowGroupHeight; 
 }
 
 nscoord
-nsTableRowGroupFrame::CollapseRowGroupIfNecessary(nscoord aBTotalOffset,
-                                                  nscoord aISize)
+nsTableRowGroupFrame::CollapseRowGroupIfNecessary(nscoord aYTotalOffset,
+                                                  nscoord aWidth)
 {
-  WritingMode wm = GetWritingMode(); 
   nsTableFrame* tableFrame = GetTableFrame();
-  nscoord containerWidth = tableFrame->GetRect().width;
   const nsStyleVisibility* groupVis = StyleVisibility();
   bool collapseGroup = (NS_STYLE_VISIBILITY_COLLAPSE == groupVis->mVisible);
   if (collapseGroup) {
@@ -850,44 +813,43 @@ nsTableRowGroupFrame::CollapseRowGroupIfNecessary(nscoord aBTotalOffset,
 
   nsOverflowAreas overflow;
 
-  nsTableRowFrame* rowFrame = GetFirstRow();
+  nsTableRowFrame* rowFrame= GetFirstRow();
   bool didCollapse = false;
-  nscoord bGroupOffset = 0;
+  nscoord yGroupOffset = 0;
   while (rowFrame) {
-    bGroupOffset += rowFrame->CollapseRowIfNecessary(bGroupOffset,
-                                                     aISize, collapseGroup,
+    yGroupOffset += rowFrame->CollapseRowIfNecessary(yGroupOffset,
+                                                     aWidth, collapseGroup,
                                                      didCollapse);
     ConsiderChildOverflow(overflow, rowFrame);
     rowFrame = rowFrame->GetNextRow();
   }
 
-  LogicalRect groupRect = GetLogicalRect(wm, containerWidth);
-  nsRect oldGroupRect = GetRect();
+  nsRect groupRect = GetRect();
+  nsRect oldGroupRect = groupRect;
   nsRect oldGroupVisualOverflow = GetVisualOverflowRect();
 
-  groupRect.BSize(wm) -= bGroupOffset;
+  groupRect.height -= yGroupOffset;
   if (didCollapse) {
     
-    groupRect.BSize(wm) += tableFrame->GetRowSpacing(GetStartRowIndex() +
-                                                     GetRowCount());
+    groupRect.height += tableFrame->GetRowSpacing(GetStartRowIndex() +
+                                                  GetRowCount());
   }
 
-  groupRect.BStart(wm) -= aBTotalOffset;
-  groupRect.ISize(wm) = aISize;
+  groupRect.y -= aYTotalOffset;
+  groupRect.width = aWidth;
 
-  if (aBTotalOffset != 0) {
+  if (aYTotalOffset != 0) {
     InvalidateFrameSubtree();
   }
 
-  SetRect(wm, groupRect, containerWidth);
-  overflow.UnionAllWith(nsRect(0, 0, groupRect.Width(wm),
-                               groupRect.Height(wm)));
-  FinishAndStoreOverflow(overflow, groupRect.Size(wm).GetPhysicalSize(wm));
+  SetRect(groupRect);
+  overflow.UnionAllWith(nsRect(0, 0, groupRect.width, groupRect.height));
+  FinishAndStoreOverflow(overflow, groupRect.Size());
   nsTableFrame::RePositionViews(this);
   nsTableFrame::InvalidateTableFrame(this, oldGroupRect, oldGroupVisualOverflow,
                                      false);
 
-  return bGroupOffset;
+  return yGroupOffset;
 }
 
 
@@ -896,14 +858,13 @@ nsTableRowGroupFrame::SlideChild(nsRowGroupReflowState& aReflowState,
                                  nsIFrame*              aKidFrame)
 {
   
-  WritingMode wm = aReflowState.reflowState.GetWritingMode();
-  LogicalPoint oldPosition = aKidFrame->GetLogicalNormalPosition(wm, 0);
-  LogicalPoint newPosition = oldPosition;
-  newPosition.B(wm) = aReflowState.bCoord;
-  if (oldPosition.B(wm) != newPosition.B(wm)) {
+  nsPoint oldPosition = aKidFrame->GetNormalPosition();
+  nsPoint newPosition = oldPosition;
+  newPosition.y = aReflowState.y;
+  if (oldPosition.y != newPosition.y) {
     aKidFrame->InvalidateFrameSubtree();
-    aReflowState.reflowState.ApplyRelativePositioning(&newPosition, 0);
-    aKidFrame->SetPosition(wm, newPosition, 0);
+    aReflowState.reflowState.ApplyRelativePositioning(&newPosition);
+    aKidFrame->SetPosition(newPosition);
     nsTableFrame::RePositionViews(aKidFrame);
     aKidFrame->InvalidateFrameSubtree();
   }
@@ -939,14 +900,14 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
                                          nsTableRowFrame&         aFirstRow,
                                          nsTableRowFrame&         aLastRow,
                                          bool                     aFirstRowIsTopOfPage,
-                                         nscoord                  aSpanningRowBEnd,
+                                         nscoord                  aSpanningRowBottom,
                                          nsTableRowFrame*&        aContRow,
                                          nsTableRowFrame*&        aFirstTruncatedRow,
-                                         nscoord&                 aDesiredBSize)
+                                         nscoord&                 aDesiredHeight)
 {
-  NS_ASSERTION(aSpanningRowBEnd >= 0, "Can't split negative bsizes");
+  NS_ASSERTION(aSpanningRowBottom >= 0, "Can't split negative heights");
   aFirstTruncatedRow = nullptr;
-  aDesiredBSize     = 0;
+  aDesiredHeight     = 0;
 
   const bool borderCollapse = aTable.IsBorderCollapse();
   int32_t lastRowIndex = aLastRow.GetRowIndex();
@@ -967,8 +928,8 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
         nsReflowStatus status;
         
         
-        nscoord cellAvailBSize = aSpanningRowBEnd - rowPos.y;
-        NS_ASSERTION(cellAvailBSize >= 0, "No space for cell?");
+        nscoord cellAvailHeight = aSpanningRowBottom - rowPos.y;
+        NS_ASSERTION(cellAvailHeight >= 0, "No space for cell?");
         bool isTopOfPage = (row == &aFirstRow) && aFirstRowIsTopOfPage;
 
         nsRect rowRect = row->GetNormalRect();
@@ -986,12 +947,12 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
         InitChildReflowState(aPresContext, borderCollapse, rowReflowState);
         rowReflowState.mFlags.mIsTopOfPage = isTopOfPage; 
 
-        nscoord cellBSize = row->ReflowCellFrame(&aPresContext, rowReflowState,
+        nscoord cellHeight = row->ReflowCellFrame(&aPresContext, rowReflowState,
                                                   isTopOfPage, cell,
-                                                  cellAvailBSize, status);
-        aDesiredBSize = std::max(aDesiredBSize, rowPos.y + cellBSize);
+                                                  cellAvailHeight, status);
+        aDesiredHeight = std::max(aDesiredHeight, rowPos.y + cellHeight);
         if (NS_FRAME_IS_COMPLETE(status)) {
-          if (cellBSize > cellAvailBSize) {
+          if (cellHeight > cellAvailHeight) {
             aFirstTruncatedRow = row;
             if ((row != &aFirstRow) || !aFirstRowIsTopOfPage) {
               
@@ -1021,7 +982,7 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
     }
   }
   if (!haveRowSpan) {
-    aDesiredBSize = aLastRow.GetNormalRect().YMost();
+    aDesiredHeight = aLastRow.GetNormalRect().YMost();
   }
 }
 
@@ -1101,7 +1062,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
   
   for (nsTableRowFrame* rowFrame = firstRowThisPage; rowFrame; rowFrame = rowFrame->GetNextRow()) {
     bool rowIsOnPage = true;
-    nscoord cellSpacingB = aTableFrame->GetRowSpacing(rowFrame->GetRowIndex());
+    nscoord cellSpacingY = aTableFrame->GetRowSpacing(rowFrame->GetRowIndex());
     nsRect rowRect = rowFrame->GetNormalRect();
     
     if (rowRect.YMost() > availHeight) {
@@ -1157,7 +1118,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
             if (contRow) {
               aDesiredSize.Height() += rowMetrics.Height();
               if (prevRowFrame)
-                aDesiredSize.Height() += cellSpacingB;
+                aDesiredSize.Height() += cellSpacingY;
             }
             else return NS_ERROR_NULL_POINTER;
           }
@@ -1184,7 +1145,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
               }
               aDesiredSize.Height() += rowMetrics.Height();
               if (prevRowFrame)
-                aDesiredSize.Height() += cellSpacingB;
+                aDesiredSize.Height() += cellSpacingY;
               NS_WARNING("data loss - complete row needed more height than available, on top of page");
             }
             else {
@@ -1223,10 +1184,10 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
       
 
       nsTableRowFrame* firstTruncatedRow;
-      nscoord bMost;
+      nscoord yMost;
       SplitSpanningCells(*aPresContext, aReflowState, *aTableFrame, *firstRowThisPage,
                          *lastRowThisPage, aReflowState.mFlags.mIsTopOfPage, spanningRowBottom, contRow,
-                         firstTruncatedRow, bMost);
+                         firstTruncatedRow, yMost);
       if (firstTruncatedRow) {
         
         if (firstTruncatedRow == firstRowThisPage) {
@@ -1280,7 +1241,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
         } 
       } 
       else {
-        aDesiredSize.Height() = std::max(aDesiredSize.Height(), bMost);
+        aDesiredSize.Height() = std::max(aDesiredSize.Height(), yMost);
         if (contRow) {
           aStatus = NS_FRAME_NOT_COMPLETE;
         }
@@ -1372,13 +1333,11 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
     NS_FRAME_SET_INCOMPLETE(aStatus);
   }
 
-  SetHasStyleBSize((NS_UNCONSTRAINEDSIZE != aReflowState.ComputedBSize()) &&
-                    (aReflowState.ComputedBSize() > 0));
+  SetHasStyleHeight((NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()) &&
+                    (aReflowState.ComputedHeight() > 0));
 
   
-  
-  WritingMode wm = aReflowState.GetWritingMode();
-  aDesiredSize.ISize(wm) = aReflowState.AvailableISize();
+  aDesiredSize.Width() = aReflowState.AvailableWidth();
 
   aDesiredSize.UnionOverflowAreasWithDesiredBounds();
 
@@ -1554,16 +1513,16 @@ nsTableRowGroupFrame::GetUsedPadding() const
 }
 
 nscoord
-nsTableRowGroupFrame::GetBSizeBasis(const nsHTMLReflowState& aReflowState)
+nsTableRowGroupFrame::GetHeightBasis(const nsHTMLReflowState& aReflowState)
 {
   nscoord result = 0;
   nsTableFrame* tableFrame = GetTableFrame();
   int32_t startRowIndex = GetStartRowIndex();
-  if ((aReflowState.ComputedBSize() > 0) && (aReflowState.ComputedBSize() < NS_UNCONSTRAINEDSIZE)) {
+  if ((aReflowState.ComputedHeight() > 0) && (aReflowState.ComputedHeight() < NS_UNCONSTRAINEDSIZE)) {
     nscoord cellSpacing = tableFrame->GetRowSpacing(startRowIndex,
                                                     std::max(startRowIndex,
                                                              startRowIndex + GetRowCount() - 1));
-    result = aReflowState.ComputedBSize() - cellSpacing;
+    result = aReflowState.ComputedHeight() - cellSpacing;
   }
   else {
     const nsHTMLReflowState* parentRS = aReflowState.parentReflowState;
@@ -1571,9 +1530,9 @@ nsTableRowGroupFrame::GetBSizeBasis(const nsHTMLReflowState& aReflowState)
       parentRS = parentRS->parentReflowState;
     }
     if (parentRS && (tableFrame == parentRS->frame) &&
-        (parentRS->ComputedBSize() > 0) && (parentRS->ComputedBSize() < NS_UNCONSTRAINEDSIZE)) {
+        (parentRS->ComputedHeight() > 0) && (parentRS->ComputedHeight() < NS_UNCONSTRAINEDSIZE)) {
       nscoord cellSpacing = tableFrame->GetRowSpacing(-1, tableFrame->GetRowCount());
-      result = parentRS->ComputedBSize() - cellSpacing;
+      result = parentRS->ComputedHeight() - cellSpacing;
     }
   }
 
@@ -1665,21 +1624,21 @@ nsTableRowGroupFrame::GetBCBorderWidth(WritingMode aWM)
   return border;
 }
 
-void nsTableRowGroupFrame::SetContinuousBCBorderWidth(LogicalSide aForSide,
+void nsTableRowGroupFrame::SetContinuousBCBorderWidth(uint8_t     aForSide,
                                                       BCPixelSize aPixelValue)
 {
   switch (aForSide) {
-    case eLogicalSideIEnd:
-      mIEndContBorderWidth = aPixelValue;
+    case NS_SIDE_RIGHT:
+      mRightContBorderWidth = aPixelValue;
       return;
-    case eLogicalSideBEnd:
-      mBEndContBorderWidth = aPixelValue;
+    case NS_SIDE_BOTTOM:
+      mBottomContBorderWidth = aPixelValue;
       return;
-    case eLogicalSideIStart:
-      mIStartContBorderWidth = aPixelValue;
+    case NS_SIDE_LEFT:
+      mLeftContBorderWidth = aPixelValue;
       return;
     default:
-      NS_ERROR("invalid LogicalSide argument");
+      NS_ERROR("invalid NS_SIDE argument");
   }
 }
 

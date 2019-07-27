@@ -208,7 +208,6 @@ TableBackgroundPainter::PaintTableFrame(nsTableFrame*         aTableFrame,
   TableBackgroundData tableData(aTableFrame);
   tableData.mRect.MoveTo(0,0); 
   tableData.mRect.Deflate(aDeflate);
-  WritingMode wm = aTableFrame->GetWritingMode();
   if (mIsBorderCollapse && tableData.ShouldSetBCBorder()) {
     if (aFirstRowGroup && aLastRowGroup && mNumCols > 0) {
       
@@ -220,14 +219,13 @@ TableBackgroundPainter::PaintTableFrame(nsTableFrame*         aTableFrame,
       }
       border.right = tempBorder.right;
 
-      LogicalMargin logBorder(wm);
-      aLastRowGroup->GetContinuousBCBorderWidth(wm, logBorder);
-      border.bottom = logBorder.Bottom(wm);
+      aLastRowGroup->GetContinuousBCBorderWidth(tempBorder);
+      border.bottom = tempBorder.bottom;
 
       nsTableRowFrame* rowFrame = aFirstRowGroup->GetFirstRow();
       if (rowFrame) {
-        rowFrame->GetContinuousBCBorderWidth(wm, logBorder);
-        border.top = logBorder.Top(wm);
+        rowFrame->GetContinuousBCBorderWidth(tempBorder);
+        border.top = tempBorder.top;
       }
 
       border.left = aTableFrame->GetContinuousLeftBCBorderWidth();
@@ -389,22 +387,21 @@ TableBackgroundPainter::PaintRowGroup(nsTableRowGroupFrame* aFrame,
   MOZ_ASSERT(aFrame, "null frame");
 
   nsTableRowFrame* firstRow = aFrame->GetFirstRow();
-  WritingMode wm = aFrame->GetWritingMode();
 
   
   if (aPassThrough) {
     aRowGroupBGData.MakeInvisible();
   } else {
     if (mIsBorderCollapse && aRowGroupBGData.ShouldSetBCBorder()) {
-      LogicalMargin border(wm);
+      nsMargin border;
       if (firstRow) {
         
-        firstRow->GetContinuousBCBorderWidth(wm, border);
+        firstRow->GetContinuousBCBorderWidth(border);
         
       }
       
-      aFrame->GetContinuousBCBorderWidth(wm, border);
-      aRowGroupBGData.SetBCBorder(border.GetPhysicalMargin(wm));
+      aFrame->GetContinuousBCBorderWidth(border);
+      aRowGroupBGData.SetBCBorder(border);
     }
     aPassThrough = !aRowGroupBGData.IsVisible();
   }
@@ -487,24 +484,25 @@ TableBackgroundPainter::PaintRow(nsTableRowFrame* aFrame,
   MOZ_ASSERT(aFrame, "null frame");
 
   
-  WritingMode wm = aFrame->GetWritingMode();
   if (aPassThrough) {
     aRowBGData.MakeInvisible();
   } else {
     if (mIsBorderCollapse && aRowBGData.ShouldSetBCBorder()) {
-      LogicalMargin border(wm);
+      nsMargin border;
       nsTableRowFrame* nextRow = aFrame->GetNextRow();
       if (nextRow) { 
-        border.BEnd(wm) = nextRow->GetOuterBStartContBCBorderWidth();
+        WritingMode wm = nextRow->GetWritingMode();
+        border.Side(wm.PhysicalSide(eLogicalSideBEnd)) =
+          nextRow->GetOuterBStartContBCBorderWidth();
       }
       else { 
         nsTableRowGroupFrame* rowGroup = static_cast<nsTableRowGroupFrame*>(aFrame->GetParent());
-        rowGroup->GetContinuousBCBorderWidth(wm, border);
+        rowGroup->GetContinuousBCBorderWidth(border);
       }
       
-      aFrame->GetContinuousBCBorderWidth(wm, border);
+      aFrame->GetContinuousBCBorderWidth(border);
 
-      aRowBGData.SetBCBorder(border.GetPhysicalMargin(wm));
+      aRowBGData.SetBCBorder(border);
     }
     aPassThrough = !aRowBGData.IsVisible();
   }
