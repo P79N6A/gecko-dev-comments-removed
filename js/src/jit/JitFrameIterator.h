@@ -652,8 +652,6 @@ class InlineFrameIterator
 
         
         if (scopeChain) {
-            MOZ_ASSERT(!fallback.canRecoverResults());
-            JS::AutoSuppressGCAnalysis nogc; 
             Value scopeChainValue = s.maybeRead(fallback);
             *scopeChain = computeScopeChain(scopeChainValue, fallback, hasCallObj);
         } else {
@@ -719,14 +717,8 @@ class InlineFrameIterator
 
         
         
-        for (unsigned i = 0; i < script()->nfixed(); i++) {
-            
-            
-            
-            
-            
+        for (unsigned i = 0; i < script()->nfixed(); i++)
             localOp(s.maybeRead(fallback));
-        }
     }
 
     template <class Op>

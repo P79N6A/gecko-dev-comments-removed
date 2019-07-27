@@ -1503,8 +1503,18 @@ jit::JitActivation::getRematerializedFrame(JSContext *cx, const JitFrameIterator
         
         
         InlineFrameIterator inlineIter(cx, &iter);
-        if (!RematerializedFrame::RematerializeInlineFrames(cx, top, inlineIter, p->value()))
+        MaybeReadFallback recover(cx, this, &iter);
+
+        
+        
+        
+        AutoCompartment ac(cx, compartment_);
+
+        if (!RematerializedFrame::RematerializeInlineFrames(cx, top, inlineIter, recover,
+                                                            p->value()))
+        {
             return nullptr;
+        }
     }
 
     return p->value()[inlineDepth];

@@ -50,15 +50,17 @@ class RematerializedFrame
     Value slots_[1];
 
     RematerializedFrame(JSContext *cx, uint8_t *top, unsigned numActualArgs,
-                        InlineFrameIterator &iter);
+                        InlineFrameIterator &iter, MaybeReadFallback &fallback);
 
   public:
-    static RematerializedFrame *New(JSContext *cx, uint8_t *top, InlineFrameIterator &iter);
+    static RematerializedFrame *New(JSContext *cx, uint8_t *top, InlineFrameIterator &iter,
+                                    MaybeReadFallback &fallback);
 
     
     
     static bool RematerializeInlineFrames(JSContext *cx, uint8_t *top,
                                           InlineFrameIterator &iter,
+                                          MaybeReadFallback &fallback,
                                           Vector<RematerializedFrame *> &frames);
 
     
