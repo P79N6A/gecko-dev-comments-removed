@@ -268,6 +268,8 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
       case PNK_WHILE:
       case PNK_SWITCH:
       case PNK_LETBLOCK:
+      case PNK_CLASSNAMES:
+      case PNK_CLASSMETHOD:
       case PNK_FOR: {
         MOZ_ASSERT(pn->isArity(PN_BINARY));
         stack->push(pn->pn_left);
@@ -382,6 +384,16 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
       }
 
       
+      case PNK_CLASS: {
+        MOZ_ASSERT(pn->isArity(PN_TERNARY));
+        stack->push(pn->pn_kid1);
+        if (pn->pn_kid2)
+            stack->push(pn->pn_kid2);
+        stack->push(pn->pn_kid3);
+        return PushResult::Recyclable;
+      }
+
+      
       
       case PNK_IF: {
         MOZ_ASSERT(pn->isArity(PN_TERNARY));
@@ -461,6 +473,7 @@ PushNodeChildren(ParseNode *pn, NodeStack *stack)
       case PNK_EXPORT_SPEC_LIST:
       case PNK_SEQ:
       case PNK_ARGSBODY:
+      case PNK_CLASSMETHODLIST:
         return PushListNodeChildren(pn, stack);
 
       

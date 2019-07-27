@@ -149,6 +149,10 @@ class UpvarCookie
     F(ARGSBODY) \
     F(SPREAD) \
     F(MUTATEPROTO) \
+    F(CLASS) \
+    F(CLASSMETHOD) \
+    F(CLASSMETHODLIST) \
+    F(CLASSNAMES) \
     \
     /* Unary operators. */ \
     F(TYPEOF) \
@@ -571,6 +575,7 @@ class ParseNode
             union {
                 unsigned iflags;        
                 ObjectBox *objbox;      
+                bool isStatic;          
             };
         } binary;
         struct {                        
@@ -1102,6 +1107,10 @@ struct LexicalScopeNode : public ParseNode
         pn_expr = blockNode;
         pn_blockid = blockNode->pn_blockid;
     }
+
+    static bool test(const ParseNode &node) {
+        return node.isKind(PNK_LEXICALSCOPE);
+    }
 };
 
 class LabeledStatement : public ParseNode
@@ -1318,6 +1327,91 @@ struct CallSiteNode : public ListNode {
         return pn_head->getConstantValue(cx, AllowObjects, vp);
     }
 };
+
+struct ClassMethod : public BinaryNode {
+    
+
+
+
+    ClassMethod(ParseNode *name, ParseNode *body, JSOp op, bool isStatic)
+      : BinaryNode(PNK_CLASSMETHOD, op, TokenPos(name->pn_pos.begin, body->pn_pos.end), name, body)
+    {
+        pn_u.binary.isStatic = isStatic;
+    }
+
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_CLASSMETHOD);
+        MOZ_ASSERT_IF(match, node.isArity(PN_BINARY));
+        return match;
+    }
+
+    ParseNode &name() const {
+        return *pn_u.binary.left;
+    }
+    ParseNode &method() const {
+        return *pn_u.binary.right;
+    }
+    bool isStatic() const {
+        return pn_u.binary.isStatic;
+    }
+};
+
+struct ClassNames : public BinaryNode {
+    ClassNames(ParseNode *outerBinding, ParseNode *innerBinding, const TokenPos &pos)
+      : BinaryNode(PNK_CLASSNAMES, JSOP_NOP, pos, outerBinding, innerBinding)
+    {
+        MOZ_ASSERT(outerBinding->isKind(PNK_NAME));
+        MOZ_ASSERT(innerBinding->isKind(PNK_NAME));
+        MOZ_ASSERT(innerBinding->pn_atom == outerBinding->pn_atom);
+    }
+
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_CLASSNAMES);
+        MOZ_ASSERT_IF(match, node.isArity(PN_BINARY));
+        return match;
+    }
+
+    
+
+
+
+
+
+
+
+    ParseNode *outerBinding() const {
+        return pn_u.binary.left;
+    }
+    ParseNode *innerBinding() const {
+        return pn_u.binary.right;
+    }
+};
+
+struct ClassNode : public TernaryNode {
+    ClassNode(ParseNode *names, ParseNode *heritage, ParseNode *methodBlock)
+      : TernaryNode(PNK_CLASS, JSOP_NOP, names, heritage, methodBlock)
+    {
+        MOZ_ASSERT(names->is<ClassNames>());
+        MOZ_ASSERT(methodBlock->is<LexicalScopeNode>());
+    }
+
+    static bool test(const ParseNode &node) {
+        bool match = node.isKind(PNK_CLASS);
+        MOZ_ASSERT_IF(match, node.isArity(PN_TERNARY));
+        return match;
+    }
+
+    ClassNames *names() const {
+        return &pn_kid1->as<ClassNames>();
+    }
+    ParseNode *heritage() const {
+        return pn_kid2;
+    }
+    LexicalScopeNode *scope() const {
+        return &pn_kid3->as<LexicalScopeNode>();
+    }
+};
+
 
 #ifdef DEBUG
 void DumpParseTree(ParseNode *pn, int indent = 0);
