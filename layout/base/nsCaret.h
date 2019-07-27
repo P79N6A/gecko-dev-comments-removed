@@ -100,12 +100,17 @@ class nsCaret : public nsISelectionListener
 
 
 
+
     nsRect GetCaretRect()
     {
       nsRect r;
       r.UnionRect(mCaretRect, GetHookRect());
       return r;
     }
+    
+
+
+
     nsIFrame* GetGeometry(nsRect* aRect)
     {
       return GetGeometry(GetCaretDOMSelection(), aRect);
@@ -123,6 +128,7 @@ class nsCaret : public nsISelectionListener
     NS_DECL_NSISELECTIONLISTENER
 
     
+
 
 
 
