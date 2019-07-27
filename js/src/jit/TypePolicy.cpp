@@ -260,33 +260,34 @@ TypeBarrierPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
     }
 
     
-    if (inputType == MIRType_Value) {
-        MOZ_ASSERT(outputType != MIRType_Value);
-
-        
-        
-        if (IsNullOrUndefined(outputType) || outputType == MIRType_MagicOptimizedArguments) {
-            MOZ_ASSERT(!ins->hasDefUses());
-            ins->setResultType(MIRType_Value);
-            return true;
-        }
-
-        MUnbox *unbox = MUnbox::New(alloc, ins->getOperand(0), outputType, MUnbox::TypeBarrier);
-        ins->block()->insertBefore(ins, unbox);
-
-        
-        
-        
-        ins->block()->flagOperandsOfPrunedBranches(unbox);
-
-        ins->replaceOperand(0, unbox);
-        return true;
+    if (inputType != MIRType_Value) {
+        MOZ_ASSERT(ins->alwaysBails());
+        ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
     }
 
     
     
-    MOZ_ASSERT(ins->alwaysBails());
-    ins->setResultType(inputType);
+    
+    
+    if (IsNullOrUndefined(outputType) || outputType == MIRType_MagicOptimizedArguments) {
+        MOZ_ASSERT(!ins->hasDefUses());
+        ins->setResultType(MIRType_Value);
+        return true;
+    }
+
+    
+    MUnbox::Mode mode = MUnbox::TypeBarrier;
+    MInstruction *replace = MUnbox::New(alloc, ins->getOperand(0), ins->type(), mode);
+
+    ins->block()->insertBefore(ins, replace);
+    ins->replaceOperand(0, replace);
+    if (!replace->typePolicy()->adjustInputs(alloc, replace))
+        return false;
+
+    
+    
+    
+    ins->block()->flagOperandsOfPrunedBranches(replace);
 
     return true;
 }
@@ -851,29 +852,46 @@ bool
 FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 {
     MOZ_ASSERT(ins->numOperands() == 1);
+    MIRType inputType = ins->getOperand(0)->type();
+    MIRType outputType = ins->type();
 
     
-    if (ins->type() == ins->getOperand(0)->type())
+    if (inputType == outputType)
         return true;
 
     
-    if (ins->type() == MIRType_Value) {
+    if (outputType == MIRType_Value) {
+        MOZ_ASSERT(inputType != MIRType_Value);
         ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
         return true;
     }
 
     
     
+    if (inputType != MIRType_Value)
+        MOZ_CRASH("Types should be in accordance.");
+
     
-    if (ins->getOperand(0)->type() == MIRType_Value) {
+    
+    
+    
+    if (IsNullOrUndefined(outputType) || outputType == MIRType_MagicOptimizedArguments) {
+        MOZ_ASSERT(!ins->hasDefUses());
         ins->setResultType(MIRType_Value);
         return true;
     }
 
     
+    MUnbox::Mode mode = MUnbox::Infallible;
+    MInstruction *replace = MUnbox::New(alloc, ins->getOperand(0), ins->type(), mode);
+
+    ins->block()->insertBefore(ins, replace);
+    ins->replaceOperand(0, replace);
+    if (!replace->typePolicy()->adjustInputs(alloc, replace))
+        return false;
+
     
-    ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
-    ins->setResultType(MIRType_Value);
+    replace->setDependency(ins->dependency());
 
     return true;
 }
