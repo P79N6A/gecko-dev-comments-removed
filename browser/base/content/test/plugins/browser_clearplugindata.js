@@ -84,7 +84,7 @@ add_task(function* () {
   
   let now_uSec = Date.now() * 1000;
   sanitizer.range = [now_uSec - 20*1000000, now_uSec];
-  sanitizer.sanitize();
+  yield sanitizer.sanitize();
 
   ok(stored(["bar.com","qux.com"]), "Data stored for sites");
   ok(!stored(["foo.com"]), "Data cleared for foo.com");
@@ -92,7 +92,7 @@ add_task(function* () {
 
   
   sanitizer.range = null;
-  sanitizer.sanitize();
+  yield sanitizer.sanitize();
 
   ok(!stored(null), "All data cleared");
 
@@ -117,7 +117,7 @@ add_task(function* () {
   
   let now_uSec = Date.now() * 1000;
   sanitizer.range = [now_uSec - 20*1000000, now_uSec];
-  sanitizer.sanitize();
+  yield sanitizer.sanitize();
 
   ok(!stored(null), "All data cleared");
 
