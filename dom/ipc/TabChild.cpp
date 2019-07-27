@@ -3043,6 +3043,21 @@ bool
 TabChild::RecvSetUpdateHitRegion(const bool& aEnabled)
 {
     mUpdateHitRegion = aEnabled;
+
+    
+    
+    if (!mUpdateHitRegion) {
+      return true;
+    }
+
+    nsCOMPtr<nsIDocument> document(GetDocument());
+    NS_ENSURE_TRUE(document, true);
+    nsCOMPtr<nsIPresShell> presShell = document->GetShell();
+    NS_ENSURE_TRUE(presShell, true);
+    nsRefPtr<nsPresContext> presContext = presShell->GetPresContext();
+    NS_ENSURE_TRUE(presContext, true);
+    presContext->InvalidatePaintedLayers();
+
     return true;
 }
 
