@@ -116,9 +116,14 @@ public:
   void SetParameterAsDensity(double aDensity);
   void SetParameterAsComputedWidth(int32_t aWidth);
 
+  void SetParameterInvalid();
+
   
   
-  bool SetParamaterFromDescriptor(const nsAString & aDescriptor);
+  
+  
+  bool ConsumeDescriptors(nsAString::const_iterator& aIter,
+                          const nsAString::const_iterator& aIterEnd);
 
   
   bool HasSameParameter(const ResponsiveImageCandidate & aOther) const;

@@ -16,6 +16,10 @@
 #include "nsRuleNode.h"
 #include "nsRuleData.h"
 
+
+
+#include "HTMLPictureElement.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -76,10 +80,12 @@ ResponsiveImageSelector::SetCandidatesFromSourceSet(const nsAString & aSrcSet)
 
   
   while (iter != end) {
-    nsAString::const_iterator url, desc;
+    nsAString::const_iterator url, urlEnd, descriptor;
 
     
-    for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
+    
+    for (; iter != end && (nsContentUtils::IsHTMLWhitespace(*iter) ||
+                           *iter == char16_t(',')); ++iter);
 
     if (iter == end) {
       break;
@@ -90,30 +96,33 @@ ResponsiveImageSelector::SetCandidatesFromSourceSet(const nsAString & aSrcSet)
     
     for (;iter != end && !nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
 
-    desc = iter;
+    urlEnd = iter;
 
     
-    for (; iter != end && *iter != char16_t(','); ++iter);
-    const nsDependentSubstring &descriptor = Substring(desc, iter);
-
-    nsresult rv;
-    nsCOMPtr<nsIURI> candidateURL;
-    rv = nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(candidateURL),
-                                                   Substring(url, desc),
-                                                   doc,
-                                                   docBaseURI);
-    if (NS_SUCCEEDED(rv) && candidateURL) {
-      NS_TryToSetImmutable(candidateURL);
-      ResponsiveImageCandidate candidate;
-      if (candidate.SetParamaterFromDescriptor(descriptor)) {
-        candidate.SetURL(candidateURL);
-        AppendCandidateIfUnique(candidate);
+    
+    while (urlEnd != url) {
+      if (*(--urlEnd) != char16_t(',')) {
+        urlEnd++;
+        break;
       }
     }
 
-    
-    if (iter != end) {
-      ++iter;
+    const nsDependentSubstring &urlStr = Substring(url, urlEnd);
+
+    ResponsiveImageCandidate candidate;
+    if (candidate.ConsumeDescriptors(iter, end)) {
+      nsresult rv;
+      nsCOMPtr<nsIURI> candidateURL;
+      rv =
+        nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(candidateURL),
+                                                  urlStr,
+                                                  doc,
+                                                  docBaseURI);
+      if (NS_SUCCEEDED(rv) && candidateURL) {
+        NS_TryToSetImmutable(candidateURL);
+        candidate.SetURL(candidateURL);
+        AppendCandidateIfUnique(candidate);
+      }
     }
   }
 
@@ -427,6 +436,15 @@ ResponsiveImageCandidate::SetParameterDefault()
 }
 
 void
+ResponsiveImageCandidate::SetParameterInvalid()
+{
+  mType = eCandidateType_Invalid;
+  
+  
+  mValue.mDensity = 1.0;
+}
+
+void
 ResponsiveImageCandidate::SetParameterAsDensity(double aDensity)
 {
   MOZ_ASSERT(mType == eCandidateType_Invalid, "double setting candidate type");
@@ -435,76 +453,182 @@ ResponsiveImageCandidate::SetParameterAsDensity(double aDensity)
   mValue.mDensity = aDensity;
 }
 
-bool
-ResponsiveImageCandidate::SetParamaterFromDescriptor(const nsAString & aDescriptor)
+
+
+
+struct ResponsiveImageDescriptors {
+  ResponsiveImageDescriptors()
+    : mInvalid(false) {};
+
+  Maybe<double> mDensity;
+  Maybe<int32_t> mWidth;
+  
+  
+  
+  Maybe<int32_t> mFutureCompatHeight;
+  
+  
+  bool mInvalid;
+
+  void AddDescriptor(const nsAString& aDescriptor);
+  bool Valid();
+  
+  void FillCandidate(ResponsiveImageCandidate &aCandidate);
+};
+
+
+
+
+
+void
+ResponsiveImageDescriptors::AddDescriptor(const nsAString& aDescriptor)
 {
-  
-  double density = -1.0;
-  int32_t width = -1;
-
-  nsAString::const_iterator iter, end;
-  aDescriptor.BeginReading(iter);
-  aDescriptor.EndReading(end);
+  if (aDescriptor.IsEmpty()) {
+    return;
+  }
 
   
-  
-  
-  
-  while (iter != end) {
-    
-    for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
-    if (iter == end) {
-      break;
-    }
-
-    
-    nsAString::const_iterator start = iter;
-    for (; iter != end && !nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
-
-    if (start == iter) {
-      
-      break;
-    }
-
+  nsAString::const_iterator descStart, descType;
+  aDescriptor.BeginReading(descStart);
+  aDescriptor.EndReading(descType);
+  descType--;
+  const nsDependentSubstring& valueStr = Substring(descStart, descType);
+  if (*descType == char16_t('w')) {
+    int32_t possibleWidth;
     
     
-    --iter;
-    nsAString::const_iterator type(iter);
-    ++iter;
-
-    const nsDependentSubstring& valStr = Substring(start, type);
-    if (*type == char16_t('w')) {
-      int32_t possibleWidth;
-      if (width == -1 && density == -1.0) {
-        if (ParseInteger(valStr, possibleWidth) && possibleWidth > 0) {
-          width = possibleWidth;
-        }
+    if (ParseInteger(valueStr, possibleWidth) && possibleWidth >= 0) {
+      if (possibleWidth != 0 && HTMLPictureElement::IsPictureEnabled() &&
+          mWidth.isNothing() && mDensity.isNothing()) {
+        mWidth.emplace(possibleWidth);
       } else {
-        return false;
+        
+        
+        mInvalid = true;
       }
-    } else if (*type == char16_t('x')) {
-      if (width == -1 && density == -1.0) {
-        nsresult rv;
-        double possibleDensity = PromiseFlatString(valStr).ToDouble(&rv);
-        if (NS_SUCCEEDED(rv) && possibleDensity > 0.0) {
-          density = possibleDensity;
-        }
+
+      return;
+    }
+  } else if (*descType == char16_t('h')) {
+    int32_t possibleHeight;
+    
+    
+    if (ParseInteger(valueStr, possibleHeight) && possibleHeight >= 0) {
+      if (possibleHeight != 0 && mFutureCompatHeight.isNothing() &&
+          mDensity.isNothing()) {
+        mFutureCompatHeight.emplace(possibleHeight);
       } else {
-        return false;
+        
+        
+        mInvalid = true;
       }
+
+      return;
+    }
+  } else if (*descType == char16_t('x')) {
+    
+    
+    nsresult rv;
+    double possibleDensity = PromiseFlatString(valueStr).ToDouble(&rv);
+    if (NS_SUCCEEDED(rv)) {
+      if (possibleDensity >= 0.0 &&
+          mWidth.isNothing() &&
+          mDensity.isNothing() &&
+          mFutureCompatHeight.isNothing()) {
+        mDensity.emplace(possibleDensity);
+      } else {
+        
+        
+        mInvalid = true;
+      }
+
+      return;
     }
   }
 
-  if (width != -1) {
-    SetParameterAsComputedWidth(width);
-  } else if (density != -1.0) {
-    SetParameterAsDensity(density);
+  
+  mInvalid = true;
+}
+
+bool
+ResponsiveImageDescriptors::Valid()
+{
+  return !mInvalid && !(mFutureCompatHeight.isSome() && mWidth.isNothing());
+}
+
+void
+ResponsiveImageDescriptors::FillCandidate(ResponsiveImageCandidate &aCandidate)
+{
+  if (!Valid()) {
+    aCandidate.SetParameterInvalid();
+  } else if (mWidth.isSome()) {
+    MOZ_ASSERT(mDensity.isNothing()); 
+
+    aCandidate.SetParameterAsComputedWidth(*mWidth);
+  } else if (mDensity.isSome()) {
+    MOZ_ASSERT(mWidth.isNothing()); 
+
+    aCandidate.SetParameterAsDensity(*mDensity);
   } else {
     
-    SetParameterAsDensity(1.0);
+    
+    aCandidate.SetParameterAsDensity(1.0);
+  }
+}
+
+bool
+ResponsiveImageCandidate::ConsumeDescriptors(nsAString::const_iterator& aIter,
+                                             const nsAString::const_iterator& aIterEnd)
+{
+  nsAString::const_iterator &iter = aIter;
+  const nsAString::const_iterator &end  = aIterEnd;
+
+  bool inParens = false;
+
+  ResponsiveImageDescriptors descriptors;
+
+  
+  
+  
+
+  
+  for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
+
+  nsAString::const_iterator currentDescriptor = iter;
+
+  for (;; iter++) {
+    if (iter == end) {
+      descriptors.AddDescriptor(Substring(currentDescriptor, iter));
+      break;
+    } else if (inParens) {
+      if (*iter == char16_t(')')) {
+        inParens = false;
+      }
+    } else {
+      if (*iter == char16_t(',')) {
+        
+        
+        descriptors.AddDescriptor(Substring(currentDescriptor, iter));
+        iter++;
+        break;
+      } else if (nsContentUtils::IsHTMLWhitespace(*iter)) {
+        
+        
+        descriptors.AddDescriptor(Substring(currentDescriptor, iter));
+        for (; iter != end && *iter == char16_t(' '); ++iter);
+        if (iter == end) {
+          break;
+        }
+        currentDescriptor = iter;
+      } else if (*iter == char16_t('(')) {
+        inParens = true;
+      }
+    }
   }
 
-  return true;
+  descriptors.FillCandidate(*this);
+
+  return Type() != eCandidateType_Invalid;
 }
 
 bool
