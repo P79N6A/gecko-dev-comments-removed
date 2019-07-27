@@ -32,7 +32,7 @@
 
 #ifdef __FreeBSD__
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet/sctp_constants.h 256556 2013-10-15 20:21:27Z tuexen $");
+__FBSDID("$FreeBSD: head/sys/netinet/sctp_constants.h 271204 2014-09-06 19:12:14Z tuexen $");
 #endif
 
 #ifndef _NETINET_SCTP_CONSTANTS_H_
@@ -42,19 +42,9 @@ __FBSDID("$FreeBSD: head/sys/netinet/sctp_constants.h 256556 2013-10-15 20:21:27
 extern void getwintimeofday(struct timeval *tv);
 #endif
 
-#ifdef __FreeBSD__
 
-
-
-
-
-
-
-
-#define SCTP_OVER_UDP_TUNNELING_PORT 0
-#else
 #define SCTP_OVER_UDP_TUNNELING_PORT 9899
-#endif
+
 
 #define SCTP_DEFAULT_SACK_FREQ 2
 
@@ -283,40 +273,7 @@ extern void getwintimeofday(struct timeval *tv);
 #define SCTP_SCALE_FOR_ADDR	2
 
 
-#if defined(__APPLE__)
-#if !defined(SCTP_APPLE_AUTO_ASCONF)
-#define SCTP_DEFAULT_AUTO_ASCONF        0
-#else
-#define SCTP_DEFAULT_AUTO_ASCONF	1
-#endif
-#else
-#define SCTP_DEFAULT_AUTO_ASCONF	1
-#endif
-
-
 #define SCTP_DEFAULT_MULTIPLE_ASCONFS	0
-
-
-#if defined(__APPLE__)
-#if !defined(SCTP_APPLE_MOBILITY_BASE)
-#define SCTP_DEFAULT_MOBILITY_BASE      0
-#else
-#define SCTP_DEFAULT_MOBILITY_BASE	1
-#endif
-#else
-#define SCTP_DEFAULT_MOBILITY_BASE	0
-#endif
-
-
-#if defined(__APPLE__)
-#if !defined(SCTP_APPLE_MOBILITY_FASTHANDOFF)
-#define SCTP_DEFAULT_MOBILITY_FASTHANDOFF	0
-#else
-#define SCTP_DEFAULT_MOBILITY_FASTHANDOFF	1
-#endif
-#else
-#define SCTP_DEFAULT_MOBILITY_FASTHANDOFF	0
-#endif
 
 
 
@@ -818,6 +775,9 @@ extern void getwintimeofday(struct timeval *tv);
 
 
 #define SCTP_DEFAULT_SPLIT_POINT_MIN 2904
+
+
+#define SCTP_DIAG_INFO_LEN 64
 
 
 

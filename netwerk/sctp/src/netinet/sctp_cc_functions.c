@@ -32,7 +32,7 @@
 
 #ifdef __FreeBSD__
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/sys/netinet/sctp_cc_functions.c 240158 2012-09-06 07:03:56Z tuexen $");
+__FBSDID("$FreeBSD: head/sys/netinet/sctp_cc_functions.c 271672 2014-09-16 13:48:46Z tuexen $");
 #endif
 
 #include <netinet/sctp_os.h>
@@ -1218,12 +1218,9 @@ sctp_cwnd_update_after_packet_dropped(struct sctp_tcb *stcb,
 	uint32_t *bottle_bw, uint32_t *on_queue)
 {
 	uint32_t bw_avail;
-	int rtt;
 	unsigned int incr;
 	int old_cwnd = net->cwnd;
 
-	
-	rtt = net->rtt / 1000;
 	
 	*bottle_bw = ntohl(cp->bottle_bw);
 	
@@ -1232,10 +1229,11 @@ sctp_cwnd_update_after_packet_dropped(struct sctp_tcb *stcb,
 
 
 
-	if (*on_queue < net->flight_size)
+	if (*on_queue < net->flight_size) {
 		*on_queue = net->flight_size;
-		
-	bw_avail = (*bottle_bw * rtt) / 1000;
+	}
+	
+	bw_avail = (uint32_t)(((uint64_t)(*bottle_bw) * net->rtt) / (uint64_t)1000000);
 	if (bw_avail > *bottle_bw) {
 		
 
@@ -1253,8 +1251,8 @@ sctp_cwnd_update_after_packet_dropped(struct sctp_tcb *stcb,
 
 
 		int seg_inflight, seg_onqueue, my_portion;
-			net->partial_bytes_acked = 0;
 
+		net->partial_bytes_acked = 0;
 		
 		incr = *on_queue - bw_avail;
 		if (stcb->asoc.seen_a_sack_this_pkt) {

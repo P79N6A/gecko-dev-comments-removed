@@ -107,11 +107,4 @@ extern u_short ip_id;
 
 
 extern int ip_defttl;
-
-
-
-
-
-#define in6_sin_2_v4mapsin6(arg1, arg2)
-
 #endif

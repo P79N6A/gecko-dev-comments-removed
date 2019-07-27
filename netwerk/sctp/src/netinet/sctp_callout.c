@@ -66,8 +66,6 @@ extern int ticks;
 
 
 
-
-static sctp_os_timer_t *sctp_os_timer_current = NULL;
 static sctp_os_timer_t *sctp_os_timer_next = NULL;
 
 void
@@ -153,11 +151,9 @@ sctp_handle_tick(int delta)
 			c_func = c->c_func;
 			c_arg = c->c_arg;
 			c->c_flags &= ~SCTP_CALLOUT_PENDING;
-			sctp_os_timer_current = c;
 			SCTP_TIMERQ_UNLOCK();
 			c_func(c_arg);
 			SCTP_TIMERQ_LOCK();
-			sctp_os_timer_current = NULL;
 			c = sctp_os_timer_next;
 		} else {
 			c = TAILQ_NEXT(c, tqe);
