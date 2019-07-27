@@ -2643,20 +2643,24 @@ GCRuntime::updatePointersToRelocatedCells()
         updateAllCellPointersSerial(&trc, source);
 
     
-    markRuntime(&trc, MarkRuntime);
-    Debugger::markAll(&trc);
-    Debugger::markAllCrossCompartmentEdges(&trc);
+    {
+        markRuntime(&trc, MarkRuntime);
 
-    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-        WeakMapBase::markAll(c, &trc);
-        if (c->watchpointMap)
-            c->watchpointMap->markAll(&trc);
+        gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_ROOTS);
+        Debugger::markAll(&trc);
+        Debugger::markAllCrossCompartmentEdges(&trc);
+
+        for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+            WeakMapBase::markAll(c, &trc);
+            if (c->watchpointMap)
+                c->watchpointMap->markAll(&trc);
+        }
+
+        
+        
+        if (JSTraceDataOp op = grayRootTracer.op)
+            (*op)(&trc, grayRootTracer.data);
     }
-
-    
-    
-    if (JSTraceDataOp op = grayRootTracer.op)
-        (*op)(&trc, grayRootTracer.data);
 
     
     WatchpointMap::sweepAll(rt);
@@ -4061,22 +4065,28 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason)
 
 
     gcstats::AutoPhase ap1(stats, gcstats::PHASE_MARK);
-    gcstats::AutoPhase ap2(stats, gcstats::PHASE_MARK_ROOTS);
 
-    for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
-        
-        zone->allocator.arenas.unmarkAll();
+    {
+        gcstats::AutoPhase ap(stats, gcstats::PHASE_UNMARK);
+
+        for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
+            
+            zone->allocator.arenas.unmarkAll();
+        }
+
+        for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+            
+            WeakMapBase::unmarkCompartment(c);
+        }
+
+        if (isFull)
+            UnmarkScriptData(rt);
     }
-
-    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-        
-        WeakMapBase::unmarkCompartment(c);
-    }
-
-    if (isFull)
-        UnmarkScriptData(rt);
 
     markRuntime(gcmarker, MarkRuntime);
+
+    gcstats::AutoPhase ap2(stats, gcstats::PHASE_MARK_ROOTS);
+
     if (isIncremental)
         bufferGrayRoots();
 
@@ -4104,27 +4114,31 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason)
 
 
 
-    
-    for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
-        for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
-            const CrossCompartmentKey &key = e.front().key();
-            JSCompartment *dest;
-            switch (key.kind) {
-              case CrossCompartmentKey::ObjectWrapper:
-              case CrossCompartmentKey::DebuggerObject:
-              case CrossCompartmentKey::DebuggerSource:
-              case CrossCompartmentKey::DebuggerEnvironment:
-                dest = static_cast<JSObject *>(key.wrapped)->compartment();
-                break;
-              case CrossCompartmentKey::DebuggerScript:
-                dest = static_cast<JSScript *>(key.wrapped)->compartment();
-                break;
-              default:
-                dest = nullptr;
-                break;
+    {
+        gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_COMPARTMENTS);
+
+        
+        for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
+            for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
+                const CrossCompartmentKey &key = e.front().key();
+                JSCompartment *dest;
+                switch (key.kind) {
+                  case CrossCompartmentKey::ObjectWrapper:
+                  case CrossCompartmentKey::DebuggerObject:
+                  case CrossCompartmentKey::DebuggerSource:
+                  case CrossCompartmentKey::DebuggerEnvironment:
+                    dest = static_cast<JSObject *>(key.wrapped)->compartment();
+                    break;
+                  case CrossCompartmentKey::DebuggerScript:
+                    dest = static_cast<JSScript *>(key.wrapped)->compartment();
+                    break;
+                  default:
+                    dest = nullptr;
+                    break;
+                }
+                if (dest)
+                    dest->maybeAlive = true;
             }
-            if (dest)
-                dest->maybeAlive = true;
         }
     }
 
@@ -4294,27 +4308,28 @@ js::gc::MarkingValidator::nonIncrementalMark()
 
     initialized = true;
 
-    for (GCCompartmentsIter c(runtime); !c.done(); c.next())
-        WeakMapBase::unmarkCompartment(c);
-
     
     js::gc::State state = gc->incrementalState;
     gc->incrementalState = MARK_ROOTS;
 
-    MOZ_ASSERT(gcmarker->isDrained());
-    gcmarker->reset();
-
-    for (auto chunk = gc->allNonEmptyChunks(); !chunk.done(); chunk.next())
-        chunk->bitmap.clear();
-
     {
-        gcstats::AutoPhase ap1(gc->stats, gcstats::PHASE_MARK);
-        gcstats::AutoPhase ap2(gc->stats, gcstats::PHASE_MARK_ROOTS);
+        gcstats::AutoPhase ap(gc->stats, gcstats::PHASE_MARK);
+
+        {
+            gcstats::AutoPhase ap(gc->stats, gcstats::PHASE_UNMARK);
+
+            for (GCCompartmentsIter c(runtime); !c.done(); c.next())
+                WeakMapBase::unmarkCompartment(c);
+
+            MOZ_ASSERT(gcmarker->isDrained());
+            gcmarker->reset();
+
+            for (auto chunk = gc->allNonEmptyChunks(); !chunk.done(); chunk.next())
+                chunk->bitmap.clear();
+        }
+
         gc->markRuntime(gcmarker, GCRuntime::MarkRuntime, GCRuntime::UseSavedRoots);
-    }
 
-    {
-        gcstats::AutoPhase ap1(gc->stats, gcstats::PHASE_MARK);
         SliceBudget budget;
         gc->incrementalState = MARK;
         gc->marker.drainMarkStack(budget);
@@ -6088,7 +6103,7 @@ MOZ_NEVER_INLINE bool
 GCRuntime::gcCycle(bool incremental, SliceBudget &budget, JSGCInvocationKind gckind,
                    JS::gcreason::Reason reason)
 {
-    minorGC(reason);
+    evictNursery(reason);
 
     
 
@@ -6458,30 +6473,28 @@ GCRuntime::onOutOfMallocMemory(const AutoLockGC &lock)
 }
 
 void
-GCRuntime::minorGC(JS::gcreason::Reason reason)
+GCRuntime::minorGCImpl(JS::gcreason::Reason reason, Nursery::TypeObjectList *pretenureTypes)
 {
     minorGCRequested = false;
     TraceLogger *logger = TraceLoggerForMainThread(rt);
     AutoTraceLog logMinorGC(logger, TraceLogger::MinorGC);
-    nursery.collect(rt, reason, nullptr);
+    nursery.collect(rt, reason, pretenureTypes);
     MOZ_ASSERT_IF(!rt->mainThread.suppressGC, nursery.isEmpty());
 }
+
+
 
 void
 GCRuntime::minorGC(JSContext *cx, JS::gcreason::Reason reason)
 {
-    
-    
-    minorGCRequested = false;
-    TraceLogger *logger = TraceLoggerForMainThread(rt);
-    AutoTraceLog logMinorGC(logger, TraceLogger::MinorGC);
+    gcstats::AutoPhase ap(stats, gcstats::PHASE_MINOR_GC);
+
     Nursery::TypeObjectList pretenureTypes;
-    nursery.collect(rt, reason, &pretenureTypes);
+    minorGCImpl(reason, &pretenureTypes);
     for (size_t i = 0; i < pretenureTypes.length(); i++) {
         if (pretenureTypes[i]->canPreTenure())
             pretenureTypes[i]->setShouldPreTenure(cx);
     }
-    MOZ_ASSERT_IF(!rt->mainThread.suppressGC, nursery.isEmpty());
 }
 
 void
