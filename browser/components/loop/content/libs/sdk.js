@@ -13,8 +13,8 @@
   if (!window.OT) window.OT = {};
 
   OT.properties = {
-    version: 'v2.2.6',         
-    build: 'd326ad1',    
+    version: 'v2.2.5',         
+    build: '12d9384',    
 
     
     debug: 'false',
@@ -22,11 +22,12 @@
     websiteURL: 'http://www.tokbox.com',
 
     
-    cdnURL: 'http://static.opentok.com',
+    
+    cdnURL: 'loop/otcdn',
     
     loggingURL: 'https://hlg.tokbox.com/prod',
     
-    apiURL: 'http://anvil.opentok.com',
+    apiURL: 'https://anvil.opentok.com',
 
     
     messagingProtocol: 'wss',
@@ -36,7 +37,10 @@
     
     supportSSL: 'true',
     
-    cdnURLSSL: 'https://static.opentok.com',
+    
+    cdnURLSSL: 'loop/otcdn',
+    
+    loggingURLSSL: 'https://hlg.tokbox.com/prod',
     
     apiURLSSL: 'https://anvil.opentok.com',
 
@@ -2882,9 +2886,6 @@ OTHelpers.centerElement = function(element, width, height) {
     if (enumerable === void 0) enumerable = false;
 
     for (var key in getters) {
-      if(!getters.hasOwnProperty(key)) {
-        continue;
-      }
       propsDefinition[key] = {
         get: getters[key],
         enumerable: enumerable
@@ -3017,20 +3018,13 @@ OTHelpers.centerElement = function(element, width, height) {
     if (props.supportSSL && (window.location.protocol.indexOf('https') >= 0 ||
       window.location.protocol.indexOf('chrome-extension') >= 0)) {
       props.assetURL = props.cdnURLSSL + '/webrtc/' + props.version;
+      props.loggingURL = props.loggingURLSSL;
     } else {
       props.assetURL = props.cdnURL + '/webrtc/' + props.version;
     }
 
     props.configURL = props.assetURL + '/js/dynamic_config.min.js';
     props.cssURL = props.assetURL + '/css/ot.min.css';
-    
-    if (window.OTProperties) {
-      
-      if (window.OTProperties.cdnURL) props.cdnURL = window.OTProperties.cdnURL;
-      if (window.OTProperties.configURL) props.configURL = window.OTProperties.configURL;
-      if (window.OTProperties.assetURL) props.assetURL = window.OTProperties.assetURL;
-      if (window.OTProperties.cssURL) props.cssURL = window.OTProperties.cssURL;
-    }
 
     return props;
   }(OT.properties);
@@ -3525,7 +3519,8 @@ OTHelpers.centerElement = function(element, width, height) {
   
 
   var nativeGetUserMedia,
-      vendorToW3CErrors,
+      mozToW3CErrors,
+      chromeToW3CErrors,
       gumNamesToMessages,
       mapVendorErrorName,
       parseErrorEvent,
@@ -3606,19 +3601,21 @@ OTHelpers.centerElement = function(element, width, height) {
 
   
   
-  
-  vendorToW3CErrors = {
+  mozToW3CErrors = {
     PERMISSION_DENIED: 'PermissionDeniedError',
     NOT_SUPPORTED_ERROR: 'NotSupportedError',
     MANDATORY_UNSATISFIED_ERROR: ' ConstraintNotSatisfiedError',
     NO_DEVICES_FOUND: 'NoDevicesFoundError',
-    HARDWARE_UNAVAILABLE: 'HardwareUnavailableError',
-    TrackStartError: 'HardwareUnavailableError'
+    HARDWARE_UNAVAILABLE: 'HardwareUnavailableError'
+  };
+
+  
+  chromeToW3CErrors = {
+    1: 'PermissionDeniedError'
   };
 
   gumNamesToMessages = {
     PermissionDeniedError: 'End-user denied permission to hardware devices',
-    PermissionDismissedError: 'End-user dismissed permission to hardware devices',
     NotSupportedError: 'A constraint specified is not supported by the browser.',
     ConstraintNotSatisfiedError: 'It\'s not possible to satisfy one or more constraints ' +
       'passed into the getUserMedia function',
@@ -3629,22 +3626,16 @@ OTHelpers.centerElement = function(element, width, height) {
       'that the chosen devices are not in use by another application.'
   };
 
-  
-  mapVendorErrorName = function mapVendorErrorName(vendorErrorName, vendorErrors) {
-    var errorName, errorMessage;
 
-    if(vendorErrors.hasOwnProperty(vendorErrorName)) {
-      errorName = vendorErrors[vendorErrorName];
-    } else {
+  mapVendorErrorName = function mapVendorErrorName (vendorErrorName, vendorErrors) {
+    var errorName = vendorErrors[vendorErrorName],
+        errorMessage = gumNamesToMessages[errorName];
+
+    if (!errorMessage) {
       
       
+      errorMessage = null; 
       errorName = vendorErrorName;
-    }
-
-    if(gumNamesToMessages.hasOwnProperty(errorName)) {
-      errorMessage = gumNamesToMessages[errorName];
-    } else {
-      errorMessage = 'Unknown Error while getting user media';
     }
 
     return {
@@ -3655,17 +3646,30 @@ OTHelpers.centerElement = function(element, width, height) {
 
   
   
-  parseErrorEvent = function parseErrorObject(event) {
+  parseErrorEvent = function parseErrorObject (event) {
     var error;
 
     if (OT.$.isObject(event) && event.name) {
-      error = mapVendorErrorName(event.name, vendorToW3CErrors);
-      error.constraintName = event.constraintName;
-    } else if (typeof event === 'string') {
-      error = mapVendorErrorName(event, vendorToW3CErrors);
+      error = {
+        name: event.name,
+        message: event.message || gumNamesToMessages[event.name],
+        constraintName: event.constraintName
+      };
+
+    } else if (OT.$.isObject(event)) {
+      error = mapVendorErrorName(event.code, chromeToW3CErrors);
+
+      
+      
+      if (event.message) error.message = event.message;
+      if (event.constraintName) error.constraintName = event.constraintName;
+
+    } else if (event && mozToW3CErrors.hasOwnProperty(event)) {
+      error = mapVendorErrorName(event, mozToW3CErrors);
+
     } else {
       error = {
-        message: 'Unknown Error type while getting media'
+        message: 'Unknown Error while getting user media'
       };
     }
 
@@ -3678,9 +3682,6 @@ OTHelpers.centerElement = function(element, width, height) {
     if (!constraints || !OT.$.isObject(constraints)) return true;
 
     for (var key in constraints) {
-      if(!constraints.hasOwnProperty(key)) {
-        continue;
-      }
       if (constraints[key]) return false;
     }
 
@@ -3768,29 +3769,6 @@ OTHelpers.centerElement = function(element, width, height) {
     return OT.$.supportsWebRTC() && OT.$.browser() === 'Chrome';
   };
 
-  OT.$.shouldAskForDevices = function(callback) {
-    var memoiseReply = function(audio, video) {
-      OT.$.shouldAskForDevices = function(callback) {
-        setTimeout(callback.bind(null, { video: video, audio: audio }));
-      };
-      OT.$.shouldAskForDevices(callback);
-    };
-    var MST = window.MediaStreamTrack;
-    if(MST != null && OT.$.isFunction(MST.getSources)) {
-      window.MediaStreamTrack.getSources(function(sources) {
-        var hasAudio = sources.some(function(src) {
-          return src.kind === 'audio';
-        });
-        var hasVideo = sources.some(function(src) {
-          return src.kind === 'video';
-        });
-        memoiseReply(hasAudio, hasVideo);
-      });
-    } else {
-      memoiseReply(true, true);
-    }
-  };
-
   
   
   
@@ -3872,8 +3850,23 @@ OTHelpers.centerElement = function(element, width, height) {
           var error = parseErrorEvent(event);
 
           
-          if (error.name === 'PermissionDeniedError' || error.name === 'PermissionDismissedError') {
-            accessDenied.call(null, error);
+          if (error.name === 'PermissionDeniedError') {
+            var MST = window.MediaStreamTrack;
+            if(MST != null && OT.$.isFunction(MST.getSources)) {
+              window.MediaStreamTrack.getSources(function(sources) {
+                if(sources.length > 0) {
+                  accessDenied.call(null, error);
+                } else {
+                  failure.call(null, {
+                    name: 'NoDevicesFoundError',
+                    message: gumNamesToMessages.NoDevicesFoundError
+                  });
+                }
+              });
+            } else {
+              accessDenied.call(null, error);
+            }
+
           } else {
             failure.call(null, error);
           }
@@ -4210,24 +4203,6 @@ OTHelpers.centerElement = function(element, width, height) {
 
           this.trigger('orientationChanged');
         }
-      },
-
-      
-      
-      
-      audioChannelType: {
-        get: function() {
-          if ('mozAudioChannelType' in this.domElement) {
-            return this.domElement.mozAudioChannelType;
-          } else {
-            return 'unknown';
-          }
-        },
-        set: function(type) {
-          if ('mozAudioChannelType' in this.domElement) {
-            this.domElement.mozAudioChannelType = type;
-          }
-        }
       }
     });
   }
@@ -4246,9 +4221,6 @@ OTHelpers.centerElement = function(element, width, height) {
       }
 
       for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
         videoElement.setAttribute(key, attributes[key]);
       }
     }
@@ -5356,9 +5328,6 @@ OTHelpers.centerElement = function(element, width, height) {
 
       return _models.filter(function(model) {
         for (var key in attrsOrFilterFn) {
-          if(!attrsOrFilterFn.hasOwnProperty(key)) {
-            continue;
-          }
           if (model[key] !== attrsOrFilterFn[key]) return false;
         }
 
@@ -5377,9 +5346,6 @@ OTHelpers.centerElement = function(element, width, height) {
       else {
         filterFn = function(model) {
           for (var key in attrsOrFilterFn) {
-            if(!attrsOrFilterFn.hasOwnProperty(key)) {
-              continue;
-            }
             if (model[key] !== attrsOrFilterFn[key]) return false;
           }
 
@@ -6227,19 +6193,6 @@ OTHelpers.centerElement = function(element, width, height) {
     this.oldValue = oldValue;
     this.newValue = newValue;
   };
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   OT.ArchiveEvent = function (type, archive) {
     OT.Event.call(this, type, false);
@@ -9229,9 +9182,6 @@ OTHelpers.centerElement = function(element, width, height) {
     i = 0;
 
     for (var key in this.headers) {
-      if(!this.headers.hasOwnProperty(key)) {
-        continue;
-      }
       headerKey.push(new TextEncoder('utf-8').encode(key));
       headerVal.push(new TextEncoder('utf-8').encode(this.headers[key]));
       cBuf += 4;
@@ -11411,9 +11361,6 @@ OTHelpers.centerElement = function(element, width, height) {
           oldVideoDimensions = {};
 
       for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
         
         var oldValue = this[key];
 
@@ -11464,8 +11411,6 @@ OTHelpers.centerElement = function(element, width, height) {
 !(function() {
 
   var validPropertyNames = ['name', 'archiving'];
-
-
 
 
 
@@ -11726,9 +11671,6 @@ OTHelpers.centerElement = function(element, width, height) {
     
     this._.update = function (attributes) {
       for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
         this._.updateProperty(key, attributes[key]);
       }
     }.bind(this);
@@ -11755,9 +11697,6 @@ OTHelpers.centerElement = function(element, width, height) {
     
     this._.update = function (attributes) {
       for (var key in attributes) {
-        if(!attributes.hasOwnProperty(key)) {
-          continue;
-        }
         var oldValue = this[key];
         this[key] = attributes[key];
         
@@ -13670,13 +13609,10 @@ OTHelpers.centerElement = function(element, width, height) {
     this.getAll = function() {
       var style = OT.$.clone(_style);
 
-      for (var key in style) {
-        if(!style.hasOwnProperty(key)) {
-          continue;
-        }
-        if (_COMPONENT_STYLES.indexOf(key) < 0) {
+      for (var i in style) {
+        if (_COMPONENT_STYLES.indexOf(i) < 0) {
           
-          delete style[key];
+          delete style[i];
         }
       }
 
@@ -13697,9 +13633,6 @@ OTHelpers.centerElement = function(element, width, height) {
       var oldValue, newValue;
 
       for (var key in newStyles) {
-        if(!newStyles.hasOwnProperty(key)) {
-          continue;
-        }
         newValue = castValue(newStyles[key]);
 
         if (isValidStyle(key, newValue)) {
@@ -14174,8 +14107,6 @@ OTHelpers.centerElement = function(element, width, height) {
             connectionId: _session && _session.connected ? _session.connection.connectionId : null,
             partnerId: _session ? _session.apiKey : OT.APIKEY,
             streamId: _stream ? _stream.id : null,
-            width: _container ? OT.$.width(_container.domElement)  : undefined,
-            height: _container ? OT.$.height(_container.domElement)  : undefined,
             widgetId: _guid,
             version: OT.properties.version,
             'media_server_name': _session ? _session.sessionInfo.messagingServer : null,
@@ -14207,9 +14138,7 @@ OTHelpers.centerElement = function(element, width, height) {
           OT.debug('OT.Publisher.onLoaded');
 
           _state.set('MediaBound');
-          
-          
-          _container.loading = this.session ? !_stream : false;
+          _container.loading = false;
           _loaded = true;
 
           _createChrome.call(this);
@@ -14327,7 +14256,6 @@ OTHelpers.centerElement = function(element, width, height) {
         },
 
         accessDialogPrompt,
-        accessDialogChromeTimeout,
         accessDialogFirefoxTimeout,
         accessDialogWasOpened = false,
 
@@ -14344,9 +14272,7 @@ OTHelpers.centerElement = function(element, width, height) {
             function(event) {
               if(!event.isDefaultPrevented()) {
                 if(browser.browser === 'Chrome') {
-                  accessDialogChromeTimeout = setTimeout(function() {
-                    accessDialogPrompt = OT.Dialogs.AllowDeny.Chrome.initialPrompt();
-                  }, 5000);
+                  accessDialogPrompt = OT.Dialogs.AllowDeny.Chrome.initialPrompt();
                 } else if(browser.browser === 'Firefox') {
                   accessDialogFirefoxTimeout = setTimeout(function() {
                     accessDialogPrompt = OT.Dialogs.AllowDeny.Firefox.maybeDenied();
@@ -14359,11 +14285,6 @@ OTHelpers.centerElement = function(element, width, height) {
 
         onAccessDialogClosed = function() {
           logAnalyticsEvent('accessDialog', 'Closed', '', '');
-
-          if(accessDialogChromeTimeout) {
-            clearTimeout(accessDialogChromeTimeout);
-            accessDialogChromeTimeout = null;
-          }
 
           if(accessDialogFirefoxTimeout) {
             clearTimeout(accessDialogFirefoxTimeout);
@@ -14443,7 +14364,6 @@ OTHelpers.centerElement = function(element, width, height) {
           _stream.on('destroyed', this.disconnect, this);
 
           _state.set('Publishing');
-          _container.loading = !_loaded;
           _publishStartTime = new Date();
 
           this.trigger('publishComplete', null, this);
@@ -14639,7 +14559,7 @@ OTHelpers.centerElement = function(element, width, height) {
         publishVideo : true,
         mirror: true
       });
-
+        
       if (!_publishProperties.constraints) {
         _publishProperties.constraints = OT.$.clone(defaultConstraints);
         if (_publishProperties.resolution) {
@@ -14701,24 +14621,14 @@ OTHelpers.centerElement = function(element, width, height) {
         _container = new OT.WidgetView(targetElement, _publishProperties);
         _domId = _container.domId;
 
-        OT.$.shouldAskForDevices(function(devices) {
-          if(!devices.video) {
-            OT.warn('Setting video constraint to false, there are no video sources');
-            _publishProperties.constraints.video = false;
-          }
-          if(!devices.audio) {
-            OT.warn('Setting audio constraint to false, there are no audio sources');
-            _publishProperties.constraints.audio = false;
-          }
-          OT.$.getUserMedia(
-            _publishProperties.constraints,
-            onStreamAvailable.bind(this),
-            onStreamAvailableError.bind(this),
-            onAccessDialogOpened.bind(this),
-            onAccessDialogClosed.bind(this),
-            onAccessDenied.bind(this)
-          );
-        }.bind(this));
+        OT.$.getUserMedia(
+          _publishProperties.constraints,
+          onStreamAvailable.bind(this),
+          onStreamAvailableError.bind(this),
+          onAccessDialogOpened.bind(this),
+          onAccessDialogClosed.bind(this),
+          onAccessDenied.bind(this)
+        );
       }, this);
 
       return this;
@@ -15287,8 +15197,6 @@ OTHelpers.centerElement = function(element, width, height) {
             var QoSBlob = {
               widget_type: 'Subscriber',
               stream_type : 'WebRTC',
-              width: _container ? OT.$.width(_container.domElement) : undefined,
-              height: _container ? OT.$.height(_container.domElement) : undefined,
               session_id: _session ? _session.sessionId : null,
               connectionId: _session ? _session.connection.connectionId : null,
               media_server_name: _session ? _session.sessionInfo.messagingServer : null,
@@ -15412,8 +15320,6 @@ OTHelpers.centerElement = function(element, width, height) {
           _subscribeAudioFalseWorkaround = preserver;
 
           var streamElement = new OT.VideoElement();
-          
-          streamElement.audioChannelType = 'telephony';
 
           
           streamElement.setAudioVolume(_audioVolume);
@@ -18013,26 +17919,6 @@ OTHelpers.centerElement = function(element, width, height) {
         return connection ? connection.permissions : new OT.Capabilities([]);
       }.bind(this)
     }, true);
-
-
-  
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
 
 
   
