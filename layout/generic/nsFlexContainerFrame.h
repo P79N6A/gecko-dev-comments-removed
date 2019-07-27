@@ -113,10 +113,10 @@ protected:
                                      const nsHTMLReflowState& aParentReflowState,
                                      const FlexboxAxisTracker& aAxisTracker);
 
-  void ResolveFlexItemMaxContentSizing(nsPresContext* aPresContext,
-                                       FlexItem& aFlexItem,
-                                       const nsHTMLReflowState& aParentReflowState,
-                                       const FlexboxAxisTracker& aAxisTracker);
+  void ResolveAutoFlexBasisAndMinSize(nsPresContext* aPresContext,
+                                      FlexItem& aFlexItem,
+                                      const nsHTMLReflowState& aParentReflowState,
+                                      const FlexboxAxisTracker& aAxisTracker);
 
   
   
