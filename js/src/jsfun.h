@@ -633,14 +633,20 @@ class FunctionExtended : public JSFunction
 };
 
 extern bool
-CloneFunctionObjectUseSameScript(JSCompartment* compartment, HandleFunction fun,
-                                 HandleObject newParent);
+CanReuseScriptForClone(JSCompartment* compartment, HandleFunction fun, HandleObject newParent);
 
 extern JSFunction*
-CloneFunctionObject(JSContext* cx, HandleFunction fun, HandleObject parent,
-                    gc::AllocKind kind = gc::AllocKind::FUNCTION,
-                    NewObjectKind newKindArg = GenericObject,
-                    HandleObject proto = nullptr);
+CloneFunctionReuseScript(JSContext* cx, HandleFunction fun, HandleObject parent,
+                         gc::AllocKind kind = gc::AllocKind::FUNCTION,
+                         NewObjectKind newKindArg = GenericObject,
+                         HandleObject proto = nullptr);
+
+
+extern JSFunction*
+CloneFunctionAndScript(JSContext* cx, HandleFunction fun, HandleObject parent,
+                       HandleObject newStaticScope,
+                       gc::AllocKind kind = gc::AllocKind::FUNCTION,
+                       HandleObject proto = nullptr);
 
 extern bool
 FindBody(JSContext* cx, HandleFunction fun, HandleLinearString src, size_t* bodyStart,
@@ -701,10 +707,6 @@ template<XDRMode mode>
 bool
 XDRInterpretedFunction(XDRState<mode>* xdr, HandleObject enclosingScope,
                        HandleScript enclosingScript, MutableHandleFunction objp);
-
-extern JSObject*
-CloneFunctionAndScript(JSContext* cx, HandleObject enclosingScope, HandleFunction fun,
-                       PollutedGlobalScopeOption polluted);
 
 
 
