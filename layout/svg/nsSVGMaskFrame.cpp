@@ -9,7 +9,6 @@
 
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
-#include "gfxImageSurface.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
 #include "nsRenderingContext.h"
@@ -223,12 +222,6 @@ nsSVGMaskFrame::GetMaskForMaskedFrame(gfxContext* aContext,
     return nullptr;
   }
 
-  
-  
-  
-  
-  
-  
   gfxMatrix maskSurfaceMatrix =
     aContext->CurrentMatrix() * gfxMatrix().Translate(-maskSurfaceRect.TopLeft());
 
