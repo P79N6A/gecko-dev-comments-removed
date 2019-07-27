@@ -1,17 +1,6 @@
 
 
 
-function* check_title(inputText, expectedTitle) {
-  gURLBar.focus();
-  gURLBar.value = inputText.slice(0, -1);
-  EventUtils.synthesizeKey(inputText.slice(-1) , {});
-  yield promiseSearchComplete();
-
-  ok(gURLBar.popup.richlistbox.children.length > 1, "Should get at least 2 results");
-  let result = gURLBar.popup.richlistbox.children[1];
-  is(result._title.textContent, expectedTitle, "Result title should be as expected");
-}
-
 add_task(function*() {
   
   if (!Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete")) {
@@ -19,11 +8,18 @@ add_task(function*() {
     return;
   }
 
+  let tab = gBrowser.selectedTab = gBrowser.addTab("about:mozilla", {animate: false});
+  yield promiseTabLoaded(tab);
+
   let uri = NetUtil.newURI("http://bug1060642.example.com/beards/are/pretty/great");
   yield PlacesTestUtils.addVisits([{uri: uri, title: ""}]);
 
-  yield check_title("bug1060642", "bug1060642.example.com");
+  yield promiseAutocompleteResultPopup("bug1060642");
+  ok(gURLBar.popup.richlistbox.children.length > 1, "Should get at least 2 results");
+  let result = gURLBar.popup.richlistbox.children[1];
+  is(result._title.textContent, "bug1060642.example.com", "Result title should be as expected");
 
   gURLBar.popup.hidePopup();
   yield promisePopupHidden(gURLBar.popup);
+  gBrowser.removeTab(tab);
 });

@@ -780,28 +780,24 @@ function promisePopupHidden(popup) {
   return promisePopupEvent(popup, "hidden");
 }
 
-
-
-
-let gURLBarOnSearchComplete = null;
-function promiseSearchComplete() {
-  info("Waiting for onSearchComplete");
-  return new Promise(resolve => {
-    if (!gURLBarOnSearchComplete) {
-      gURLBarOnSearchComplete = gURLBar.onSearchComplete;
-      registerCleanupFunction(() => {
-        gURLBar.onSearchComplete = gURLBarOnSearchComplete;
-      });
+function promiseSearchComplete(win = window) {
+  return promisePopupShown(win.gURLBar.popup).then(() => {
+    function searchIsComplete() {
+      return win.gURLBar.controller.searchStatus >=
+        Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH;
     }
 
-    gURLBar.onSearchComplete = function () {
-      ok(gURLBar.popupOpen, "The autocomplete popup is correctly open");
-      gURLBarOnSearchComplete.apply(gURLBar);
-      resolve();
-    }
-  }).then(() => {
     
-    
-    return promisePopupShown(gURLBar.popup);
+    return new Promise(resolve => waitForCondition(searchIsComplete, resolve));
   });
+}
+
+function promiseAutocompleteResultPopup(inputText, win = window) {
+  waitForFocus(() => {
+    win.gURLBar.focus();
+    win.gURLBar.value = inputText;
+    win.gURLBar.controller.startSearch(inputText);
+  }, win);
+
+  return promiseSearchComplete(win);
 }

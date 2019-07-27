@@ -71,52 +71,35 @@ function test() {
         ok(!testTab.hasAttribute("busy"),
            "The test tab doesn't have the busy attribute");
 
-        let urlbar = aDestWindow.gURLBar;
-        let controller = urlbar.controller;
-
         
-        urlbar.focus();
-        urlbar.value = testURL;
-        controller.startSearch(testURL);
-
-        
-        let popup = aDestWindow.gURLBar.popup;
-        promisePopupShown(popup).then(() => {
-          function searchIsComplete() {
-            return controller.searchStatus ==
-              Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH;
+        promiseAutocompleteResultPopup(testURL, aDestWindow).then(() => {
+          if (aExpectSwitch) {
+            
+            
+            let tabContainer = aDestWindow.gBrowser.tabContainer;
+            tabContainer.addEventListener("TabClose", function onClose(event) {
+              if (event.target == testTab) {
+                tabContainer.removeEventListener("TabClose", onClose);
+                executeSoon(aCallback);
+              }
+            });
+          } else {
+            
+            testTab.addEventListener("load", function onLoad() {
+              testTab.removeEventListener("load", onLoad, true);
+              executeSoon(aCallback);
+            }, true);
           }
 
           
-          waitForCondition(searchIsComplete, function () {
-            if (aExpectSwitch) {
-              
-              
-              let tabContainer = aDestWindow.gBrowser.tabContainer;
-              tabContainer.addEventListener("TabClose", function onClose(event) {
-                if (event.target == testTab) {
-                  tabContainer.removeEventListener("TabClose", onClose);
-                  executeSoon(aCallback);
-                }
-              });
-            } else {
-              
-              testTab.addEventListener("load", function onLoad() {
-                testTab.removeEventListener("load", onLoad, true);
-                executeSoon(aCallback);
-              }, true);
-            }
+          let {controller, popup} = aDestWindow.gURLBar;
+          while (popup.selectedIndex < controller.matchCount - 1) {
+            controller.handleKeyNavigation(KeyEvent.DOM_VK_DOWN);
+          }
 
-            
-            while (popup.selectedIndex < controller.matchCount - 1) {
-              controller.handleKeyNavigation(KeyEvent.DOM_VK_DOWN);
-            }
-
-            
-            controller.handleEnter(true);
-          });
+          
+          controller.handleEnter(true);
         });
-
       }, aDestWindow);
     }, true);
   }
