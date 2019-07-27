@@ -173,6 +173,7 @@
 #endif
 
 #include "nsContentUtils.h"
+#include "nsIChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsILoadInfo.h"
 #include "nsSandboxFlags.h"
@@ -10093,7 +10094,27 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         loadFlags |= nsIChannel::LOAD_BACKGROUND;
     }
 
+    
+    
+    nsCOMPtr<nsIChannelPolicy> channelPolicy;
     if (IsFrame()) {
+        
+        nsCOMPtr<nsIContentSecurityPolicy> csp;
+        nsCOMPtr<nsIDocShellTreeItem> parentItem;
+        GetSameTypeParent(getter_AddRefs(parentItem));
+        if (parentItem) {
+          nsCOMPtr<nsIDocument> doc = parentItem->GetDocument();
+          if (doc) {
+            rv = doc->NodePrincipal()->GetCsp(getter_AddRefs(csp));
+            NS_ENSURE_SUCCESS(rv, rv);
+            if (csp) {
+              channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
+              channelPolicy->SetContentSecurityPolicy(csp);
+              channelPolicy->SetLoadType(nsIContentPolicy::TYPE_SUBDOCUMENT);
+            }
+          }
+        }
+
         
         
         
@@ -10162,6 +10183,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
                                    requestingPrincipal,
                                    securityFlags,
                                    aContentPolicyType,
+                                   channelPolicy,
                                    nullptr,   
                                    static_cast<nsIInterfaceRequestor*>(this),
                                    loadFlags);

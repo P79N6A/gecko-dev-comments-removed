@@ -1206,6 +1206,7 @@ nsresult nsWebBrowserPersist::SaveURIInternal(
                        nsILoadInfo::SEC_NORMAL,
                        nsIContentPolicy::TYPE_OTHER,
                        nullptr,  
+                       nullptr,  
                        static_cast<nsIInterfaceRequestor*>(this),
                        loadFlags);
 
