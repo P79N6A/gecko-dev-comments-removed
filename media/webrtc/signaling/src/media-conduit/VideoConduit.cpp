@@ -278,7 +278,7 @@ WebrtcVideoConduit::Init()
 {
   CSFLogDebug(logTag,  "%s this=%p", __FUNCTION__, this);
 
-#if defined(MOZILLA_INTERNAL_API) && !defined(MOZILLA_INTERNAL_API)
+#ifdef MOZILLA_INTERNAL_API
   
   MOZ_ASSERT(NS_IsMainThread());
 

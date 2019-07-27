@@ -49,7 +49,7 @@ class PeerConnectionCtx {
   friend class PeerConnectionWrapper;
   friend class mozilla::dom::WebrtcGlobalInformation;
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   
   
   mozilla::dom::Sequence<mozilla::dom::RTCStatsReportInternal>
@@ -74,7 +74,7 @@ class PeerConnectionCtx {
   static void
   EverySecondTelemetryCallback_m(nsITimer* timer, void *);
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   
   int mConnectionCounter;
 

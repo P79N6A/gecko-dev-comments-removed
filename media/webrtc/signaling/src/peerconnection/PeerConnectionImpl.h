@@ -33,7 +33,7 @@
 #include "mozilla/dom/PeerConnectionImplEnumsBinding.h"
 #include "StreamBuffer.h"
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
 #include "mozilla/TimeStamp.h"
 #include "mozilla/net/DataChannel.h"
 #include "VideoUtils.h"
@@ -129,7 +129,7 @@ using mozilla::DtlsIdentity;
 using mozilla::ErrorResult;
 using mozilla::NrIceStunServer;
 using mozilla::NrIceTurnServer;
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
 using mozilla::PeerIdentity;
 #endif
 
@@ -186,7 +186,7 @@ private:
   std::vector<NrIceTurnServer> mTurnServers;
 };
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
 
 class RTCStatsQuery {
   public:
@@ -228,7 +228,7 @@ class RTCStatsQuery {
 #define PC_AUTO_ENTER_API_CALL_NO_CHECK() CheckThread()
 
 class PeerConnectionImpl final : public nsISupports,
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
                                  public mozilla::DataChannelConnection::DataConnectionListener,
                                  public nsNSSShutDownObject,
                                  public DOMMediaStream::PrincipalChangeObserver,
@@ -253,7 +253,7 @@ public:
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto, JS::MutableHandle<JSObject*> aReflector);
 #endif
 
@@ -271,7 +271,7 @@ public:
 
   
   void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel)
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
     
     
     override
@@ -425,7 +425,7 @@ public:
 
   nsresult GetPeerIdentity(nsAString& peerIdentity)
   {
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
     if (mPeerIdentity) {
       peerIdentity = mPeerIdentity->ToString();
       return NS_OK;
@@ -436,7 +436,7 @@ public:
     return NS_OK;
   }
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   const PeerIdentity* GetPeerIdentity() const { return mPeerIdentity; }
   nsresult SetPeerIdentity(const nsAString& peerIdentity);
 
@@ -583,7 +583,7 @@ public:
 
   bool HasMedia() const;
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   
   void startCallTelem();
 
@@ -626,9 +626,7 @@ private:
     MOZ_ASSERT(CheckThreadInt(), "Wrong thread");
   }
   bool CheckThreadInt() const {
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
-    
-    
+#ifdef MOZILLA_INTERNAL_API
     
     
     
@@ -639,7 +637,7 @@ private:
     return true;
   }
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   void virtualDestroyNSSReference() final;
   void destructorSafeDestroyNSSReference();
   nsresult GetTimeSinceEpoch(DOMHighResTimeStamp *result);
@@ -657,7 +655,7 @@ private:
       const mozilla::JsepApplicationCodecDescription** codec,
       uint16_t* level) const;
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   static void GetStatsForPCObserver_s(
       const std::string& pcHandle,
       nsAutoPtr<RTCStatsQuery> query);
@@ -709,7 +707,7 @@ private:
 
   
   mozilla::RefPtr<DtlsIdentity> mIdentity;
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   
   
   nsAutoPtr<PeerIdentity> mPeerIdentity;
@@ -731,7 +729,7 @@ private:
   
   nsCOMPtr<nsIEventTarget> mSTSThread;
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   
   nsRefPtr<mozilla::DataChannelConnection> mDataConnection;
 #endif
@@ -743,7 +741,7 @@ private:
   mozilla::UniquePtr<PCUuidGenerator> mUuidGen;
   mozilla::UniquePtr<mozilla::JsepSession> mJsepSession;
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
+#ifdef MOZILLA_INTERNAL_API
   
   mozilla::TimeStamp mIceStartTime;
   

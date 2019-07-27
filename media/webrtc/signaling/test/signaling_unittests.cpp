@@ -31,6 +31,8 @@
 #include "mozilla/Services.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
+#include "nsNetUtil.h"
+#include "nsIIOService.h"
 #include "nsIDNSService.h"
 #include "nsWeakReference.h"
 #include "nricectx.h"
@@ -2110,9 +2112,6 @@ public:
   uint16_t stun_port_;
 };
 
-#if !defined(MOZILLA_XPCOMRT_API)
-
-
 static void SetIntPrefOnMainThread(nsCOMPtr<nsIPrefBranch> prefs,
   const char *pref_name,
   int new_value) {
@@ -2162,7 +2161,6 @@ class FsFrPrefClearer {
   private:
     nsCOMPtr<nsIPrefBranch> mPrefs;
 };
-#endif 
 
 TEST_P(SignalingTest, JustInit)
 {
@@ -3910,10 +3908,6 @@ TEST_P(SignalingTest, hugeSdp)
   a2_->CreateAnswer(OFFER_AV);
 }
 
-#if !defined(MOZILLA_XPCOMRT_API)
-
-
-
 
 TEST_P(SignalingTest, MaxFsFrInOffer)
 {
@@ -4048,7 +4042,6 @@ TEST_P(SignalingTest, MaxFsFrCallerCodec)
   ASSERT_EQ(video_conduit->SendingMaxFs(), (unsigned short) 600);
   ASSERT_EQ(video_conduit->SendingMaxFr(), (unsigned short) 60);
 }
-#endif 
 
 
 TEST_P(SignalingTest, ValidateMultipleVideoCodecsInOffer)
