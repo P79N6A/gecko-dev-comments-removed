@@ -513,9 +513,13 @@ enum MOZ_ENUM_TYPE(uint32_t) {
       | OBJECT_FLAG_SETS_MARKED_UNKNOWN,
 
     
+    OBJECT_FLAG_ADDENDUM_MASK         = 0x04000000,
+    OBJECT_FLAG_ADDENDUM_SHIFT        = 26,
+
     
-    OBJECT_FLAG_GENERATION_MASK       = 0x04000000,
-    OBJECT_FLAG_GENERATION_SHIFT      = 26,
+    
+    OBJECT_FLAG_GENERATION_MASK       = 0x08000000,
+    OBJECT_FLAG_GENERATION_SHIFT      = 27,
 };
 typedef uint32_t TypeObjectFlags;
 
@@ -976,9 +980,6 @@ class TypeNewScript
         js_free(initializerList);
     }
 
-    static inline void writeBarrierPre(TypeNewScript *newScript);
-    static void writeBarrierPost(TypeNewScript *newScript, void *addr) {}
-
     bool analyzed() const {
         if (preliminaryObjects) {
             MOZ_ASSERT(!templateObject());
@@ -1099,12 +1100,27 @@ struct TypeObject : public gc::TenuredCell
     
     TypeObjectFlags flags_;
 
+    enum AddendumKind {
+        Addendum_NewScript,
+        Addendum_TypeDescr
+    };
+
     
+    
+    void *addendum_;
 
+    void setAddendum(AddendumKind kind, void *addendum);
 
+    AddendumKind addendumKind() const {
+        return (AddendumKind)
+            ((flags_ & OBJECT_FLAG_ADDENDUM_MASK) >> OBJECT_FLAG_ADDENDUM_SHIFT);
+    }
 
-
-    HeapPtrTypeNewScript newScript_;
+    TypeNewScript *newScriptDontCheckGeneration() const {
+        return addendumKind() == Addendum_NewScript
+               ? reinterpret_cast<TypeNewScript *>(addendum_)
+               : nullptr;
+    }
 
   public:
 
@@ -1125,10 +1141,23 @@ struct TypeObject : public gc::TenuredCell
 
     TypeNewScript *newScript() {
         maybeSweep(nullptr);
-        return newScript_;
+        return newScriptDontCheckGeneration();
     }
 
-    void setNewScript(TypeNewScript *newScript);
+    void setNewScript(TypeNewScript *newScript) {
+        setAddendum(Addendum_NewScript, newScript);
+    }
+
+    TypeDescr &typeDescr() {
+        
+        
+        MOZ_ASSERT(addendumKind() == Addendum_TypeDescr);
+        return *reinterpret_cast<TypeDescr *>(addendum_);
+    }
+
+    void setTypeDescr(TypeDescr *descr) {
+        setAddendum(Addendum_TypeDescr, descr);
+    }
 
   private:
     
@@ -1289,8 +1318,8 @@ struct TypeObject : public gc::TenuredCell
         return offsetof(TypeObject, proto_);
     }
 
-    static inline uint32_t offsetOfNewScript() {
-        return offsetof(TypeObject, newScript_);
+    static inline uint32_t offsetOfAddendum() {
+        return offsetof(TypeObject, addendum_);
     }
 
     static inline uint32_t offsetOfFlags() {
@@ -1312,44 +1341,45 @@ struct TypeObject : public gc::TenuredCell
 
 
 
-struct TypeObjectWithNewScriptEntry
+
+
+
+struct NewTypeObjectEntry
 {
     ReadBarrieredTypeObject object;
 
     
-    JSFunction *newFunction;
+    JSObject *associated;
 
-    TypeObjectWithNewScriptEntry(TypeObject *object, JSFunction *newFunction)
-      : object(object), newFunction(newFunction)
+    NewTypeObjectEntry(TypeObject *object, JSObject *associated)
+      : object(object), associated(associated)
     {}
 
     struct Lookup {
         const Class *clasp;
         TaggedProto hashProto;
         TaggedProto matchProto;
-        JSFunction *newFunction;
+        JSObject *associated;
 
-        Lookup(const Class *clasp, TaggedProto proto, JSFunction *newFunction)
-          : clasp(clasp), hashProto(proto), matchProto(proto), newFunction(newFunction)
+        Lookup(const Class *clasp, TaggedProto proto, JSObject *associated)
+          : clasp(clasp), hashProto(proto), matchProto(proto), associated(associated)
         {}
 
         
 
 
 
-        Lookup(const Class *clasp, TaggedProto hashProto, TaggedProto matchProto, JSFunction *newFunction)
-            : clasp(clasp), hashProto(hashProto), matchProto(matchProto), newFunction(newFunction)
+        Lookup(const Class *clasp, TaggedProto hashProto, TaggedProto matchProto, JSObject *associated)
+            : clasp(clasp), hashProto(hashProto), matchProto(matchProto), associated(associated)
         {}
 
     };
 
     static inline HashNumber hash(const Lookup &lookup);
-    static inline bool match(const TypeObjectWithNewScriptEntry &key, const Lookup &lookup);
-    static void rekey(TypeObjectWithNewScriptEntry &k, const TypeObjectWithNewScriptEntry& newKey) { k = newKey; }
+    static inline bool match(const NewTypeObjectEntry &key, const Lookup &lookup);
+    static void rekey(NewTypeObjectEntry &k, const NewTypeObjectEntry& newKey) { k = newKey; }
 };
-typedef HashSet<TypeObjectWithNewScriptEntry,
-                TypeObjectWithNewScriptEntry,
-                SystemAllocPolicy> TypeObjectWithNewScriptSet;
+typedef HashSet<NewTypeObjectEntry, NewTypeObjectEntry, SystemAllocPolicy> NewTypeObjectTable;
 
 
 bool
