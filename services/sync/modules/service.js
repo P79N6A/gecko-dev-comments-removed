@@ -978,7 +978,10 @@ Sync11Service.prototype = {
 
       
       let cb = Async.makeSpinningCallback();
-      this.identity.ensureLoggedIn().then(cb, cb);
+      this.identity.ensureLoggedIn().then(
+        () => cb(null),
+        err => cb(err || "ensureLoggedIn failed")
+      );
 
       
       cb.wait();

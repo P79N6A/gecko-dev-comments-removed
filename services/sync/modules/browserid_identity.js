@@ -144,7 +144,7 @@ this.BrowserIDManager.prototype = {
     
     
     if (Weave.Status.login == LOGIN_FAILED_LOGIN_REJECTED) {
-      return Promise.reject();
+      return Promise.reject(new Error("User needs to re-authenticate"));
     }
 
     
