@@ -96,7 +96,7 @@ public class FindInPageBar extends LinearLayout implements TextWatcher, View.OnC
     }
 
     public void hide() {
-        if (!mInflated) {
+        if (!mInflated || getVisibility() == View.GONE) {
             
             return;
         }
@@ -104,8 +104,13 @@ public class FindInPageBar extends LinearLayout implements TextWatcher, View.OnC
         
         mFindText.setText("");
 
+        
+        if (mFindText.isFocused()) {
+          getInputMethodManager(mFindText).hideSoftInputFromWindow(mFindText.getWindowToken(), 0);
+        }
+
+        
         setVisibility(GONE);
-        getInputMethodManager(mFindText).hideSoftInputFromWindow(mFindText.getWindowToken(), 0);
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("FindInPage:Closed", null));
     }
 
