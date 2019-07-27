@@ -968,11 +968,6 @@ HttpChannelParent::DivertTo(nsIStreamListener *aListener)
 
   mDivertListener = aListener;
 
-  if (NS_WARN_IF(mIPCClosed || !SendFlushedForDiversion())) {
-    FailDiversion(NS_ERROR_UNEXPECTED);
-    return;
-  }
-
   
   
   NS_DispatchToCurrentThread(
@@ -1019,6 +1014,11 @@ HttpChannelParent::StartDiversion()
   DebugOnly<nsresult> rvdbg = mParentListener->DivertTo(mDivertListener);
   MOZ_ASSERT(NS_SUCCEEDED(rvdbg));
   mDivertListener = nullptr;
+
+  if (NS_WARN_IF(mIPCClosed || !SendFlushedForDiversion())) {
+    FailDiversion(NS_ERROR_UNEXPECTED);
+    return;
+  }
 
   
   
