@@ -318,30 +318,6 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
 
   
   
-  MOZ_ASSERT(mLoadGroup);
-  nsCOMPtr<nsIChannel> chan;
-  rv = NS_NewChannel(getter_AddRefs(chan),
-                     uri,
-                     mPrincipal,
-                     nsILoadInfo::SEC_NORMAL,
-                     mRequest->GetContext(),
-                     mLoadGroup,
-                     nullptr, 
-                     nsIRequest::LOAD_NORMAL,
-                     ios);
-  mLoadGroup = nullptr;
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    FailWithNetworkError();
-    return rv;
-  }
-
-  
-  
-  chan->GetNotificationCallbacks(getter_AddRefs(mNotificationCallbacks));
-  chan->SetNotificationCallbacks(this);
-
-  
-  
   
   
   
@@ -359,6 +335,36 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
       (mRequest->GetCredentialsMode() == RequestCredentials::Same_origin && !aCORSFlag)) {
     useCredentials = true;
   }
+
+  
+  
+  
+  
+  const nsLoadFlags credentialsFlag = useCredentials ? 0 : nsIRequest::LOAD_ANONYMOUS;
+
+  
+  
+  MOZ_ASSERT(mLoadGroup);
+  nsCOMPtr<nsIChannel> chan;
+  rv = NS_NewChannel(getter_AddRefs(chan),
+                     uri,
+                     mPrincipal,
+                     nsILoadInfo::SEC_NORMAL,
+                     mRequest->GetContext(),
+                     mLoadGroup,
+                     nullptr, 
+                     nsIRequest::LOAD_NORMAL | credentialsFlag,
+                     ios);
+  mLoadGroup = nullptr;
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    FailWithNetworkError();
+    return rv;
+  }
+
+  
+  
+  chan->GetNotificationCallbacks(getter_AddRefs(mNotificationCallbacks));
+  chan->SetNotificationCallbacks(this);
 
   
   
