@@ -160,14 +160,14 @@ this.Utils = {
   },
 
   get AllMessageManagers() {
-    let messageManagers = [];
+    let messageManagers = new Set();
 
     function collectLeafMessageManagers(mm) {
       for (let i = 0; i < mm.childCount; i++) {
         let childMM = mm.getChildAt(i);
 
         if ('sendAsyncMessage' in childMM) {
-          messageManagers.push(childMM);
+          messageManagers.add(childMM);
         } else {
           collectLeafMessageManagers(childMM);
         }
@@ -179,12 +179,19 @@ this.Utils = {
     let document = this.CurrentContentDoc;
 
     if (document) {
+      if (document.location.host === 'b2g') {
+        
+        let contentBrowser = this.win.content.shell.contentBrowser;
+        messageManagers.add(this.getMessageManager(contentBrowser));
+        document = contentBrowser.contentDocument;
+      }
+
       let remoteframes = document.querySelectorAll('iframe');
 
       for (let i = 0; i < remoteframes.length; ++i) {
         let mm = this.getMessageManager(remoteframes[i]);
         if (mm) {
-          messageManagers.push(mm);
+          messageManagers.add(mm);
         }
       }
 
