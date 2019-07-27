@@ -58,9 +58,7 @@ enum State {
     MARK_ROOTS,
     MARK,
     SWEEP,
-#ifdef JSGC_COMPACTING
     COMPACT
-#endif
 };
 
 
