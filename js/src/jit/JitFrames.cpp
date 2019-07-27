@@ -417,7 +417,7 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
     RootedScript script(cx, frame.script());
     jsbytecode *pc = frame.pc();
 
-    if (cx->compartment()->isDebuggee()) {
+    if (cx->compartment()->isDebuggee() && cx->isExceptionPending()) {
         
         
         

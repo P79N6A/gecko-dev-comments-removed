@@ -1028,9 +1028,15 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             PCMappingSlotInfo slotInfo;
             uint8_t *nativeCodeForPC = baselineScript->maybeNativeCodeForPC(script, pc, &slotInfo);
-            unsigned numUnsynced;
+            unsigned numUnsynced = slotInfo.numUnsynced();
 
-            if (excInfo && excInfo->propagatingIonExceptionForDebugMode()) {
+            if (excInfo && excInfo->propagatingIonExceptionForDebugMode() && resumeAfter) {
+                
+                
+                
+                
+                
+                
                 
                 
                 
@@ -1040,16 +1046,11 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 ICEntry &icEntry = baselineScript->anyKindICEntryFromPCOffset(iter.pcOffset());
                 nativeCodeForPC = baselineScript->returnAddressForIC(icEntry);
-
-                
-                
-                
-                numUnsynced = nativeCodeForPC ? slotInfo.numUnsynced() : 0;
             } else {
                 MOZ_ASSERT(nativeCodeForPC);
-                numUnsynced = slotInfo.numUnsynced();
             }
 
+            MOZ_ASSERT(nativeCodeForPC);
             MOZ_ASSERT(numUnsynced <= 2);
             PCMappingSlotInfo::SlotLocation loc1, loc2;
             if (numUnsynced > 0) {
