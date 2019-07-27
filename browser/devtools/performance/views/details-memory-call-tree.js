@@ -89,6 +89,13 @@ let MemoryCallTreeView = Heritage.extend(DetailsSubview, {
       
       
       autoExpandDepth: options.inverted ? 0 : undefined,
+      
+      
+      visibleCells: {
+        allocations: true,
+        selfAllocations: true,
+        function: true
+      }
     });
 
     

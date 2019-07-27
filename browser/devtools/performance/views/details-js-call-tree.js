@@ -104,9 +104,6 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
     root.attachTo(container);
 
     
-    root.toggleAllocations(false);
-
-    
     
     let contentOnly = !PerformanceController.getOption("show-platform-data");
     root.toggleCategories(!contentOnly);
