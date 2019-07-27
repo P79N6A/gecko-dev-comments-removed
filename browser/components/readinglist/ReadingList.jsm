@@ -194,6 +194,8 @@ ReadingListImpl.prototype = {
     this._invalidateIterators();
     let item = this._itemFromObject(obj);
     this._callListeners("onItemAdded", item);
+    let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
+    mm.broadcastAsyncMessage("Reader:Added", item);
     return item;
   }),
 
@@ -234,7 +236,21 @@ ReadingListImpl.prototype = {
     item.list = null;
     this._itemsByURL.delete(item.url);
     this._invalidateIterators();
+    let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
+    mm.broadcastAsyncMessage("Reader:Removed", item);
     this._callListeners("onItemDeleted", item);
+  }),
+
+  
+
+
+
+
+
+  getItemForURL: Task.async(function* (uri) {
+    let url = this._normalizeURI(uri).spec;
+    let [item] = yield this.iterator({url: url}, {resolvedURL: url}).items(1);
+    return item;
   }),
 
   
@@ -287,6 +303,22 @@ ReadingListImpl.prototype = {
 
   
   _listeners: null,
+
+  
+
+
+
+
+
+
+  _normalizeURI(uri) {
+    if (typeof uri == "string") {
+      uri = Services.io.newURI(uri, "", null);
+    }
+    uri = uri.cloneIgnoringRef();
+    uri.userPass = "";
+    return uri;
+  },
 
   
 
@@ -349,6 +381,8 @@ ReadingListImpl.prototype = {
   },
 };
 
+let _unserializable = () => {}; 
+
 
 
 
@@ -359,6 +393,18 @@ ReadingListImpl.prototype = {
 
 function ReadingListItem(props={}) {
   this._properties = {};
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  this._unserializable = _unserializable;
+
   this.setProperties(props, false);
 }
 
@@ -830,7 +876,7 @@ function hash(str) {
   hasher.updateFromStream(stream, -1);
   let binaryStr = hasher.finish(false);
   let hexStr =
-    [("0" + binaryStr.charCodeAt(i).toString(16)).slice(-2) for (i in hash)].
+    [("0" + binaryStr.charCodeAt(i).toString(16)).slice(-2) for (i in binaryStr)].
     join("");
   return hexStr;
 }
