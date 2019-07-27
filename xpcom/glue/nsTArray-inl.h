@@ -128,10 +128,11 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type aCapacity,
     return Alloc::FailureResult();
   }
 
+  size_t reqSize = sizeof(Header) + aCapacity * aElemSize;
+
   if (mHdr == EmptyHdr()) {
     
-    Header* header =
-      static_cast<Header*>(Alloc::Malloc(sizeof(Header) + aCapacity * aElemSize));
+    Header* header = static_cast<Header*>(Alloc::Malloc(reqSize));
     if (!header) {
       return Alloc::FailureResult();
     }
@@ -146,27 +147,21 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type aCapacity,
   
   
   
-  const size_t pageSizeBytes = 12;
-  const size_t pageSize = 1 << pageSizeBytes;
+  
+  const size_t slowGrowthThreshold = 8 * 1024 * 1024;
 
-  size_t minBytes = aCapacity * aElemSize + sizeof(Header);
   size_t bytesToAlloc;
-  if (minBytes >= pageSize) {
+  if (reqSize >= slowGrowthThreshold) {
+    size_t currSize = sizeof(Header) + Capacity() * aElemSize;
+    size_t minNewSize = currSize + (currSize >> 3); 
+    bytesToAlloc = reqSize > minNewSize ? reqSize : minNewSize;
+
     
-    bytesToAlloc = pageSize * ((minBytes + pageSize - 1) / pageSize);
+    const size_t MiB = 1 << 20;
+    bytesToAlloc = MiB * ((bytesToAlloc + MiB - 1) / MiB);
   } else {
     
-    
-    bytesToAlloc = minBytes - 1;
-    bytesToAlloc |= bytesToAlloc >> 1;
-    bytesToAlloc |= bytesToAlloc >> 2;
-    bytesToAlloc |= bytesToAlloc >> 4;
-    bytesToAlloc |= bytesToAlloc >> 8;
-    bytesToAlloc |= bytesToAlloc >> 16;
-    bytesToAlloc++;
-
-    MOZ_ASSERT((bytesToAlloc & (bytesToAlloc - 1)) == 0,
-               "nsTArray's allocation size should be a power of two!");
+    bytesToAlloc = mozilla::RoundUpPow2(reqSize);
   }
 
   Header* header;
