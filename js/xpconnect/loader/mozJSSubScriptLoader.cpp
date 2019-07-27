@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set ts=8 sts=4 et sw=4 tw=99: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "mozJSSubScriptLoader.h"
 #include "mozJSComponentLoader.h"
@@ -23,8 +23,8 @@
 #include "jsfriendapi.h"
 #include "js/OldDebugAPI.h"
 #include "nsJSPrincipals.h"
-#include "xpcpublic.h" // For xpc::SystemErrorReporter
-#include "xpcprivate.h" // For xpc::OptionsBase
+#include "xpcpublic.h" 
+#include "xpcprivate.h" 
 #include "jswrapper.h"
 
 #include "mozilla/scache/StartupCache.h"
@@ -38,8 +38,8 @@ using namespace mozilla;
 
 class MOZ_STACK_CLASS LoadSubScriptOptions : public OptionsBase {
 public:
-    LoadSubScriptOptions(JSContext *cx = xpc_GetSafeJSContext(),
-                         JSObject *options = nullptr)
+    explicit LoadSubScriptOptions(JSContext *cx = xpc_GetSafeJSContext(),
+                                  JSObject *options = nullptr)
         : OptionsBase(cx, options)
         , target(cx)
         , charset(NullString())
@@ -58,7 +58,7 @@ public:
 };
 
 
-/* load() error msgs, XXX localize? */
+
 #define LOAD_ERROR_NOSERVICE "Error creating IO Service."
 #define LOAD_ERROR_NOURI "Error creating URI (invalid URL scheme?)"
 #define LOAD_ERROR_NOSCHEME "Failed to get URI scheme.  This is bad."
@@ -78,7 +78,7 @@ mozJSSubScriptLoader::mozJSSubScriptLoader() : mSystemPrincipal(nullptr)
 
 mozJSSubScriptLoader::~mozJSSubScriptLoader()
 {
-    /* empty */
+    
 }
 
 NS_IMPL_ISUPPORTS(mozJSSubScriptLoader, mozIJSSubScriptLoader)
@@ -103,8 +103,8 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
     script.set(nullptr);
     function.set(nullptr);
 
-    // Instead of calling NS_OpenURI, we create the channel ourselves and call
-    // SetContentType, to avoid expensive MIME type lookups (bug 632490).
+    
+    
     nsCOMPtr<nsIChannel> chan;
     nsCOMPtr<nsIInputStream> instream;
     nsresult rv = NS_NewChannel(getter_AddRefs(chan), uri, serv,
@@ -134,8 +134,8 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
     if (NS_FAILED(rv))
         return rv;
 
-    /* set our own error reporter so we can report any bad things as catchable
-     * exceptions, including the source/line number */
+    
+
     JSErrorReporter er = JS_SetErrorReporter(cx, xpc::SystemErrorReporter);
 
     JS::CompileOptions options(cx);
@@ -163,8 +163,8 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
                                 function);
         }
     } else {
-        // We only use lazy source when no special encoding is specified because
-        // the lazy source loader doesn't know the encoding.
+        
+        
         if (!reuseGlobal) {
             options.setSourceIsLazy(true);
             JS::Compile(cx, target_obj, options, buf.get(), len, script);
@@ -175,7 +175,7 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
         }
     }
 
-    /* repent for our evil deeds */
+    
     JS_SetErrorReporter(cx, er);
 
     return NS_OK;
@@ -188,17 +188,17 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString &url,
                                     JSContext *cx,
                                     MutableHandleValue retval)
 {
-    /*
-     * Loads a local url and evals it into the current cx
-     * Synchronous (an async version would be cool too.)
-     *   url: The url to load.  Must be local so that it can be loaded
-     *        synchronously.
-     *   target_obj: Optional object to eval the script onto (defaults to context
-     *               global)
-     *   charset: Optional character set to use for reading
-     *   returns: Whatever jsval the script pointed to by the url returns.
-     * Should ONLY (O N L Y !) be called from JavaScript code.
-     */
+    
+
+
+
+
+
+
+
+
+
+
     LoadSubScriptOptions options(cx);
     options.charset = charset;
     options.target = target.isObject() ? &target.toObject() : nullptr;
@@ -228,7 +228,7 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
 {
     nsresult rv = NS_OK;
 
-    /* set the system principal if it's not here already */
+    
     if (!mSystemPrincipal) {
         nsCOMPtr<nsIScriptSecurityManager> secman =
             do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
@@ -245,15 +245,15 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
     rv = loader->FindTargetObject(cx, &targetObj);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // We base reusingGlobal off of what the loader told us, but we may not
-    // actually be using that object.
+    
+    
     bool reusingGlobal = !JS_IsGlobalObject(targetObj);
 
     if (options.target)
         targetObj = options.target;
 
-    // Remember an object out of the calling compartment so that we
-    // can properly wrap the result later.
+    
+    
     nsCOMPtr<nsIPrincipal> principal = mSystemPrincipal;
     RootedObject result_obj(cx, targetObj);
     targetObj = JS_FindCompilationScope(cx, targetObj);
@@ -265,20 +265,20 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
 
     JSAutoCompartment ac(cx, targetObj);
 
-    /* load up the url.  From here on, failures are reflected as ``custom''
-     * js exceptions */
+    
+
     nsCOMPtr<nsIURI> uri;
     nsAutoCString uriStr;
     nsAutoCString scheme;
 
-    // Figure out who's calling us
+    
     JS::AutoFilename filename;
     if (!JS::DescribeScriptedCaller(cx, &filename)) {
-        // No scripted frame means we don't know who's calling, bail.
+        
         return NS_ERROR_FAILURE;
     }
 
-    // Suppress caching if we're compiling as content.
+    
     StartupCache* cache = (principal == mSystemPrincipal)
                           ? StartupCache::GetSingleton()
                           : nullptr;
@@ -287,8 +287,8 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
         return ReportError(cx, LOAD_ERROR_NOSERVICE);
     }
 
-    // Make sure to explicitly create the URI, since we'll need the
-    // canonicalized spec.
+    
+    
     rv = NS_NewURI(getter_AddRefs(uri), NS_LossyConvertUTF16toASCII(url).get(), nullptr, serv);
     if (NS_FAILED(rv)) {
         return ReportError(cx, LOAD_ERROR_NOURI);
@@ -305,15 +305,15 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
     }
 
     if (!scheme.EqualsLiteral("chrome")) {
-        // This might be a URI to a local file, though!
+        
         nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(uri);
         nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(innerURI);
         if (!fileURL) {
             return ReportError(cx, LOAD_ERROR_URI_NOT_LOCAL);
         }
 
-        // For file URIs prepend the filename with the filename of the
-        // calling script, and " -> ". See bug 418356.
+        
+        
         nsAutoCString tmp(filename.get());
         tmp.AppendLiteral(" -> ");
         tmp.Append(uriStr);
@@ -366,9 +366,9 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
     return NS_OK;
 }
 
-/**
-  * Let us compile scripts from a URI off the main thread.
-  */
+
+
+
 
 class ScriptPrecompiler : public nsIStreamLoaderObserver
 {
@@ -388,7 +388,7 @@ public:
 
     static void OffThreadCallback(void *aToken, void *aData);
 
-    /* Sends the "done" notification back. Main thread only. */
+    
     void SendObserverNotification();
 
 private:
@@ -413,7 +413,7 @@ class NotifyPrecompilationCompleteRunnable : public nsRunnable
 public:
     NS_DECL_NSIRUNNABLE
 
-    NotifyPrecompilationCompleteRunnable(ScriptPrecompiler* aPrecompiler)
+    explicit NotifyPrecompilationCompleteRunnable(ScriptPrecompiler* aPrecompiler)
         : mPrecompiler(aPrecompiler)
         , mToken(nullptr)
     {}
@@ -428,10 +428,10 @@ protected:
     void* mToken;
 };
 
-/* RAII helper class to send observer notifications */
+
 class AutoSendObserverNotification {
 public:
-    AutoSendObserverNotification(ScriptPrecompiler* aPrecompiler)
+    explicit AutoSendObserverNotification(ScriptPrecompiler* aPrecompiler)
         : mPrecompiler(aPrecompiler)
     {}
 
@@ -475,10 +475,10 @@ ScriptPrecompiler::OnStreamComplete(nsIStreamLoader* aLoader,
 {
     AutoSendObserverNotification notifier(this);
 
-    // Just notify that we are done with this load.
+    
     NS_ENSURE_SUCCESS(aStatus, NS_OK);
 
-    // Convert data to jschar* and prepare to call CompileOffThread.
+    
     nsAutoString hintCharset;
     nsresult rv =
         nsScriptLoader::ConvertToUTF16(mChannel, aString, aLength,
@@ -487,10 +487,10 @@ ScriptPrecompiler::OnStreamComplete(nsIStreamLoader* aLoader,
 
     NS_ENSURE_SUCCESS(rv, NS_OK);
 
-    // Our goal is to cache persistently the compiled script and to avoid quota
-    // checks. Since the caching mechanism decide the persistence type based on
-    // the principal, we create a new global with the app's principal.
-    // We then enter its compartment to compile with its principal.
+    
+    
+    
+    
     AutoSafeJSContext cx;
     RootedValue v(cx);
     SandboxOptions sandboxOptions;
@@ -535,7 +535,7 @@ ScriptPrecompiler::OnStreamComplete(nsIStreamLoader* aLoader,
     return NS_OK;
 }
 
-/* static */
+
 void
 ScriptPrecompiler::OffThreadCallback(void* aToken, void* aData)
 {
