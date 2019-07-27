@@ -754,7 +754,7 @@ function handleRevivedTab() {
     
     
     let browser = docShell.chromeEventHandler;
-    cpmm.sendAsyncMessage("SessionStore:RemoteTabRevived", null, {browser: browser});
+    cpmm.sendSyncMessage("SessionStore:RemoteTabRevived", null, {browser: browser});
   }
 }
 

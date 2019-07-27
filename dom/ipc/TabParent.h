@@ -80,8 +80,6 @@ public:
     Element* GetOwnerElement() const { return mFrameElement; }
     void SetOwnerElement(Element* aElement);
 
-    void CacheFrameLoader(nsFrameLoader* aFrameLoader);
-
     
 
 
@@ -427,7 +425,7 @@ protected:
     bool mUpdatedDimensions;
 
 private:
-    already_AddRefed<nsFrameLoader> GetFrameLoader(bool aUseCachedFrameLoaderAfterDestroy = false) const;
+    already_AddRefed<nsFrameLoader> GetFrameLoader() const;
     layout::RenderFrameParent* GetRenderFrame();
     nsRefPtr<nsIContentParent> mManager;
     void TryCacheDPIAndScale();
@@ -468,11 +466,6 @@ private:
     bool mInitedByParent;
 
     nsCOMPtr<nsILoadContext> mLoadContext;
-
-    
-    
-    
-    nsRefPtr<nsFrameLoader> mFrameLoader;
 
     TabId mTabId;
 
