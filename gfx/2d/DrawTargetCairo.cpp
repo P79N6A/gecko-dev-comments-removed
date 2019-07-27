@@ -130,7 +130,9 @@ static cairo_user_data_key_t surfaceDataKey;
 void
 ReleaseData(void* aData)
 {
-  static_cast<DataSourceSurface*>(aData)->Release();
+  DataSourceSurface *data = static_cast<DataSourceSurface*>(aData);
+  data->Unmap();
+  data->Release();
 }
 
 cairo_surface_t*
@@ -195,12 +197,17 @@ GetCairoSurfaceForSourceSurface(SourceSurface *aSurface, bool aExistingOnly = fa
     return nullptr;
   }
 
+  DataSourceSurface::MappedSurface map;
+  if (!data->Map(DataSourceSurface::READ, &map)) {
+    return nullptr;
+  }
+
   cairo_surface_t* surf =
-    cairo_image_surface_create_for_data(data->GetData(),
+    cairo_image_surface_create_for_data(map.mData,
                                         GfxFormatToCairoFormat(data->GetFormat()),
                                         data->GetSize().width,
                                         data->GetSize().height,
-                                        data->Stride());
+                                        map.mStride);
 
   
   
@@ -212,18 +219,22 @@ GetCairoSurfaceForSourceSurface(SourceSurface *aSurface, bool aExistingOnly = fa
       
       
       
-      return CopyToImageSurface(data->GetData(),
-                                data->GetSize(),
-                                data->Stride(),
-                                data->GetFormat());
+      cairo_surface_t* result =
+        CopyToImageSurface(map.mData,
+                           data->GetSize(),
+                           map.mStride,
+                           data->GetFormat());
+      data->Unmap();
+      return result;
     }
+    data->Unmap();
     return nullptr;
   }
 
   cairo_surface_set_user_data(surf,
- 				                      &surfaceDataKey,
- 				                      data.forget().drop(),
- 				                      ReleaseData);
+                              &surfaceDataKey,
+                              data.forget().drop(),
+                              ReleaseData);
   return surf;
 }
 
