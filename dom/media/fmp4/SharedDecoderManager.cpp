@@ -83,6 +83,8 @@ SharedDecoderManager::CreateVideoDecoder(
   MediaDataDecoderCallback* aCallback)
 {
   if (!mDecoder) {
+    mLayersBackend = aLayersBackend;
+    mImageContainer = aImageContainer;
     
     
     
@@ -91,8 +93,8 @@ SharedDecoderManager::CreateVideoDecoder(
       aPDM->CreateDecoder(aConfig,
                           mTaskQueue,
                           mCallback,
-                          aLayersBackend,
-                          aImageContainer);
+                          mLayersBackend,
+                          mImageContainer);
     if (!mDecoder) {
       mPDM = nullptr;
       return nullptr;
@@ -114,17 +116,15 @@ SharedDecoderManager::DisableHardwareAcceleration()
 }
 
 bool
-SharedDecoderManager::Recreate(const mp4_demuxer::VideoDecoderConfig& aConfig,
-                               layers::LayersBackend aLayersBackend,
-                               layers::ImageContainer* aImageContainer)
+SharedDecoderManager::Recreate(const mp4_demuxer::VideoDecoderConfig& aConfig)
 {
   mDecoder->Flush();
   mDecoder->Shutdown();
   mDecoder = mPDM->CreateDecoder(aConfig,
                                  mTaskQueue,
                                  mCallback,
-                                 aLayersBackend,
-                                 aImageContainer);
+                                 mLayersBackend,
+                                 mImageContainer);
   if (!mDecoder) {
     return false;
   }
