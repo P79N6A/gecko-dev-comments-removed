@@ -41,7 +41,7 @@ let tests = [
         "privateWindow",
         "quit",
         "search",
-        "searchProvider",
+        "searchIcon",
         "urlbar",
         ...searchEngineTargets(),
         ...(hasWebIDE ? ["webide"] : [])
@@ -72,7 +72,7 @@ let tests = [
         "privateWindow",
         "quit",
         "search",
-        "searchProvider",
+        "searchIcon",
         "urlbar",
         ...searchEngineTargets(),
         ...(hasWebIDE ? ["webide"] : [])
