@@ -3535,6 +3535,14 @@ bool
 nsHTMLDocument::QueryCommandSupported(const nsAString& commandID)
 {
   
+  
+  
+  bool restricted = commandID.LowerCaseEqualsLiteral("paste");
+  if (restricted && !nsContentUtils::IsCallerChrome()) {
+    return false;
+  }
+
+  
   nsAutoCString cmdToDispatch;
   return ConvertToMidasInternalCommand(commandID, cmdToDispatch);
 }
