@@ -27,6 +27,7 @@
 
 
 
+
 #define DOM_INTERFACE_PROTO_SLOTS_BASE 0
 
 #endif 

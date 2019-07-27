@@ -294,6 +294,18 @@ def methodReturnsJSObject(method):
 
     return False
 
+
+def MemberIsUnforgeable(member, descriptor):
+    
+    
+    
+    
+    return bool((member.isAttr() or member.isMethod()) and
+                not member.isStatic() and
+                (member.isUnforgeable() or
+                 descriptor.interface.getExtendedAttribute("Unforgeable")))
+
+
 class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
@@ -370,6 +382,9 @@ class Descriptor(DescriptorProvider):
         self.concrete = (not self.interface.isExternal() and
                          not self.interface.isCallback() and
                          desc.get('concrete', True))
+        self.hasUnforgeableMembers = (self.concrete and
+                                      any(MemberIsUnforgeable(m, self) for m in
+                                          self.interface.members))
         self.operations = {
             'IndexedGetter': None,
             'IndexedSetter': None,
