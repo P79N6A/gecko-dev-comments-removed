@@ -150,33 +150,17 @@ class MOZ_STACK_CLASS SVGAutoRenderState
   typedef mozilla::gfx::DrawTarget DrawTarget;
 
 public:
-  enum RenderMode {
-    
-
-
-    NORMAL, 
-    
-
-
-
-
-
-    CLIP_MASK 
-  };
-
-  SVGAutoRenderState(DrawTarget* aDrawTarget, RenderMode aMode
-                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+  explicit SVGAutoRenderState(DrawTarget* aDrawTarget
+                              MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
   ~SVGAutoRenderState();
 
   void SetPaintingToWindow(bool aPaintingToWindow);
 
-  static RenderMode GetRenderMode(DrawTarget* aDrawTarget);
   static bool IsPaintingToWindow(DrawTarget* aDrawTarget);
 
 private:
   DrawTarget* mDrawTarget;
   void* mOriginalRenderState;
-  RenderMode mMode;
   bool mPaintingToWindow;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
