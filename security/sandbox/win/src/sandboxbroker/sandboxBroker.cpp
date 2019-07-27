@@ -149,13 +149,8 @@ SandboxBroker::SetSecurityLevelForGMPlugin()
   result = mPolicy->SetAlternateDesktop(true);
   ret = ret && (sandbox::SBOX_ALL_OK == result);
 
-  
-  
-  
-  
-  
-  
-  
+  result = mPolicy->SetIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
+  ret = ret && (sandbox::SBOX_ALL_OK == result);
 
   result =
     mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_UNTRUSTED);
