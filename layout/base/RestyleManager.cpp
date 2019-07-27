@@ -3677,7 +3677,8 @@ ElementRestyler::MaybeReframeForBeforePseudo(nsIFrame* aGenConParentFrame,
         (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     
     
-    if (!aFrame || !aFrame->GetPrevContinuation()) {
+    if (!aFrame ||
+        nsLayoutUtils::IsFirstContinuationOrIBSplitSibling(aFrame)) {
       
       
       if (!nsLayoutUtils::GetBeforeFrameForContent(aGenConParentFrame, aContent) &&
@@ -3723,7 +3724,8 @@ ElementRestyler::MaybeReframeForAfterPseudo(nsIFrame* aGenConParentFrame,
         (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     
     
-    if (!aFrame || !aFrame->GetNextContinuation()) {
+    if (!aFrame ||
+        !nsLayoutUtils::GetNextContinuationOrIBSplitSibling(aFrame)) {
       
       
       if (!nsLayoutUtils::GetAfterFrameForContent(aGenConParentFrame, aContent) &&
