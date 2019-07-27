@@ -427,7 +427,12 @@ AbstractTreeItem.prototype = {
 
 
   _onDoubleClick: function(e) {
-    this._onArrowClick(e);
+    
+    
+    if (!e.target.classList.contains("arrow")) {
+      this._onArrowClick(e);
+    }
+
     this.focus();
   },
 
