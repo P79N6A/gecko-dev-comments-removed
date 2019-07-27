@@ -6,6 +6,7 @@
 
 #include "gc/Memory.h"
 
+#include "mozilla/Atomics.h"
 #include "mozilla/TaggedAnonymousMemory.h"
 
 #include "js/HeapAPI.h"
@@ -45,18 +46,16 @@ static size_t allocGranularity = 0;
 
 #if defined(XP_UNIX)
 
-static int growthDirection = 0;
+static mozilla::Atomic<int, mozilla::Relaxed> growthDirection(0);
 #endif
 
 
 
 
-static const int MaxLastDitchAttempts = 8;
 
-static void GetNewChunk(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize, size_t size,
-                        size_t alignment);
-static bool GetNewChunkInner(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize,
-                             size_t size, size_t alignment, bool addrsGrowDown);
+static const int MaxLastDitchAttempts = 32;
+
+static void GetNewChunk(void **aAddress, void **aRetainedAddr, size_t size, size_t alignment);
 static void *MapAlignedPagesSlow(size_t size, size_t alignment);
 static void *MapAlignedPagesLastDitch(size_t size, size_t alignment);
 
@@ -134,10 +133,9 @@ MapAlignedPages(size_t size, size_t alignment)
         return p;
 
     void *retainedAddr;
-    size_t retainedSize;
-    GetNewChunk(&p, &retainedAddr, &retainedSize, size, alignment);
+    GetNewChunk(&p, &retainedAddr, size, alignment);
     if (retainedAddr)
-        UnmapPages(retainedAddr, retainedSize);
+        UnmapPages(retainedAddr, size);
     if (p) {
         if (OffsetFromAligned(p, alignment) == 0)
             return p;
@@ -196,29 +194,27 @@ MapAlignedPagesSlow(size_t size, size_t alignment)
 static void *
 MapAlignedPagesLastDitch(size_t size, size_t alignment)
 {
-    void *p = nullptr;
     void *tempMaps[MaxLastDitchAttempts];
     int attempt = 0;
+    void *p = MapMemory(size, MEM_COMMIT | MEM_RESERVE);
+    if (OffsetFromAligned(p, alignment) == 0)
+        return p;
     for (; attempt < MaxLastDitchAttempts; ++attempt) {
-        size_t retainedSize;
-        GetNewChunk(&p, tempMaps + attempt, &retainedSize, size, alignment);
+        GetNewChunk(&p, tempMaps + attempt, size, alignment);
         if (OffsetFromAligned(p, alignment) == 0) {
             if (tempMaps[attempt])
-                UnmapPages(tempMaps[attempt], retainedSize);
+                UnmapPages(tempMaps[attempt], size);
             break;
         }
-        if (!tempMaps[attempt]) {
-            
-            tempMaps[attempt] = p;
-            p = nullptr;
-        }
+        if (!tempMaps[attempt])
+            break; 
     }
     if (OffsetFromAligned(p, alignment)) {
         UnmapPages(p, size);
         p = nullptr;
     }
     while (--attempt >= 0)
-        UnmapPages(tempMaps[attempt], 0);
+        UnmapPages(tempMaps[attempt], size);
     return p;
 }
 
@@ -228,15 +224,12 @@ MapAlignedPagesLastDitch(size_t size, size_t alignment)
 
 
 static void
-GetNewChunk(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize, size_t size,
-            size_t alignment)
+GetNewChunk(void **aAddress, void **aRetainedAddr, size_t size, size_t alignment)
 {
     void *address = *aAddress;
     void *retainedAddr = nullptr;
-    size_t retainedSize = 0;
     do {
-        if (!address)
-            address = MapMemory(size, MEM_COMMIT | MEM_RESERVE);
+        size_t retainedSize;
         size_t offset = OffsetFromAligned(address, alignment);
         if (!offset)
             break;
@@ -248,7 +241,6 @@ GetNewChunk(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize, size_t
     } while (!retainedAddr);
     *aAddress = address;
     *aRetainedAddr = retainedAddr;
-    *aRetainedSize = retainedSize;
 }
 
 void
@@ -379,10 +371,8 @@ DeallocateMappedContent(void *p, size_t length)
 void
 InitMemorySubsystem()
 {
-    if (pageSize == 0) {
+    if (pageSize == 0)
         pageSize = allocGranularity = size_t(sysconf(_SC_PAGESIZE));
-        growthDirection = 0;
-    }
 }
 
 static inline void *
@@ -465,10 +455,9 @@ MapAlignedPages(size_t size, size_t alignment)
         return p;
 
     void *retainedAddr;
-    size_t retainedSize;
-    GetNewChunk(&p, &retainedAddr, &retainedSize, size, alignment);
+    GetNewChunk(&p, &retainedAddr, size, alignment);
     if (retainedAddr)
-        UnmapPages(retainedAddr, retainedSize);
+        UnmapPages(retainedAddr, size);
     if (p) {
         if (OffsetFromAligned(p, alignment) == 0)
             return p;
@@ -524,30 +513,27 @@ MapAlignedPagesSlow(size_t size, size_t alignment)
 static void *
 MapAlignedPagesLastDitch(size_t size, size_t alignment)
 {
-    void *p = nullptr;
     void *tempMaps[MaxLastDitchAttempts];
-    size_t tempSizes[MaxLastDitchAttempts];
     int attempt = 0;
+    void *p = MapMemory(size);
+    if (OffsetFromAligned(p, alignment) == 0)
+        return p;
     for (; attempt < MaxLastDitchAttempts; ++attempt) {
-        GetNewChunk(&p, tempMaps + attempt, tempSizes + attempt, size, alignment);
+        GetNewChunk(&p, tempMaps + attempt, size, alignment);
         if (OffsetFromAligned(p, alignment) == 0) {
             if (tempMaps[attempt])
-                UnmapPages(tempMaps[attempt], tempSizes[attempt]);
+                UnmapPages(tempMaps[attempt], size);
             break;
         }
-        if (!tempMaps[attempt]) {
-            
-            tempMaps[attempt] = p;
-            tempSizes[attempt] = size;
-            p = nullptr;
-        }
+        if (!tempMaps[attempt])
+            break; 
     }
     if (OffsetFromAligned(p, alignment)) {
         UnmapPages(p, size);
         p = nullptr;
     }
     while (--attempt >= 0)
-        UnmapPages(tempMaps[attempt], tempSizes[attempt]);
+        UnmapPages(tempMaps[attempt], size);
     return p;
 }
 
@@ -558,93 +544,51 @@ MapAlignedPagesLastDitch(size_t size, size_t alignment)
 
 
 static void
-GetNewChunk(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize, size_t size,
-            size_t alignment)
+GetNewChunk(void **aAddress, void **aRetainedAddr, size_t size, size_t alignment)
 {
     void *address = *aAddress;
     void *retainedAddr = nullptr;
-    size_t retainedSize = 0;
-    do {
-        bool addrsGrowDown = growthDirection <= 0;
+    bool addrsGrowDown = growthDirection <= 0;
+    int i = 0;
+    for (; i < 2; ++i) {
         
-        if (GetNewChunkInner(&address, &retainedAddr, &retainedSize, size,
-                             alignment, addrsGrowDown)) {
-            break;
+        if (addrsGrowDown) {
+            size_t offset = OffsetFromAligned(address, alignment);
+            void *head = (void *)((uintptr_t)address - offset);
+            void *tail = (void *)((uintptr_t)head + size);
+            if (MapMemoryAt(head, offset)) {
+                UnmapPages(tail, offset);
+                if (growthDirection >= -8)
+                    --growthDirection;
+                address = head;
+                break;
+            }
+        } else {
+            size_t offset = alignment - OffsetFromAligned(address, alignment);
+            void *head = (void *)((uintptr_t)address + offset);
+            void *tail = (void *)((uintptr_t)address + size);
+            if (MapMemoryAt(tail, offset)) {
+                UnmapPages(address, offset);
+                if (growthDirection <= 8)
+                    ++growthDirection;
+                address = head;
+                break;
+            }
         }
         
-        if (GetNewChunkInner(&address, &retainedAddr, &retainedSize, size,
-                             alignment, !addrsGrowDown)) {
+        if (growthDirection < -8 || growthDirection > 8)
             break;
-        }
         
-    } while (retainedAddr);
+        addrsGrowDown = !addrsGrowDown;
+    }
+    
+    if (OffsetFromAligned(address, alignment)) {
+        retainedAddr = address;
+        address = MapMemory(size);
+    }
     *aAddress = address;
     *aRetainedAddr = retainedAddr;
-    *aRetainedSize = retainedSize;
 }
-
-#define SET_OUT_PARAMS_AND_RETURN(address_, retainedAddr_, retainedSize_, toReturn_)\
-    do {                                                                            \
-        *aAddress = address_; *aRetainedAddr = retainedAddr_;                       \
-        *aRetainedSize = retainedSize_; return toReturn_;                           \
-    } while(false)
-
-static bool
-GetNewChunkInner(void **aAddress, void **aRetainedAddr, size_t *aRetainedSize, size_t size,
-                 size_t alignment, bool addrsGrowDown)
-{
-    void *initial = *aAddress;
-    if (!initial)
-        initial = MapMemory(size);
-    if (OffsetFromAligned(initial, alignment) == 0)
-        SET_OUT_PARAMS_AND_RETURN(initial, nullptr, 0, true);
-    
-    size_t offset;
-    void *discardedAddr;
-    void *retainedAddr;
-    int delta;
-    if (addrsGrowDown) {
-        offset = OffsetFromAligned(initial, alignment);
-        discardedAddr = initial;
-        retainedAddr = (void *)(uintptr_t(initial) + size - offset);
-        delta = -1;
-    } else {
-        offset = alignment - OffsetFromAligned(initial, alignment);
-        discardedAddr = (void*)(uintptr_t(initial) + offset);
-        retainedAddr = initial;
-        delta = 1;
-    }
-    
-    UnmapPages(discardedAddr, size - offset);
-    void *address = MapMemory(size);
-    if (!address) {
-        
-        address = MapMemoryAt(initial, size - offset);
-        if (!address)
-            UnmapPages(retainedAddr, offset);
-        SET_OUT_PARAMS_AND_RETURN(address, nullptr, 0, false);
-    }
-    if ((addrsGrowDown && address < retainedAddr) || (!addrsGrowDown && address > retainedAddr)) {
-        growthDirection += delta;
-        SET_OUT_PARAMS_AND_RETURN(address, retainedAddr, offset, true);
-    }
-    
-    growthDirection -= delta;
-    
-    if (OffsetFromAligned(address, alignment) == 0 && growthDirection + delta != 0)
-        SET_OUT_PARAMS_AND_RETURN(address, retainedAddr, offset, true);
-    UnmapPages(address, size);
-    
-    address = MapMemoryAt(initial, size - offset);
-    if (!address) {
-        
-        UnmapPages(retainedAddr, offset);
-        SET_OUT_PARAMS_AND_RETURN(nullptr, retainedAddr, 0, false);
-    }
-    SET_OUT_PARAMS_AND_RETURN(address, nullptr, 0, false);
-}
-
-#undef SET_OUT_PARAMS_AND_RETURN
 
 void
 UnmapPages(void *p, size_t size)
