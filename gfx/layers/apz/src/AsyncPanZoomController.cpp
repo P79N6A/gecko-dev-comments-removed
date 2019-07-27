@@ -1739,8 +1739,17 @@ bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   
   
   
-  return CallDispatchScroll(aEndPoint + overscroll, aEndPoint, 
-                            aOverscrollHandoffChain, aOverscrollHandoffChainIndex + 1);
+  
+  if (CallDispatchScroll(aEndPoint + overscroll, aEndPoint,
+                         aOverscrollHandoffChain, aOverscrollHandoffChainIndex + 1)) {
+    return true;
+  }
+
+  
+  
+  
+  APZC_LOG("%p taking overscroll during panning\n", this);
+  return OverscrollBy(cssOverscroll);
 }
 
 bool AsyncPanZoomController::OverscrollBy(const CSSPoint& aOverscroll) {
