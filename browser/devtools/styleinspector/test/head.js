@@ -766,32 +766,6 @@ let createNewRuleViewProperty = Task.async(function*(ruleEditor, inputValue) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function getComputedViewProperty(view, name) {
   let prop;
   for (let property of view.styleDocument.querySelectorAll(".property-view")) {
@@ -813,8 +787,42 @@ function getComputedViewProperty(view, name) {
 
 
 
-function getComputedViewPropertyValue(view, selectorText, propertyName) {
-  return getComputedViewProperty(view, selectorText, propertyName)
+
+
+
+
+
+let getComputedViewMatchedRules = Task.async(function*(view, name) {
+  let expander;
+  let propertyContent;
+  for (let property of view.styleDocument.querySelectorAll(".property-view")) {
+    let nameSpan = property.querySelector(".property-name");
+    if (nameSpan.textContent === name) {
+      expander = property.querySelector(".expandable");
+      propertyContent = property.nextSibling;
+      break;
+    }
+  }
+
+  if (!expander.hasAttribute("open")) {
+    
+    let onExpand = view.inspector.once("computed-view-property-expanded");
+    expander.click();
+    yield onExpand;
+  }
+
+  return propertyContent;
+});
+
+
+
+
+
+
+
+
+function getComputedViewPropertyValue(view, name, propertyName) {
+  return getComputedViewProperty(view, name, propertyName)
     .valueSpan.textContent;
 }
 
@@ -826,15 +834,14 @@ function getComputedViewPropertyValue(view, selectorText, propertyName) {
 
 
 
-
-function expandComputedViewPropertyByIndex(view, inspector, index) {
+function expandComputedViewPropertyByIndex(view, index) {
   info("Expanding property " + index + " in the computed view");
   let expandos = view.styleDocument.querySelectorAll(".expandable");
   if (!expandos.length || !expandos[index]) {
     return promise.reject();
   }
 
-  let onExpand = inspector.once("computed-view-property-expanded");
+  let onExpand = view.inspector.once("computed-view-property-expanded");
   expandos[index].click();
   return onExpand;
 }

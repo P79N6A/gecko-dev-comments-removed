@@ -324,38 +324,83 @@ CssHtmlTree.prototype = {
 
 
   getNodeInfo: function(node) {
-    let type, value;
+    if (!node) {
+      return null;
+    }
+
     let classes = node.classList;
 
-    if (classes.contains("property-name") ||
-        classes.contains("property-value") ||
-        (classes.contains("theme-link") && !classes.contains("link"))) {
-      
-      let parent = node.parentNode;
-      while (!parent.classList.contains("property-view")) {
-        parent = parent.parentNode;
+    
+    
+    if (classes.contains("matched") ||
+        classes.contains("bestmatch") ||
+        classes.contains("parentmatch")) {
+      let selectorText = "";
+      for (let child of node.childNodes) {
+        if (child.nodeType === node.TEXT_NODE) {
+          selectorText += child.textContent;
+        }
       }
+      return {
+        type: overlays.VIEW_NODE_SELECTOR_TYPE,
+        value: selectorText.trim()
+      }
+    }
+
+    
+    let propertyView;
+    let propertyContent;
+    let parent = node;
+    while (parent.parentNode) {
+      if (parent.classList.contains("property-view")) {
+        propertyView = parent;
+        break;
+      }
+      if (parent.classList.contains("property-content")) {
+        propertyContent = parent;
+        break;
+      }
+      parent = parent.parentNode;
+    }
+    if (!propertyView && !propertyContent) {
+      return null;
+    }
+
+    let value, type;
+
+    
+    let isHref = classes.contains("theme-link") && !classes.contains("link");
+    if (propertyView && (classes.contains("property-name") ||
+                         classes.contains("property-value") ||
+                         isHref)) {
       value = {
         property: parent.querySelector(".property-name").textContent,
         value: parent.querySelector(".property-value").textContent
       };
     }
+    if (propertyContent && (classes.contains("other-property-value") ||
+                            isHref)) {
+      let view = propertyContent.previousSibling;
+      value = {
+        property: view.querySelector(".property-name").textContent,
+        value: node.textContent
+      };
+    }
 
+    
     if (classes.contains("property-name")) {
       type = overlays.VIEW_NODE_PROPERTY_TYPE;
-    } else if (classes.contains("property-value")) {
+    } else if (classes.contains("property-value") ||
+               classes.contains("other-property-value")) {
       type = overlays.VIEW_NODE_VALUE_TYPE;
-    } else if (classes.contains("theme-link")) {
+    } else if (isHref) {
       type = overlays.VIEW_NODE_IMAGE_URL_TYPE;
       value.url = node.href;
     } else {
       return null;
     }
 
-    return {
-      type: type,
-      value: value
-    };
+    return {type, value};
   },
 
   _createPropertyViews: function()
