@@ -1072,6 +1072,7 @@ let gInitializeTimerFunc = (deferredInitialization) => {
              MozLoopServiceInternal.initialRegistrationDelayMilliseconds);
 };
 
+let gServiceInitialized = false;
 
 
 
@@ -1089,8 +1090,19 @@ this.MozLoopService = {
     };
   },
 
+  
+
+
   set initializeTimerFunc(value) {
     gInitializeTimerFunc = value;
+  },
+
+  
+
+
+
+  resetServiceInitialized: function() {
+    gServiceInitialized = false;
   },
 
   get roomsParticipantsCount() {
@@ -1103,7 +1115,16 @@ this.MozLoopService = {
 
 
 
+
+
   initialize: Task.async(function*() {
+    
+    if (gServiceInitialized) {
+      return Promise.resolve();
+    }
+
+    gServiceInitialized = true;
+
     
     
     Object.freeze(this);

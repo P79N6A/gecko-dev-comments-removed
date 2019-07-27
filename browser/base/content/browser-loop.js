@@ -218,7 +218,15 @@ let LoopUI;
       
       Services.obs.addObserver(this, "loop-status-changed", false);
 
-      this.MozLoopService.initialize();
+      
+      
+      this.MozLoopService.initialize().catch(ex => {
+        if (!ex.message ||
+            (!ex.message.contains("not enabled") &&
+             !ex.message.contains("not needed"))) {
+          console.error(ex);
+        }
+      });
       this.updateToolbarState();
     },
 
