@@ -2011,7 +2011,7 @@ void AsyncPanZoomController::HandleFlingOverscroll(const ParentLayerPoint& aVelo
                                                             true ))) {
     
     
-    if (IsPannable()) {
+    if (IsPannable() && gfxPrefs::APZOverscrollEnabled()) {
       StartOverscrollAnimation(aVelocity);
     }
   }
