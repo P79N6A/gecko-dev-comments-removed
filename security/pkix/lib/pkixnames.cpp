@@ -97,8 +97,7 @@ bool IsValidPresentedDNSID(Input hostname);
 bool ParseIPv4Address(Input hostname,  uint8_t (&out)[4]);
 bool ParseIPv6Address(Input hostname,  uint8_t (&out)[16]);
 bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
-                                         Input referenceDNSID,
-                                         bool referenceDNSIDWasVerifiedAsValid);
+                                         Input referenceDNSID);
 
 
 
@@ -401,7 +400,7 @@ SearchWithinAVA(Reader& rdn,
   {
     case GeneralNameType::dNSName:
       foundMatch = PresentedDNSIDMatchesReferenceDNSID(presentedID,
-                                                       referenceID, true);
+                                                       referenceID);
       break;
     case GeneralNameType::iPAddress:
     {
@@ -432,7 +431,7 @@ MatchPresentedIDWithReferenceID(GeneralNameType nameType,
   switch (nameType) {
     case GeneralNameType::dNSName:
       foundMatch = PresentedDNSIDMatchesReferenceDNSID(presentedID,
-                                                       referenceID, true);
+                                                       referenceID);
       break;
     case GeneralNameType::iPAddress:
       foundMatch = InputsAreEqual(presentedID, referenceID);
@@ -459,42 +458,26 @@ MatchPresentedIDWithReferenceID(GeneralNameType nameType,
 
 
 
-
-
-
 bool
-PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
-                                    Input referenceDNSID,
-                                    bool referenceDNSIDWasVerifiedAsValid)
+PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID, Input referenceDNSID)
 {
-  assert(referenceDNSIDWasVerifiedAsValid);
-  if (!referenceDNSIDWasVerifiedAsValid) {
+  if (!IsValidPresentedDNSID(presentedDNSID)) {
+    return false;
+  }
+  if (!IsValidReferenceDNSID(referenceDNSID)) {
     return false;
   }
 
   Reader presented(presentedDNSID);
   Reader reference(referenceDNSID);
-
-  size_t currentLabel = 0;
-  bool hasWildcardLabel = false;
-  bool lastPresentedByteWasDot = false;
-  bool firstPresentedByteIsWildcard = presented.Peek('*');
-
+  bool isFirstPresentedByte = true;
   do {
     uint8_t presentedByte;
-    if (presented.Read(presentedByte) != Success) {
-      return false; 
+    Result rv = presented.Read(presentedByte);
+    if (rv != Success) {
+      return false;
     }
-    if (presentedByte == '*' && currentLabel == 0) {
-      hasWildcardLabel = true;
-
-      
-      
-      
-      if (!presented.Peek('.')) {
-        return false;
-      }
-
+    if (presentedByte == '*') {
       
       
       
@@ -502,19 +485,13 @@ PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
       
       
       
-      
-      
-      
-      
-      
-      if (!firstPresentedByteIsWildcard) {
-        if (StartsWithIDNALabel(presentedDNSID)) {
+      do {
+        uint8_t referenceByte;
+        rv = reference.Read(referenceByte);
+        if (rv != Success) {
           return false;
         }
-        if (StartsWithIDNALabel(referenceDNSID)) {
-          return false;
-        }
-      }
+      } while (!reference.Peek('.'));
 
       
       
@@ -523,70 +500,42 @@ PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
       
       
       
-      uint8_t referenceByte;
-      if (reference.Read(referenceByte) != Success) {
+      if (!isFirstPresentedByte && StartsWithIDNALabel(referenceDNSID)) {
         return false;
-      }
-      if (referenceByte == '.') {
-        return false;
-      }
-      while (!reference.Peek('.')) {
-        if (reference.Read(referenceByte) != Success) {
-          return false;
-        }
       }
     } else {
-      if (presentedByte == '.') {
-        
-        
-        if (lastPresentedByteWasDot) {
-          return false;
-        }
-        lastPresentedByteWasDot = true;
-
-        if (!presented.AtEnd()) {
-          ++currentLabel;
-        }
-      } else {
-        lastPresentedByteWasDot = false;
+      
+      
+      if (reference.AtEnd() && presented.AtEnd() && presentedByte == '.') {
+        return true;
       }
 
-      
-      
-      
-      if (presentedByte != '.' || !presented.AtEnd() || !reference.AtEnd()) {
-        uint8_t referenceByte;
-        if (reference.Read(referenceByte) != Success) {
-          return false;
-        }
-        if (LocaleInsensitveToLower(presentedByte) !=
-            LocaleInsensitveToLower(referenceByte)) {
-          return false;
-        }
+      uint8_t referenceByte;
+      rv = reference.Read(referenceByte);
+      if (rv != Success) {
+        return false;
+      }
+      if (LocaleInsensitveToLower(presentedByte) !=
+          LocaleInsensitveToLower(referenceByte)) {
+        return false;
       }
     }
+    isFirstPresentedByte = false;
   } while (!presented.AtEnd());
 
   
-  
-  static const uint8_t DOT[1] = { '.' };
-  if (!reference.AtEnd() && !reference.MatchRest(DOT)) {
-    return false;
-  }
-
-  if (hasWildcardLabel) {
-    
-    if (currentLabel < 2) {
+  if (!reference.AtEnd()) {
+    uint8_t referenceByte;
+    Result rv = reference.Read(referenceByte);
+    if (rv != Success) {
       return false;
     }
-
-    
-    
-    
-
-    
-    
-    
+    if (referenceByte != '.') {
+      return false;
+    }
+    if (!reference.AtEnd()) {
+      return false;
+    }
   }
 
   return true;
