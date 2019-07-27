@@ -31,10 +31,6 @@ public:
   nsBinaryOutputStream()
   {
   }
-  
-  virtual ~nsBinaryOutputStream()
-  {
-  }
 
 protected:
   
@@ -54,6 +50,12 @@ protected:
 
   nsCOMPtr<nsIOutputStream>       mOutputStream;
   nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
+
+private:
+  
+  virtual ~nsBinaryOutputStream()
+  {
+  }
 };
 
 #define NS_BINARYINPUTSTREAM_CID        \
@@ -74,10 +76,6 @@ public:
   nsBinaryInputStream()
   {
   }
-  
-  virtual ~nsBinaryInputStream()
-  {
-  }
 
 protected:
   
@@ -94,6 +92,12 @@ protected:
 
   nsCOMPtr<nsIInputStream>        mInputStream;
   nsCOMPtr<nsIStreamBufferAccess> mBufferAccess;
+
+private:
+  
+  virtual ~nsBinaryInputStream()
+  {
+  }
 };
 
 #endif 
