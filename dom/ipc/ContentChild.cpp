@@ -2655,9 +2655,10 @@ ContentChild::RecvStopProfiler()
 bool
 ContentChild::RecvGetProfile(nsCString* aProfile)
 {
-    UniquePtr<char[]> profile = profiler_get_profile();
+    char* profile = profiler_get_profile();
     if (profile) {
-        *aProfile = nsCString(profile.get(), strlen(profile.get()));
+        *aProfile = nsCString(profile, strlen(profile));
+        free(profile);
     } else {
         *aProfile = EmptyCString();
     }
@@ -2897,16 +2898,7 @@ ContentChild::RecvInvokeDragSession(nsTArray<IPCDataTransfer>&& aTransfers,
           } else if (item.data().type() == IPCDataTransferData::TPBlobChild) {
             BlobChild* blob = static_cast<BlobChild*>(item.data().get_PBlobChild());
             nsRefPtr<BlobImpl> blobImpl = blob->GetBlobImpl();
-            nsString path;
-            ErrorResult result;
-            blobImpl->GetMozFullPathInternal(path, result);
-            if (result.Failed()) {
-              variant->SetAsISupports(blobImpl);
-            } else {
-              nsCOMPtr<nsIFile> file;
-              NS_NewNativeLocalFile(NS_ConvertUTF16toUTF8(path), true, getter_AddRefs(file));
-              variant->SetAsISupports(file);
-            }
+            variant->SetAsISupports(blobImpl);
           } else {
             continue;
           }
