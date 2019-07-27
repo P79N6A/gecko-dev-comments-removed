@@ -92,117 +92,8 @@
   background-color: var(--tab-background-color);
 }
 
-
-
-
-
-
-
-#main-window[sizemode=normal] .tabbrowser-tabs[overflow="true"] {
-  background-clip: padding-box;
-  border-top: 1px solid var(--chrome-nav-bar-separator-color);
-  -moz-border-end: 1px solid var(--chrome-nav-bar-separator-color);
-  background-color: var(--tab-background-color); 
-}
-
-
-
-#main-window[sizemode=normal] .tabbrowser-tabs {
-  background-clip: padding-box;
-  -moz-border-start: 1px solid var(--chrome-nav-bar-separator-color);
-  -moz-border-end: 1px solid transparent;
-}
-
-#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-tab,
-#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-arrowscrollbox > .scrollbutton-down,
-#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-arrowscrollbox > .scrollbutton-up,
-#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabs-newtab-button {
-  background-clip: padding-box;
-  border-top: 1px solid var(--chrome-nav-bar-separator-color);
-}
-
-
-#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-tab {
-  -moz-border-top-colors: none;
-}
-
-#main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .closing-tabs-spacer {
-  background-clip: padding-box;
-  -moz-border-start: 1px solid var(--chrome-nav-bar-separator-color);
-}
-
-.tabs-newtab-button {
-  background: var(--tab-background-color);
-}
-
-
-#tabbrowser-tabs,
-#TabsToolbar,
-#browser-panel,
-#titlebar-content {
-  background: transparent;
-}
-
-
-#main-window[sizemode="maximized"]:not([customizing]) #browser-panel {
-  background: var(--chrome-background-color) !important;
-}
-
-
-#main-window[sizemode="maximized"] #main-menubar {
-  color: var(--chrome-color);
-  background-color: transparent;
-}
-
-#main-window[sizemode="maximized"] #main-menubar > menu:not(:-moz-window-inactive) {
-  color: inherit;
-}
-
-
-@media not all and (-moz-windows-compositor),
-       not all and (-moz-windows-default-theme) {
-  #main-window[tabsintitlebar]:not([inFullscreen]) #toolbar-menubar,
-  #main-window[tabsintitlebar]:not([inFullscreen]) #TabsToolbar {
-    color: CaptionText;
-  }
-
-  #main-window[tabsintitlebar]:not([inFullscreen]) #toolbar-menubar:-moz-window-inactive,
-  #main-window[tabsintitlebar]:not([inFullscreen]) #TabsToolbar:-moz-window-inactive {
-    color: InactiveCaptionText;
-  }
-
-  #main-window[tabsintitlebar] #main-menubar > menu {
-    color: inherit;
-  }
-}
-
-
-.tabbrowser-arrowscrollbox > .scrollbutton-up[disabled],
-.tabbrowser-arrowscrollbox > .scrollbutton-down[disabled] {
-  opacity: .6;
-}
-
-
-.tabbrowser-arrowscrollbox > .scrollbutton-down,
-.tabbrowser-arrowscrollbox > .scrollbutton-up {
-  background-image: none !important;
-  transition: none; 
-}
-
-
-#main-window[sizemode="maximized"] .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox {
-  padding-left: 15px;
-  padding-right: 15px;
-}
-
 #toolbar-menubar {
   text-shadow: none !important;
-}
-
-
-#main-window[sizemode=normal]:not([customizing]) #TabsToolbar {
-  padding-left: 0;
-  padding-right: 0;
 }
 
 
@@ -221,7 +112,132 @@
 
 @media (min-resolution: 1.1dppx) {
   .tab-close-button[visuallyselected=true]:not(:hover) {
-    -moz-image-region: rect(0px, 128px, 32px, 96px);
+    -moz-image-region: rect(0, 128px, 32px, 96px);
   }
 }
 
+@media (-moz-os-version: windows-xp),
+       (-moz-os-version: windows-vista),
+       (-moz-os-version: windows-win7),
+       (-moz-os-version: windows-win8) {
+  :root {
+    --space-above-tabbar: 15px;
+  }
+
+  
+
+
+
+
+
+  #main-window[sizemode=normal] .tabbrowser-tabs[overflow="true"] {
+    background-clip: padding-box;
+    border-top: 1px solid var(--chrome-nav-bar-separator-color);
+    -moz-border-end: 1px solid var(--chrome-nav-bar-separator-color);
+    background-color: var(--tab-background-color); 
+  }
+
+  
+
+  #main-window[sizemode=normal] .tabbrowser-tabs {
+    background-clip: padding-box;
+    -moz-border-start: 1px solid var(--chrome-nav-bar-separator-color);
+    -moz-border-end: 1px solid transparent;
+  }
+
+  #main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-tab,
+  #main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-arrowscrollbox > .scrollbutton-down,
+  #main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-arrowscrollbox > .scrollbutton-up,
+  #main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabs-newtab-button {
+    background-clip: padding-box;
+    border-top: 1px solid var(--chrome-nav-bar-separator-color);
+  }
+
+  
+  #main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .tabbrowser-tab {
+    -moz-border-top-colors: none;
+  }
+
+  #main-window[sizemode=normal] .tabbrowser-tabs:not([overflow="true"]) .closing-tabs-spacer {
+    background-clip: padding-box;
+    -moz-border-start: 1px solid var(--chrome-nav-bar-separator-color);
+  }
+
+  .tabs-newtab-button {
+    background: var(--tab-background-color);
+  }
+
+  
+  #tabbrowser-tabs,
+  #TabsToolbar,
+  #browser-panel,
+  #titlebar-content {
+    background: transparent;
+  }
+
+  
+  #main-window[sizemode="maximized"]:not([customizing]) #browser-panel {
+    background: var(--chrome-background-color) !important;
+  }
+
+  
+  #main-window[sizemode="maximized"] #main-menubar {
+    color: var(--chrome-color);
+    background-color: transparent;
+  }
+
+  #main-window[sizemode="maximized"] #main-menubar > menu:not(:-moz-window-inactive) {
+    color: inherit;
+  }
+
+  
+  @media not all and (-moz-windows-compositor),
+         not all and (-moz-windows-default-theme) {
+    #main-window[tabsintitlebar]:not([inFullscreen]) #toolbar-menubar,
+    #main-window[tabsintitlebar]:not([inFullscreen]) #TabsToolbar {
+      color: CaptionText;
+    }
+
+    #main-window[tabsintitlebar]:not([inFullscreen]) #toolbar-menubar:-moz-window-inactive,
+    #main-window[tabsintitlebar]:not([inFullscreen]) #TabsToolbar:-moz-window-inactive {
+      color: InactiveCaptionText;
+    }
+
+    #main-window[tabsintitlebar] #main-menubar > menu {
+      color: inherit;
+    }
+  }
+
+  
+  .tabbrowser-arrowscrollbox > .scrollbutton-up[disabled],
+  .tabbrowser-arrowscrollbox > .scrollbutton-down[disabled] {
+    opacity: .6;
+  }
+
+  
+  .tabbrowser-arrowscrollbox > .scrollbutton-down,
+  .tabbrowser-arrowscrollbox > .scrollbutton-up {
+    background-image: none !important;
+    transition: none; 
+  }
+
+  
+  #main-window[sizemode="maximized"] .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  
+  #main-window[sizemode=normal]:not([customizing]) #TabsToolbar {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (-moz-os-version: windows-win10) {
+  
+  #main-window .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+}
