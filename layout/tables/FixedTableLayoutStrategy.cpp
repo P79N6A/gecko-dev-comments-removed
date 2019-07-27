@@ -28,7 +28,7 @@ FixedTableLayoutStrategy::~FixedTableLayoutStrategy()
 }
 
  nscoord
-FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
+FixedTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
 {
     DISPLAY_MIN_WIDTH(mTableFrame, mMinWidth);
     if (mMinWidth != NS_INTRINSIC_WIDTH_UNKNOWN)
@@ -117,7 +117,7 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
 }
 
  nscoord
-FixedTableLayoutStrategy::GetPrefWidth(nsRenderingContext* aRenderingContext,
+FixedTableLayoutStrategy::GetPrefISize(nsRenderingContext* aRenderingContext,
                                        bool aComputingSize)
 {
     

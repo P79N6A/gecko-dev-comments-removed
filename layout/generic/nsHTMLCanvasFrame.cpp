@@ -124,7 +124,7 @@ nsHTMLCanvasFrame::GetCanvasSize()
 }
 
  nscoord
-nsHTMLCanvasFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsHTMLCanvasFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   
   
@@ -134,7 +134,7 @@ nsHTMLCanvasFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsHTMLCanvasFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsHTMLCanvasFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   
   

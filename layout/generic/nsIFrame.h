@@ -1465,7 +1465,7 @@ public:
 
 
 
-  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) = 0;
+  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) = 0;
 
   
 
@@ -1473,7 +1473,7 @@ public:
 
 
 
-  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) = 0;
+  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) = 0;
 
   
 

@@ -628,7 +628,7 @@ nsBulletFrame::Reflow(nsPresContext* aPresContext,
 }
 
  nscoord
-nsBulletFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsBulletFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   WritingMode wm = GetWritingMode();
   nsHTMLReflowMetrics metrics(wm);
@@ -638,7 +638,7 @@ nsBulletFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsBulletFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsBulletFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   WritingMode wm = GetWritingMode();
   nsHTMLReflowMetrics metrics(wm);

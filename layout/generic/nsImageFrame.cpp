@@ -817,7 +817,7 @@ nsImageFrame::GetContinuationOffset() const
 }
 
  nscoord
-nsImageFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsImageFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   
   
@@ -830,7 +830,7 @@ nsImageFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsImageFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsImageFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   
   

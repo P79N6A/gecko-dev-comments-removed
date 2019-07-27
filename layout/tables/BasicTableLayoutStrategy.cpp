@@ -37,7 +37,7 @@ BasicTableLayoutStrategy::~BasicTableLayoutStrategy()
 }
 
  nscoord
-BasicTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
+BasicTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
 {
     DISPLAY_MIN_WIDTH(mTableFrame, mMinWidth);
     if (mMinWidth == NS_INTRINSIC_WIDTH_UNKNOWN)
@@ -46,7 +46,7 @@ BasicTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
 }
 
  nscoord
-BasicTableLayoutStrategy::GetPrefWidth(nsRenderingContext* aRenderingContext,
+BasicTableLayoutStrategy::GetPrefISize(nsRenderingContext* aRenderingContext,
                                        bool aComputingSize)
 {
     DISPLAY_PREF_WIDTH(mTableFrame, mPrefWidth);
@@ -90,8 +90,8 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
         
         AutoMaybeDisableFontInflation an(aFrame);
 
-        minCoord = aFrame->GetMinWidth(aRenderingContext);
-        prefCoord = aFrame->GetPrefWidth(aRenderingContext);
+        minCoord = aFrame->GetMinISize(aRenderingContext);
+        prefCoord = aFrame->GetPrefISize(aRenderingContext);
         
         
         

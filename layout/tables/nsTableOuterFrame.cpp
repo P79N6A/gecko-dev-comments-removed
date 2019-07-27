@@ -75,7 +75,7 @@ nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   uint8_t captionSide = StyleTableBorder()->mCaptionSide;
   if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
       captionSide == NS_STYLE_CAPTION_SIDE_RIGHT) {
-    result.width = GetMinWidth(aRenderingContext);
+    result.width = GetMinISize(aRenderingContext);
   } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP ||
              captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM) {
     
@@ -83,7 +83,7 @@ nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
     
     
     
-    nscoord min = GetMinWidth(aRenderingContext);
+    nscoord min = GetMinISize(aRenderingContext);
     if (min > aCBSize.width)
       min = aCBSize.width;
     if (min > result.width)
@@ -394,7 +394,7 @@ GetContainingBlockSize(const nsHTMLReflowState& aOuterRS)
 }
 
  nscoord
-nsTableOuterFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsTableOuterFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord width = nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
                     InnerTableFrame(), nsLayoutUtils::MIN_WIDTH);
@@ -416,7 +416,7 @@ nsTableOuterFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsTableOuterFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsTableOuterFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   nscoord maxWidth;
   DISPLAY_PREF_WIDTH(this, maxWidth);

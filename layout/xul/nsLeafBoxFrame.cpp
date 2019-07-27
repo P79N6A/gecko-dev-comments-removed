@@ -122,7 +122,7 @@ nsLeafBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
  nscoord
-nsLeafBoxFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsLeafBoxFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
@@ -142,7 +142,7 @@ nsLeafBoxFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsLeafBoxFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsLeafBoxFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);

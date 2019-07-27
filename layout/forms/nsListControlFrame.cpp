@@ -301,7 +301,7 @@ nsListControlFrame::CalcHeightOfARow()
 }
 
 nscoord
-nsListControlFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsListControlFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);
@@ -309,7 +309,7 @@ nsListControlFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
   
   
   
-  result = GetScrolledFrame()->GetPrefWidth(aRenderingContext);
+  result = GetScrolledFrame()->GetPrefISize(aRenderingContext);
   result = NSCoordSaturatingAdd(result,
           GetDesiredScrollbarSizes(PresContext(), aRenderingContext).LeftRight());
 
@@ -317,7 +317,7 @@ nsListControlFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 }
 
 nscoord
-nsListControlFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsListControlFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
@@ -325,7 +325,7 @@ nsListControlFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
   
   
   
-  result = GetScrolledFrame()->GetMinWidth(aRenderingContext);
+  result = GetScrolledFrame()->GetMinISize(aRenderingContext);
   result += GetDesiredScrollbarSizes(PresContext(), aRenderingContext).LeftRight();
 
   return result;

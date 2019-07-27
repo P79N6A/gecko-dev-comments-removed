@@ -126,14 +126,14 @@ nsFirstLetterFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
 
 
  nscoord
-nsFirstLetterFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsFirstLetterFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   return nsLayoutUtils::MinWidthFromInline(this, aRenderingContext);
 }
 
 
  nscoord
-nsFirstLetterFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsFirstLetterFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   return nsLayoutUtils::PrefWidthFromInline(this, aRenderingContext);
 }

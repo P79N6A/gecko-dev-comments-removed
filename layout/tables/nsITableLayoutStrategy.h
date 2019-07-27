@@ -24,10 +24,10 @@ public:
     virtual ~nsITableLayoutStrategy() {}
 
     
-    virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext) = 0;
+    virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) = 0;
 
     
-    virtual nscoord GetPrefWidth(nsRenderingContext* aRenderingContext,
+    virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
                                  bool aComputingSize) = 0;
 
     

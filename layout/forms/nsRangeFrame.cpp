@@ -754,7 +754,7 @@ nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 }
 
 nscoord
-nsRangeFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
+nsRangeFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
   
   
@@ -763,7 +763,7 @@ nsRangeFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 }
 
 nscoord
-nsRangeFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
+nsRangeFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
   
   nsSize frameSizeOverride(10,1);
