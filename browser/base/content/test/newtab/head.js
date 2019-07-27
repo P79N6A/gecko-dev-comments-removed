@@ -208,12 +208,15 @@ function getCell(aIndex) {
 
 
 
+
+
 function setLinks(aLinks) {
   let links = aLinks;
 
   if (typeof links == "string") {
     links = aLinks.split(/\s*,\s*/).map(function (id) {
-      return {url: "http://example.com/#" + id, title: "site#" + id};
+      return {url: "http://example" + (id != "-1" ? id : "") + ".com/",
+              title: "site#" + id};
     });
   }
 
@@ -293,7 +296,8 @@ function setPinnedLinks(aLinks) {
   if (typeof links == "string") {
     links = aLinks.split(/\s*,\s*/).map(function (id) {
       if (id)
-        return {url: "http://example.com/#" + id, title: "site#" + id};
+        return {url: "http://example" + (id != "-1" ? id : "") + ".com/",
+                title: "site#" + id};
     });
   }
 
@@ -372,7 +376,7 @@ function checkGrid(aSitesPattern, aSites) {
     if (pinned != hasPinnedAttr)
       ok(false, "invalid state (site.isPinned() != site[pinned])");
 
-    return aSite.url.replace(/^http:\/\/example\.com\/#(\d+)$/, "$1") + (pinned ? "p" : "");
+    return aSite.url.replace(/^http:\/\/example(\d+)\.com\/$/, "$1") + (pinned ? "p" : "");
   });
 
   is(current, aSitesPattern, "grid status = " + aSitesPattern);
@@ -489,7 +493,7 @@ function startAndCompleteDragOperation(aSource, aDest, aCallback) {
 
 function createExternalDropIframe() {
   const url = "data:text/html;charset=utf-8," +
-              "<a id='link' href='http://example.com/%2399'>link</a>";
+              "<a id='link' href='http://example99.com/'>link</a>";
 
   let deferred = Promise.defer();
   let doc = getContentDocument();

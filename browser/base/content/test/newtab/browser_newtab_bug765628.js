@@ -2,7 +2,7 @@
 
 
 const BAD_DRAG_DATA = "javascript:alert('h4ck0rz');\nbad stuff";
-const GOOD_DRAG_DATA = "http://example.com/#99\nsite 99";
+const GOOD_DRAG_DATA = "http://example99.com/\nsite 99";
 
 function runTests() {
   yield setLinks("0,1,2,3,4,5,6,7,8");
