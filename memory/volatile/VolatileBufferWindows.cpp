@@ -2,10 +2,6 @@
 
 
 
-#if defined(XP_WIN)
-#  define MOZALLOC_EXPORT __declspec(dllexport)
-#endif
-
 #include "VolatileBuffer.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/mozalloc.h"
