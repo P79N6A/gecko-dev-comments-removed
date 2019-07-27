@@ -1446,7 +1446,7 @@ bool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
 
   
   
-  if (request->mValidator) {
+  if (request->GetValidator()) {
     rv = CreateNewProxyForRequest(request, aLoadGroup, aObserver,
                                   aLoadFlags, aProxyRequest);
     if (NS_FAILED(rv)) {
@@ -1463,7 +1463,7 @@ bool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
       proxy->SetNotificationsDeferred(true);
 
       
-      request->mValidator->AddProxy(proxy);
+      request->GetValidator()->AddProxy(proxy);
     }
 
     return NS_SUCCEEDED(rv);
@@ -1528,7 +1528,7 @@ bool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
       listener = corsproxy;
     }
 
-    request->mValidator = hvc;
+    request->SetValidator(hvc);
 
     
     
@@ -1627,7 +1627,7 @@ bool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
   
   
   void *key = (void *)aCX;
-  if (request->mLoadId != key) {
+  if (request->LoadId() != key) {
     
     
     if (aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE)
@@ -1656,10 +1656,12 @@ bool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
   nsCOMPtr<nsIApplicationCacheContainer> appCacheContainer;
   nsCOMPtr<nsIApplicationCache> requestAppCache;
   nsCOMPtr<nsIApplicationCache> groupAppCache;
-  if ((appCacheContainer = do_GetInterface(request->mRequest)))
+  if ((appCacheContainer = do_GetInterface(request->GetRequest()))) {
     appCacheContainer->GetApplicationCache(getter_AddRefs(requestAppCache));
-  if ((appCacheContainer = do_QueryInterface(aLoadGroup)))
+  }
+  if ((appCacheContainer = do_QueryInterface(aLoadGroup))) {
     appCacheContainer->GetApplicationCache(getter_AddRefs(groupAppCache));
+  }
 
   if (requestAppCache != groupAppCache) {
     PR_LOG(GetImgLog(), PR_LOG_DEBUG,
@@ -2522,7 +2524,7 @@ imgCacheValidator::imgCacheValidator(nsProgressNotificationProxy* progress,
 imgCacheValidator::~imgCacheValidator()
 {
   if (mRequest) {
-    mRequest->ClearValidator();
+    mRequest->SetValidator(nullptr);
   }
 }
 
@@ -2581,7 +2583,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
       aRequest->Cancel(NS_BINDING_ABORTED);
 
       mRequest->SetLoadId(mContext);
-      mRequest->ClearValidator();
+      mRequest->SetValidator(nullptr);
 
       mRequest = nullptr;
 
@@ -2614,7 +2616,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   
   mRequest->RemoveFromCache();
 
-  mRequest->ClearValidator();
+  mRequest->SetValidator(nullptr);
   mRequest = nullptr;
 
   

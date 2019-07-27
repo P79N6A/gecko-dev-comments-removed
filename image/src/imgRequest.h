@@ -158,42 +158,44 @@ public:
   
   void AdjustPriority(imgRequestProxy* aProxy, int32_t aDelta);
 
+  
+  nsIRequest* GetRequest() const { return mRequest; }
+
   nsITimedChannel* GetTimedChannel() const { return mTimedChannel; }
 
   nsresult GetSecurityInfo(nsISupports** aSecurityInfoOut);
 
-  void ClearValidator() { mValidator = nullptr; }
+  imgCacheValidator* GetValidator() const { return mValidator; }
+  void SetValidator(imgCacheValidator* aValidator) { mValidator = aValidator; }
 
+  void* LoadId() const { return mLoadId; }
   void SetLoadId(void* aLoadId) { mLoadId = aLoadId; }
 
-  void EvictFromCache();
-  void RemoveFromCache();
-
-private:
-  friend class imgLoader;
-  friend class mozilla::image::ProgressTracker;
-
-  void Cancel(nsresult aStatus);
-
-  inline nsIProperties *Properties() {
-    return mProperties;
-  }
-
   
   
   
-  void SetCacheEntry(imgCacheEntry *entry);
+  void SetCacheEntry(imgCacheEntry* aEntry);
 
   
   bool HasCacheEntry() const;
 
   
-  void UpdateCacheEntrySize();
+  
+  
+  void SetIsInCache(bool aCacheable);
+
+  void EvictFromCache();
+  void RemoveFromCache();
+
+  nsIProperties* Properties() const { return mProperties; }
+
+private:
+  friend class mozilla::image::ProgressTracker;
+
+  void Cancel(nsresult aStatus);
 
   
-  
-  
-  void SetIsInCache(bool cacheable);
+  void UpdateCacheEntrySize();
 
   bool HasConsumers();
 
