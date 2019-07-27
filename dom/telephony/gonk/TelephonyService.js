@@ -874,6 +874,11 @@ TelephonyService.prototype = {
         break;
 
       
+      case RIL.MMI_KS_SC_CLIP:
+        this._clipMMI(aClientId, aMmi, aCallback);
+        break;
+
+      
       default:
         this._sendMMI(aClientId, aMmi, aCallback);
         break;
@@ -1086,6 +1091,47 @@ TelephonyService.prototype = {
       }
 
       aCallback.notifyDialMMISuccess(aResponse.imei);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _clipMMI: function(aClientId, aMmi, aCallback) {
+    if (aMmi.procedure !== RIL.MMI_PROCEDURE_INTERROGATION) {
+      aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_NOT_SUPPORTED);
+      return;
+    }
+
+    this._sendToRilWorker(aClientId, "queryCLIP", {}, aResponse => {
+      if (aResponse.errorMsg) {
+        aCallback.notifyDialMMIError(aResponse.errorMsg);
+        return;
+      }
+
+      
+      
+      
+      
+      
+      switch (aResponse.provisioned) {
+        case 0:
+          aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_SERVICE_DISABLED);
+          break;
+        case 1:
+          aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_SERVICE_ENABLED);
+          break;
+        default:
+          aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_ERROR);
+          break;
+      }
     });
   },
 

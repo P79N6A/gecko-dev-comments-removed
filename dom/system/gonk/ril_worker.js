@@ -958,9 +958,6 @@ RilObject.prototype = {
   
 
 
-
-
-
   queryCLIP: function(options) {
     this.context.Buf.simpleRequest(REQUEST_QUERY_CLIP, options);
   },
@@ -1958,16 +1955,6 @@ RilObject.prototype = {
     
     let sc = mmi.serviceCode;
     switch (sc) {
-      
-      case MMI_SC_CLIP:
-        options.procedure = mmi.procedure;
-        if (options.procedure === MMI_PROCEDURE_INTERROGATION) {
-          this.queryCLIP(options);
-        } else {
-          _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED);
-        }
-        return;
-
       
       
       
@@ -4947,25 +4934,7 @@ RilObject.prototype[REQUEST_QUERY_CLIP] = function REQUEST_QUERY_CLIP(length, op
     return;
   }
 
-  
-  
-  
-  
-  
   options.provisioned = Buf.readInt32();
-  if (options.rilMessageType === "sendMMI") {
-    switch (options.provisioned) {
-      case 0:
-        options.statusMessage = MMI_SM_KS_SERVICE_DISABLED;
-        break;
-      case 1:
-        options.statusMessage = MMI_SM_KS_SERVICE_ENABLED;
-        break;
-      default:
-        options.errorMsg = MMI_ERROR_KS_ERROR;
-        break;
-    }
-  }
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
