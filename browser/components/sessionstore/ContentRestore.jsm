@@ -193,11 +193,6 @@ ContentRestoreInternal.prototype = {
       if (loadArguments) {
         
         
-        let activeIndex = tabData.index - 1;
-        if (activeIndex > 0) {
-          
-          history.getEntryAtIndex(activeIndex, true);
-        }
         let referrer = loadArguments.referrer ?
                        Utils.makeURI(loadArguments.referrer) : null;
         let referrerPolicy = ('referrerPolicy' in loadArguments
@@ -210,12 +205,6 @@ ContentRestoreInternal.prototype = {
         
         
         
-        let activeIndex = tabData.index - 1;
-        if (activeIndex > 0) {
-          
-          history.getEntryAtIndex(activeIndex, true);
-        }
-
         
         webNavigation.loadURI(tabData.userTypedValue,
                               Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP,
@@ -231,7 +220,6 @@ ContentRestoreInternal.prototype = {
         
         
         
-        history.getEntryAtIndex(activeIndex, true);
         history.reloadCurrentEntry();
       } else {
         
