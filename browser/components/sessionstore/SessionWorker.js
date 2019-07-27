@@ -90,13 +90,23 @@ let Agent = {
 
 
 
-  init: function (origin, paths, maxUpgradeBackups) {
+  init(origin, paths, prefs = {}) {
     if (!(origin in paths || origin == STATE_EMPTY)) {
       throw new TypeError("Invalid origin: " + origin);
     }
+
+    
+    for (let pref of ["maxUpgradeBackups", "maxSerializeBack", "maxSerializeForward"]) {
+      if (!prefs.hasOwnProperty(pref)) {
+        throw new TypeError(`Missing preference value for ${pref}`);
+      }
+    }
+
     this.state = origin;
     this.Paths = paths;
-    this.maxUpgradeBackups = maxUpgradeBackups || 3;
+    this.maxUpgradeBackups = prefs.maxUpgradeBackups;
+    this.maxSerializeBack = prefs.maxSerializeBack;
+    this.maxSerializeForward = prefs.maxSerializeForward;
     this.upgradeBackupNeeded = paths.nextUpgradeBackup != paths.upgradeBackup;
     return {result: true};
   },
@@ -117,6 +127,26 @@ let Agent = {
   write: function (state, options = {}) {
     let exn;
     let telemetry = {};
+
+    
+    if (options.isFinalWrite) {
+      for (let window of state.windows) {
+        for (let tab of window.tabs) {
+          let lower = 0;
+          let upper = tab.entries.length;
+
+          if (this.maxSerializeBack > -1) {
+            lower = Math.max(lower, tab.index - this.maxSerializeBack - 1);
+          }
+          if (this.maxSerializeForward > -1) {
+            upper = Math.min(upper, tab.index + this.maxSerializeForward);
+          }
+
+          tab.entries = tab.entries.slice(lower, upper);
+          tab.index -= lower;
+        }
+      }
+    }
 
     let stateString = JSON.stringify(state);
     let data = Encoder.encode(stateString);
