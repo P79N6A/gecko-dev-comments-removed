@@ -402,7 +402,6 @@ NoteJSChild(JS::CallbackTracer* aTrc, JS::GCCellPtr aThing)
 
 
 
-
   if (AddToCCKind(aThing.kind())) {
     if (MOZ_UNLIKELY(tracer->mCb.WantDebugInfo())) {
       char buffer[200];
@@ -415,7 +414,14 @@ NoteJSChild(JS::CallbackTracer* aTrc, JS::GCCellPtr aThing)
       tracer->mCb.NoteJSScript(aThing.toScript());
     }
   } else if (aThing.isShape()) {
+    
+    
     JS_TraceShapeCycleCollectorChildren(aTrc, aThing);
+  } else if (aThing.isObjectGroup()) {
+    
+    
+    
+    JS_TraceObjectGroupCycleCollectorChildren(aTrc, aThing);
   } else if (!aThing.isString()) {
     JS_TraceChildren(aTrc, aThing.asCell(), aThing.kind());
   }

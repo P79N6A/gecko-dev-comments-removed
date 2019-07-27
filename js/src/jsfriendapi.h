@@ -95,9 +95,10 @@ JS_IsDeadWrapper(JSObject* obj);
 
 
 
-
 extern JS_FRIEND_API(void)
 JS_TraceShapeCycleCollectorChildren(JSTracer* trc, JS::GCCellPtr shape);
+extern JS_FRIEND_API(void)
+JS_TraceObjectGroupCycleCollectorChildren(JSTracer* trc, JS::GCCellPtr group);
 
 enum {
     JS_TELEMETRY_GC_REASON,
