@@ -969,12 +969,7 @@ pref("gecko.handlerService.allowRegisterFromDifferentHost", false);
 pref("browser.safebrowsing.enabled", true);
 pref("browser.safebrowsing.malware.enabled", true);
 pref("browser.safebrowsing.downloads.enabled", true);
-
-#if defined(XP_WIN)
 pref("browser.safebrowsing.downloads.remote.enabled", true);
-#else
-pref("browser.safebrowsing.downloads.remote.enabled", false);
-#endif
 pref("browser.safebrowsing.debug", false);
 
 pref("browser.safebrowsing.updateURL", "https://safebrowsing.google.com/safebrowsing/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2&key=%GOOGLE_API_KEY%");
