@@ -269,7 +269,7 @@ Emit2(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1);
 
 
 
-ptrdiff_t
+bool
 Emit3(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode op2);
 
 
