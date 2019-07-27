@@ -103,32 +103,6 @@ typedef int pid_t;
 
 
 
-#ifndef NUL
-#define NUL '\0'
-#endif
-
-
-
-
-
-
-
-#if defined(_POSIX_C_SOURCE)
-#define RESTRICT restrict
-#else
-#define RESTRICT
-#endif
-
-
-
-
-#ifndef CONST
-#define CONST const
-#endif
-
-
-
-
 #ifdef __cplusplus
 #define __BEGIN_DECLS extern "C" {
 #define __END_DECLS   }
@@ -137,16 +111,5 @@ typedef int pid_t;
 #define __END_DECLS
 #endif
 
+#endif 
 
-#define MSG_ECHO_EVENT 0xF001
-
-
-
-
-
-#ifndef __cplusplus
-#include "iso646.h"
-#endif
-#define equals ==
-
-#endif

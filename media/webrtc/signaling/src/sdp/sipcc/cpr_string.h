@@ -12,15 +12,6 @@
 
 __BEGIN_DECLS
 
-#if defined SIP_OS_LINUX
-#include "../linux/cpr_linux_string.h"
-#elif defined SIP_OS_WINDOWS
-#include "../win32/cpr_win_string.h"
-#define cpr_strdup _strdup
-#elif defined SIP_OS_OSX
-#include "../darwin/cpr_darwin_string.h"
-#endif
-
 
 
 
@@ -64,6 +55,7 @@ sstrncpy(char *dst, const char *src, unsigned long max);
 
 char *
 sstrncat(char *s1, const char *s2, unsigned long max);
+
 
 
 
@@ -119,6 +111,24 @@ void flex_string_vsprintf(flex_string *fs, const char *format, va_list original_
 
 
 void flex_string_sprintf(flex_string *fs, const char *format, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *
+cpr_strdup(const char *str);
 
 __END_DECLS
 

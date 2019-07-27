@@ -9,55 +9,21 @@
 
 __BEGIN_DECLS
 
-#if defined SIP_OS_LINUX
-#include "../linux/cpr_linux_strings.h"
-#elif defined SIP_OS_WINDOWS
-#include "../win32/cpr_win_strings.h"
-#elif defined SIP_OS_OSX
-#include "../darwin/cpr_darwin_strings.h"
-#endif
 
-#ifdef CPR_USE_OS_STRCASECMP
+#include <string.h>
 
-#ifndef cpr_strcasecmp
+#ifdef _MSC_VER
+
+#define cpr_strcasecmp _stricmp
+#define cpr_strncasecmp _strnicmp
+#define snprintf _snprintf
+
+#else 
+
 #define cpr_strcasecmp  strcasecmp
-#endif
-#ifndef cpr_strncasecmp
 #define cpr_strncasecmp strncasecmp
-#endif
-#else
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-int cpr_strcasecmp(const char *s1, const char *s2);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int cpr_strncasecmp(const char *s1, const char *s2, size_t len);
-#endif
+#endif 
 
 __END_DECLS
 
