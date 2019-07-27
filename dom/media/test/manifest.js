@@ -96,6 +96,10 @@ var gTrackTests = [
   { name:"bogus.duh", type:"bogus/duh" }
 ];
 
+var gClosingConnectionsTest = [
+  { name:"seek.ogv", type:"video/ogg", duration:3.966 }
+];
+
 
 
 var gMediaRecorderTests = [
