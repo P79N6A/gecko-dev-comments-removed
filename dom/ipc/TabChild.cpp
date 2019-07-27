@@ -1597,10 +1597,6 @@ TabChild::ProvideWindowCommon(nsIDOMWindow* aOpener,
     nsAutoCString baseURIString;
     baseURI->GetSpec(baseURIString);
 
-    
-    
-    features.AppendLiteral(",remote");
-
     nsresult rv;
 
     if (!SendCreateWindow(newChild,

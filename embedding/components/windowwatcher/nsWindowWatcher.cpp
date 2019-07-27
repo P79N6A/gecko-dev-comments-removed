@@ -562,7 +562,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
   
   chromeFlags = CalculateChromeFlags(aParent, features.get(), featuresSpecified,
                                      aDialog, uriToLoadIsChrome,
-                                     hasChromeParent, openedFromRemoteTab);
+                                     hasChromeParent, aCalledFromJS,
+                                     openedFromRemoteTab);
 
   
   
@@ -1466,8 +1467,8 @@ nsWindowWatcher::URIfromURL(const char* aURL,
 
 #define NS_CALCULATE_CHROME_FLAG_FOR(feature, flag)                            \
   prefBranch->GetBoolPref(feature, &forceEnable);                              \
-  if (forceEnable && !(aDialog && isCallerChrome) &&                           \
-      !(isCallerChrome && aHasChromeParent) && !aChromeURL) {                  \
+  if (forceEnable && !(aDialog && !openedFromContentScript) &&                 \
+      !(!openedFromContentScript && aHasChromeParent) && !aChromeURL) {                  \
     chromeFlags |= flag;                                                       \
   } else {                                                                     \
     chromeFlags |=                                                             \
@@ -1491,25 +1492,29 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
                                       bool aDialog,
                                       bool aChromeURL,
                                       bool aHasChromeParent,
+                                      bool aCalledFromJS,
                                       bool aOpenedFromRemoteTab)
 {
+  const bool inContentProcess = XRE_IsContentProcess();
   uint32_t chromeFlags = 0;
-  bool isCallerChrome =
-    nsContentUtils::IsCallerChrome() && !aOpenedFromRemoteTab;
 
-  bool onlyPrivateFlag = aFeaturesSpecified && aFeatures && isCallerChrome &&
-    nsCRT::strcasecmp(aFeatures, "private") == 0;
-  if (!aFeaturesSpecified || !aFeatures || onlyPrivateFlag) {
+  if (!aFeaturesSpecified || !aFeatures) {
     chromeFlags = nsIWebBrowserChrome::CHROME_ALL;
     if (aDialog) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
                      nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
     }
-    if (onlyPrivateFlag) {
-      chromeFlags |= nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW;
+
+    if (inContentProcess) {
+      return chromeFlags;
     }
-    return chromeFlags;
+  } else {
+    chromeFlags = nsIWebBrowserChrome::CHROME_WINDOW_BORDERS;
   }
+
+  bool openedFromContentScript =
+    aOpenedFromRemoteTab ? aCalledFromJS
+                         : !nsContentUtils::IsCallerChrome();
 
   
 
@@ -1520,30 +1525,32 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
 
 
   bool presenceFlag = false;
-
-  chromeFlags = nsIWebBrowserChrome::CHROME_WINDOW_BORDERS;
   if (aDialog && WinHasOption(aFeatures, "all", 0, &presenceFlag)) {
     chromeFlags = nsIWebBrowserChrome::CHROME_ALL;
   }
 
   
 
-  
-  if (isCallerChrome) {
+  if (!inContentProcess && !openedFromContentScript) {
+    
     chromeFlags |= WinHasOption(aFeatures, "private", 0, &presenceFlag) ?
       nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW : 0;
     chromeFlags |= WinHasOption(aFeatures, "non-private", 0, &presenceFlag) ?
       nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW : 0;
   }
 
-  
-  if (isCallerChrome || aOpenedFromRemoteTab) {
-    bool remote;
-    if (BrowserTabsRemoteAutostart()) {
-      remote = !WinHasOption(aFeatures, "non-remote", 0, &presenceFlag);
-    } else {
-      remote = WinHasOption(aFeatures, "remote", 0, &presenceFlag);
+  if (!inContentProcess) {
+    
+    bool remote = BrowserTabsRemoteAutostart();
+
+    if (!openedFromContentScript) {
+      if (remote) {
+        remote = !WinHasOption(aFeatures, "non-remote", 0, &presenceFlag);
+      } else {
+        remote = WinHasOption(aFeatures, "remote", 0, &presenceFlag);
+      }
     }
+
     if (remote) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_REMOTE_WINDOW;
     }
@@ -1644,7 +1651,7 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
   if (aParent) {
     aParent->GetFullScreen(&isFullScreen);
   }
-  if (isFullScreen && !isCallerChrome) {
+  if (isFullScreen && openedFromContentScript) {
     
     
     disableDialogFeature = true;
@@ -1671,7 +1678,7 @@ nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
 
 
   
-  if (!isCallerChrome || !aHasChromeParent) {
+  if (openedFromContentScript || !aHasChromeParent) {
     
     
     
@@ -2270,12 +2277,19 @@ nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow* aParent,
       return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
     }
 
-    if (restrictionPref == 2 &&
-        
-        
-        (aChromeFlags != nsIWebBrowserChrome::CHROME_ALL ||
-         aPositionSpecified || aSizeSpecified)) {
-      return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
+    if (restrictionPref == 2) {
+      
+      
+      
+      int32_t uiChromeFlags = aChromeFlags;
+      uiChromeFlags &= ~(nsIWebBrowserChrome::CHROME_REMOTE_WINDOW |
+                         nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW |
+                         nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW |
+                         nsIWebBrowserChrome::CHROME_PRIVATE_LIFETIME);
+      if (uiChromeFlags != nsIWebBrowserChrome::CHROME_ALL ||
+          aPositionSpecified || aSizeSpecified) {
+        return nsIBrowserDOMWindow::OPEN_NEWWINDOW;
+      }
     }
   }
 
