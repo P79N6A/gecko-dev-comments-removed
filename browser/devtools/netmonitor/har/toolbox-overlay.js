@@ -77,5 +77,10 @@ function register(toolbox) {
   overlays.set(toolbox, overlay);
 }
 
+function get(toolbox) {
+  return overlays.get(toolbox);
+}
+
 
 exports.register = register;
+exports.get = get;
