@@ -98,6 +98,10 @@ public class PanningPerfAPI {
         
         
         int values = mCheckerboardAmounts.size();
+        if (values == 0) {
+            Log.w(LOGTAG, "stopCheckerboardRecording() found no checkerboard amounts!");
+            return mCheckerboardAmounts;
+        }
 
         
         
