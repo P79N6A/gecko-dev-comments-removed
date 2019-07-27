@@ -136,6 +136,9 @@ def main(platform):
     add_dir_to_zip(xpi_path, os.path.join(distdir, "b2g"), "b2g", ("gaia", "B2G.app/Contents/MacOS/gaia"))
     
     add_dir_to_zip(xpi_path, os.path.join(gaia_path, "profile"), "profile")
+    
+    
+    add_dir_to_zip(xpi_path, os.path.join(srcdir, "defaults"), "defaults")
 
 if __name__ == '__main__':
     if 2 != len(sys.argv):
