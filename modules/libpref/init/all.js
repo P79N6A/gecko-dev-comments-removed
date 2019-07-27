@@ -1298,13 +1298,8 @@ pref("network.http.spdy.push-allowance", 131072);
 
 
 
-#ifdef RELEASE_BUILD
-pref("network.http.altsvc.enabled", false);
-pref("network.http.altsvc.oe", false);
-#else
 pref("network.http.altsvc.enabled", true);
 pref("network.http.altsvc.oe", true);
-#endif
 
 pref("network.http.diagnostics", false);
 
