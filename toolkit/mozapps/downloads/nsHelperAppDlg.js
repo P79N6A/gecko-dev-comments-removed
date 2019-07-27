@@ -195,6 +195,22 @@ nsUnknownContentTypeDialog.prototype = {
                    bundle.GetStringFromName("badPermissions"));
   },
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  promptForSaveToFile: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
+    throw new Components.Exception("Async version must be used", Components.results.NS_ERROR_NOT_AVAILABLE);
+  },
+
   promptForSaveToFileAsync: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
     var result = null;
 
