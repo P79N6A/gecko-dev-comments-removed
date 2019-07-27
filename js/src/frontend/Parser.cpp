@@ -7329,9 +7329,18 @@ typename ParseHandler::Node
 Parser<ParseHandler>::computedPropertyName(Node literal)
 {
     uint32_t begin = pos().begin;
+
+    
+    
+    
+    
+    bool saved = pc->inDeclDestructuring;
+    pc->inDeclDestructuring = false;
     Node assignNode = assignExpr();
+    pc->inDeclDestructuring = saved;
     if (!assignNode)
         return null();
+
     MUST_MATCH_TOKEN(TOK_RB, JSMSG_COMP_PROP_UNTERM_EXPR);
     Node propname = handler.newComputedName(assignNode, begin, pos().end);
     if (!propname)
