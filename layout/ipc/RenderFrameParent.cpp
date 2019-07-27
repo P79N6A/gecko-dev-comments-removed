@@ -565,6 +565,19 @@ RenderFrameParent::HitTest(const nsRect& aRect)
   return mTouchRegion.Contains(aRect);
 }
 
+void
+RenderFrameParent::GetTextureFactoryIdentifier(TextureFactoryIdentifier* aTextureFactoryIdentifier)
+{
+  nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
+  
+  if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
+    *aTextureFactoryIdentifier =
+      static_cast<ClientLayerManager*>(lm.get())->GetTextureFactoryIdentifier();
+  } else {
+    *aTextureFactoryIdentifier = TextureFactoryIdentifier();
+  }
+}
+
 }  
 }  
 
