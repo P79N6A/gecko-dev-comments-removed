@@ -26,5 +26,5 @@ public class Constants {
 
     
     
-    public static final String DEFAULT_SEARCH_ENGINE = "YAHOO";
+    public static final String DEFAULT_SEARCH_ENGINE = "yahoo";
 }

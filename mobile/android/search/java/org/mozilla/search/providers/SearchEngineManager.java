@@ -17,8 +17,12 @@ import org.mozilla.search.Constants;
 import org.mozilla.search.SearchPreferenceActivity;
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SearchEngineManager implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String LOG_TAG = "SearchEngineManager";
@@ -105,6 +109,55 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
 
 
+    public List<SearchEngine> getAllEngines() {
+        
+        final String url = getSearchPluginsJarUrl("list.txt");
+        InputStream in = GeckoJarReader.getStream(url);
+
+        
+        if (in == null) {
+            try {
+                in = context.getResources().getAssets().open("engines/list.txt");
+            } catch (IOException e) {
+                throw new IllegalStateException("Error reading list.txt");
+            }
+        }
+
+        final List<SearchEngine> list = new ArrayList<SearchEngine>();
+        InputStreamReader isr = null;
+
+        try {
+            isr = new InputStreamReader(in);
+            BufferedReader br = new BufferedReader(isr);
+            String identifier;
+            while ((identifier = br.readLine()) != null) {
+                list.add(createEngine(identifier));
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Error creating all search engines from list.txt");
+        } finally {
+            if (isr != null) {
+                try {
+                    isr.close();
+                } catch (IOException e) {
+                    
+                }
+            }
+            try {
+                in.close();
+            } catch (IOException e) {
+                
+            }
+        }
+        return list;
+    }
+
+    
+
+
+
+
+
 
     private SearchEngine createEngine(String identifier) {
         InputStream in = getEngineFromJar(identifier);
@@ -142,7 +195,7 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
     private InputStream getEngineFromAssets(String identifier) {
         try {
-            return context.getResources().getAssets().open(identifier + ".xml");
+            return context.getResources().getAssets().open("engines/" + identifier + ".xml");
         } catch (IOException e) {
             Log.e(LOG_TAG, "Exception getting search engine from assets", e);
             return null;
@@ -157,12 +210,21 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
 
     private InputStream getEngineFromJar(String identifier) {
+        final String url = getSearchPluginsJarUrl(identifier + ".xml");
+        return GeckoJarReader.getStream(url);
+    }
+
+    
+
+
+
+
+
+    private String getSearchPluginsJarUrl(String fileName) {
         
         final String locale = "en-US";
 
-        final String path = "!/chrome/" + locale + "/locale/" + locale + "/browser/searchplugins/" + identifier + ".xml";
-        final String url = "jar:jar:file://" + context.getPackageResourcePath() + "!/" + AppConstants.OMNIJAR_NAME + path;
-
-        return GeckoJarReader.getStream(url);
+        final String path = "!/chrome/" + locale + "/locale/" + locale + "/browser/searchplugins/" + fileName;
+        return "jar:jar:file://" + context.getPackageResourcePath() + "!/" + AppConstants.OMNIJAR_NAME + path;
     }
 }
