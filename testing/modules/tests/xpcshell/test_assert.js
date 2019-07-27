@@ -209,24 +209,6 @@ function run_test() {
     }
   });
 
-  
-
-  let b = {};
-  b.b = b;
-
-  let c = {};
-  c.b = c;
-
-  let gotError = false;
-  try {
-    assert.deepEqual(b, c);
-  } catch (e) {
-    gotError = true;
-  }
-
-  dump("All OK\n");
-  assert.ok(gotError);
-
   function testAssertionMessage(actual, expected) {
     try {
       assert.equal(actual, "");

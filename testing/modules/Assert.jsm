@@ -17,6 +17,7 @@ this.EXPORTED_SYMBOLS = [
 ];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/ObjectUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
@@ -258,94 +259,8 @@ proto.notEqual = function notEqual(actual, expected, message) {
 
 
 proto.deepEqual = function deepEqual(actual, expected, message) {
-  this.report(!_deepEqual(actual, expected), actual, expected, message, "deepEqual");
+  this.report(!ObjectUtils.deepEqual(actual, expected), actual, expected, message, "deepEqual");
 };
-
-function _deepEqual(actual, expected) {
-  
-  if (actual === expected) {
-    return true;
-  
-  
-  } else if (instanceOf(actual, "Date") && instanceOf(expected, "Date")) {
-    if (isNaN(actual.getTime()) && isNaN(expected.getTime()))
-      return true;
-    return actual.getTime() === expected.getTime();
-  
-  
-  
-  } else if (instanceOf(actual, "RegExp") && instanceOf(expected, "RegExp")) {
-    return actual.source === expected.source &&
-           actual.global === expected.global &&
-           actual.multiline === expected.multiline &&
-           actual.lastIndex === expected.lastIndex &&
-           actual.ignoreCase === expected.ignoreCase;
-  
-  
-  } else if (typeof actual != "object" && typeof expected != "object") {
-    return actual == expected;
-  
-  
-  
-  
-  
-  
-  } else {
-    return objEquiv(actual, expected);
-  }
-}
-
-function isUndefinedOrNull(value) {
-  return value === null || value === undefined;
-}
-
-function isArguments(object) {
-  return instanceOf(object, "Arguments");
-}
-
-function objEquiv(a, b) {
-  if (isUndefinedOrNull(a) || isUndefinedOrNull(b)) {
-    return false;
-  }
-  
-  if (a.prototype !== b.prototype) {
-    return false;
-  }
-  
-  
-  if (isArguments(a)) {
-    if (!isArguments(b)) {
-      return false;
-    }
-    a = pSlice.call(a);
-    b = pSlice.call(b);
-    return _deepEqual(a, b);
-  }
-  let ka, kb, key, i;
-  try {
-    ka = Object.keys(a);
-    kb = Object.keys(b);
-  } catch (e) {
-    
-    return false;
-  }
-  
-  
-  if (ka.length != kb.length)
-    return false;
-  
-  ka.sort();
-  kb.sort();
-  
-  
-  for (i = ka.length - 1; i >= 0; i--) {
-    key = ka[i];
-    if (!_deepEqual(a[key], b[key])) {
-      return false;
-    }
-  }
-  return true;
-}
 
 
 
