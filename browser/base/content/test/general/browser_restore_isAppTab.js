@@ -70,8 +70,12 @@ function isBrowserAppTab(browser) {
       browser.messageManager.removeMessageListener("Test:IsAppTab", listener);
       resolve(data.isAppTab);
     }
-    browser.messageManager.addMessageListener("Test:IsAppTab", listener);
-    browser.messageManager.sendAsyncMessage("Test:GetIsAppTab");
+    
+    
+    executeSoon(function () {
+      browser.messageManager.addMessageListener("Test:IsAppTab", listener);
+      browser.messageManager.sendAsyncMessage("Test:GetIsAppTab");
+    });
   });
 }
 
