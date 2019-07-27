@@ -351,10 +351,10 @@ MmsConnection.prototype = {
       let iccInfo = null;
       let baseIccInfo = this.radioInterface.rilContext.iccInfo;
       if (baseIccInfo.iccType === 'ruim' || baseIccInfo.iccType === 'csim') {
-        iccInfo = baseIccInfo.QueryInterface(Ci.nsIDOMMozCdmaIccInfo);
+        iccInfo = baseIccInfo.QueryInterface(Ci.nsICdmaIccInfo);
         number = iccInfo.mdn;
       } else {
-        iccInfo = baseIccInfo.QueryInterface(Ci.nsIDOMMozGsmIccInfo);
+        iccInfo = baseIccInfo.QueryInterface(Ci.nsIGsmIccInfo);
         number = iccInfo.msisdn;
       }
     } catch (e) {
