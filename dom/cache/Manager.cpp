@@ -97,11 +97,8 @@ public:
     MOZ_ASSERT(aResolver);
     MOZ_ASSERT(aQuotaInfo.mDir);
 
-    if (IsCanceled()) {
-      
-      aResolver->Resolve(NS_ERROR_ABORT);
-      return;
-    }
+    
+    
 
     nsCOMPtr<nsIFile> dbDir;
     nsresult rv = aQuotaInfo.mDir->Clone(getter_AddRefs(dbDir));
