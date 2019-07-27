@@ -373,12 +373,6 @@ this.AUSTLMY = {
 
 
 
-
-
-
-
-
-
   pingServiceInstallStatus: function UT_PSIS(aSuffix, aInstalled) {
     
     
@@ -484,11 +478,6 @@ this.AUSTLMY = {
   },
 
   
-
-
-
-
-
 
 
 

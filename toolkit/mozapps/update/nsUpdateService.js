@@ -164,8 +164,6 @@ const FOTA_GENERAL_ERROR                   = 80;
 const FOTA_UNKNOWN_ERROR                   = 81;
 const FOTA_FILE_OPERATION_ERROR            = 82;
 const FOTA_RECOVERY_ERROR                  = 83;
-
-const STAGE_FAIL_FALLBACK                  = 97;
 const INVALID_UPDATER_STATE_CODE           = 98;
 const INVALID_UPDATER_STATUS_CODE          = 99;
 
@@ -1432,8 +1430,6 @@ function pingStateAndStatusCodes(aUpdate, aStartup, aStatus) {
         break;
       case STATE_PENDING:
         stateCode = 4;
-        parts[0] = STATE_FAILED;
-        parts.push(STAGE_FAIL_FALLBACK);
         break;
       case STATE_PENDING_SVC:
         stateCode = 5;
@@ -2377,8 +2373,14 @@ UpdateService.prototype = {
     
     
     
-    AUSTLMY.pingGeneric("UPDATE_CANNOT_APPLY_" + this._pingSuffix,
-                        gCanApplyUpdates);
+    AUSTLMY.pingGeneric("UPDATE_PING_COUNT_" + this._pingSuffix,
+                        true, false);
+
+    
+    
+    
+    AUSTLMY.pingGeneric("UPDATE_UNABLE_TO_APPLY_" + this._pingSuffix,
+                        gCanApplyUpdates, true);
     
     
     
