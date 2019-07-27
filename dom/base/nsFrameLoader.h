@@ -227,6 +227,9 @@ public:
   void ActivateUpdateHitRegion();
   void DeactivateUpdateHitRegion();
 
+  
+  nsresult GetWindowDimensions(nsIntRect& aRect);
+
 private:
 
   void SetOwnerContent(mozilla::dom::Element* aContent);
@@ -283,9 +286,6 @@ private:
   nsresult EnsureMessageManager();
 
   
-  nsresult GetWindowDimensions(nsIntRect& aRect);
-
-  
   
   void UpdateBaseWindowPositionAndSize(nsSubDocumentFrame *aIFrame);
   nsresult CheckURILoad(nsIURI* aURI);
@@ -305,7 +305,8 @@ private:
                               nsIDocShell* aParentNode);
 
   nsIAtom* TypeAttrName() const {
-    return mOwnerContent->IsXUL() ? nsGkAtoms::type : nsGkAtoms::mozframetype;
+    return mOwnerContent->IsXULElement()
+             ? nsGkAtoms::type : nsGkAtoms::mozframetype;
   }
 
   

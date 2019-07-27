@@ -144,7 +144,7 @@ nsSVGDisplayContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                              const nsDisplayListSet& aLists)
 {
   
-  if (mContent->IsSVG() &&
+  if (mContent->IsSVGElement() &&
       !static_cast<const nsSVGElement*>(mContent)->HasValidDimensions()) {
     return;
   }
@@ -228,7 +228,7 @@ nsSVGDisplayContainerFrame::IsSVGTransformed(gfx::Matrix *aOwnTransform,
   }
 
   
-  if (mContent->IsSVG()) {
+  if (mContent->IsSVGElement()) {
     nsSVGElement *content = static_cast<nsSVGElement*>(mContent);
     nsSVGAnimatedTransformList* transformList =
       content->GetAnimatedTransformList();
@@ -264,7 +264,7 @@ nsSVGDisplayContainerFrame::PaintSVG(gfxContext& aContext,
   }
 
   gfxMatrix matrix = aTransform;
-  if (GetContent()->IsSVG()) { 
+  if (GetContent()->IsSVGElement()) { 
     matrix = static_cast<const nsSVGElement*>(GetContent())->
                PrependLocalTransformsTo(matrix,
                                         nsSVGElement::eChildToUserSpace);
@@ -279,7 +279,7 @@ nsSVGDisplayContainerFrame::PaintSVG(gfxContext& aContext,
     
     
     const nsIContent* content = kid->GetContent();
-    if (content->IsSVG()) { 
+    if (content->IsSVGElement()) { 
       const nsSVGElement* element = static_cast<const nsSVGElement*>(content);
       if (!element->HasValidDimensions()) {
         continue; 
@@ -367,7 +367,7 @@ nsSVGDisplayContainerFrame::ReflowSVG()
                    "expected kid to be a NS_FRAME_IS_NONDISPLAY frame");
       if (kid->GetStateBits() & NS_FRAME_IS_DIRTY) {
         nsSVGContainerFrame* container = do_QueryFrame(kid);
-        if (container && container->GetContent()->IsSVG()) {
+        if (container && container->GetContent()->IsSVGElement()) {
           ReflowSVGNonDisplayText(container);
         }
       }
@@ -423,11 +423,11 @@ nsSVGDisplayContainerFrame::GetBBoxContribution(
     nsIContent *content = kid->GetContent();
     nsISVGChildFrame* svgKid = do_QueryFrame(kid);
     
-    if (svgKid && (!content->IsSVG() ||
+    if (svgKid && (!content->IsSVGElement() ||
                    static_cast<const nsSVGElement*>(content)->HasValidDimensions())) {
 
       gfxMatrix transform = gfx::ThebesMatrix(aToBBoxUserspace);
-      if (content->IsSVG()) {
+      if (content->IsSVGElement()) {
         transform = static_cast<nsSVGElement*>(content)->
                       PrependLocalTransformsTo(transform);
       }

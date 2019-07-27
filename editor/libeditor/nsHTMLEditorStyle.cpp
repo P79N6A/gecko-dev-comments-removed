@@ -267,16 +267,19 @@ nsHTMLEditor::IsSimpleModifiableNode(nsIContent* aContent,
   }
 
   
-  if (element->IsHTML(aProperty) && !element->GetAttrCount() &&
+  if (element->IsHTMLElement(aProperty) && !element->GetAttrCount() &&
       (!aAttribute || aAttribute->IsEmpty())) {
     return true;
   }
 
   
   if (!element->GetAttrCount() &&
-      ((aProperty == nsGkAtoms::b && element->IsHTML(nsGkAtoms::strong)) ||
-       (aProperty == nsGkAtoms::i && element->IsHTML(nsGkAtoms::em)) ||
-       (aProperty == nsGkAtoms::strike && element->IsHTML(nsGkAtoms::s)))) {
+      ((aProperty == nsGkAtoms::b &&
+        element->IsHTMLElement(nsGkAtoms::strong)) ||
+       (aProperty == nsGkAtoms::i &&
+        element->IsHTMLElement(nsGkAtoms::em)) ||
+       (aProperty == nsGkAtoms::strike &&
+        element->IsHTMLElement(nsGkAtoms::s)))) {
     return true;
   }
 
@@ -286,7 +289,8 @@ nsHTMLEditor::IsSimpleModifiableNode(nsIContent* aContent,
     MOZ_ASSERT(atom);
 
     nsString attrValue;
-    if (element->IsHTML(aProperty) && IsOnlyAttribute(element, *aAttribute) &&
+    if (element->IsHTMLElement(aProperty) &&
+        IsOnlyAttribute(element, *aAttribute) &&
         element->GetAttr(kNameSpaceID_None, atom, attrValue) &&
         attrValue.Equals(*aValue, nsCaseInsensitiveStringComparator())) {
       
@@ -300,7 +304,8 @@ nsHTMLEditor::IsSimpleModifiableNode(nsIContent* aContent,
   
   
   if (!mHTMLCSSUtils->IsCSSEditableProperty(element, aProperty, aAttribute) ||
-      !element->IsHTML(nsGkAtoms::span) || element->GetAttrCount() != 1 ||
+      !element->IsHTMLElement(nsGkAtoms::span) ||
+      element->GetAttrCount() != 1 ||
       !element->HasAttr(kNameSpaceID_None, nsGkAtoms::style)) {
     return false;
   }
@@ -475,7 +480,7 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
     nsCOMPtr<dom::Element> tmp;
     
     
-    if (aNode->IsElement() && aNode->AsElement()->IsHTML(nsGkAtoms::span) &&
+    if (aNode->IsHTMLElement(nsGkAtoms::span) &&
         !aNode->AsElement()->GetAttrCount()) {
       tmp = aNode->AsElement();
     } else {
@@ -1721,7 +1726,7 @@ nsHTMLEditor::RelativeFontChangeHelper(int32_t aSizeChange, nsINode* aNode)
   }
 
   
-  if (aNode->IsElement() && aNode->AsElement()->IsHTML(nsGkAtoms::font) &&
+  if (aNode->IsHTMLElement(nsGkAtoms::font) &&
       aNode->AsElement()->HasAttr(kNameSpaceID_None, nsGkAtoms::size)) {
     
     for (uint32_t i = aNode->GetChildCount(); i--; ) {
@@ -1761,9 +1766,8 @@ nsHTMLEditor::RelativeFontChangeOnNode(int32_t aSizeChange, nsIContent* aNode)
   }
   
   
-  if (aNode->IsElement() &&
-      ((aSizeChange == 1 && aNode->AsElement()->IsHTML(nsGkAtoms::small)) ||
-       (aSizeChange == -1 && aNode->AsElement()->IsHTML(nsGkAtoms::big)))) {
+  if ((aSizeChange == 1 && aNode->IsHTMLElement(nsGkAtoms::small)) ||
+       (aSizeChange == -1 && aNode->IsHTMLElement(nsGkAtoms::big))) {
     
     nsresult rv = RelativeFontChangeHelper(aSizeChange, aNode);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1781,13 +1785,13 @@ nsHTMLEditor::RelativeFontChangeOnNode(int32_t aSizeChange, nsIContent* aNode)
     
     
     nsIContent* sibling = GetPriorHTMLSibling(aNode);
-    if (sibling && sibling->IsHTML(atom)) {
+    if (sibling && sibling->IsHTMLElement(atom)) {
       
       return MoveNode(aNode, sibling, -1);
     }
 
     sibling = GetNextHTMLSibling(aNode);
-    if (sibling && sibling->IsHTML(atom)) {
+    if (sibling && sibling->IsHTMLElement(atom)) {
       
       return MoveNode(aNode, sibling, 0);
     }
@@ -1920,8 +1924,8 @@ nsHTMLEditor::RemoveElementIfNoStyleOrIdOrClass(nsIDOMNode* aElement)
   NS_ENSURE_TRUE(element, NS_ERROR_NULL_POINTER);
 
   
-  if ((!element->IsHTML(nsGkAtoms::span) &&
-       !element->IsHTML(nsGkAtoms::font)) ||
+  if ((!element->IsHTMLElement(nsGkAtoms::span) &&
+       !element->IsHTMLElement(nsGkAtoms::font)) ||
       HasStyleOrIdOrClass(element)) {
     return NS_OK;
   }

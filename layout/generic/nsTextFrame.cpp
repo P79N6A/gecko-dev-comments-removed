@@ -4915,7 +4915,7 @@ nsTextFrame::GetTextDecorations(
 
     
     if (compatMode == eCompatibility_NavQuirks &&
-        f->GetContent()->IsHTML(nsGkAtoms::table)) {
+        f->GetContent()->IsHTMLElement(nsGkAtoms::table)) {
       break;
     }
 

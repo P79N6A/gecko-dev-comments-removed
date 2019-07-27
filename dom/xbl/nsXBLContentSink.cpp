@@ -884,7 +884,7 @@ nsresult
 nsXBLContentSink::AddAttributes(const char16_t** aAtts,
                                 nsIContent* aContent)
 {
-  if (aContent->IsXUL())
+  if (aContent->IsXULElement())
     return NS_OK; 
 
   return nsXMLContentSink::AddAttributes(aAtts, aContent);

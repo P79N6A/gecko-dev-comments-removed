@@ -117,7 +117,7 @@ SVGForeignObjectElement::BindToTree(nsIDocument* aDocument,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsIDocument* doc = GetComposedDoc();
-  if (doc && doc->IsSVG()) {
+  if (doc && doc->IsSVGDocument()) {
     
     
     

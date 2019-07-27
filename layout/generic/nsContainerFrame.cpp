@@ -625,7 +625,7 @@ nsContainerFrame::SyncWindowProperties(nsPresContext*       aPresContext,
     return;
 
   Element* rootElement = aPresContext->Document()->GetRootElement();
-  if (!rootElement || !rootElement->IsXUL()) {
+  if (!rootElement || !rootElement->IsXULElement()) {
     
     
     

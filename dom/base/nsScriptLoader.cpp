@@ -189,7 +189,7 @@ NS_IMPL_ISUPPORTS(nsScriptLoader, nsIStreamLoaderObserver)
 static bool
 IsScriptEventHandler(nsIContent* aScriptElement)
 {
-  if (!aScriptElement->IsHTML()) {
+  if (!aScriptElement->IsHTMLElement()) {
     return false;
   }
 
@@ -575,7 +575,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     
     
     
-    if (scriptContent->IsHTML()) {
+    if (scriptContent->IsHTMLElement()) {
       nsAutoString language;
       scriptContent->GetAttr(kNameSpaceID_None, nsGkAtoms::language, language);
       if (!language.IsEmpty()) {

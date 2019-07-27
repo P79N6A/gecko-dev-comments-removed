@@ -41,7 +41,7 @@ SVGContentUtils::GetOuterSVGElement(nsSVGElement *aSVGElement)
   nsIContent *element = nullptr;
   nsIContent *ancestor = aSVGElement->GetFlattenedTreeParent();
 
-  while (ancestor && ancestor->IsSVG() &&
+  while (ancestor && ancestor->IsSVGElement() &&
                      ancestor->Tag() != nsGkAtoms::foreignObject) {
     element = ancestor;
     ancestor = element->GetFlattenedTreeParent();
@@ -365,7 +365,7 @@ SVGContentUtils::EstablishesViewport(nsIContent *aContent)
   
   
   
-  return aContent && aContent->IsSVG() &&
+  return aContent && aContent->IsSVGElement() &&
            (aContent->Tag() == nsGkAtoms::svg ||
             aContent->Tag() == nsGkAtoms::foreignObject ||
             aContent->Tag() == nsGkAtoms::symbol);
@@ -376,7 +376,7 @@ SVGContentUtils::GetNearestViewportElement(nsIContent *aContent)
 {
   nsIContent *element = aContent->GetFlattenedTreeParent();
 
-  while (element && element->IsSVG()) {
+  while (element && element->IsSVGElement()) {
     if (EstablishesViewport(element)) {
       if (element->Tag() == nsGkAtoms::foreignObject) {
         return nullptr;
@@ -396,7 +396,7 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
   nsSVGElement *element = aElement;
   nsIContent *ancestor = aElement->GetFlattenedTreeParent();
 
-  while (ancestor && ancestor->IsSVG() &&
+  while (ancestor && ancestor->IsSVGElement() &&
                      ancestor->Tag() != nsGkAtoms::foreignObject) {
     element = static_cast<nsSVGElement*>(ancestor);
     matrix *= element->PrependLocalTransformsTo(gfxMatrix()); 
@@ -431,7 +431,7 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
   if (!ancestor || !ancestor->IsElement()) {
     return gfx::ToMatrix(matrix);
   }
-  if (ancestor->IsSVG()) {
+  if (ancestor->IsSVGElement()) {
     return
       gfx::ToMatrix(matrix) * GetCTMInternal(static_cast<nsSVGElement*>(ancestor), true, true);
   }

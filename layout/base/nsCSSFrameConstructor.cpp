@@ -1621,14 +1621,14 @@ nsCSSFrameConstructor::CreateGeneratedContent(nsFrameConstructorState& aState,
         attrNameSpace = nameSpaceVal.ToInteger(&error);
         contentString.Cut(0, barIndex + 1);
         if (contentString.Length()) {
-          if (mDocument->IsHTML() && aParentContent->IsHTML()) {
+          if (mDocument->IsHTMLDocument() && aParentContent->IsHTMLElement()) {
             ToLowerCase(contentString);
           }
           attrName = do_GetAtom(contentString);
         }
       }
       else {
-        if (mDocument->IsHTML() && aParentContent->IsHTML()) {
+        if (mDocument->IsHTMLDocument() && aParentContent->IsHTMLElement()) {
           ToLowerCase(contentString);
         }
         attrName = do_GetAtom(contentString);
@@ -1696,7 +1696,7 @@ nsCSSFrameConstructor::CreateGeneratedContent(nsFrameConstructorState& aState,
         return content.forget();
       }
 
-      if (aParentContent->IsHTML() &&
+      if (aParentContent->IsHTMLElement() &&
           aParentContent->NodeInfo()->Equals(nsGkAtoms::input)) {
         if (aParentContent->HasAttr(kNameSpaceID_None, nsGkAtoms::value)) {
           nsCOMPtr<nsIContent> content;
@@ -2361,7 +2361,7 @@ nsCSSFrameConstructor::PropagateScrollToViewport()
   
   
   nsCOMPtr<nsIDOMHTMLDocument> htmlDoc(do_QueryInterface(mDocument));
-  if (!htmlDoc || !docElement->IsHTML()) {
+  if (!htmlDoc || !docElement->IsHTMLElement()) {
     return nullptr;
   }
 
@@ -2519,7 +2519,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
 
   
 #ifdef MOZ_XUL
-  if (aDocElement->IsXUL()) {
+  if (aDocElement->IsXULElement()) {
     contentFrame = NS_NewDocElementBoxFrame(mPresShell, styleContext);
     InitAndRestoreFrame(state, aDocElement, mDocElementContainingBlock,
                         contentFrame);
@@ -2528,7 +2528,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   }
   else
 #endif
-  if (aDocElement->IsSVG()) {
+  if (aDocElement->IsSVGElement()) {
     if (aDocElement->Tag() != nsGkAtoms::svg) {
       return nullptr;
     }
@@ -2777,7 +2777,7 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
 
   if (!isPaginated) {
 #ifdef MOZ_XUL
-    if (aDocElement->IsXUL())
+    if (aDocElement->IsXULElement())
     {
       
       rootFrame = NS_NewRootBoxFrame(mPresShell, viewportPseudoStyle);
@@ -2806,11 +2806,11 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
   
   
 
-  bool isHTML = aDocElement->IsHTML();
+  bool isHTML = aDocElement->IsHTMLElement();
   bool isXUL = false;
 
   if (!isHTML) {
-    isXUL = aDocElement->IsXUL();
+    isXUL = aDocElement->IsXULElement();
   }
 
   
@@ -3466,7 +3466,7 @@ nsCSSFrameConstructor::FindHTMLData(Element* aElement,
       (!aParentFrame ||
        !IsFrameForFieldSet(aParentFrame, aParentFrame->GetType()) ||
        !aElement->GetParent() ||
-       !aElement->GetParent()->IsHTML(nsGkAtoms::fieldset) ||
+       !aElement->GetParent()->IsHTMLElement(nsGkAtoms::fieldset) ||
        aStyleContext->StyleDisplay()->IsFloatingStyle() ||
        aStyleContext->StyleDisplay()->IsAbsolutelyPositionedStyle())) {
     
@@ -3689,7 +3689,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
                "Unexpected FCDATA_FORCED_NON_SCROLLABLE_BLOCK flag");
 
   
-  if (aState.mCreatingExtraFrames && aItem.mContent->IsHTML() &&
+  if (aState.mCreatingExtraFrames && aItem.mContent->IsHTMLElement() &&
       aItem.mContent->Tag() == nsGkAtoms::iframe)
   {
     return;
@@ -4516,7 +4516,7 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
   
   
   bool propagatedScrollToViewport = false;
-  if (aElement->IsHTML(nsGkAtoms::body)) {
+  if (aElement->IsHTMLElement(nsGkAtoms::body)) {
     propagatedScrollToViewport =
       PropagateScrollToViewport() == aElement;
   }
@@ -5518,11 +5518,11 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
     
     nsIAtom* parentTag = parent->Tag();
     if ((parentTag == nsGkAtoms::select || parentTag == nsGkAtoms::optgroup) &&
-        parent->IsHTML() &&
+        parent->IsHTMLElement() &&
         
-        !aContent->IsHTML(nsGkAtoms::option) &&
+        !aContent->IsHTMLElement(nsGkAtoms::option) &&
         
-        (!aContent->IsHTML(nsGkAtoms::optgroup) ||
+        (!aContent->IsHTMLElement(nsGkAtoms::optgroup) ||
          parentTag != nsGkAtoms::select) &&
         
         !aContent->IsRootOfNativeAnonymousSubtree()) {
@@ -6364,7 +6364,7 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
       aSibling = cif;
     }
     nsIAtom* sibType = aSibling->GetType();
-    bool legendContent = aContent->IsHTML(nsGkAtoms::legend);
+    bool legendContent = aContent->IsHTMLElement(nsGkAtoms::legend);
 
     if ((legendContent  && (nsGkAtoms::legendFrame != sibType)) ||
         (!legendContent && (nsGkAtoms::legendFrame == sibType)))
@@ -6498,7 +6498,7 @@ GetAdjustedParentFrame(nsContainerFrame* aParentFrame,
   if (nsGkAtoms::fieldSetFrame == aParentFrameType) {
     
     
-    if (!aChildContent->IsHTML(nsGkAtoms::legend)) {
+    if (!aChildContent->IsHTMLElement(nsGkAtoms::legend)) {
       newParent = GetFieldSetBlockFrame(aParentFrame);
     }
   }
@@ -6648,7 +6648,7 @@ static bool
 IsSpecialFramesetChild(nsIContent* aContent)
 {
   
-  return aContent->IsHTML() &&
+  return aContent->IsHTMLElement() &&
     (aContent->Tag() == nsGkAtoms::frameset ||
      aContent->Tag() == nsGkAtoms::frame);
 }
@@ -6662,7 +6662,7 @@ static
 bool
 IsXULListBox(nsIContent* aContainer)
 {
-  return (aContainer->IsXUL() && aContainer->Tag() == nsGkAtoms::listbox);
+  return (aContainer->IsXULElement(nsGkAtoms::listbox));
 }
 
 static
@@ -6673,7 +6673,7 @@ MaybeGetListBoxBodyFrame(nsIContent* aContainer, nsIContent* aChild)
     return nullptr;
 
   if (IsXULListBox(aContainer) &&
-      aChild->IsXUL() && aChild->Tag() == nsGkAtoms::listitem) {
+      aChild->IsXULElement(nsGkAtoms::listitem)) {
     nsCOMPtr<nsIDOMXULElement> xulElement = do_QueryInterface(aContainer);
     nsCOMPtr<nsIBoxObject> boxObject;
     xulElement->GetBoxObject(getter_AddRefs(boxObject));
@@ -6731,7 +6731,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
                                             nsIContent* aChild)
 {
   if (mPresShell->GetPresContext()->IsChrome() || !aContainer ||
-      aContainer->IsInNativeAnonymousSubtree() || aContainer->IsXUL()) {
+      aContainer->IsInNativeAnonymousSubtree() || aContainer->IsXULElement()) {
     return false;
   }
 
@@ -6739,7 +6739,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
     if (aChild->IsRootOfAnonymousSubtree() ||
         (aChild->HasFlag(NODE_IS_IN_SHADOW_TREE) &&
          !aChild->IsInNativeAnonymousSubtree()) ||
-        aChild->IsEditable() || aChild->IsXUL()) {
+        aChild->IsEditable() || aChild->IsXULElement()) {
       return false;
     }
   } else { 
@@ -6748,7 +6748,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
     for (nsIContent* child = aChild; child; child = child->GetNextSibling()) {
       NS_ASSERTION(!child->IsRootOfAnonymousSubtree(),
                    "Should be coming through the CONTENTAPPEND case");
-      if (child->IsXUL() || child->IsEditable()) {
+      if (child->IsXULElement() || child->IsEditable()) {
         return false;
       }
     }
@@ -8284,7 +8284,7 @@ InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node)
 
     
     if (node->Tag() != nsGkAtoms::body ||
-        !node->IsHTML()) {
+        !node->IsHTMLElement()) {
       return;
     }
   }
@@ -8911,7 +8911,7 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIContent* aContainer,
                            insertionElement);
 
   
-  if (insertionElement->IsHTML(nsGkAtoms::fieldset)) {
+  if (insertionElement->IsHTMLElement(nsGkAtoms::fieldset)) {
     insertion.mMultiple = true;
   }
 

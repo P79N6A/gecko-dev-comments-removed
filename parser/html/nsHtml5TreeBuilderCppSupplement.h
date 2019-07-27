@@ -1146,7 +1146,7 @@ nsHtml5TreeBuilder::getFormPointerForContext(nsIContentHandle* aContext)
   
   nsIContent* nearestForm = nullptr;
   while (currentAncestor) {
-    if (currentAncestor->IsHTML(nsGkAtoms::form)) {
+    if (currentAncestor->IsHTMLElement(nsGkAtoms::form)) {
       nearestForm = currentAncestor;
       break;
     }

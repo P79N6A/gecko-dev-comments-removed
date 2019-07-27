@@ -468,7 +468,7 @@ nsIFrame::GetOrdinal()
 
   
   nsIContent* content = GetContent();
-  if (content && content->IsXUL()) {
+  if (content && content->IsXULElement()) {
     nsresult error;
     nsAutoString value;
 
@@ -640,7 +640,7 @@ nsIFrame::AddCSSPrefSize(nsIFrame* aBox, nsSize& aSize, bool &aWidthSet, bool &a
     
     
     
-    if (content && content->IsXUL()) {
+    if (content && content->IsXULElement()) {
         nsAutoString value;
         nsresult error;
 
@@ -741,7 +741,7 @@ nsIFrame::AddCSSMinSize(nsBoxLayoutState& aState, nsIFrame* aBox, nsSize& aSize,
     
 
     nsIContent* content = aBox->GetContent();
-    if (content && content->IsXUL()) {
+    if (content && content->IsXULElement()) {
         nsAutoString value;
         nsresult error;
 
@@ -804,7 +804,7 @@ nsIFrame::AddCSSMaxSize(nsIFrame* aBox, nsSize& aSize, bool &aWidthSet, bool &aH
     
 
     nsIContent* content = aBox->GetContent();
-    if (content && content->IsXUL()) {
+    if (content && content->IsXULElement()) {
         nsAutoString value;
         nsresult error;
 
@@ -843,7 +843,7 @@ nsIFrame::AddCSSFlex(nsBoxLayoutState& aState, nsIFrame* aBox, nscoord& aFlex)
 
     
     nsIContent* content = aBox->GetContent();
-    if (content && content->IsXUL()) {
+    if (content && content->IsXULElement()) {
         nsresult error;
         nsAutoString value;
 

@@ -419,7 +419,7 @@ nsContentList::nsContentList(nsINode* aRootNode,
   
   
   nsIDocument* doc = mRootNode->GetUncomposedDoc();
-  mFlushesNeeded = doc && !doc->IsHTML();
+  mFlushesNeeded = doc && !doc->IsHTMLDocument();
 }
 
 nsContentList::nsContentList(nsINode* aRootNode,
@@ -452,7 +452,7 @@ nsContentList::nsContentList(nsINode* aRootNode,
   
   
   nsIDocument* doc = mRootNode->GetUncomposedDoc();
-  mFlushesNeeded = doc && !doc->IsHTML();
+  mFlushesNeeded = doc && !doc->IsHTMLDocument();
 }
 
 nsContentList::~nsContentList()
@@ -853,7 +853,7 @@ nsContentList::Match(Element *aElement)
     return toReturn;
 
   bool matchHTML = aElement->GetNameSpaceID() == kNameSpaceID_XHTML &&
-    aElement->OwnerDoc()->IsHTML();
+    aElement->OwnerDoc()->IsHTMLDocument();
  
   if (unknown) {
     return matchHTML ? ni->QualifiedNameEquals(mHTMLMatchAtom) :

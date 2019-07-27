@@ -56,7 +56,7 @@ SVGZoomEvent::SVGZoomEvent(EventTarget* aOwner,
         
         
         
-        if (rootElement->IsSVG(nsGkAtoms::svg)) {
+        if (rootElement->IsSVGElement(nsGkAtoms::svg)) {
           SVGSVGElement *SVGSVGElem =
             static_cast<SVGSVGElement*>(rootElement);
 

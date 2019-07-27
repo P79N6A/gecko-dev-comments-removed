@@ -666,7 +666,8 @@ MayBindToContent(nsXBLPrototypeBinding* aProtoBinding, nsIContent* aBoundElement
 
   
   
-  if (aBoundElement->IsXUL() || aBoundElement->OwnerDoc()->IsXUL()) {
+  if (aBoundElement->IsXULElement() ||
+      aBoundElement->OwnerDoc()->IsXULElement()) {
     return true;
   }
 
@@ -955,7 +956,7 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
                   ni->Equals(nsGkAtoms::thumb, kNameSpaceID_XUL) ||
                   ((ni->Equals(nsGkAtoms::input) ||
                     ni->Equals(nsGkAtoms::select)) &&
-                   aBoundElement->IsHTML()))) && !aForceSyncLoad) {
+                   aBoundElement->IsHTMLElement()))) && !aForceSyncLoad) {
       
       
       

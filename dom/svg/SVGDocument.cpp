@@ -58,7 +58,7 @@ SVGDocument::GetRootElement(ErrorResult& aRv)
   if (!root) {
     return nullptr;
   }
-  if (!root->IsSVG()) {
+  if (!root->IsSVGElement()) {
     aRv.Throw(NS_NOINTERFACE);
     return nullptr;
   }
@@ -70,7 +70,7 @@ SVGDocument::InsertChildAt(nsIContent* aKid, uint32_t aIndex, bool aNotify)
 {
   nsresult rv = XMLDocument::InsertChildAt(aKid, aIndex, aNotify);
 
-  if (NS_SUCCEEDED(rv) && aKid->IsElement() && !aKid->IsSVG()) {
+  if (NS_SUCCEEDED(rv) && aKid->IsElement() && !aKid->IsSVGElement()) {
     
     
     

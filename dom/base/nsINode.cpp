@@ -220,7 +220,7 @@ nsINode::GetTextEditorRootContent(nsIEditor** aEditor)
     *aEditor = nullptr;
   for (nsINode* node = this; node; node = node->GetParentNode()) {
     if (!node->IsElement() ||
-        !node->AsElement()->IsHTML())
+        !node->IsHTMLElement())
       continue;
 
     nsCOMPtr<nsIEditor> editor =
@@ -427,7 +427,7 @@ nsINode::IsAnonymousContentInSVGUseSubtree() const
   MOZ_ASSERT(IsInAnonymousSubtree());
   nsIContent* parent = AsContent()->GetBindingParent();
   
-  return parent && parent->IsSVG(nsGkAtoms::use);
+  return parent && parent->IsSVGElement(nsGkAtoms::use);
 }
 
 nsresult

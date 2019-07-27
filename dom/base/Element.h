@@ -351,7 +351,7 @@ public:
   
   inline bool HasDirAuto() const {
     return (!HasFixedDir() &&
-            (HasValidDir() || IsHTML(nsGkAtoms::bdi)));
+            (HasValidDir() || IsHTMLElement(nsGkAtoms::bdi)));
   }
 
   Directionality GetComputedDirectionality() const;

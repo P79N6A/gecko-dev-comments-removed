@@ -450,7 +450,7 @@ nsRangeFrame::AccessibleType()
 double
 nsRangeFrame::GetValueAsFractionOfRange()
 {
-  MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
+  MOZ_ASSERT(mContent->IsHTMLElement(nsGkAtoms::input), "bad cast");
   dom::HTMLInputElement* input = static_cast<dom::HTMLInputElement*>(mContent);
 
   MOZ_ASSERT(input->GetType() == NS_FORM_INPUT_RANGE);
@@ -479,7 +479,7 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
              aEvent->mClass == eTouchEventClass,
              "Unexpected event type - aEvent->refPoint may be meaningless");
 
-  MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
+  MOZ_ASSERT(mContent->IsHTMLElement(nsGkAtoms::input), "bad cast");
   dom::HTMLInputElement* input = static_cast<dom::HTMLInputElement*>(mContent);
 
   MOZ_ASSERT(input->GetType() == NS_FORM_INPUT_RANGE);
@@ -710,7 +710,7 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
       
       
       
-      MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
+      MOZ_ASSERT(mContent->IsHTMLElement(nsGkAtoms::input), "bad cast");
       bool typeIsRange = static_cast<dom::HTMLInputElement*>(mContent)->GetType() ==
                            NS_FORM_INPUT_RANGE;
       

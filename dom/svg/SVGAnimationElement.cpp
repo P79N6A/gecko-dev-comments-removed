@@ -138,7 +138,8 @@ SVGAnimationElement::GetTargetElement()
   
   nsIContent* target = GetTargetElementContent();
 
-  return (target && target->IsSVG()) ? static_cast<nsSVGElement*>(target) : nullptr;
+  return (target && target->IsSVGElement())
+           ? static_cast<nsSVGElement*>(target) : nullptr;
 }
 
 float

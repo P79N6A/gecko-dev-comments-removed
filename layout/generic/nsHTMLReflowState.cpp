@@ -391,8 +391,8 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
               
               
              (frame->GetContent() &&
-            !(frame->GetContent()->IsHTML(nsGkAtoms::body) ||
-              frame->GetContent()->IsHTML(nsGkAtoms::html)))) {
+            !(frame->GetContent()->IsAnyOfHTMLElements(nsGkAtoms::body,
+                                                       nsGkAtoms::html)))) {
 
     
     

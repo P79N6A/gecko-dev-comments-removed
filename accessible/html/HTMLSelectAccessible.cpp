@@ -126,7 +126,7 @@ HTMLSelectListAccessible::CacheChildren()
   
   for (nsIContent* childContent = mContent->GetFirstChild(); childContent;
        childContent = childContent->GetNextSibling()) {
-    if (!childContent->IsHTML()) {
+    if (!childContent->IsHTMLElement()) {
       continue;
     }
 

@@ -1002,7 +1002,7 @@ static bool
 UseSVGTitle(nsIDOMElement *currElement)
 {
   nsCOMPtr<dom::Element> element(do_QueryInterface(currElement));
-  if (!element || !element->IsSVG() || !element->GetParentNode())
+  if (!element || !element->IsSVGElement() || !element->GetParentNode())
     return false;
 
   return element->GetParentNode()->NodeType() != nsIDOMNode::DOCUMENT_NODE;
@@ -1079,7 +1079,7 @@ DefaultTooltipTextProvider::GetNodeText(nsIDOMNode *aNode, char16_t **aText,
                 uint32_t childNodeCount = childNodes->Length();
                 for (uint32_t i = 0; i < childNodeCount; i++) {
                   nsIContent* child = childNodes->Item(i);
-                  if (child->IsSVG(nsGkAtoms::title)) {
+                  if (child->IsSVGElement(nsGkAtoms::title)) {
                     static_cast<dom::SVGTitleElement*>(child)->GetTextContent(outText);
                     if (outText.Length())
                       found = true;
@@ -1453,9 +1453,15 @@ ChromeTooltipListener::sTooltipCallback(nsITimer *aTimer,
       if (textFound) {
         nsString tipText(tooltipText);
         LayoutDeviceIntPoint screenDot = widget->WidgetToScreenOffset();
-        self->ShowTooltip(self->mMouseScreenX - screenDot.x,
-                          self->mMouseScreenY - screenDot.y,
-                          tipText);
+        double scaleFactor = 1.0;
+        if (shell->GetPresContext()) {
+          scaleFactor = double(nsPresContext::AppUnitsPerCSSPixel())/
+          shell->GetPresContext()->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom();
+        }
+        
+        self->ShowTooltip(self->mMouseScreenX - screenDot.x / scaleFactor,
+          self->mMouseScreenY - screenDot.y / scaleFactor,
+          tipText);
       }
     }
 

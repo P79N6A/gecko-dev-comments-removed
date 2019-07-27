@@ -884,7 +884,7 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
     
     
 
-    if (startContent->IsHTML()) {
+    if (startContent->IsHTMLElement()) {
       nsCOMPtr<mozilla::dom::Link> link(do_QueryInterface(startContent));
       if (link) {
         

@@ -403,7 +403,7 @@ nsResizerFrame::ResizeContent(nsIContent* aContent, const Direction& aDirection,
 {
   
   
-  if (aContent->IsXUL()) {
+  if (aContent->IsXULElement()) {
     if (aOriginalSizeInfo) {
       aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::width,
                         aOriginalSizeInfo->width);

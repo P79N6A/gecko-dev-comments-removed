@@ -3369,7 +3369,7 @@ nsHTMLEditor::IsEmptyCell(dom::Element* aCell)
 
   
   
-  if (cellChild->IsElement() && cellChild->AsElement()->IsHTML(nsGkAtoms::br)) {
+  if (cellChild->IsHTMLElement(nsGkAtoms::br)) {
     return true;
   }
 

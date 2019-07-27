@@ -842,7 +842,7 @@ IMEStateManager::SetIMEState(const IMEState& aState,
           willSubmit = true;
         
         } else if (formElement && formElement->Tag() == nsGkAtoms::form &&
-                   formElement->IsHTML() &&
+                   formElement->IsHTMLElement() &&
                    !static_cast<dom::HTMLFormElement*>(formElement)->
                      ImplicitSubmissionIsDisabled()) {
           willSubmit = true;

@@ -341,7 +341,7 @@ nsHTMLFramesetFrame::Init(nsIContent*       aContent,
 
     
     
-    if (!child->IsHTML())
+    if (!child->IsHTMLElement())
       continue;
 
     nsIAtom *tag = child->Tag();

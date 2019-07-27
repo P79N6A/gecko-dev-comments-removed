@@ -1469,7 +1469,7 @@ NS_IMETHODIMP nsXULWindow::SavePersistentAttributes()
 
   
   ownerXULDoc = do_QueryInterface(docShellElement->OwnerDoc());
-  if (docShellElement->IsXUL()) {
+  if (docShellElement->IsXULElement()) {
     docShellElement->GetId(windowElementId);
   }
 

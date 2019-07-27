@@ -227,8 +227,8 @@ IsScopedStyleElement(nsIContent* aContent)
   
   
   
-  return (aContent->IsHTML(nsGkAtoms::style) ||
-          aContent->IsSVG(nsGkAtoms::style)) &&
+  return (aContent->IsHTMLElement(nsGkAtoms::style) ||
+          aContent->IsSVGElement(nsGkAtoms::style)) &&
          aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::scoped);
 }
 
@@ -307,7 +307,7 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument* aOldDocument,
   
   
   ShadowRoot* containingShadow = thisContent->GetContainingShadow();
-  if (thisContent->IsHTML(nsGkAtoms::link) &&
+  if (thisContent->IsHTMLElement(nsGkAtoms::link) &&
       (aOldShadowRoot || containingShadow)) {
     return NS_OK;
   }

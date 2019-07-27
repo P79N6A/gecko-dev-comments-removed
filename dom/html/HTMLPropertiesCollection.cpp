@@ -277,11 +277,11 @@ HTMLPropertiesCollection::CrawlSubtree(Element* aElement)
   while (aContent) {
     
     
-    if (aContent == mRoot || !aContent->IsHTML()) {
+    if (aContent == mRoot || !aContent->IsHTMLElement()) {
       
       aContent = aContent->GetNextNode(aElement);
     } else {
-      MOZ_ASSERT(aContent->IsElement(), "IsHTML() returned true!");
+      MOZ_ASSERT(aContent->IsElement(), "IsHTMLElement() returned true!");
       Element* element = aContent->AsElement();
       if (element->HasAttr(kNameSpaceID_None, nsGkAtoms::itemprop) &&
           !mProperties.Contains(element)) {

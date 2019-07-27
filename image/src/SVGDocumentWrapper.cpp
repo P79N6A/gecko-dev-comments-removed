@@ -410,7 +410,7 @@ SVGDocumentWrapper::GetRootSVGElem()
     return nullptr; 
 
   Element* rootElem = mViewer->GetDocument()->GetRootElement();
-  if (!rootElem || !rootElem->IsSVG(nsGkAtoms::svg)) {
+  if (!rootElem || !rootElem->IsSVGElement(nsGkAtoms::svg)) {
     return nullptr;
   }
 

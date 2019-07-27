@@ -1656,7 +1656,7 @@ nsDOMWindowUtils::GetTranslationNodes(nsIDOMNode* aRoot,
   
   nsIContent* content = root;
   while ((limit > 0) && (content = content->GetNextNode(root))) {
-    if (!content->IsHTML()) {
+    if (!content->IsHTMLElement()) {
       continue;
     }
 

@@ -1263,7 +1263,7 @@ bool
 nsXULContentBuilder::IsOpen(nsIContent* aElement)
 {
     
-    if (!aElement->IsXUL())
+    if (!aElement->IsXULElement())
         return true;
 
     

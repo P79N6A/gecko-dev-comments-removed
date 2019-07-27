@@ -490,7 +490,7 @@ nsSVGUtils::PaintFrameWithEffects(nsIFrame *aFrame,
     return;
 
   const nsIContent* content = aFrame->GetContent();
-  if (content->IsSVG() &&
+  if (content->IsSVGElement() &&
       !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
     return;
   }
@@ -706,7 +706,7 @@ nsSVGUtils::HitTestChildren(nsSVGDisplayContainerFrame* aFrame,
   
   
   gfxPoint point = aPoint;
-  if (aFrame->GetContent()->IsSVG()) { 
+  if (aFrame->GetContent()->IsSVGElement()) { 
     gfxMatrix m = static_cast<const nsSVGElement*>(aFrame->GetContent())->
                     PrependLocalTransformsTo(gfxMatrix(),
                                              nsSVGElement::eChildToUserSpace);
@@ -727,14 +727,14 @@ nsSVGUtils::HitTestChildren(nsSVGDisplayContainerFrame* aFrame,
     nsISVGChildFrame* SVGFrame = do_QueryFrame(current);
     if (SVGFrame) {
       const nsIContent* content = current->GetContent();
-      if (content->IsSVG() &&
+      if (content->IsSVGElement() &&
           !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
         continue;
       }
       
       
       gfxPoint p = point;
-      if (content->IsSVG()) { 
+      if (content->IsSVGElement()) { 
         gfxMatrix m = static_cast<const nsSVGElement*>(content)->
                         PrependLocalTransformsTo(gfxMatrix(),
                                                  nsSVGElement::eUserSpaceToParent);
@@ -899,7 +899,7 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, uint32_t aFlags)
       svg = do_QueryFrame(ancestor);
     }
     nsIContent* content = aFrame->GetContent();
-    if (content->IsSVG() &&
+    if (content->IsSVGElement() &&
         !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
       return bbox;
     }
@@ -911,7 +911,7 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, uint32_t aFlags)
       
       
       
-      MOZ_ASSERT(content->IsSVG(), "bad cast");
+      MOZ_ASSERT(content->IsSVGElement(), "bad cast");
       nsSVGElement *element = static_cast<nsSVGElement*>(content);
       matrix = element->PrependLocalTransformsTo(matrix,
                           nsSVGElement::eChildToUserSpace);
@@ -1038,7 +1038,7 @@ nsSVGUtils::GetRelativeRect(uint16_t aUnits, const nsSVGLength2 *aXYWH,
     return GetBoundingBoxRelativeRect(aXYWH, aBBox);
   }
   nsIContent* content = aFrame->GetContent();
-  if (content->IsSVG()) {
+  if (content->IsSVGElement()) {
     nsSVGElement* svgElement = static_cast<nsSVGElement*>(content);
     return GetRelativeRect(aUnits, aXYWH, aBBox, SVGElementMetrics(svgElement));
   }
@@ -1114,7 +1114,7 @@ nsSVGUtils::GetNonScalingStrokeTransform(nsIFrame *aFrame,
   }
 
   nsIContent *content = aFrame->GetContent();
-  MOZ_ASSERT(content->IsSVG(), "bad cast");
+  MOZ_ASSERT(content->IsSVGElement(), "bad cast");
 
   *aUserToOuterSVG = ThebesMatrix(SVGContentUtils::GetCTM(
                        static_cast<nsSVGElement*>(content), true));
@@ -1595,7 +1595,7 @@ nsSVGUtils::PaintSVGGlyph(Element* aElement, gfxContext* aContext,
   aContext->GetDrawTarget()->AddUserData(&gfxTextContextPaint::sUserDataKey,
                                          aContextPaint, nullptr);
   gfxMatrix m;
-  if (frame->GetContent()->IsSVG()) {
+  if (frame->GetContent()->IsSVGElement()) {
     
     
     m = static_cast<nsSVGElement*>(frame->GetContent())->
@@ -1618,7 +1618,7 @@ nsSVGUtils::GetSVGGlyphExtents(Element* aElement,
 
   gfxMatrix transform(aSVGToAppSpace);
   nsIContent* content = frame->GetContent();
-  if (content->IsSVG()) {
+  if (content->IsSVGElement()) {
     transform = static_cast<nsSVGElement*>(content)->
                   PrependLocalTransformsTo(aSVGToAppSpace);
   }
