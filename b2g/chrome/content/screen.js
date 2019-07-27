@@ -75,6 +75,11 @@ window.addEventListener('ContentStart', function() {
     }
 
     
+    if (screenarg === null && Services.prefs.prefHasUserValue('b2g.screen.size')) {
+      screenarg = Services.prefs.getCharPref('b2g.screen.size');
+    }
+
+    
     if (screenarg === null)
       screenarg = DEFAULT_SCREEN;
 
