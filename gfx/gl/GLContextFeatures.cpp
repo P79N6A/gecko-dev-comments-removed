@@ -72,6 +72,15 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "clear_buffers",
+        300, 
+        300, 
+        GLContext::Extension_None,
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
         "depth_texture",
         200, 
         300, 
