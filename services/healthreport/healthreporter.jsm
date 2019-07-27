@@ -341,6 +341,7 @@ function AbstractHealthReporter(branch, policy, sessionRecorder) {
   
   
   this._currentProviderInShutdown = null;
+  this._currentProviderInInit = null;
 }
 
 AbstractHealthReporter.prototype = Object.freeze({
@@ -413,6 +414,7 @@ AbstractHealthReporter.prototype = Object.freeze({
             hasStorage: !!this._storage,
             shutdownComplete: this._shutdownComplete,
             currentProviderInShutdown: this._currentProviderInShutdown,
+            currentProviderInInit: this._currentProviderInInit,
           }));
 
       try {
@@ -500,8 +502,10 @@ AbstractHealthReporter.prototype = Object.freeze({
     let catString = this._prefs.get("service.providerCategories") || "";
     if (catString.length) {
       for (let category of catString.split(",")) {
-        yield this._providerManager.registerProvidersFromCategoryManager(category);
+        yield this._providerManager.registerProvidersFromCategoryManager(category,
+                     providerName => this._currentProviderInInit = providerName);
       }
+      this._currentProviderInInit = null;
     }
   }),
 
