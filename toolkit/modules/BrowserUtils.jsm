@@ -217,8 +217,11 @@ this.BrowserUtils = {
 
 
   linkHasNoReferrer: function (linkNode) {
+    
+    
+    
     if (!linkNode)
-      return false;
+      return true;
 
     let rel = linkNode.getAttribute("rel");
     if (!rel)
