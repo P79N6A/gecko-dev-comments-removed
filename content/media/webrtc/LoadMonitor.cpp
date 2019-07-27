@@ -274,10 +274,16 @@ nsresult WinProcMon::QuerySystemLoad(float* load_percent)
 }
 #endif
 
-class LoadStats
+
+
+
+
+
+
+class RTCLoadStats
 {
 public:
-  LoadStats() :
+  RTCLoadStats() :
     mPrevTotalTimes(0),
     mPrevCpuTimes(0),
     mPrevLoad(0) {};
@@ -289,11 +295,17 @@ public:
   float mPrevLoad;               
 };
 
-class LoadInfo : public mozilla::RefCounted<LoadInfo>
+
+
+
+
+
+
+class RTCLoadInfo : public mozilla::RefCounted<RTCLoadInfo>
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(LoadInfo)
-  LoadInfo(): mLoadUpdateInterval(0) {};
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(RTCLoadInfo)
+  RTCLoadInfo(): mLoadUpdateInterval(0) {};
   nsresult Init(int aLoadUpdateInterval);
   double GetSystemLoad() { return mSystemLoad.GetLoad(); };
   double GetProcessLoad() { return mProcessLoad.GetLoad(); };
@@ -304,19 +316,19 @@ private:
   void UpdateCpuLoad(uint64_t ticks_per_interval,
                      uint64_t current_total_times,
                      uint64_t current_cpu_times,
-                     LoadStats* loadStat);
+                     RTCLoadStats* loadStat);
 #ifdef XP_WIN
   WinProcMon mSysMon;
   HANDLE mProcHandle;
   int mNumProcessors;
 #endif
-  LoadStats mSystemLoad;
-  LoadStats mProcessLoad;
+  RTCLoadStats mSystemLoad;
+  RTCLoadStats mProcessLoad;
   uint64_t mTicksPerInterval;
   int mLoadUpdateInterval;
 };
 
-nsresult LoadInfo::Init(int aLoadUpdateInterval)
+nsresult RTCLoadInfo::Init(int aLoadUpdateInterval)
 {
   mLoadUpdateInterval = aLoadUpdateInterval;
 #ifdef XP_WIN
@@ -331,10 +343,10 @@ nsresult LoadInfo::Init(int aLoadUpdateInterval)
 #endif
 }
 
-void LoadInfo::UpdateCpuLoad(uint64_t ticks_per_interval,
-                             uint64_t current_total_times,
-                             uint64_t current_cpu_times,
-                             LoadStats *loadStat) {
+void RTCLoadInfo::UpdateCpuLoad(uint64_t ticks_per_interval,
+                                uint64_t current_total_times,
+                                uint64_t current_cpu_times,
+                                RTCLoadStats *loadStat) {
   
   if (((current_total_times - loadStat->mPrevTotalTimes)
        > (ticks_per_interval * 10))
@@ -366,7 +378,7 @@ void LoadInfo::UpdateCpuLoad(uint64_t ticks_per_interval,
   loadStat->mPrevCpuTimes = current_cpu_times;
 }
 
-nsresult LoadInfo::UpdateSystemLoad()
+nsresult RTCLoadInfo::UpdateSystemLoad()
 {
 #if defined(LINUX) || defined(ANDROID)
   nsCOMPtr<nsIFile> procStatFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
@@ -472,7 +484,7 @@ nsresult LoadInfo::UpdateSystemLoad()
 #endif
 }
 
-nsresult LoadInfo::UpdateProcessLoad() {
+nsresult RTCLoadInfo::UpdateProcessLoad() {
 #if defined(XP_UNIX)
   struct timeval tv;
   gettimeofday(&tv, nullptr);
@@ -518,11 +530,13 @@ nsresult LoadInfo::UpdateProcessLoad() {
   return NS_OK;
 }
 
+
+
 class LoadInfoCollectRunner : public nsRunnable
 {
 public:
   LoadInfoCollectRunner(nsRefPtr<LoadMonitor> loadMonitor,
-                        RefPtr<LoadInfo> loadInfo,
+                        RefPtr<RTCLoadInfo> loadInfo,
                         nsIThread *loadInfoThread)
     : mThread(loadInfoThread),
       mLoadUpdateInterval(loadMonitor->mLoadUpdateInterval),
@@ -571,7 +585,7 @@ public:
 
 private:
   nsCOMPtr<nsIThread> mThread;
-  RefPtr<LoadInfo> mLoadInfo;
+  RefPtr<RTCLoadInfo> mLoadInfo;
   nsRefPtr<LoadMonitor> mLoadMonitor;
   int mLoadUpdateInterval;
   int mLoadNoiseCounter;
@@ -615,11 +629,11 @@ LoadMonitor::Init(nsRefPtr<LoadMonitor> &self)
 {
   LOG(("Initializing LoadMonitor"));
 
-  RefPtr<LoadInfo> load_info = new LoadInfo();
+  RefPtr<RTCLoadInfo> load_info = new RTCLoadInfo();
   nsresult rv = load_info->Init(mLoadUpdateInterval);
 
   if (NS_FAILED(rv)) {
-    LOG(("LoadInfo::Init error"));
+    LOG(("RTCLoadInfo::Init error"));
     return rv;
   }
 
