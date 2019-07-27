@@ -3973,7 +3973,10 @@ ArrayBufferBuilder::setCapacity(uint32_t aNewCap)
 {
   MOZ_ASSERT(!mMapPtr);
 
-  uint8_t *newdata = (uint8_t *) js_realloc(mDataPtr, aNewCap);
+  
+  
+  uint8_t* newdata = (uint8_t *) js_realloc(mDataPtr, aNewCap ? aNewCap : 1);
+
   if (!newdata) {
     return false;
   }
