@@ -678,14 +678,22 @@ InspectorPanel.prototype = {
     let unique = this.panelDoc.getElementById("node-menu-copyuniqueselector");
     let copyInnerHTML = this.panelDoc.getElementById("node-menu-copyinner");
     let copyOuterHTML = this.panelDoc.getElementById("node-menu-copyouter");
+    let scrollIntoView = this.panelDoc.getElementById("node-menu-scrollnodeintoview");
+
+    this._target.actorHasMethod("domnode", "scrollIntoView").then(value => {
+      scrollIntoView.hidden = !value;
+    });
+
     if (isSelectionElement) {
       unique.removeAttribute("disabled");
       copyInnerHTML.removeAttribute("disabled");
       copyOuterHTML.removeAttribute("disabled");
+      scrollIntoView.removeAttribute("disabled");
     } else {
       unique.setAttribute("disabled", "true");
       copyInnerHTML.setAttribute("disabled", "true");
       copyOuterHTML.setAttribute("disabled", "true");
+      scrollIntoView.setAttribute("disabled", "true");
     }
     if (!this.canGetUniqueSelector) {
       unique.hidden = true;
@@ -997,6 +1005,18 @@ InspectorPanel.prototype = {
     this.selection.nodeFront.getUniqueSelector().then((selector) => {
       clipboardHelper.copyString(selector);
     }).then(null, console.error);
+  },
+
+  
+
+
+  scrollNodeIntoView: function InspectorPanel_scrollNodeIntoView()
+  {
+    if (!this.selection.isNode()) {
+      return;
+    }
+
+    this.selection.nodeFront.scrollIntoView();
   },
 
   

@@ -584,6 +584,16 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
   
 
 
+  scrollIntoView: method(function() {
+    this.rawNode.scrollIntoView(true);
+  }, {
+    request: {},
+    response: {}
+  }),
+
+  
+
+
 
 
 
