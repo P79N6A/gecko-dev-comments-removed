@@ -58,6 +58,21 @@ function runEmulatorCmdSafe(aCommand) {
   return deferred.promise;
 }
 
+
+
+
+
+
+
+
+
+
+
+function sendEmulatorStkPdu(aPdu) {
+  let cmd = "stk pdu " + aPdu;
+  return runEmulatorCmdSafe(cmd);
+}
+
 let workingFrame;
 let iccManager;
 
