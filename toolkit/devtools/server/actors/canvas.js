@@ -156,8 +156,6 @@ let FrameSnapshotActor = protocol.ActorClass({
       last: index
     });
 
-    
-    let dimensions = Math.min(CanvasFront.SCREENSHOT_HEIGHT_MAX, canvas.height);
     let screenshot;
 
     
