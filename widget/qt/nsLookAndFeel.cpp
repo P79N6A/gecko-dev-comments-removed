@@ -17,6 +17,9 @@
 #include <QGuiApplication>
 #include <QFont>
 #include <QScreen>
+#include <QPalette>
+#include <QStyle>
+#include <QStyleFactory>
 
 #include "nsLookAndFeel.h"
 #include "nsStyleConsts.h"
@@ -25,6 +28,9 @@
 #include "mozilla/gfx/2D.h"
 
 static const char16_t UNICODE_BULLET = 0x2022;
+
+#define QCOLOR_TO_NS_RGB(c)                     \
+  ((nscolor)NS_RGB(c.red(),c.green(),c.blue()))
 
 nsLookAndFeel::nsLookAndFeel()
     : nsXPLookAndFeel()
@@ -40,45 +46,33 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
 {
     nsresult rv = NS_OK;
 
-#define BASE_ACTIVE_COLOR     NS_RGB(0xaa,0xaa,0xaa)
-#define BASE_NORMAL_COLOR     NS_RGB(0xff,0xff,0xff)
-#define BASE_SELECTED_COLOR   NS_RGB(0xaa,0xaa,0xaa)
-#define BG_ACTIVE_COLOR       NS_RGB(0xff,0xff,0xff)
-#define BG_INSENSITIVE_COLOR  NS_RGB(0xaa,0xaa,0xaa)
-#define BG_NORMAL_COLOR       NS_RGB(0xff,0xff,0xff)
 #define BG_PRELIGHT_COLOR     NS_RGB(0xee,0xee,0xee)
-#define BG_SELECTED_COLOR     NS_RGB(0x99,0x99,0x99)
-#define DARK_NORMAL_COLOR     NS_RGB(0x88,0x88,0x88)
-#define FG_INSENSITIVE_COLOR  NS_RGB(0x44,0x44,0x44)
-#define FG_NORMAL_COLOR       NS_RGB(0x00,0x00,0x00)
 #define FG_PRELIGHT_COLOR     NS_RGB(0x77,0x77,0x77)
-#define FG_SELECTED_COLOR     NS_RGB(0xaa,0xaa,0xaa)
-#define LIGHT_NORMAL_COLOR    NS_RGB(0xaa,0xaa,0xaa)
-#define TEXT_ACTIVE_COLOR     NS_RGB(0x99,0x99,0x99)
-#define TEXT_NORMAL_COLOR     NS_RGB(0x00,0x00,0x00)
-#define TEXT_SELECTED_COLOR   NS_RGB(0x00,0x00,0x00)
+#define RED_COLOR             NS_RGB(0xff,0x00,0x00)
+
+    QPalette palette = QGuiApplication::palette();
 
     switch (aID) {
         
         
         
     case eColorID_WindowBackground:
-        aColor = BASE_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_WindowForeground:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
         break;
     case eColorID_WidgetBackground:
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_WidgetForeground:
-        aColor = FG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
         break;
     case eColorID_WidgetSelectBackground:
-        aColor = BG_SELECTED_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_WidgetSelectForeground:
-        aColor = FG_SELECTED_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
         break;
     case eColorID_Widget3DHighlight:
         aColor = NS_RGB(0xa0,0xa0,0xa0);
@@ -88,23 +82,23 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         break;
     case eColorID_TextBackground:
         
-        aColor = BASE_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_TextForeground:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
         break;
     case eColorID_TextSelectBackground:
     case eColorID_IMESelectedRawTextBackground:
     case eColorID_IMESelectedConvertedTextBackground:
         
-        aColor = BASE_SELECTED_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Highlight));
         break;
     case eColorID_TextSelectForeground:
     case eColorID_IMESelectedRawTextForeground:
     case eColorID_IMESelectedConvertedTextForeground:
         
-        aColor = TEXT_SELECTED_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::HighlightedText));
         break;
     case eColorID_IMERawInputBackground:
     case eColorID_IMEConvertedTextBackground:
@@ -123,138 +117,138 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         aColor = NS_TRANSPARENT;
         break;
     case eColorID_SpellCheckerUnderline:
-      aColor = NS_RGB(0xff, 0, 0);
-      break;
+        aColor = RED_COLOR;
+        break;
 
         
     case eColorID_activeborder:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_activecaption:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_appworkspace:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_background:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_captiontext:
         
-        aColor = FG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
     case eColorID_graytext:
         
-        aColor = FG_INSENSITIVE_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Text));
         break;
     case eColorID_highlight:
         
-        aColor = BASE_SELECTED_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Highlight));
         break;
     case eColorID_highlighttext:
         
-        aColor = TEXT_SELECTED_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::HighlightedText));
         break;
     case eColorID_inactiveborder:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Window));
         break;
     case eColorID_inactivecaption:
         
-        aColor = BG_INSENSITIVE_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Window));
         break;
     case eColorID_inactivecaptiontext:
         
-        aColor = FG_INSENSITIVE_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Text));
         break;
     case eColorID_infobackground:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ToolTipBase));
         break;
     case eColorID_infotext:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ToolTipText));
         break;
     case eColorID_menu:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID_menutext:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
     case eColorID_scrollbar:
         
-        aColor = BG_ACTIVE_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Mid));
         break;
 
     case eColorID_threedface:
     case eColorID_buttonface:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Button));
         break;
 
     case eColorID_buttontext:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ButtonText));
         break;
 
     case eColorID_buttonhighlight:
         
     case eColorID_threedhighlight:
         
-        aColor = LIGHT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Dark));
         break;
 
     case eColorID_threedlightshadow:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Light));
         break;
 
     case eColorID_buttonshadow:
         
     case eColorID_threedshadow:
         
-        aColor = DARK_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Dark));
         break;
 
     case eColorID_threeddarkshadow:
         
-        aColor = NS_RGB(0,0,0);
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Shadow));
         break;
 
     case eColorID_window:
     case eColorID_windowframe:
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
 
     case eColorID_windowtext:
-        aColor = FG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
 
     case eColorID__moz_eventreerow:
     case eColorID__moz_field:
-        aColor = BASE_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Base));
         break;
     case eColorID__moz_fieldtext:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
     case eColorID__moz_dialog:
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID__moz_dialogtext:
-        aColor = FG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
         break;
     case eColorID__moz_dragtargetzone:
-        aColor = BG_SELECTED_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
         break;
     case eColorID__moz_buttondefault:
         
-        aColor = NS_RGB(0,0,0);
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Button));
         break;
     case eColorID__moz_buttonhoverface:
         aColor = BG_PRELIGHT_COLOR;
@@ -264,17 +258,17 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         break;
     case eColorID__moz_cellhighlight:
     case eColorID__moz_html_cellhighlight:
-        aColor = BASE_ACTIVE_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Highlight));
         break;
     case eColorID__moz_cellhighlighttext:
     case eColorID__moz_html_cellhighlighttext:
-        aColor = TEXT_ACTIVE_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::HighlightedText));
         break;
     case eColorID__moz_menuhover:
         aColor = BG_PRELIGHT_COLOR;
         break;
     case eColorID__moz_menuhovertext:
-        aColor = FG_PRELIGHT_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
     case eColorID__moz_oddtreerow:
         aColor = NS_TRANSPARENT;
@@ -283,16 +277,16 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         aColor = NS_SAME_AS_FOREGROUND_COLOR;
         break;
     case eColorID__moz_comboboxtext:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
     case eColorID__moz_combobox:
-        aColor = BG_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Base));
         break;
     case eColorID__moz_menubartext:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
     case eColorID__moz_menubarhovertext:
-        aColor = FG_PRELIGHT_COLOR;
+        aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
         break;
     default:
         
