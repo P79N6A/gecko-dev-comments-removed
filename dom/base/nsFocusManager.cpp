@@ -38,6 +38,7 @@
 #include "nsBindingManager.h"
 #include "nsStyleCoord.h"
 #include "SelectionCarets.h"
+#include "TabChild.h"
 
 #include "mozilla/ContentEvents.h"
 #include "mozilla/dom/Element.h"
@@ -174,7 +175,6 @@ static const char* kObservedPrefs[] = {
 };
 
 nsFocusManager::nsFocusManager()
-  : mParentFocusType(ParentFocusType_Ignore)
 { }
 
 nsFocusManager::~nsFocusManager()
@@ -712,7 +712,7 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
   
   
   
-  if (mParentFocusType == ParentFocusType_Ignore) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     ActivateOrDeactivate(window, true);
   }
 
@@ -777,7 +777,7 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
   
   
   
-  if (mParentFocusType == ParentFocusType_Ignore) {
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
     ActivateOrDeactivate(window, false);
   }
 
@@ -889,6 +889,11 @@ nsFocusManager::WindowShown(nsIDOMWindow* aWindow, bool aNeedsFocus)
   }
 #endif
 
+  if (nsCOMPtr<nsITabChild> child = do_GetInterface(window->GetDocShell())) {
+    bool active = static_cast<TabChild*>(child.get())->ParentIsActive();
+    ActivateOrDeactivate(window, active);
+  }
+
   if (mFocusedWindow != window)
     return NS_OK;
 
@@ -904,10 +909,6 @@ nsFocusManager::WindowShown(nsIDOMWindow* aWindow, bool aNeedsFocus)
     
     
     EnsureCurrentWidgetFocused();
-  }
-
-  if (mParentFocusType == ParentFocusType_Active) {
-    ActivateOrDeactivate(window, true);
   }
 
   return NS_OK;
@@ -1077,7 +1078,6 @@ nsFocusManager::ParentActivated(nsIDOMWindow* aWindow, bool aActive)
 
   window = window->GetOuterWindow();
 
-  mParentFocusType = aActive ? ParentFocusType_Active : ParentFocusType_Inactive;
   ActivateOrDeactivate(window, aActive);
   return NS_OK;
 }

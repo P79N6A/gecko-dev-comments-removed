@@ -235,7 +235,7 @@ public:
     
     
     
-    void Show(const nsIntSize& size);
+    void Show(const nsIntSize& size, bool aParentIsActive);
     void UpdateDimensions(const nsIntRect& rect, const nsIntSize& size,
                           const nsIntPoint& chromeDisp);
     void UpdateFrame(const layers::FrameMetrics& aFrameMetrics);

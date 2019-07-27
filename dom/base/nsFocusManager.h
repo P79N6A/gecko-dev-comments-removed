@@ -26,12 +26,6 @@ class nsIMessageBroadcaster;
 
 struct nsDelayedBlurOrFocusEvent;
 
-enum ParentFocusType {
-  ParentFocusType_Ignore, 
-  ParentFocusType_Active, 
-  ParentFocusType_Inactive, 
-};
-
 
 
 
@@ -96,11 +90,6 @@ public:
 
 
   void UpdateCaretForCaretBrowsingMode();
-
-  bool IsParentActivated()
-  {
-    return mParentFocusType == ParentFocusType_Active;
-  }
 
   
 
@@ -548,9 +537,6 @@ private:
   
   
   nsCOMPtr<nsIDocument> mMouseButtonEventHandlingDocument;
-
-  
-  ParentFocusType mParentFocusType;
 
   static bool sTestMode;
 
