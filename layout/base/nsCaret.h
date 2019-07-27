@@ -196,11 +196,8 @@ protected:
 
     void          DrawCaret(bool aInvalidate);
     void          DrawCaretAfterBriefDelay();
-    bool          UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset);
-    nsRect        GetHookRect()
-    {
-      return mHookRect;
-    }
+    void          ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
+                                    nsRect* aCaretRect, nsRect* aHookRect);
     void          ToggleDrawnStatus() { mDrawn = !mDrawn; }
 
     nsFrameSelection* GetFrameSelection();
@@ -233,9 +230,7 @@ protected:
     bool                  mIgnoreUserModify;
 
     bool                  mKeyboardRTL;       
-    nsRect                mHookRect;          
     uint8_t               mLastBidiLevel;     
-    nsRect                mCaretRect;         
 
     nsCOMPtr<nsIContent>  mLastContent;       
                                               
