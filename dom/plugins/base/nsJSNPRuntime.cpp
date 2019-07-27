@@ -18,8 +18,8 @@
 #include "nsDOMJSUtils.h"
 #include "nsJSUtils.h"
 #include "nsIDocument.h"
-#include "nsIJSRuntimeService.h"
 #include "nsIXPConnect.h"
+#include "xpcpublic.h"
 #include "nsIDOMElement.h"
 #include "prmem.h"
 #include "nsIContent.h"
@@ -90,8 +90,7 @@ static PLDHashTable* sNPObjWrappers;
 
 static int32_t sWrapperCount;
 
-
-nsCOMPtr<nsIJSRuntimeService> sCallbackRuntime;
+static bool sCallbackIsRegistered = false;
 
 static nsTArray<NPObject*>* sDelayedReleases;
 
@@ -319,18 +318,11 @@ DelayedReleaseGCCallback(JSGCStatus status)
 static bool
 RegisterGCCallbacks()
 {
-  if (sCallbackRuntime) {
+  if (sCallbackIsRegistered) {
     return true;
   }
 
-  static const char rtsvc_id[] = "@mozilla.org/js/xpc/RuntimeService;1";
-  nsCOMPtr<nsIJSRuntimeService> rtsvc(do_GetService(rtsvc_id));
-  if (!rtsvc) {
-    return false;
-  }
-
-  JSRuntime *jsRuntime = nullptr;
-  rtsvc->GetRuntime(&jsRuntime);
+  JSRuntime *jsRuntime = xpc::GetJSRuntime();
   MOZ_ASSERT(jsRuntime != nullptr);
 
   
@@ -340,30 +332,28 @@ RegisterGCCallbacks()
 
   
   
-  rtsvc->RegisterGCCallback(DelayedReleaseGCCallback);
+  xpc::AddGCCallback(DelayedReleaseGCCallback);
 
-  
-  sCallbackRuntime = rtsvc;
+  sCallbackIsRegistered = true;
+
   return true;
 }
 
 static void
 UnregisterGCCallbacks()
 {
-  MOZ_ASSERT(sCallbackRuntime);
+  MOZ_ASSERT(sCallbackIsRegistered);
 
-  JSRuntime *jsRuntime = nullptr;
-  sCallbackRuntime->GetRuntime(&jsRuntime);
+  JSRuntime *jsRuntime = xpc::GetJSRuntime();
   MOZ_ASSERT(jsRuntime != nullptr);
 
   
   JS_RemoveExtraGCRootsTracer(jsRuntime, TraceJSObjWrappers, nullptr);
 
   
-  if (sCallbackRuntime) {
-    sCallbackRuntime->UnregisterGCCallback(DelayedReleaseGCCallback);
-    
-    sCallbackRuntime = nullptr;
+  if (sCallbackIsRegistered) {
+    xpc::RemoveGCCallback(DelayedReleaseGCCallback);
+    sCallbackIsRegistered = false;
   }
 }
 
