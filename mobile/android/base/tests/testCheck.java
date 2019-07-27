@@ -37,6 +37,9 @@ public class testCheck extends PixelTest {
         mDriver.startCheckerboardRecording();
 
         
+        meh.disableGeckoLongpress();
+
+        
         
         for (int i = 2; i < 7; i++) {
             int botY = (height * i / 8);

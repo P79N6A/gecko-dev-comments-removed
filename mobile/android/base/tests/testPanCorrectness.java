@@ -25,6 +25,9 @@ public class testPanCorrectness extends PixelTest {
         loadAndVerifyBoxes(url);
 
         
+        meh.disableGeckoLongpress();
+
+        
         Actions.RepeatedEventExpecter paintExpecter = mActions.expectPaint();
         meh.dragSync(10, 150, 10, 50);
         PaintedSurface painted = waitForPaint(paintExpecter);
