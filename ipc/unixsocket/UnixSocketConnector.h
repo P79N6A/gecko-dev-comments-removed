@@ -36,7 +36,7 @@ public:
 
   virtual nsresult ConvertAddressToString(const struct sockaddr& aAddress,
                                           socklen_t aAddressLength,
-                                          nsACString& aAddressString);
+                                          nsACString& aAddressString) = 0;
 
   
 
@@ -48,7 +48,7 @@ public:
 
   virtual nsresult CreateListenSocket(struct sockaddr* aAddress,
                                       socklen_t* aAddressLength,
-                                      int& aListenFd);
+                                      int& aListenFd) = 0;
 
   
 
@@ -62,7 +62,7 @@ public:
   virtual nsresult AcceptStreamSocket(int aListenFd,
                                       struct sockaddr* aAddress,
                                       socklen_t* aAddressLen,
-                                      int& aStreamFd);
+                                      int& aStreamFd) = 0;
 
   
 
@@ -74,68 +74,7 @@ public:
 
   virtual nsresult CreateStreamSocket(struct sockaddr* aAddress,
                                       socklen_t* aAddressLength,
-                                      int& aStreamFd);
-
-  
-
-
-
-
-
-
-  virtual int Create() = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual bool CreateAddr(bool aIsServer,
-                          socklen_t& aAddrSize,
-                          sockaddr_any& aAddr,
-                          const char* aAddress) = 0;
-
-  
-
-
-
-
-
-
-
-  virtual bool SetUp(int aFd) = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual bool SetUpListenSocket(int aFd) = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual void GetSocketAddr(const sockaddr_any& aAddr,
-                             nsAString& aAddrStr) = 0;
+                                      int& aStreamFd) = 0;
 
 protected:
   UnixSocketConnector();
