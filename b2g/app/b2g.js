@@ -799,6 +799,9 @@ pref("accessibility.accessfu.utterance", 1);
 pref("accessibility.accessfu.skip_empty_images", true);
 
 
+pref("accessibility.accessfu.keyboard_echo", 3);
+
+
 pref("ui.touch.radius.enabled", true);
 pref("ui.touch.radius.leftmm", 3);
 pref("ui.touch.radius.topmm", 5);

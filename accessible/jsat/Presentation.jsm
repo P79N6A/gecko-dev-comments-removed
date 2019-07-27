@@ -11,8 +11,7 @@
 const {utils: Cu, interfaces: Ci} = Components;
 
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
-XPCOMUtils.defineLazyModuleGetter(this, 'Utils', 
-  'resource://gre/modules/accessibility/Utils.jsm');
+Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'Logger', 
   'resource://gre/modules/accessibility/Utils.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'PivotContext', 
@@ -60,8 +59,8 @@ Presenter.prototype = {
   
 
 
-  textChanged: function textChanged(aIsInserted, aStartOffset, aLength, aText, 
-                                    aModifiedText) {}, 
+  textChanged: function textChanged(aAccessible, aIsInserted, aStartOffset, 
+                                    aLength, aText, aModifiedText) {}, 
 
   
 
@@ -344,7 +343,7 @@ AndroidPresenter.prototype.tabStateChanged =
   };
 
 AndroidPresenter.prototype.textChanged = function AndroidPresenter_textChanged(
-  aIsInserted, aStart, aLength, aText, aModifiedText) {
+  aAccessible, aIsInserted, aStart, aLength, aText, aModifiedText) {
     let eventDetails = {
       eventType: this.ANDROID_VIEW_TEXT_CHANGED,
       text: [aText],
@@ -461,6 +460,13 @@ B2GPresenter.prototype = Object.create(Presenter.prototype);
 
 B2GPresenter.prototype.type = 'B2G';
 
+B2GPresenter.prototype.keyboardEchoSetting =
+  new PrefCache('accessibility.accessfu.keyboard_echo');
+B2GPresenter.prototype.NO_ECHO = 0;
+B2GPresenter.prototype.CHARACTER_ECHO = 1;
+B2GPresenter.prototype.WORD_ECHO = 2;
+B2GPresenter.prototype.CHARACTER_AND_WORD_ECHO = 3;
+
 
 
 
@@ -497,6 +503,12 @@ B2GPresenter.prototype.pivotChanged =
 
 B2GPresenter.prototype.valueChanged =
   function B2GPresenter_valueChanged(aAccessible) {
+
+    
+    if (Utils.getState(aAccessible).contains(States.EDITABLE)) {
+      return null;
+    }
+
     return {
       type: this.type,
       details: {
@@ -504,6 +516,42 @@ B2GPresenter.prototype.valueChanged =
         data: aAccessible.value
       }
     };
+  };
+
+B2GPresenter.prototype.textChanged = function B2GPresenter_textChanged(
+  aAccessible, aIsInserted, aStart, aLength, aText, aModifiedText) {
+    let echoSetting = this.keyboardEchoSetting.value;
+    let text = '';
+
+    if (echoSetting == this.CHARACTER_ECHO ||
+        echoSetting == this.CHARACTER_AND_WORD_ECHO) {
+      text = aModifiedText;
+    }
+
+    
+    if ((echoSetting == this.WORD_ECHO ||
+        echoSetting == this.CHARACTER_AND_WORD_ECHO) &&
+        aIsInserted && aLength === 1) {
+      let accText = aAccessible.QueryInterface(Ci.nsIAccessibleText);
+      let startBefore = {}, endBefore = {};
+      let startAfter = {}, endAfter = {};
+      accText.getTextBeforeOffset(aStart,
+        Ci.nsIAccessibleText.BOUNDARY_WORD_END, startBefore, endBefore);
+      let maybeWord = accText.getTextBeforeOffset(aStart + 1,
+        Ci.nsIAccessibleText.BOUNDARY_WORD_END, startAfter, endAfter);
+      if (endBefore.value !== endAfter.value) {
+        text += maybeWord;
+      }
+    }
+
+    return {
+      type: this.type,
+      details: {
+        eventType: 'text-change',
+        data: text
+      }
+    };
+
   };
 
 B2GPresenter.prototype.actionInvoked =
@@ -614,11 +662,11 @@ this.Presentation = {
       for each (p in this.presenters)]; 
   },
 
-  textChanged: function Presentation_textChanged(aIsInserted, aStartOffset,
-                                    aLength, aText,
+  textChanged: function Presentation_textChanged(aAccessible, aIsInserted,
+                                    aStartOffset, aLength, aText,
                                     aModifiedText) {
-    return [p.textChanged(aIsInserted, aStartOffset, aLength, aText, 
-      aModifiedText) for each (p in this.presenters)]; 
+    return [p.textChanged(aAccessible, aIsInserted, aStartOffset, aLength, 
+      aText, aModifiedText) for each (p in this.presenters)]; 
   },
 
   textSelectionChanged: function textSelectionChanged(aText, aStart, aEnd,
