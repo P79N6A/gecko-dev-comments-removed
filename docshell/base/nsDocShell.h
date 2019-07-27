@@ -18,12 +18,11 @@
 #include "nsIContentViewerContainer.h"
 #include "nsIDOMStorageManager.h"
 #include "nsDocLoader.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "GeckoProfiler.h"
-#ifdef MOZ_ENABLE_PROFILER_SPS
-#include "ProfilerMarkers.h"
-#endif
+#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
 
 
 #include "nsCOMPtr.h"
@@ -262,11 +261,83 @@ public:
     
     
     
+    class TimelineMarker
+    {
+    public:
+        TimelineMarker(nsDocShell* aDocShell, const char* aName,
+                       TracingMetadata aMetaData)
+            : mName(aName)
+            , mMetaData(aMetaData)
+        {
+            MOZ_COUNT_CTOR(TimelineMarker);
+            MOZ_ASSERT(aName);
+            aDocShell->Now(&mTime);
+        }
+
+        TimelineMarker(nsDocShell* aDocShell, const char* aName,
+                       TracingMetadata aMetaData,
+                       const nsAString& aCause)
+            : mName(aName)
+            , mMetaData(aMetaData)
+            , mCause(aCause)
+        {
+            MOZ_COUNT_CTOR(TimelineMarker);
+            MOZ_ASSERT(aName);
+            aDocShell->Now(&mTime);
+        }
+
+        virtual ~TimelineMarker()
+        {
+            MOZ_COUNT_DTOR(TimelineMarker);
+        }
+
+        
+        
+        
+        virtual bool Equals(const TimelineMarker* other)
+        {
+            return strcmp(mName, other->mName) == 0;
+        }
+
+        
+        
+        virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker)
+        {
+        }
+
+        const char* GetName() const
+        {
+            return mName;
+        }
+
+        TracingMetadata GetMetaData() const
+        {
+            return mMetaData;
+        }
+
+        DOMHighResTimeStamp GetTime() const
+        {
+            return mTime;
+        }
+
+        const nsString& GetCause() const
+        {
+            return mCause;
+        }
+
+    private:
+        const char* mName;
+        TracingMetadata mMetaData;
+        DOMHighResTimeStamp mTime;
+        nsString mCause;
+    };
+
+    
+    
+    
     void AddProfileTimelineMarker(const char* aName,
                                   TracingMetadata aMetaData);
-    void AddProfileTimelineMarker(const char* aName,
-                                  ProfilerBacktrace* aCause,
-                                  TracingMetadata aMetaData);
+    void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker> &aMarker);
 
     
     
@@ -960,28 +1031,7 @@ private:
     
     bool mProfileTimelineRecording;
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    struct InternalProfileTimelineMarker
-    {
-      InternalProfileTimelineMarker(const char* aName,
-                                    ProfilerMarkerTracing* aPayload,
-                                    DOMHighResTimeStamp aTime)
-        : mName(aName)
-        , mPayload(aPayload)
-        , mTime(aTime)
-      {}
-
-      ~InternalProfileTimelineMarker()
-      {
-        delete mPayload;
-      }
-
-      nsCString mName;
-      ProfilerMarkerTracing* mPayload;
-      DOMHighResTimeStamp mTime;
-    };
-    nsTArray<InternalProfileTimelineMarker*> mProfileTimelineMarkers;
-#endif
+    nsTArray<TimelineMarker*> mProfileTimelineMarkers;
 
     
     void ClearProfileTimelineMarkers();
