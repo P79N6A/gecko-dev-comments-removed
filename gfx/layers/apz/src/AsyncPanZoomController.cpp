@@ -683,7 +683,12 @@ public:
                  aSpringConstant, aDampingRatio)
    , mYAxisModel(aInitialPosition.y, aDestination.y, aInitialVelocity.y,
                  aSpringConstant, aDampingRatio)
+   , mSource(aSource)
+   , mAllowOverscroll(true)
   {
+    if (mSource == ScrollSource::Wheel) {
+      mAllowOverscroll = mApzc.AllowScrollHandoffInWheelTransaction();
+    }
   }
 
   
@@ -728,7 +733,11 @@ public:
     ParentLayerPoint overscroll;
     ParentLayerPoint adjustedOffset;
     mApzc.mX.AdjustDisplacement(displacement.x, adjustedOffset.x, overscroll.x);
-    mApzc.mY.AdjustDisplacement(displacement.y, adjustedOffset.y, overscroll.y);
+
+    bool forceVerticalOverscroll = mSource == ScrollSource::Wheel &&
+                                   !aFrameMetrics.AllowVerticalScrollWithWheel();
+    mApzc.mY.AdjustDisplacement(displacement.y, adjustedOffset.y, overscroll.y,
+                                forceVerticalOverscroll);
 
     aFrameMetrics.ScrollBy(adjustedOffset / zoom);
 
@@ -736,7 +745,7 @@ public:
     
     
     
-    if (!IsZero(overscroll)) {
+    if (!IsZero(overscroll) && mAllowOverscroll) {
       
       
 
@@ -773,6 +782,8 @@ public:
 private:
   AsyncPanZoomController& mApzc;
   AxisPhysicsMSDModel mXAxisModel, mYAxisModel;
+  ScrollSource mSource;
+  bool mAllowOverscroll;
 };
 
 void
