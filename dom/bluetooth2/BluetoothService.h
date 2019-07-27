@@ -349,6 +349,13 @@ public:
   UnregisterGattClientInternal(int aClientIf,
                                BluetoothReplyRunnable* aRunnable) = 0;
 
+  
+
+
+  virtual void
+  GattClientReadRemoteRssiInternal(int aClientIf,
+                                   const nsAString& aDeviceAddress,
+                                   BluetoothReplyRunnable* aRunnable) = 0;
 
   bool
   IsEnabled() const
