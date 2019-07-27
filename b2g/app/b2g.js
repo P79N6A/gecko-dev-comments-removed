@@ -334,7 +334,6 @@ pref("media.video-queue.default-size", 3);
 
 pref("image.downscale-during-decode.enabled", true);
 pref("image.mem.allow_locking_in_content_processes", true);
-pref("image.decode.retry-on-alloc-failure", true);
 
 
 

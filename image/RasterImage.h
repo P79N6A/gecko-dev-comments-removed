@@ -408,9 +408,6 @@ private:
   uint32_t                   mFrameCount;
 
   
-  uint8_t                    mRetryCount;
-
-  
   bool                       mHasSize:1;       
   bool                       mTransient:1;     
   bool                       mSyncLoad:1;      
