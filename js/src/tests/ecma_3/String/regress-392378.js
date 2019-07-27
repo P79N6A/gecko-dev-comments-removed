@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 392378;
 var summary = 'Regular Expression Non-participating Capture Groups are inaccurate in edge cases';
 var actual = '';
