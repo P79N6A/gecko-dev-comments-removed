@@ -167,6 +167,9 @@ TextureClientD3D11::TextureClientD3D11(gfx::SurfaceFormat aFormat, TextureFlags 
 
 TextureClientD3D11::~TextureClientD3D11()
 {
+  if (mTexture && mActor) {
+    KeepUntilFullDeallocation(new TKeepAlive<ID3D10Texture2D>(mTexture));
+  }
 #ifdef DEBUG
   
   
