@@ -343,6 +343,10 @@ SurfaceFactory::NewShSurfHandle(const gfx::IntSize& size)
     if (!surf)
         return nullptr;
 
+    
+    
+    surf->WaitForBufferOwnership();
+
     return new ShSurfHandle(this, Move(surf));
 }
 
