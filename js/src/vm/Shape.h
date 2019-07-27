@@ -162,9 +162,6 @@ struct ShapeTable {
     uint32_t capacity() const { return JS_BIT(HASH_BITS - hashShift); }
 
     
-    static size_t sizeOfEntries(size_t cap) { return cap * sizeof(Shape *); }
-
-    
 
 
 
