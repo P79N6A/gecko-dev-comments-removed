@@ -81,6 +81,11 @@ public:
                                          bool aIsCapsLock,
                                          uint32_t* aUnshiftedCharCode,
                                          uint32_t* aShiftedCharCode);
+
+  
+
+
+  static uint32_t IsTouchDeviceSupportPresent();
 };
 
 } 

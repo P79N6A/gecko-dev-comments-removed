@@ -123,7 +123,8 @@ public:
 };
 #endif
 
-class WinUtils {
+class WinUtils
+{
 public:
   
 
@@ -371,6 +372,21 @@ public:
                                         uint32_t aModifiers);
 
   
+
+
+  static uint32_t IsTouchDeviceSupportPresent();
+
+  
+
+
+
+
+
+  static uint32_t GetMaxTouchPoints();
+
+  
+
+
   typedef HRESULT (WINAPI*DwmExtendFrameIntoClientAreaProc)(HWND hWnd, const MARGINS *pMarInset);
   typedef HRESULT (WINAPI*DwmIsCompositionEnabledProc)(BOOL *pfEnabled);
   typedef HRESULT (WINAPI*DwmSetIconicThumbnailProc)(HWND hWnd, HBITMAP hBitmap, DWORD dwSITFlags);
@@ -514,8 +530,6 @@ public:
 
   static int32_t GetICOCacheSecondsTimeout();
 };
-
-
 
 } 
 } 

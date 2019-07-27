@@ -6,6 +6,9 @@
 
 
 #include "mozilla/WidgetUtils.h"
+#ifdef XP_WIN
+#include "WinUtils.h"
+#endif
 
 namespace mozilla {
 
@@ -89,4 +92,15 @@ nsIntRect RotateRect(nsIntRect aRect,
       return aRect;
   }
 }
+
+uint32_t
+WidgetUtils::IsTouchDeviceSupportPresent()
+{
+#ifdef XP_WIN
+  return WinUtils::IsTouchDeviceSupportPresent();
+#else
+  return 0;
+#endif
+}
+
 } 

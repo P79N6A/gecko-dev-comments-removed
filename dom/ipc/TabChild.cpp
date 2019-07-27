@@ -2967,6 +2967,13 @@ TabChild::GetDefaultScale(double* aScale)
 }
 
 void
+TabChild::GetMaxTouchPoints(uint32_t* aTouchPoints)
+{
+  
+  SendGetMaxTouchPoints(aTouchPoints);
+}
+
+void
 TabChild::NotifyPainted()
 {
     if (!mNotified) {
