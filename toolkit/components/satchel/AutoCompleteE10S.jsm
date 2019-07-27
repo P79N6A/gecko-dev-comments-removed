@@ -75,29 +75,18 @@ this.AutoCompleteE10S = {
     messageManager.addMessageListener("FormAutoComplete:ClosePopup", this);
   },
 
-  search: function(message) {
-    let browserWindow = message.target.ownerDocument.defaultView;
+  _initPopup: function(browserWindow, rect) {
     this.browser = browserWindow.gBrowser.selectedBrowser;
     this.popup = this.browser.autoCompletePopup;
     this.popup.hidden = false;
-    this.popup.setAttribute("width", message.data.width);
+    this.popup.setAttribute("width", rect.width);
 
-    let rect = message.data;
     let {x, y} = this.browser.mapScreenCoordinatesFromContent(rect.left, rect.top + rect.height);
     this.x = x;
     this.y = y;
-
-    let formAutoComplete = Cc["@mozilla.org/satchel/form-autocomplete;1"]
-                             .getService(Ci.nsIFormAutoComplete);
-
-    formAutoComplete.autoCompleteSearchAsync(message.data.inputName,
-                                             message.data.untrimmedSearchString,
-                                             null,
-                                             null,
-                                             this.onSearchComplete.bind(this));
   },
 
-  onSearchComplete: function(results) {
+  _showPopup: function(results) {
     AutoCompleteE10SView.clearResults();
 
     let resultsArray = [];
@@ -109,11 +98,6 @@ this.AutoCompleteE10S = {
     }
 
     this.popup.view = AutoCompleteE10SView;
-
-    this.browser.messageManager.sendAsyncMessage(
-      "FormAutoComplete:AutoCompleteSearchAsyncResult",
-      {results: resultsArray}
-    );
 
     this.popup.selectedIndex = -1;
     this.popup.invalidate();
@@ -128,6 +112,46 @@ this.AutoCompleteE10S = {
     } else {
       this.popup.closePopup();
     }
+
+    return resultsArray;
+  },
+
+  
+  
+  
+  showPopupWithResults: function(browserWindow, rect, results) {
+    this._initPopup(browserWindow, rect);
+    this._showPopup(results);
+  },
+
+  
+  
+  
+  search: function(message) {
+    let browserWindow = message.target.ownerDocument.defaultView;
+    let rect = message.data;
+
+    this._initPopup(browserWindow, rect);
+
+    let formAutoComplete = Cc["@mozilla.org/satchel/form-autocomplete;1"]
+                             .getService(Ci.nsIFormAutoComplete);
+
+    formAutoComplete.autoCompleteSearchAsync(message.data.inputName,
+                                             message.data.untrimmedSearchString,
+                                             null,
+                                             null,
+                                             this.onSearchComplete.bind(this));
+  },
+
+  
+  
+  onSearchComplete: function(results) {
+    let resultsArray = this._showPopup(results);
+
+    this.browser.messageManager.sendAsyncMessage(
+      "FormAutoComplete:AutoCompleteSearchAsyncResult",
+      {results: resultsArray}
+    );
   },
 
   receiveMessage: function(message) {
