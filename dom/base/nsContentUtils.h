@@ -157,7 +157,7 @@ struct EventNameMapping
 {
   
   
-  nsIAtom* MOZ_OWNING_REF mAtom;
+  nsIAtom* MOZ_NON_OWNING_REF mAtom;
   uint32_t mId;
   int32_t  mType;
   mozilla::EventClassID mEventClassID;
