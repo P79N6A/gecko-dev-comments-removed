@@ -39,4 +39,9 @@
 
 #define BTA_AG_CHLD_VAL    "(0,1,2,3)"
 
+
+#define BTA_GATT_INCLUDED  TRUE
+#define BLE_INCLUDED       TRUE
+#define SMP_INCLUDED       TRUE
+
 #endif 
