@@ -88,6 +88,29 @@ let Policy = {
   getArchiveQuota: () => ARCHIVE_QUOTA_BYTES,
 };
 
+
+
+
+
+function waitForAll(it) {
+  let list = Array.from(it);
+  let pending = list.length;
+  if (pending == 0) {
+    return Promise.resolve();
+  }
+  return new Promise(function(resolve, reject) {
+    let rfunc = () => {
+      --pending;
+      if (pending == 0) {
+        resolve();
+      }
+    };
+    for (let p of list) {
+      p.then(rfunc, rfunc);
+    }
+  });
+}
+
 this.TelemetryStorage = {
   get MAX_PING_FILE_AGE() {
     return MAX_PING_FILE_AGE;
@@ -458,6 +481,8 @@ let TelemetryStorageImpl = {
   
   _archivedPings: new Map(),
   
+  _activelyArchiving: new Set(),
+  
   _scanArchiveTask: null,
   
   _cleanArchiveTask: null,
@@ -495,7 +520,15 @@ let TelemetryStorageImpl = {
 
 
 
-  saveArchivedPing: Task.async(function*(ping) {
+  saveArchivedPing: function(ping) {
+    let promise = this._saveArchivedPingTask(ping);
+    this._activelyArchiving.add(promise);
+    promise.then((r) => { this._activelyArchiving.delete(promise); },
+                 (e) => { this._activelyArchiving.delete(promise); });
+    return promise;
+  },
+
+  _saveArchivedPingTask: Task.async(function*(ping) {
     const creationDate = new Date(ping.creationDate);
     if (this._archivedPings.has(ping.id)) {
       const data = this._archivedPings.get(ping.id);
@@ -795,26 +828,29 @@ let TelemetryStorageImpl = {
 
 
 
-  loadArchivedPingList: function() {
+  loadArchivedPingList: Task.async(function*() {
     
     if (this._scanArchiveTask) {
       return this._scanArchiveTask;
     }
 
+    yield waitForAll(this._activelyArchiving);
+
     if (this._scannedArchiveDirectory) {
       this._log.trace("loadArchivedPingList - Archive already scanned, hitting cache.");
-      return Promise.resolve(this._archivedPings);
+      return this._archivedPings;
     }
 
     
-    let clear = pingList => {
+    let result;
+    try {
+      this._scanArchiveTask = this._scanArchive();
+      result = yield this._scanArchiveTask;
+    } finally {
       this._scanArchiveTask = null;
-      return pingList;
-    };
-    
-    this._scanArchiveTask = this._scanArchive().then(clear, clear);
-    return this._scanArchiveTask;
-  },
+    }
+    return result;
+  }),
 
   _scanArchive: Task.async(function*() {
     this._log.trace("_scanArchive");
