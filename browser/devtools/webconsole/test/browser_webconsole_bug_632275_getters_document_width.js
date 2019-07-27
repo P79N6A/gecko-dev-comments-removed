@@ -1,13 +1,6 @@
 
 
 
-
-
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Connection closed");
-
 const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-bug-632275-getters.html";
 
 let getterValue = null;

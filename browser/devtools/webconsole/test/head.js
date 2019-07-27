@@ -1646,3 +1646,32 @@ function getSourceActor(aSources, aURL) {
   let item = aSources.getItemForAttachment(a => a.source.url === aURL);
   return item && item.value;
 }
+
+
+
+
+
+function simulateMessageLinkClick(element, expectedLink) {
+  let deferred = promise.defer();
+
+  
+  
+  let oldOpenUILinkIn = window.openUILinkIn;
+  window.openUILinkIn = function(link) {
+    if (link == expectedLink) {
+      ok(true, "Clicking the message link opens the desired page");
+      window.openUILinkIn = oldOpenUILinkIn;
+      deferred.resolve();
+    }
+  };
+
+  let event = new MouseEvent("click", {
+    detail: 1,
+    button: 0,
+    bubbles: true,
+    cancelable: true
+  });
+  element.dispatchEvent(event);
+
+  return deferred.promise;
+}
