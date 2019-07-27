@@ -149,12 +149,6 @@
 #include "nsHtml5TreeOpExecutor.h"
 #include "mozilla/dom/HTMLLinkElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
-#ifdef MOZ_MEDIA_NAVIGATOR
-#include "mozilla/MediaManager.h"
-#endif 
-#ifdef MOZ_WEBRTC
-#include "IPeerConnection.h"
-#endif 
 
 #include "mozAutoDocUpdate.h"
 #include "nsGlobalWindow.h"
@@ -228,6 +222,13 @@
 #include "mozilla/dom/DOMStringList.h"
 #include "nsWindowMemoryReporter.h"
 #include "nsLocation.h"
+
+#ifdef MOZ_MEDIA_NAVIGATOR
+#include "mozilla/MediaManager.h"
+#endif 
+#ifdef MOZ_WEBRTC
+#include "IPeerConnection.h"
+#endif 
 
 using namespace mozilla;
 using namespace mozilla::dom;
