@@ -149,8 +149,7 @@ protected:
     nsAutoPtr<TrackInputCopier> mInputCopier;
 
     
-    Mutex mDurationLock; 
-                         
+    
     int64_t mDurationUs;
 
     
@@ -164,6 +163,7 @@ protected:
     bool mFlushed; 
     bool mDiscontinuity;
     nsRefPtr<MediaTaskQueue> mTaskQueue;
+    Monitor mTrackMonitor;
 
   private:
     
@@ -242,6 +242,8 @@ private:
   struct AudioTrack : public Track
   {
     AudioTrack();
+    
+    MediaPromiseHolder<AudioDataPromise> mAudioPromise;
 
   private:
     
@@ -262,6 +264,8 @@ private:
     nsIntSize mFrameSize;
     nsIntRect mPictureRect;
     gfx::IntRect mRelativePictureRect;
+    
+    MediaPromiseHolder<VideoDataPromise> mVideoPromise;
 
   private:
     
@@ -372,10 +376,10 @@ private:
 
   bool CreateTaskQueues();
   void ShutdownTaskQueues();
-  bool DecodeVideoFrameTask(int64_t aTimeThreshold);
-  bool DecodeVideoFrameSync(int64_t aTimeThreshold);
-  bool DecodeAudioDataTask();
-  bool DecodeAudioDataSync();
+  void DecodeVideoFrameTask(int64_t aTimeThreshold);
+  void DecodeVideoFrameSync(int64_t aTimeThreshold);
+  void DecodeAudioDataTask();
+  void DecodeAudioDataSync();
   void DispatchVideoTask(int64_t aTimeThreshold);
   void DispatchAudioTask();
   inline bool CheckVideoResources() {
@@ -437,9 +441,6 @@ private:
   AudioTrack mAudioTrack;
   VideoTrack mVideoTrack;
   AudioTrack mAudioOffloadTrack; 
-
-  MediaPromiseHolder<AudioDataPromise> mAudioPromise;
-  MediaPromiseHolder<VideoDataPromise> mVideoPromise;
 
   
   android::I420ColorConverterHelper mColorConverter;
