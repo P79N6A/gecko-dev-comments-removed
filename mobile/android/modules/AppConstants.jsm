@@ -1,4 +1,4 @@
-#filter substitution;
+#filter substitution
 
 
 
@@ -51,13 +51,6 @@ let AppConstants = Object.freeze({
 
   MOZ_SERVICES_HEALTHREPORT:
 #ifdef MOZ_SERVICES_HEALTHREPORT
-  true,
-#else
-  false,
-#endif
-
-  MOZ_DEVICES:
-#ifdef MOZ_DEVICES
   true,
 #else
   false,
