@@ -202,7 +202,12 @@ let RecordingsListView = Heritage.extend(WidgetMethods, {
     yield ProfileView.addTabAndPopulate(recordingData, 0, durationMillis);
     ProfileView.showTabbedBrowser();
 
-    $("#record-button").removeAttribute("checked");
+    
+    if (!this.getItemForPredicate(e => e.isRecording)) {
+      $("#record-button").removeAttribute("checked");
+    }
+
+    
     $("#record-button").removeAttribute("locked");
 
     window.emit(EVENTS.RECORDING_DISPLAYED);
