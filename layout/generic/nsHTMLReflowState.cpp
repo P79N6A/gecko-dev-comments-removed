@@ -440,11 +440,19 @@ nsHTMLReflowState::Init(nsPresContext*     aPresContext,
     }
   }
 
-  if (AvailableBSize() != NS_UNCONSTRAINEDSIZE && parentReflowState &&
+  if (parentReflowState &&
       parentReflowState->GetWritingMode().IsOrthogonalTo(mWritingMode)) {
     
     
-    AvailableBSize() = NS_UNCONSTRAINEDSIZE;
+    
+    
+    
+    if (type == nsGkAtoms::columnSetFrame &&
+        eStyleUnit_Auto == mStylePosition->ISize(mWritingMode).GetUnit()) {
+      ComputedISize() = NS_UNCONSTRAINEDSIZE;
+    } else {
+      AvailableBSize() = NS_UNCONSTRAINEDSIZE;
+    }
   }
 
   LAYOUT_WARN_IF_FALSE((mFrameType == NS_CSS_FRAME_TYPE_INLINE &&

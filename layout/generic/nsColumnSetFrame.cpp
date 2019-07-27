@@ -1050,8 +1050,14 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
 
   
 
-  ReflowConfig config = ChooseColumnStrategy(aReflowState);
   
+  
+  
+  
+  ReflowConfig config =
+    ChooseColumnStrategy(aReflowState,
+                         aReflowState.ComputedISize() == NS_UNCONSTRAINEDSIZE);
+
   
   
   
