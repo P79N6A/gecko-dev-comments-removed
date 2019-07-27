@@ -824,7 +824,7 @@ nsLayoutUtils::AsyncPanZoomEnabled(nsIFrame* aFrame)
 {
   
   
-  if (!gfxPrefs::AsyncPanZoomEnabledDoNotUseDirectly()) {
+  if (!gfxPlatform::AsyncPanZoomEnabled()) {
     return false;
   }
 
