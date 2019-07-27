@@ -122,8 +122,8 @@ public class ToolbarComponent extends BaseComponent {
     
 
 
-    private ImageButton getEditCancelButton() {
-        return (ImageButton) getToolbarView().findViewById(R.id.edit_cancel);
+    private View getEditCancelButton() {
+        return getToolbarView().findViewById(R.id.edit_cancel);
     }
 
     private String getTitle() {
