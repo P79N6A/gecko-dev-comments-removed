@@ -2,6 +2,14 @@
 
 
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: Assert is null");
+
+
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
