@@ -27,9 +27,9 @@ class WeakSetObject : public NativeObject
     static bool construct(JSContext *cx, unsigned argc, Value *vp);
 };
 
-} 
-
 extern JSObject *
-js_InitWeakSetClass(JSContext *cx, js::HandleObject obj);
+InitWeakSetClass(JSContext *cx, HandleObject obj);
+
+} 
 
 #endif 

@@ -16,16 +16,8 @@
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 
+namespace js {
 
-
-
-
-
-
-
-
-extern JS_FRIEND_API(JSObject *)
-js_NewDateObjectMsec(JSContext* cx, double msec_time);
 
 
 
@@ -35,14 +27,22 @@ js_NewDateObjectMsec(JSContext* cx, double msec_time);
 
 
 extern JS_FRIEND_API(JSObject *)
-js_NewDateObject(JSContext* cx, int year, int mon, int mday,
-                 int hour, int min, int sec);
+NewDateObjectMsec(JSContext *cx, double msec_time);
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(JSObject *)
+NewDateObject(JSContext *cx, int year, int mon, int mday,
+              int hour, int min, int sec);
 
 
 bool
-js_Date(JSContext *cx, unsigned argc, JS::Value *vp);
-
-namespace js {
+DateConstructor(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
 bool

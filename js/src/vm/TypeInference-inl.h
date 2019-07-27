@@ -605,7 +605,7 @@ TypeScript::MonitorAssign(JSContext *cx, HandleObject obj, jsid id)
 
 
         uint32_t i;
-        if (js_IdIsIndex(id, &i))
+        if (IdIsIndex(id, &i))
             return;
 
         

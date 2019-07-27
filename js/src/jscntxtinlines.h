@@ -333,7 +333,7 @@ CallSetter(JSContext *cx, HandleObject obj, HandleId id, StrictPropertyOp op, un
     }
 
     if (attrs & JSPROP_GETTER)
-        return js_ReportGetterOnlyAssignment(cx, strict);
+        return ReportGetterOnlyAssignment(cx, strict);
 
     if (!op)
         return true;

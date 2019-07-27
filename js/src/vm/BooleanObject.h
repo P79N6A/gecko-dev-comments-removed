@@ -40,7 +40,7 @@ class BooleanObject : public NativeObject
 
     
     friend JSObject *
-    ::js_InitBooleanClass(JSContext *cx, js::HandleObject global);
+    js::InitBooleanClass(JSContext *cx, js::HandleObject global);
 };
 
 } 

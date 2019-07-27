@@ -39,7 +39,7 @@ using mozilla::RangedPtr;
 const char *
 js::AtomToPrintableString(ExclusiveContext *cx, JSAtom *atom, JSAutoByteString *bytes)
 {
-    JSString *str = js_QuoteString(cx, atom, 0);
+    JSString *str = QuoteString(cx, atom, 0);
     if (!str)
         return nullptr;
     return bytes->encodeLatin1(cx, str);
@@ -163,7 +163,7 @@ JSRuntime::initializeAtoms(JSContext *cx)
     for (size_t i = 0; i < JS::WellKnownSymbolLimit; i++) {
         JS::Symbol *symbol = JS::Symbol::new_(cx, JS::SymbolCode(i), descriptions[i]);
         if (!symbol) {
-            js_ReportOutOfMemory(cx);
+            ReportOutOfMemory(cx);
             return false;
         }
         symbols[i].init(symbol);
@@ -352,7 +352,7 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const CharT *tbchars, size_t length, I
         
         
         
-        js_ReportOutOfMemory(cx);
+        ReportOutOfMemory(cx);
         return nullptr;
     }
 
@@ -362,7 +362,7 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const CharT *tbchars, size_t length, I
     
     
     if (!atoms.add(p, AtomStateEntry(atom, bool(ib)))) {
-        js_ReportOutOfMemory(cx); 
+        ReportOutOfMemory(cx); 
         return nullptr;
     }
 

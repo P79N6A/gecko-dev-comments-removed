@@ -212,9 +212,9 @@ ThrowStopIteration(JSContext *cx);
 extern JSObject *
 CreateItrResultObject(JSContext *cx, HandleValue value, bool done);
 
-} 
-
 extern JSObject *
-js_InitIteratorClasses(JSContext *cx, js::HandleObject obj);
+InitIteratorClasses(JSContext *cx, HandleObject obj);
+
+} 
 
 #endif 

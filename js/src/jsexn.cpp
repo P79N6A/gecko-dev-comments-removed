@@ -335,7 +335,7 @@ exn_finalize(FreeOp *fop, JSObject *obj)
 }
 
 JSErrorReport *
-js_ErrorFromException(JSContext *cx, HandleObject objArg)
+js::ErrorFromException(JSContext *cx, HandleObject objArg)
 {
     
     
@@ -542,8 +542,8 @@ js::GetErrorTypeName(JSRuntime *rt, int16_t exnType)
 }
 
 bool
-js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
-                    JSErrorCallback callback, void *userRef)
+js::ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
+                     JSErrorCallback callback, void *userRef)
 {
     
     MOZ_ASSERT(reportp);
@@ -553,7 +553,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
     
     JSErrNum errorNumber = static_cast<JSErrNum>(reportp->errorNumber);
     if (!callback)
-        callback = js_GetErrorMessage;
+        callback = GetErrorMessage;
     const JSErrorFormatString *errorString = callback(userRef, errorNumber);
     JSExnType exnType = errorString ? static_cast<JSExnType>(errorString->exnType) : JSEXN_NONE;
     MOZ_ASSERT(exnType < JSEXN_LIMIT);
@@ -645,7 +645,7 @@ js::ErrorReportToString(JSContext *cx, JSErrorReport *reportp)
 }
 
 bool
-js_ReportUncaughtException(JSContext *cx)
+js::ReportUncaughtException(JSContext *cx)
 {
     if (!cx->isExceptionPending())
         return true;
@@ -709,7 +709,7 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
 
     if (exn.isObject()) {
         exnObject = &exn.toObject();
-        reportp = js_ErrorFromException(cx, exnObject);
+        reportp = ErrorFromException(cx, exnObject);
 
         JSCompartment *comp = exnObject->compartment();
         JSAddonId *addonId = comp->addonId;
@@ -892,9 +892,9 @@ ErrorReport::populateUncaughtExceptionReportVA(JSContext *cx, va_list ap)
         ownedReport.isMuted = iter.mutedErrors();
     }
 
-    if (!js_ExpandErrorArguments(cx, js_GetErrorMessage, nullptr,
-                                 JSMSG_UNCAUGHT_EXCEPTION, &ownedMessage,
-                                 &ownedReport, ArgumentsAreASCII, ap)) {
+    if (!ExpandErrorArguments(cx, GetErrorMessage, nullptr,
+                              JSMSG_UNCAUGHT_EXCEPTION, &ownedMessage,
+                              &ownedReport, ArgumentsAreASCII, ap)) {
         return false;
     }
 
@@ -905,7 +905,7 @@ ErrorReport::populateUncaughtExceptionReportVA(JSContext *cx, va_list ap)
 }
 
 JSObject *
-js_CopyErrorObject(JSContext *cx, Handle<ErrorObject*> err)
+js::CopyErrorObject(JSContext *cx, Handle<ErrorObject*> err)
 {
     js::ScopedJSFreePtr<JSErrorReport> copyReport;
     if (JSErrorReport *errorReport = err->getErrorReport()) {

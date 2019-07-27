@@ -2120,16 +2120,16 @@ struct GSNCache;
 jssrcnote *
 GetSrcNote(GSNCache &cache, JSScript *script, jsbytecode *pc);
 
-} 
-
 extern jssrcnote *
-js_GetSrcNote(JSContext *cx, JSScript *script, jsbytecode *pc);
+GetSrcNote(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 extern jsbytecode *
-js_LineNumberToPC(JSScript *script, unsigned lineno);
+LineNumberToPC(JSScript *script, unsigned lineno);
 
 extern JS_FRIEND_API(unsigned)
-js_GetScriptLineExtent(JSScript *script);
+GetScriptLineExtent(JSScript *script);
+
+} 
 
 namespace js {
 

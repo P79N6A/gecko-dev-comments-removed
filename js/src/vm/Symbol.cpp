@@ -28,7 +28,7 @@ Symbol::newInternal(ExclusiveContext *cx, JS::SymbolCode code, JSAtom *descripti
     
     Symbol *p = gc::AllocateNonObject<Symbol, NoGC>(cx);
     if (!p) {
-        js_ReportOutOfMemory(cx);
+        ReportOutOfMemory(cx);
         return nullptr;
     }
     return new (p) Symbol(code, description);
@@ -74,7 +74,7 @@ Symbol::for_(js::ExclusiveContext *cx, HandleString description)
     
     if (!registry.add(p, sym)) {
         
-        js_ReportOutOfMemory(cx);
+        ReportOutOfMemory(cx);
         return nullptr;
     }
     return sym;

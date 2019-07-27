@@ -886,7 +886,7 @@ HandleException(ResumeFromException *rfe)
 
         if (overrecursed) {
             
-            js_ReportOverRecursed(cx);
+            ReportOverRecursed(cx);
         }
     }
 

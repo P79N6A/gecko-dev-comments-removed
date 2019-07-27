@@ -1,15 +1,15 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * JS SIMD pseudo-module.
+ * Specification matches polyfill:
+ * https://github.com/johnmccutchan/ecmascript_simd/blob/master/src/ecmascript_simd.js
+ * The objects float32x4 and int32x4 are installed on the SIMD pseudo-module.
+ */
 
 #include "builtin/SIMD.h"
 
@@ -35,8 +35,8 @@ extern const JSFunctionSpec Float64x2Methods[];
 extern const JSFunctionSpec Int32x4Methods[];
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////
+// SIMD
 
 static const char *laneNames[] = {"lane 0", "lane 1", "lane 2", "lane3"};
 
@@ -74,7 +74,7 @@ js::ToSimdConstant(JSContext *cx, HandleValue v, jit::SimdConstant *out)
 {
     typedef typename V::Elem Elem;
     if (!IsVectorObject<V>(v)) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SIMD_NOT_A_VECTOR);
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_SIMD_NOT_A_VECTOR);
         return false;
     }
 
@@ -101,7 +101,7 @@ static bool GetSimdLane(JSContext *cx, unsigned argc, Value *vp)
 
     CallArgs args = CallArgsFromVp(argc, vp);
     if (!IsVectorObject<SimdType>(args.thisv())) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
                              SimdTypeDescr::class_.name, laneNames[lane],
                              InformalValueTypeName(args.thisv()));
         return false;
@@ -138,7 +138,7 @@ static bool SignMask(JSContext *cx, unsigned argc, Value *vp)
 
     CallArgs args = CallArgsFromVp(argc, vp);
     if (!args.thisv().isObject() || !args.thisv().toObject().is<TypedObject>()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
                              SimdTypeDescr::class_.name, "signMask",
                              InformalValueTypeName(args.thisv()));
         return false;
@@ -147,14 +147,14 @@ static bool SignMask(JSContext *cx, unsigned argc, Value *vp)
     TypedObject &typedObj = args.thisv().toObject().as<TypedObject>();
     TypeDescr &descr = typedObj.typeDescr();
     if (descr.kind() != type::Simd || descr.as<SimdTypeDescr>().type() != SimdType::type) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
                              SimdTypeDescr::class_.name, "signMask",
                              InformalValueTypeName(args.thisv()));
         return false;
     }
 
-    
-    
+    // Load the data as integer so that we treat the sign bit consistently,
+    // since -0.0 is not less than zero, but it still has the sign bit set.
     typedef typename mozilla::SignedStdintTypeForSize<sizeof(Elem)>::Type Int;
     static_assert(SimdType::lanes * sizeof(Int) <= jit::Simd128DataSize,
                   "signMask access should respect the bounds of the type");
@@ -180,18 +180,18 @@ static bool type##SignMask(JSContext *cx, unsigned argc, Value *vp) { \
 const Class SimdTypeDescr::class_ = {
     "SIMD",
     JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) | JSCLASS_BACKGROUND_FINALIZE,
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
-    nullptr, 
+    nullptr, /* addProperty */
+    nullptr, /* delProperty */
+    nullptr, /* getProperty */
+    nullptr, /* setProperty */
+    nullptr, /* enumerate */
+    nullptr, /* resolve */
+    nullptr, /* convert */
     TypeDescr::finalize,
     call
 };
 
-
+// These classes just exist to group together various properties and so on.
 namespace js {
 class Int32x4Defn {
   public:
@@ -214,7 +214,7 @@ class Float64x2Defn {
     static const JSPropertySpec TypedObjectProperties[];
     static const JSFunctionSpec TypedObjectMethods[];
 };
-} 
+} // namespace js
 
 const JSFunctionSpec js::Float32x4Defn::TypeDescriptorMethods[] = {
     JS_SELF_HOSTED_FN("toSource", "DescrToSource", 0, 0),
@@ -287,7 +287,7 @@ CreateSimdClass(JSContext *cx, Handle<GlobalObject*> global, HandlePropertyName 
     if (!funcProto)
         return nullptr;
 
-    
+    // Create type constructor itself and initialize its reserved slots.
 
     Rooted<SimdTypeDescr*> typeDescr(cx);
     typeDescr = NewObjectWithProto<SimdTypeDescr>(cx, funcProto, GlobalObject::upcast(global),
@@ -306,7 +306,7 @@ CreateSimdClass(JSContext *cx, Handle<GlobalObject*> global, HandlePropertyName 
     if (!CreateUserSizeAndAlignmentProperties(cx, typeDescr))
         return nullptr;
 
-    
+    // Create prototype property, which inherits from Object.prototype.
 
     RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
     if (!objProto)
@@ -317,7 +317,7 @@ CreateSimdClass(JSContext *cx, Handle<GlobalObject*> global, HandlePropertyName 
         return nullptr;
     typeDescr->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*proto));
 
-    
+    // Link constructor to prototype and install properties.
 
     if (!JS_DefineFunctions(cx, typeDescr, T::TypeDescriptorMethods))
         return nullptr;
@@ -393,8 +393,8 @@ SimdTypeDescr::call(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////
+// SIMD class
 
 const Class SIMDObject::class_ = {
     "SIMD",
@@ -404,15 +404,15 @@ const Class SIMDObject::class_ = {
 JSObject *
 SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
 {
-    
-    
-    
-    
-    
+    // SIMD relies on having the TypedObject module initialized.
+    // In particular, the self-hosted code for array() wants
+    // to be able to call GetTypedObjectModule(). It is NOT necessary
+    // to install the TypedObjectModule global, but at the moment
+    // those two things are not separable.
     if (!global->getOrCreateTypedObjectModule(cx))
         return nullptr;
 
-    
+    // Create SIMD Object.
     RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
     if (!objProto)
         return nullptr;
@@ -421,14 +421,14 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
     if (!SIMD)
         return nullptr;
 
-    
+    // float32x4
     RootedObject float32x4Object(cx);
     float32x4Object = CreateSimdClass<Float32x4Defn>(cx, global,
                                                      cx->names().float32x4);
     if (!float32x4Object)
         return nullptr;
 
-    
+    // Define float32x4 functions and install as a property of the SIMD object.
     RootedValue float32x4Value(cx, ObjectValue(*float32x4Object));
     if (!JS_DefineFunctions(cx, float32x4Object, Float32x4Methods) ||
         !DefineProperty(cx, SIMD, cx->names().float32x4,
@@ -438,14 +438,14 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
         return nullptr;
     }
 
-    
+    // float64x2
     RootedObject float64x2Object(cx);
     float64x2Object = CreateSimdClass<Float64x2Defn>(cx, global,
                                                      cx->names().float64x2);
     if (!float64x2Object)
         return nullptr;
 
-    
+    // Define float64x2 functions and install as a property of the SIMD object.
     RootedValue float64x2Value(cx, ObjectValue(*float64x2Object));
     if (!JS_DefineFunctions(cx, float64x2Object, Float64x2Methods) ||
         !DefineProperty(cx, SIMD, cx->names().float64x2,
@@ -455,14 +455,14 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
         return nullptr;
     }
 
-    
+    // int32x4
     RootedObject int32x4Object(cx);
     int32x4Object = CreateSimdClass<Int32x4Defn>(cx, global,
                                                  cx->names().int32x4);
     if (!int32x4Object)
         return nullptr;
 
-    
+    // Define int32x4 functions and install as a property of the SIMD object.
     RootedValue int32x4Value(cx, ObjectValue(*int32x4Object));
     if (!JS_DefineFunctions(cx, int32x4Object, Int32x4Methods) ||
         !DefineProperty(cx, SIMD, cx->names().int32x4,
@@ -474,7 +474,7 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
 
     RootedValue SIMDValue(cx, ObjectValue(*SIMD));
 
-    
+    // Everything is set up, install SIMD on the global object.
     if (!DefineProperty(cx, global, cx->names().SIMD, SIMDValue, nullptr, nullptr, 0))
         return nullptr;
 
@@ -486,7 +486,7 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
 }
 
 JSObject *
-js_InitSIMDClass(JSContext *cx, HandleObject obj)
+js::InitSIMDClass(JSContext *cx, HandleObject obj)
 {
     MOZ_ASSERT(obj->is<GlobalObject>());
     Rooted<GlobalObject *> global(cx, &obj->as<GlobalObject>());
@@ -515,7 +515,7 @@ template JSObject *js::CreateSimd<Float64x2>(JSContext *cx, const Float64x2::Ele
 template JSObject *js::CreateSimd<Int32x4>(JSContext *cx, const Int32x4::Elem *data);
 
 namespace js {
-
+// Unary SIMD operators
 template<typename T>
 struct Identity {
     static inline T apply(T x) { return x; }
@@ -545,7 +545,7 @@ struct Sqrt {
     static inline T apply(T x) { return sqrt(x); }
 };
 
-
+// Binary SIMD operators
 template<typename T>
 struct Add {
     static inline T apply(T l, T r) { return l + r; }
@@ -644,7 +644,7 @@ struct ShiftRightLogical {
 static inline bool
 ErrorBadArgs(JSContext *cx)
 {
-    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
+    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
     return false;
 }
 
@@ -659,8 +659,8 @@ StoreResult(JSContext *cx, CallArgs &args, typename Out::Elem *result)
     return true;
 }
 
-
-
+// Coerces the inputs of type In to the type Coercion, apply the operator Op
+// and converts the result to the type Out.
 template<typename In, typename Coercion, template<typename C> class Op, typename Out>
 static bool
 CoercedUnaryFunc(JSContext *cx, unsigned argc, Value *vp)
@@ -679,8 +679,8 @@ CoercedUnaryFunc(JSContext *cx, unsigned argc, Value *vp)
     return StoreResult<Out>(cx, args, (RetElem*) result);
 }
 
-
-
+// Coerces the inputs of type In to the type Coercion, apply the operator Op
+// and converts the result to the type Out.
 template<typename In, typename Coercion, template<typename C> class Op, typename Out>
 static bool
 CoercedBinaryFunc(JSContext *cx, unsigned argc, Value *vp)
@@ -700,7 +700,7 @@ CoercedBinaryFunc(JSContext *cx, unsigned argc, Value *vp)
     return StoreResult<Out>(cx, args, (RetElem *) result);
 }
 
-
+// Same as above, with no coercion, i.e. Coercion == In.
 template<typename In, template<typename C> class Op, typename Out>
 static bool
 UnaryFunc(JSContext *cx, unsigned argc, Value *vp)
@@ -870,10 +870,10 @@ FuncConvertBits(JSContext *cx, unsigned argc, Value *vp)
     if (args.length() != 1 || !IsVectorObject<V>(args[0]))
         return ErrorBadArgs(cx);
 
-    
-    
-    
-    
+    // While we could just pass the typedMem of args[0] as StoreResults' last
+    // argument, a GC could move the pointer to its memory in the meanwhile.
+    // For consistency with other SIMD functions, simply copy the input in a
+    // temporary array.
     RetElem copy[Vret::lanes];
     memcpy(copy, TypedObjectMemory<RetElem*>(args[0]), Vret::lanes * sizeof(RetElem));
     return StoreResult<Vret>(cx, args, copy);
@@ -1036,8 +1036,8 @@ TypedArrayFromArgs(JSContext *cx, const CallArgs &args,
     if (*byteStart < 0 ||
         (uint32_t(*byteStart) + NumElem * sizeof(VElem)) > AnyTypedArrayByteLength(typedArray))
     {
-        
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
+        // Keep in sync with AsmJS OnOutOfBounds function.
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
         return false;
     }
 

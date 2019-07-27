@@ -15,14 +15,14 @@
 
 
 
+namespace js {
+
 
 
 
 
 extern JSObject *
-js_InitIntlClass(JSContext *cx, js::HandleObject obj);
-
-namespace js {
+InitIntlClass(JSContext *cx, HandleObject obj);
 
 
 

@@ -38,7 +38,7 @@ class NumberObject : public NativeObject
 
     
     friend JSObject *
-    ::js_InitNumberClass(JSContext *cx, js::HandleObject global);
+    js::InitNumberClass(JSContext *cx, HandleObject global);
 };
 
 } 

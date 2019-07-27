@@ -64,16 +64,16 @@ extern mozilla::ThreadLocal<PerThreadData*> TlsPerThreadData;
 
 struct DtoaState;
 
-extern MOZ_COLD void
-js_ReportOutOfMemory(js::ExclusiveContext *cx);
-
-extern MOZ_COLD void
-js_ReportAllocationOverflow(js::ExclusiveContext *maybecx);
-
-extern MOZ_COLD void
-js_ReportOverRecursed(js::ExclusiveContext *cx);
-
 namespace js {
+
+extern MOZ_COLD void
+ReportOutOfMemory(ExclusiveContext *cx);
+
+extern MOZ_COLD void
+ReportAllocationOverflow(ExclusiveContext *maybecx);
+
+extern MOZ_COLD void
+ReportOverRecursed(ExclusiveContext *cx);
 
 class Activation;
 class ActivationIterator;
@@ -1314,7 +1314,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     void updateMallocCounter(size_t nbytes);
     void updateMallocCounter(JS::Zone *zone, size_t nbytes);
 
-    void reportAllocationOverflow() { js_ReportAllocationOverflow(nullptr); }
+    void reportAllocationOverflow() { js::ReportAllocationOverflow(nullptr); }
 
     
 

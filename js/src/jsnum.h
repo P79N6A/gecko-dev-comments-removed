@@ -26,11 +26,11 @@ extern void
 FinishRuntimeNumberState(JSRuntime *rt);
 #endif
 
-} 
-
 
 extern JSObject *
-js_InitNumberClass(JSContext *cx, js::HandleObject obj);
+InitNumberClass(JSContext *cx, HandleObject obj);
+
+} 
 
 
 
@@ -187,13 +187,13 @@ extern bool
 js_strtod(js::ExclusiveContext *cx, const CharT *begin, const CharT *end,
           const CharT **dEnd, double *d);
 
-extern bool
-js_num_toString(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern bool
-js_num_valueOf(JSContext *cx, unsigned argc, js::Value *vp);
-
 namespace js {
+
+extern bool
+num_toString(JSContext *cx, unsigned argc, Value *vp);
+
+extern bool
+num_valueOf(JSContext *cx, unsigned argc, Value *vp);
 
 static MOZ_ALWAYS_INLINE bool
 ValueFitsInInt32(const Value &v, int32_t *pi)

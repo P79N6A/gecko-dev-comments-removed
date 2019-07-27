@@ -16,11 +16,15 @@
 
 struct DtoaState;
 
-DtoaState *
-js_NewDtoaState();
+namespace js {
 
-void
-js_DestroyDtoaState(DtoaState *state);
+extern DtoaState *
+NewDtoaState();
+
+extern void
+DestroyDtoaState(DtoaState *state);
+
+} 
 
 
 

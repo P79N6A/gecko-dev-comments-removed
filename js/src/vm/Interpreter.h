@@ -51,7 +51,7 @@ enum MaybeConstruct {
 
 
 extern bool
-ReportIsNotFunction(JSContext *cx, HandleValue v, int numToSkip = -1,
+ReportIsNotFunction(JSContext *cx, HandleValue v, int numToSkip,
                     MaybeConstruct construct = NO_CONSTRUCT);
 
 

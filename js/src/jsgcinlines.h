@@ -474,7 +474,7 @@ CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
 
     
     if (!PossiblyFail()) {
-        js_ReportOutOfMemory(ncx);
+        ReportOutOfMemory(ncx);
         return false;
     }
 
@@ -676,25 +676,25 @@ NewGCAccessorShape(ExclusiveContext *cx)
     return gc::AllocateNonObject<AccessorShape, CanGC>(cx);
 }
 
-} 
-
 inline JSScript *
-js_NewGCScript(js::ExclusiveContext *cx)
+NewGCScript(ExclusiveContext *cx)
 {
-    return js::gc::AllocateNonObject<JSScript, js::CanGC>(cx);
+    return gc::AllocateNonObject<JSScript, CanGC>(cx);
 }
 
-inline js::LazyScript *
-js_NewGCLazyScript(js::ExclusiveContext *cx)
+inline LazyScript *
+NewGCLazyScript(ExclusiveContext *cx)
 {
-    return js::gc::AllocateNonObject<js::LazyScript, js::CanGC>(cx);
+    return gc::AllocateNonObject<LazyScript, CanGC>(cx);
 }
 
-template <js::AllowGC allowGC>
-inline js::BaseShape *
-js_NewGCBaseShape(js::ExclusiveContext *cx)
+template <AllowGC allowGC>
+inline BaseShape *
+NewGCBaseShape(ExclusiveContext *cx)
 {
-    return js::gc::AllocateNonObject<js::BaseShape, allowGC>(cx);
+    return gc::AllocateNonObject<BaseShape, allowGC>(cx);
 }
+
+} 
 
 #endif 

@@ -65,7 +65,7 @@ class StringObject : public NativeObject
 
     
     friend JSObject *
-    ::js_InitStringClass(JSContext *cx, js::HandleObject global);
+    js::InitStringClass(JSContext *cx, HandleObject global);
 };
 
 } 

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef builtin_SIMD_h
 #define builtin_SIMD_h
@@ -14,11 +14,11 @@
 #include "js/Conversions.h"
 #include "vm/GlobalObject.h"
 
-
-
-
-
-
+/*
+ * JS SIMD functions.
+ * Spec matching polyfill:
+ * https://github.com/johnmccutchan/ecmascript_simd/blob/master/src/ecmascript_simd.js
+ */
 
 #define FLOAT32X4_UNARY_FUNCTION_LIST(V)                                            \
   V(abs, (UnaryFunc<Float32x4, Abs, Float32x4>), 1, 0)                              \
@@ -259,7 +259,7 @@ class SIMDObject : public JSObject
     static bool toString(JSContext *cx, unsigned int argc, jsval *vp);
 };
 
-
+// These classes exist for use with templates below.
 
 struct Float32x4 {
     typedef float Elem;
@@ -349,9 +349,9 @@ simd_int32x4_##Name(JSContext *cx, unsigned argc, Value *vp);
 INT32X4_FUNCTION_LIST(DECLARE_SIMD_INT32x4_FUNCTION)
 #undef DECLARE_SIMD_INT32x4_FUNCTION
 
-}  
-
 JSObject *
-js_InitSIMDClass(JSContext *cx, js::HandleObject obj);
+InitSIMDClass(JSContext *cx, HandleObject obj);
 
-#endif 
+}  /* namespace js */
+
+#endif /* builtin_SIMD_h */
