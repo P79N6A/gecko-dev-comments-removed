@@ -313,7 +313,8 @@ class CameraPreviewMediaStream;
 
 
 
-class MediaStream : public mozilla::LinkedListElement<MediaStream> {
+class MediaStream : public mozilla::LinkedListElement<MediaStream>
+{
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStream)
 
@@ -663,7 +664,8 @@ protected:
 
   
   
-  struct AudioOutputStream {
+  struct AudioOutputStream
+  {
     
     
     GraphTime mAudioPlaybackStartTime;
@@ -733,7 +735,8 @@ protected:
 
 
 
-class SourceMediaStream : public MediaStream {
+class SourceMediaStream : public MediaStream
+{
 public:
   explicit SourceMediaStream(DOMMediaStream* aWrapper) :
     MediaStream(aWrapper),
@@ -990,7 +993,8 @@ protected:
 
 
 
-class MediaInputPort final {
+class MediaInputPort final
+{
 private:
   
   MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
@@ -1107,7 +1111,8 @@ private:
 
 
 
-class ProcessedMediaStream : public MediaStream {
+class ProcessedMediaStream : public MediaStream
+{
 public:
   explicit ProcessedMediaStream(DOMMediaStream* aWrapper)
     : MediaStream(aWrapper), mAutofinish(false)
@@ -1215,7 +1220,8 @@ protected:
 
 
 
-class MediaStreamGraph {
+class MediaStreamGraph
+{
 public:
   
   

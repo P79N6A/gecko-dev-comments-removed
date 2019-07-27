@@ -30,7 +30,8 @@ class AudioOutputObserver;
 
 
 
-struct StreamUpdate {
+struct StreamUpdate
+{
   int64_t mGraphUpdateIndex;
   nsRefPtr<MediaStream> mStream;
   StreamTime mNextMainThreadCurrentTime;
@@ -41,7 +42,8 @@ struct StreamUpdate {
 
 
 
-class ControlMessage {
+class ControlMessage
+{
 public:
   explicit ControlMessage(MediaStream* aStream) : mStream(aStream)
   {
@@ -70,7 +72,8 @@ protected:
   MediaStream* mStream;
 };
 
-class MessageBlock {
+class MessageBlock
+{
 public:
   int64_t mGraphUpdateIndex;
   nsTArray<nsAutoPtr<ControlMessage> > mMessages;
@@ -85,7 +88,8 @@ public:
 
 
 class MediaStreamGraphImpl : public MediaStreamGraph,
-                             public nsIMemoryReporter {
+                             public nsIMemoryReporter
+{
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
@@ -150,7 +154,8 @@ public:
   void Init();
   
   
-  void AssertOnGraphThreadOrNotRunning() {
+  void AssertOnGraphThreadOrNotRunning() const
+  {
     
     
 #ifdef DEBUG
@@ -173,20 +178,23 @@ public:
   bool OneIteration(GraphTime aFrom, GraphTime aTo,
                     GraphTime aStateFrom, GraphTime aStateEnd);
 
-  bool Running() {
+  bool Running() const
+  {
     mMonitor.AssertCurrentThreadOwns();
     return mLifecycleState == LIFECYCLE_RUNNING;
   }
 
   
-  nsTArray<MessageBlock>& MessageQueue() {
+  nsTArray<MessageBlock>& MessageQueue()
+  {
     mMonitor.AssertCurrentThreadOwns();
     return mFrontMessageQueue;
   }
 
   
 
-  GraphTime IterationEnd();
+  GraphTime IterationEnd() const;
+
   
 
 
@@ -221,7 +229,8 @@ public:
 
   void UpdateGraph(GraphTime aEndBlockingDecisions);
 
-  void SwapMessageQueues() {
+  void SwapMessageQueues()
+  {
     mMonitor.AssertCurrentThreadOwns();
     mFrontMessageQueue.SwapElements(mBackMessageQueue);
   }
@@ -304,6 +313,7 @@ public:
 
 
   void RecomputeBlocking(GraphTime aEndBlockingDecisions);
+
   
   
 
@@ -362,9 +372,11 @@ public:
 
 
   StreamTime GraphTimeToStreamTimeOptimistic(MediaStream* aStream, GraphTime aTime);
-  enum {
+  enum
+  {
     INCLUDE_TRAILING_BLOCKED_INTERVAL = 0x01
   };
+
   
 
 
@@ -411,7 +423,7 @@ public:
   
 
 
-  bool IsEmpty()
+  bool IsEmpty() const
   {
     return mStreams.IsEmpty() && mSuspendedStreams.IsEmpty() && mPortCount == 0;
   }
@@ -420,7 +432,7 @@ public:
   
 
 
-  int64_t GetProcessingGraphUpdateIndex() { return mProcessingGraphUpdateIndex; }
+  int64_t GetProcessingGraphUpdateIndex() const { return mProcessingGraphUpdateIndex; }
   
 
 
@@ -443,20 +455,22 @@ public:
   }
 
   
-  uint32_t AudioChannelCount() { return 2; }
+  uint32_t AudioChannelCount() const { return 2; }
 
-  double MediaTimeToSeconds(GraphTime aTime)
+  double MediaTimeToSeconds(GraphTime aTime) const
   {
     NS_ASSERTION(0 <= aTime && aTime <= STREAM_TIME_MAX, "Bad time");
     return static_cast<double>(aTime)/GraphRate();
   }
-  GraphTime SecondsToMediaTime(double aS)
+
+  GraphTime SecondsToMediaTime(double aS) const
   {
     NS_ASSERTION(0 <= aS && aS <= TRACK_TICKS_MAX/TRACK_RATE_MAX,
                  "Bad seconds");
     return GraphRate() * aS;
   }
-  GraphTime MillisecondsToMediaTime(int32_t aMS)
+
+  GraphTime MillisecondsToMediaTime(int32_t aMS) const
   {
     return RateConvertTicksRoundDown(GraphRate(), 1000, aMS);
   }
@@ -471,7 +485,8 @@ public:
   
 
 
-  GraphDriver* CurrentDriver() {
+  GraphDriver* CurrentDriver() const
+  {
     AssertOnGraphThreadOrNotRunning();
     return mDriver;
   }
@@ -489,16 +504,19 @@ public:
 
 
 
-  void SetCurrentDriver(GraphDriver* aDriver) {
+  void SetCurrentDriver(GraphDriver* aDriver)
+  {
     AssertOnGraphThreadOrNotRunning();
     mDriver = aDriver;
   }
 
-  Monitor& GetMonitor() {
+  Monitor& GetMonitor()
+  {
     return mMonitor;
   }
 
-  void EnsureNextIteration() {
+  void EnsureNextIteration()
+  {
     mNeedAnotherIteration = true; 
     if (mGraphDriverAsleep) { 
       MonitorAutoLock mon(mMonitor);
@@ -506,7 +524,8 @@ public:
     }
   }
 
-  void EnsureNextIterationLocked() {
+  void EnsureNextIterationLocked()
+  {
     mNeedAnotherIteration = true; 
     if (mGraphDriverAsleep) { 
       CurrentDriver()->WakeUp(); 
@@ -592,7 +611,8 @@ public:
   nsTArray<MessageBlock> mBackMessageQueue;
 
   
-  bool MessagesQueued() {
+  bool MessagesQueued() const
+  {
     mMonitor.AssertCurrentThreadOwns();
     return !mBackMessageQueue.IsEmpty();
   }
@@ -619,7 +639,8 @@ public:
 
 
 
-  enum LifecycleState {
+  enum LifecycleState
+  {
     
     LIFECYCLE_THREAD_NOT_STARTED,
     
@@ -711,6 +732,10 @@ public:
 
 private:
   virtual ~MediaStreamGraphImpl();
+
+  void StreamNotifyOutput(MediaStream* aStream);
+
+  void StreamReadyToFinish(MediaStream* aStream);
 
   MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
 
