@@ -729,7 +729,7 @@ Animation::FlushStyle() const
 void
 Animation::PostUpdate()
 {
-  AnimationPlayerCollection* collection = GetCollection();
+  AnimationCollection* collection = GetCollection();
   if (collection) {
     collection->NotifyPlayerUpdated();
   }
@@ -867,7 +867,7 @@ Animation::GetPresContext() const
   return shell->GetPresContext();
 }
 
-AnimationPlayerCollection*
+AnimationCollection*
 Animation::GetCollection() const
 {
   css::CommonAnimationManager* manager = GetAnimationManager();

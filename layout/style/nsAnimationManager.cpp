@@ -202,8 +202,7 @@ CSSAnimationPlayer::PseudoTypeAsString(nsCSSPseudoElements::Type aPseudoType)
 }
 
 void
-nsAnimationManager::UpdateStyleAndEvents(AnimationPlayerCollection*
-                                           aCollection,
+nsAnimationManager::UpdateStyleAndEvents(AnimationCollection* aCollection,
                                          TimeStamp aRefreshTime,
                                          EnsureStyleRuleFlags aFlags)
 {
@@ -212,7 +211,7 @@ nsAnimationManager::UpdateStyleAndEvents(AnimationPlayerCollection*
 }
 
 void
-nsAnimationManager::QueueEvents(AnimationPlayerCollection* aCollection,
+nsAnimationManager::QueueEvents(AnimationCollection* aCollection,
                                 EventArray& aEventsToDispatch)
 {
   for (size_t playerIdx = aCollection->mPlayers.Length(); playerIdx-- != 0; ) {
@@ -224,7 +223,7 @@ nsAnimationManager::QueueEvents(AnimationPlayerCollection* aCollection,
 }
 
 void
-nsAnimationManager::MaybeUpdateCascadeResults(AnimationPlayerCollection* aCollection)
+nsAnimationManager::MaybeUpdateCascadeResults(AnimationCollection* aCollection)
 {
   for (size_t playerIdx = aCollection->mPlayers.Length(); playerIdx-- != 0; ) {
     CSSAnimationPlayer* player =
@@ -280,7 +279,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
   
 
   const nsStyleDisplay* disp = aStyleContext->StyleDisplay();
-  AnimationPlayerCollection* collection =
+  AnimationCollection* collection =
     GetAnimations(aElement, aStyleContext->GetPseudoType(), false);
   if (!collection &&
       disp->mAnimationNameCount == 1 &&
@@ -738,7 +737,7 @@ nsAnimationManager::BuildSegment(InfallibleTArray<AnimationPropertySegment>&
  void
 nsAnimationManager::UpdateCascadeResults(
                       nsStyleContext* aStyleContext,
-                      AnimationPlayerCollection* aElementAnimations)
+                      AnimationCollection* aElementAnimations)
 {
   
 
@@ -786,7 +785,6 @@ nsAnimationManager::UpdateCascadeResults(
                                                    propertiesOverridden);
 
   
-
 
 
 
@@ -874,15 +872,14 @@ nsAnimationManager::FlushAnimations(FlushFlags aFlags)
   for (PRCList *l = PR_LIST_HEAD(&mElementCollections);
        l != &mElementCollections;
        l = PR_NEXT_LINK(l)) {
-    AnimationPlayerCollection* collection =
-      static_cast<AnimationPlayerCollection*>(l);
+    AnimationCollection* collection = static_cast<AnimationCollection*>(l);
 
     nsAutoAnimationMutationBatch mb(collection->mElement);
 
     collection->Tick();
     bool canThrottleTick = aFlags == Can_Throttle &&
       collection->CanPerformOnCompositorThread(
-        AnimationPlayerCollection::CanAnimateFlags(0)) &&
+        AnimationCollection::CanAnimateFlags(0)) &&
       collection->CanThrottleAnimation(now);
 
     nsRefPtr<css::AnimValuesStyleRule> oldStyleRule = collection->mStyleRule;
