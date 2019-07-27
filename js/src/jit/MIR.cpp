@@ -1559,29 +1559,6 @@ MBinaryArithInstruction::trySpecializeFloat32(TempAllocator &alloc)
     setResultType(MIRType_Float32);
 }
 
-MDefinition *
-MMinMax::foldsTo(TempAllocator &alloc)
-{
-    if (!lhs()->isConstant() && !rhs()->isConstant())
-        return this;
-
-    MDefinition *operand = lhs()->isConstant() ? rhs() : lhs();
-    MConstant *constant = lhs()->isConstant() ? lhs()->toConstant() : rhs()->toConstant();
-
-    if (operand->isToDouble() && operand->getOperand(0)->type() == MIRType_Int32) {
-        const js::Value &val = constant->value();
-
-        
-        if (val.isDouble() && val.toDouble() >= INT32_MAX && !isMax())
-            return operand;
-
-        
-        if (val.isDouble() && val.toDouble() <= INT32_MIN && isMax())
-            return operand;
-    }
-    return this;
-}
-
 bool
 MAbs::fallible() const
 {
@@ -2674,65 +2651,6 @@ MCompare::evaluateConstantOperands(bool *result)
 
     MDefinition *left = getOperand(0);
     MDefinition *right = getOperand(1);
-
-    if (compareType() == Compare_Double) {
-        
-        
-        
-        
-        if (!lhs()->isConstant() && !rhs()->isConstant())
-            return false;
-
-        MDefinition *operand = left->isConstant() ? right : left;
-        MConstant *constant = left->isConstant() ? left->toConstant() : right->toConstant();
-        JS_ASSERT(constant->value().isDouble());
-        double d = constant->value().toDouble();
-
-        if (operand->isToDouble() && operand->getOperand(0)->type() == MIRType_Int32) {
-            switch (jsop_) {
-              case JSOP_LT:
-                if (d > INT32_MAX || d < INT32_MIN) {
-                    *result = !((constant == lhs()) ^ (d < INT32_MIN));
-                    return true;
-                }
-                break;
-              case JSOP_LE:
-                if (d >= INT32_MAX || d <= INT32_MIN) {
-                    *result = !((constant == lhs()) ^ (d <= INT32_MIN));
-                    return true;
-                }
-                break;
-              case JSOP_GT:
-                if (d > INT32_MAX || d < INT32_MIN) {
-                    *result = !((constant == rhs()) ^ (d < INT32_MIN));
-                    return true;
-                }
-                break;
-              case JSOP_GE:
-                if (d >= INT32_MAX || d <= INT32_MIN) {
-                    *result = !((constant == rhs()) ^ (d <= INT32_MIN));
-                    return true;
-                }
-                break;
-              case JSOP_STRICTEQ: 
-              case JSOP_EQ:
-                if (d > INT32_MAX || d < INT32_MIN) {
-                    *result = false;
-                    return true;
-                }
-                break;
-              case JSOP_STRICTNE: 
-              case JSOP_NE:
-                if (d > INT32_MAX || d < INT32_MIN) {
-                    *result = true;
-                    return true;
-                }
-                break;
-              default:
-                MOZ_ASSUME_UNREACHABLE("Unexpected op.");
-            }
-        }
-    }
 
     if (!left->isConstant() || !right->isConstant())
         return false;

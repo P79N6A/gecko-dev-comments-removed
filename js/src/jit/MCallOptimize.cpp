@@ -1093,64 +1093,31 @@ IonBuilder::inlineMathFRound(CallInfo &callInfo)
 IonBuilder::InliningStatus
 IonBuilder::inlineMathMinMax(CallInfo &callInfo, bool max)
 {
-    if (callInfo.argc() < 1 || callInfo.constructing())
+    if (callInfo.argc() < 2 || callInfo.constructing())
         return InliningStatus_NotInlined;
 
     MIRType returnType = getInlineReturnType();
     if (!IsNumberType(returnType))
         return InliningStatus_NotInlined;
 
-    MDefinitionVector int32Cases(alloc());
     for (unsigned i = 0; i < callInfo.argc(); i++) {
-        MDefinition *arg = callInfo.getArg(i);
-
-        switch (arg->type()) {
-          case MIRType_Int32:
-            if (!int32Cases.append(arg))
-                return InliningStatus_Error;
-            break;
-          case MIRType_Double:
-          case MIRType_Float32:
-            
-            
-            
-            
-            if (arg->isConstant()) {
-                double d = arg->toConstant()->value().toDouble();
-                
-                if (d >= INT32_MAX && !max)
-                    break;
-                
-                if (d <= INT32_MIN && max)
-                    break;
-            }
-
-            
-            returnType = MIRType_Double;
-            break;
-          default:
+        MIRType argType = callInfo.getArg(i)->type();
+        if (!IsNumberType(argType))
             return InliningStatus_NotInlined;
-        }
-    }
 
-    if (int32Cases.length() == 0)
-        returnType = MIRType_Double;
+        
+        if (returnType == MIRType_Int32 && IsFloatingPointType(argType))
+            returnType = MIRType_Double;
+    }
 
     callInfo.setImplicitlyUsedUnchecked();
 
-    MDefinitionVector &cases = (returnType == MIRType_Int32) ? int32Cases : callInfo.argv();
-
-    if (cases.length() == 1) {
-        current->push(cases[0]);
-        return InliningStatus_Inlined;
-    }
-
     
-    MMinMax *last = MMinMax::New(alloc(), cases[0], cases[1], returnType, max);
+    MMinMax *last = MMinMax::New(alloc(), callInfo.getArg(0), callInfo.getArg(1), returnType, max);
     current->add(last);
 
-    for (unsigned i = 2; i < cases.length(); i++) {
-        MMinMax *ins = MMinMax::New(alloc(), last, cases[2], returnType, max);
+    for (unsigned i = 2; i < callInfo.argc(); i++) {
+        MMinMax *ins = MMinMax::New(alloc(), last, callInfo.getArg(i), returnType, max);
         current->add(ins);
         last = ins;
     }
