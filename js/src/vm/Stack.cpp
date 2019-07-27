@@ -1062,7 +1062,7 @@ FrameIter::updatePcQuadratic()
 }
 
 JSFunction *
-FrameIter::callee() const
+FrameIter::calleeTemplate() const
 {
     switch (data_.state_) {
       case DONE:
@@ -1075,25 +1075,61 @@ FrameIter::callee() const
         if (data_.jitFrames_.isBaselineJS())
             return data_.jitFrames_.callee();
         MOZ_ASSERT(data_.jitFrames_.isIonScripted());
-        return ionInlineFrames_.callee();
+        return ionInlineFrames_.calleeTemplate();
     }
     MOZ_CRASH("Unexpected state");
 }
 
-Value
-FrameIter::calleev() const
+JSFunction *
+FrameIter::callee(JSContext *cx) const
 {
     switch (data_.state_) {
       case DONE:
       case ASMJS:
         break;
       case INTERP:
-        MOZ_ASSERT(isFunctionFrame());
-        return interpFrame()->calleev();
+        return calleeTemplate();
       case JIT:
-        return ObjectValue(*callee());
+        if (data_.jitFrames_.isIonScripted()) {
+            jit::MaybeReadFallback recover(cx, activation()->asJit(), &data_.jitFrames_);
+            return ionInlineFrames_.callee(recover);
+        }
+        MOZ_ASSERT(data_.jitFrames_.isBaselineJS());
+        return calleeTemplate();
     }
     MOZ_CRASH("Unexpected state");
+}
+
+bool
+FrameIter::matchCallee(JSContext *cx, HandleFunction fun) const
+{
+    RootedFunction currentCallee(cx, calleeTemplate());
+
+    
+    
+    
+    if (((currentCallee->flags() ^ fun->flags()) & JSFunction::STABLE_ACROSS_CLONES) != 0 ||
+        currentCallee->nargs() != fun->nargs())
+    {
+        return false;
+    }
+
+    
+    
+    
+    if (!fun->isLambda() || !currentCallee->isLambda())
+        return currentCallee == fun;
+
+    
+    
+    
+    bool useSameScript = CloneFunctionObjectUseSameScript(fun->compartment(), currentCallee);
+    if (useSameScript && currentCallee->nonLazyScript() != fun->nonLazyScript())
+        return false;
+
+    
+    
+    return callee(cx) == fun;
 }
 
 unsigned

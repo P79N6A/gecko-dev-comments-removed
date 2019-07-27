@@ -1598,8 +1598,22 @@ class FrameIter
     bool        isConstructing() const;
     jsbytecode *pc() const { MOZ_ASSERT(!done()); return data_.pc_; }
     void        updatePcQuadratic();
-    JSFunction *callee() const;
-    Value       calleev() const;
+
+    
+    
+    
+    
+    
+    
+    JSFunction *calleeTemplate() const;
+    JSFunction *callee(JSContext *cx) const;
+
+    JSFunction *maybeCallee(JSContext *cx) const {
+        return isFunctionFrame() ? callee(cx) : nullptr;
+    }
+
+    bool        matchCallee(JSContext *cx, HandleFunction fun) const;
+
     unsigned    numActualArgs() const;
     unsigned    numFormalArgs() const;
     Value       unaliasedActual(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
@@ -1625,10 +1639,6 @@ class FrameIter
 
     Value       returnValue() const;
     void        setReturnValue(const Value &v);
-
-    JSFunction *maybeCallee() const {
-        return isFunctionFrame() ? callee() : nullptr;
-    }
 
     
     size_t      numFrameSlots() const;

@@ -498,26 +498,20 @@ class SnapshotIterator
     
     
     
-    Value readWithDefault() {
-        return allocationValue(readAllocation(), RM_NormalOrDefault);
-    }
-
-    Value maybeRead(MaybeReadFallback &fallback) {
+    Value readWithDefault(RValueAllocation *alloc) {
+        *alloc = RValueAllocation();
         RValueAllocation a = readAllocation();
         if (allocationReadable(a))
             return allocationValue(a);
 
-        if (fallback.canRecoverResults()) {
-            if (!initInstructionResults(fallback))
-                js::CrashAtUnhandlableOOM("Unable to recover allocations.");
+        *alloc = a;
+        return allocationValue(a, RM_AlwaysDefault);
+    }
 
-            if (allocationReadable(a))
-                return allocationValue(a);
-
-            MOZ_ASSERT_UNREACHABLE("All allocations should be readable.");
-        }
-
-        return fallback.unreadablePlaceholder();
+    Value maybeRead(const RValueAllocation &a, MaybeReadFallback &fallback);
+    Value maybeRead(MaybeReadFallback &fallback) {
+        RValueAllocation a = readAllocation();
+        return maybeRead(a, fallback);
     }
 
     void traceAllocation(JSTracer *trc);
@@ -596,7 +590,16 @@ class InlineFrameIterator
     
     uint32_t frameCount_;
 
-    RootedFunction callee_;
+    
+    
+    
+    
+    
+    
+    
+    RootedFunction calleeTemplate_;
+    RValueAllocation calleeRVA_;
+
     RootedScript script_;
     jsbytecode *pc_;
     uint32_t numActualArgs_;
@@ -617,13 +620,23 @@ class InlineFrameIterator
     bool more() const {
         return frame_ && framesRead_ < frameCount_;
     }
-    JSFunction *callee() const {
-        MOZ_ASSERT(callee_);
-        return callee_;
+
+    
+    
+    
+    
+    
+    
+    
+    JSFunction *calleeTemplate() const {
+        MOZ_ASSERT(isFunctionFrame());
+        return calleeTemplate_;
     }
-    JSFunction *maybeCallee() const {
-        return callee_;
+    JSFunction *maybeCalleeTemplate() const {
+        return calleeTemplate_;
     }
+
+    JSFunction *callee(MaybeReadFallback &fallback) const;
 
     unsigned numActualArgs() const {
         
