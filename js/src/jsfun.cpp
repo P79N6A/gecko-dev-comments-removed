@@ -1531,11 +1531,6 @@ JSFunction::relazify(JSTracer *trc)
     u.i.s.lazy_ = lazy;
     if (lazy) {
         JS_ASSERT(!isSelfHostedBuiltin());
-        
-        
-        
-        if (lazy->maybeScript() == script)
-            lazy->resetScript();
         MarkLazyScriptUnbarriered(trc, &u.i.s.lazy_, "lazyScript");
     } else {
         JS_ASSERT(isSelfHostedBuiltin());
