@@ -54,15 +54,10 @@ FramebufferSurface::FramebufferSurface(int disp,
                                        uint32_t height,
                                        uint32_t format,
                                        const sp<StreamConsumer>& sc)
-#if ANDROID_VERSION >= 19
-    : ConsumerBase(sc, true)
-#else
-    : ConsumerBase(sc)
-#endif
+    : DisplaySurface(sc)
     , mDisplayType(disp)
     , mCurrentBufferSlot(-1)
     , mCurrentBuffer(0)
-    , lastHandle(0)
 {
     mName = "FramebufferSurface";
 
@@ -79,6 +74,21 @@ FramebufferSurface::FramebufferSurface(int disp,
     consumer->setDefaultBufferFormat(format);
     consumer->setDefaultBufferSize(width, height);
     consumer->setDefaultMaxBufferCount(NUM_FRAMEBUFFER_SURFACE_BUFFERS);
+}
+
+status_t FramebufferSurface::beginFrame(bool ) {
+    return NO_ERROR;
+}
+
+status_t FramebufferSurface::prepareFrame(CompositionType ) {
+    return NO_ERROR;
+}
+
+status_t FramebufferSurface::advanceFrame() {
+    
+    
+    
+    return NO_ERROR;
 }
 
 status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer, sp<Fence>& outFence) {
@@ -174,28 +184,25 @@ status_t FramebufferSurface::setReleaseFenceFd(int fenceFd) {
     return err;
 }
 
-int FramebufferSurface::GetPrevFBAcquireFd() {
+int FramebufferSurface::GetPrevDispAcquireFd() {
     if (mPrevFBAcquireFence.get() && mPrevFBAcquireFence->isValid()) {
         return mPrevFBAcquireFence->dup();
     }
     return -1;
 }
 
-status_t FramebufferSurface::setUpdateRectangle(const Rect& r)
-{
-    return INVALID_OPERATION;
+void FramebufferSurface::onFrameCommitted() {
+  
 }
 
 status_t FramebufferSurface::compositionComplete()
 {
+    
+    
     return NO_ERROR;
 }
 
-void FramebufferSurface::dump(String8& result) {
-    ConsumerBase::dump(result);
-}
-
-void FramebufferSurface::dump(String8& result, const char* prefix) {
+void FramebufferSurface::dump(String8& result) const {
     ConsumerBase::dump(result);
 }
 

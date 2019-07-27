@@ -16,7 +16,6 @@
 
 
 #include "VirtualDisplaySurface.h"
-#include "HWComposer.h"
 
 
 namespace android {
@@ -45,13 +44,12 @@ static const char* dbgCompositionTypeStr(DisplaySurface::CompositionType type) {
     }
 }
 
-VirtualDisplaySurface::VirtualDisplaySurface(HWComposer& hwc, int32_t dispId,
+VirtualDisplaySurface::VirtualDisplaySurface(int32_t dispId,
         const sp<IGraphicBufferProducer>& sink,
         const sp<IGraphicBufferProducer>& bqProducer,
-        const sp<IGraphicBufferConsumer>& bqConsumer,
+        const sp<StreamConsumer>& bqConsumer,
         const String8& name)
-:   ConsumerBase(bqConsumer),
-    mHwc(hwc),
+:   DisplaySurface(bqConsumer),
     mDisplayId(dispId),
     mDisplayName(name),
     mOutputUsage(GRALLOC_USAGE_HW_COMPOSER),
@@ -162,6 +160,11 @@ status_t VirtualDisplaySurface::compositionComplete() {
 }
 
 status_t VirtualDisplaySurface::advanceFrame() {
+    return NO_ERROR;
+
+
+
+#if 0
     if (mDisplayId < 0)
         return NO_ERROR;
 
@@ -204,9 +207,15 @@ status_t VirtualDisplaySurface::advanceFrame() {
     }
 
     return result;
+#endif
 }
 
 void VirtualDisplaySurface::onFrameCommitted() {
+    return;
+
+
+
+#if 0
     if (mDisplayId < 0)
         return;
 
@@ -252,6 +261,7 @@ void VirtualDisplaySurface::onFrameCommitted() {
     }
 
     resetPerFrameState();
+#endif
 }
 
 void VirtualDisplaySurface::dump(String8& ) const {
@@ -495,6 +505,7 @@ int VirtualDisplaySurface::query(int what, int* value) {
     return NO_ERROR;
 }
 
+#if ANDROID_VERSION >= 21
 status_t VirtualDisplaySurface::connect(const sp<IProducerListener>& listener,
         int api, bool producerControlledByApp,
         QueueBufferOutput* output) {
@@ -507,14 +518,29 @@ status_t VirtualDisplaySurface::connect(const sp<IProducerListener>& listener,
     }
     return result;
 }
+#else
+status_t VirtualDisplaySurface::connect(const sp<IBinder>& token,
+        int api, bool producerControlledByApp,
+        QueueBufferOutput* output) {
+    QueueBufferOutput qbo;
+    status_t result = mSource[SOURCE_SINK]->connect(token, api, producerControlledByApp, &qbo);
+    if (result == NO_ERROR) {
+        updateQueueBufferOutput(qbo);
+        *output = mQueueBufferOutput;
+    }
+    return result;
+}
+#endif
 
 status_t VirtualDisplaySurface::disconnect(int api) {
     return mSource[SOURCE_SINK]->disconnect(api);
 }
 
+#if ANDROID_VERSION >= 21
 status_t VirtualDisplaySurface::setSidebandStream(const sp<NativeHandle>& ) {
     return INVALID_OPERATION;
 }
+#endif
 
 void VirtualDisplaySurface::allocateBuffers(bool ,
         uint32_t , uint32_t , uint32_t ,
@@ -538,6 +564,12 @@ void VirtualDisplaySurface::resetPerFrameState() {
 }
 
 status_t VirtualDisplaySurface::refreshOutputBuffer() {
+
+    return INVALID_OPERATION;
+
+
+
+#if 0
     if (mOutputProducerSlot >= 0) {
         mSource[SOURCE_SINK]->cancelBuffer(
                 mapProducer2SourceSlot(SOURCE_SINK, mOutputProducerSlot),
@@ -559,6 +591,7 @@ status_t VirtualDisplaySurface::refreshOutputBuffer() {
             mProducerBuffers[mOutputProducerSlot]);
 
     return result;
+#endif
 }
 
 

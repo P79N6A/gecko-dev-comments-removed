@@ -1284,7 +1284,7 @@ CompositorOGL::EndFrame()
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
 void
-CompositorOGL::SetFBAcquireFence(Layer* aLayer)
+CompositorOGL::SetDispAcquireFence(Layer* aLayer)
 {
   
   
@@ -1297,7 +1297,7 @@ CompositorOGL::SetFBAcquireFence(Layer* aLayer)
     return;
   }
 
-  android::sp<android::Fence> fence = new android::Fence(GetGonkDisplay()->GetPrevFBAcquireFd());
+  android::sp<android::Fence> fence = new android::Fence(GetGonkDisplay()->GetPrevDispAcquireFd());
   if (fence.get() && fence->isValid()) {
     FenceHandle handle = FenceHandle(fence);
     mReleaseFenceHandle.Merge(handle);
@@ -1315,7 +1315,7 @@ CompositorOGL::GetReleaseFence()
 
 #else
 void
-CompositorOGL::SetFBAcquireFence(Layer* aLayer)
+CompositorOGL::SetDispAcquireFence(Layer* aLayer)
 {
 }
 
