@@ -782,7 +782,7 @@ AsmJSModule::initHeap(Handle<ArrayBufferObjectMaybeShared *> heap, JSContext *cx
             
             
             
-            size_t scalarByteSize = 1 << TypedArrayShift(access.type());
+            size_t scalarByteSize = TypedArrayElemSize(access.type());
             X86Assembler::setPointer(access.patchLengthAt(code_),
                                      (void*)(heap->byteLength() + 1 - scalarByteSize));
         }
@@ -804,7 +804,7 @@ AsmJSModule::initHeap(Handle<ArrayBufferObjectMaybeShared *> heap, JSContext *cx
         const jit::AsmJSHeapAccess &access = heapAccesses_[i];
         if (access.hasLengthCheck()) {
             
-            size_t scalarByteSize = 1 << TypedArrayShift(access.type());
+            size_t scalarByteSize = TypedArrayElemSize(access.type());
             X86Assembler::setInt32(access.patchLengthAt(code_), heapLength + 1 - scalarByteSize);
         }
     }
