@@ -558,6 +558,7 @@ loop.roomViews = (function(mozL10n) {
       
       localPosterUrl: React.PropTypes.string,
       mozLoop: React.PropTypes.object.isRequired,
+      onCallTerminated: React.PropTypes.func.isRequired,
       remotePosterUrl: React.PropTypes.string,
       roomStore: React.PropTypes.instanceOf(loop.store.RoomStore).isRequired
     },
@@ -693,6 +694,14 @@ loop.roomViews = (function(mozL10n) {
       this.setState({ showEditContext: false });
     },
 
+    componentDidUpdate: function(prevProps, prevState) {
+      
+      if (prevState.roomState === ROOM_STATES.ENDED &&
+          this.state.roomState === ROOM_STATES.ENDED) {
+        this.props.onCallTerminated();
+      }
+    },
+
     render: function() {
       if (this.state.roomName) {
         this.setTitle(this.state.roomName);
@@ -726,10 +735,9 @@ loop.roomViews = (function(mozL10n) {
           );
         }
         case ROOM_STATES.ENDED: {
-          return (
-            React.createElement(sharedViews.FeedbackView, {
-              onAfterFeedbackReceived: this.closeWindow})
-          );
+          
+          
+          return null;
         }
         default: {
 

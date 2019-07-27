@@ -15,7 +15,6 @@ loop.conversationViews = (function(mozL10n) {
   var sharedUtils = loop.shared.utils;
   var sharedViews = loop.shared.views;
   var sharedMixins = loop.shared.mixins;
-  var sharedModels = loop.shared.models;
 
   
   
@@ -701,7 +700,8 @@ loop.conversationViews = (function(mozL10n) {
 
     propTypes: {
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      mozLoop: React.PropTypes.object.isRequired
+      mozLoop: React.PropTypes.object.isRequired,
+      onCallTerminated: React.PropTypes.func.isRequired
     },
 
     getInitialState: function() {
@@ -718,19 +718,6 @@ loop.conversationViews = (function(mozL10n) {
     _isCancellable: function() {
       return this.state.callState !== CALL_STATES.INIT &&
              this.state.callState !== CALL_STATES.GATHER;
-    },
-
-    
-
-
-    _renderFeedbackView: function() {
-      this.setTitle(mozL10n.get("conversation_has_ended"));
-
-      return (
-        React.createElement(sharedViews.FeedbackView, {
-          onAfterFeedbackReceived: this._closeWindow.bind(this)}
-        )
-      );
     },
 
     _renderViewFromCallType: function() {
@@ -758,6 +745,14 @@ loop.conversationViews = (function(mozL10n) {
       
       
       return null;
+    },
+
+    componentDidUpdate: function(prevProps, prevState) {
+      
+      if (prevState.callState === CALL_STATES.ONGOING &&
+          this.state.callState === CALL_STATES.FINISHED) {
+        this.props.onCallTerminated();
+      }
     },
 
     render: function() {
@@ -792,7 +787,10 @@ loop.conversationViews = (function(mozL10n) {
         }
         case CALL_STATES.FINISHED: {
           this.play("terminated");
-          return this._renderFeedbackView();
+
+          
+          
+          return null;
         }
         case CALL_STATES.INIT: {
           

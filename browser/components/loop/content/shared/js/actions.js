@@ -523,14 +523,13 @@ loop.shared.actions = (function() {
     
 
 
-
-    FeedbackComplete: Action.define("feedbackComplete", {
+    LeaveRoom: Action.define("leaveRoom", {
     }),
 
     
 
 
-    LeaveRoom: Action.define("leaveRoom", {
+    ShowFeedbackForm: Action.define("showFeedbackForm", {
     }),
 
     
@@ -542,28 +541,6 @@ loop.shared.actions = (function() {
       
       
       linkInfo: String
-    }),
-
-    
-
-
-    RequireFeedbackDetails: Action.define("requireFeedbackDetails", {
-    }),
-
-    
-
-
-    SendFeedback: Action.define("sendFeedback", {
-      happy: Boolean,
-      category: String,
-      description: String
-    }),
-
-    
-
-
-    SendFeedbackError: Action.define("sendFeedbackError", {
-      error: Error
     }),
 
     

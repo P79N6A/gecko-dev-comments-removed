@@ -27,14 +27,26 @@ loop.store.ConversationAppStore = (function() {
 
     this._dispatcher = options.dispatcher;
     this._mozLoop = options.mozLoop;
-    this._storeState = {};
+    this._storeState = this.getInitialStoreState();
 
     this._dispatcher.register(this, [
-      "getWindowData"
+      "getWindowData",
+      "showFeedbackForm"
     ]);
   };
 
   ConversationAppStore.prototype = _.extend({
+    getInitialStoreState: function() {
+      return {
+        
+        feedbackPeriod: this._mozLoop.getLoopPref("feedback.periodSec") * 1000,
+        
+        feedbackTimestamp: this._mozLoop
+                               .getLoopPref("feedback.dateLastSeenSec") * 1000,
+        showFeedbackForm: false
+      };
+    },
+
     
 
 
@@ -52,6 +64,20 @@ loop.store.ConversationAppStore = (function() {
     setStoreState: function(state) {
       this._storeState = state;
       this.trigger("change");
+    },
+
+    
+
+
+
+    showFeedbackForm: function() {
+      var timestamp = Math.floor(new Date().getTime() / 1000);
+
+      this._mozLoop.setLoopPref("feedback.dateLastSeenSec", timestamp);
+
+      this.setStoreState({
+        showFeedbackForm: true
+      });
     },
 
     
