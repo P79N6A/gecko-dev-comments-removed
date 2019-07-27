@@ -1584,7 +1584,7 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
             return false;
 
         
-        masm.roundsd(input, scratch, JSC::X86Assembler::RoundDown);
+        masm.roundsd(input, scratch, X86Assembler::RoundDown);
 
         if (!bailoutCvttsd2si(scratch, output, lir->snapshot()))
             return false;
@@ -1647,7 +1647,7 @@ CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
             return false;
 
         
-        masm.roundss(input, scratch, JSC::X86Assembler::RoundDown);
+        masm.roundss(input, scratch, X86Assembler::RoundDown);
 
         if (!bailoutCvttss2si(scratch, output, lir->snapshot()))
             return false;
@@ -1718,7 +1718,7 @@ CodeGeneratorX86Shared::visitCeil(LCeil *lir)
         
         masm.bind(&lessThanMinusOne);
         
-        masm.roundsd(input, scratch, JSC::X86Assembler::RoundUp);
+        masm.roundsd(input, scratch, X86Assembler::RoundUp);
         return bailoutCvttsd2si(scratch, output, lir->snapshot());
     }
 
@@ -1774,7 +1774,7 @@ CodeGeneratorX86Shared::visitCeilF(LCeilF *lir)
         
         masm.bind(&lessThanMinusOne);
         
-        masm.roundss(input, scratch, JSC::X86Assembler::RoundUp);
+        masm.roundss(input, scratch, X86Assembler::RoundUp);
         return bailoutCvttss2si(scratch, output, lir->snapshot());
     }
 
@@ -1845,7 +1845,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
         
         
         masm.addsd(input, temp);
-        masm.roundsd(temp, scratch, JSC::X86Assembler::RoundDown);
+        masm.roundsd(temp, scratch, X86Assembler::RoundDown);
 
         
         if (!bailoutCvttsd2si(scratch, output, lir->snapshot()))
@@ -1927,7 +1927,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
         
         
         masm.addss(input, temp);
-        masm.roundss(temp, scratch, JSC::X86Assembler::RoundDown);
+        masm.roundss(temp, scratch, X86Assembler::RoundDown);
 
         
         if (!bailoutCvttss2si(scratch, output, lir->snapshot()))

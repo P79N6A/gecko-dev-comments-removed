@@ -190,8 +190,8 @@ Assembler::executableCopy(uint8_t *buffer)
             
             continue;
         }
-        if (JSC::X86Assembler::canRelinkJump(src, rp.target)) {
-            JSC::X86Assembler::setRel32(src, rp.target);
+        if (X86Assembler::canRelinkJump(src, rp.target)) {
+            X86Assembler::setRel32(src, rp.target);
         } else {
             
             
@@ -200,11 +200,11 @@ Assembler::executableCopy(uint8_t *buffer)
 
             
             uint8_t *entry = buffer + extendedJumpTable_ + i * SizeOfJumpTableEntry;
-            JSC::X86Assembler::setRel32(src, entry);
+            X86Assembler::setRel32(src, entry);
 
             
             
-            JSC::X86Assembler::repatchPointer(entry + SizeOfExtendedJump, rp.target);
+            X86Assembler::repatchPointer(entry + SizeOfExtendedJump, rp.target);
         }
     }
 }
@@ -242,13 +242,13 @@ class RelocationIterator
 JitCode *
 Assembler::CodeFromJump(JitCode *code, uint8_t *jump)
 {
-    uint8_t *target = (uint8_t *)JSC::X86Assembler::getRel32Target(jump);
+    uint8_t *target = (uint8_t *)X86Assembler::getRel32Target(jump);
     if (target >= code->raw() && target < code->raw() + code->instructionsSize()) {
         
         
         JS_ASSERT(target + SizeOfJumpTableEntry <= code->raw() + code->instructionsSize());
 
-        target = (uint8_t *)JSC::X86Assembler::getPointer(target + SizeOfExtendedJump);
+        target = (uint8_t *)X86Assembler::getPointer(target + SizeOfExtendedJump);
     }
 
     return JitCode::FromExecutable(target);
