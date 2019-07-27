@@ -2389,9 +2389,8 @@ function URLBarSetURI(aURI) {
 
     
     
-    
     if (gInitialPages.indexOf(uri.spec) != -1)
-      value = !gMultiProcessBrowser && content.opener ? uri.spec : "";
+      value = gBrowser.selectedBrowser.hasContentOpener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
 
@@ -4158,7 +4157,7 @@ var XULBrowserWindow = {
     
 
     if (aWebProgress.isTopLevel) {
-      if ((location == "about:blank" && (gMultiProcessBrowser || !content.opener)) ||
+      if ((location == "about:blank" && !gBrowser.selectedBrowser.hasContentOpener) ||
           location == "") {  
                              
         this.reloadCommand.setAttribute("disabled", "true");
@@ -6533,8 +6532,7 @@ function isTabEmpty(aTab) {
   if (!isBlankPageURL(browser.currentURI.spec))
     return false;
 
-  
-  if (!gMultiProcessBrowser && browser.contentWindow.opener)
+  if (browser.hasContentOpener)
     return false;
 
   if (browser.canGoForward || browser.canGoBack)
