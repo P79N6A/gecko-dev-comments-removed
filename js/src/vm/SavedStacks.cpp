@@ -483,7 +483,8 @@ SavedStacks::insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFram
     
     
     
-    LocationValue location;+    if (iter.hasScript()) {
+    LocationValue location;
+    if (iter.hasScript()) {
         JSScript *script = iter.script();
         jsbytecode *pc = iter.pc();
         if (!getLocation(cx, script, pc, &location))
