@@ -496,10 +496,22 @@ ThreadState.prototype = {
     
     
     
-    if (aEvent == "paused" &&
-        aPacket.why.type == "interrupted" &&
-        !this.interruptedByResumeButton) {
-      return;
+    if (aEvent == "paused") {
+      if (aPacket.why.type == "interrupted" &&
+          !this.interruptedByResumeButton) {
+        return;
+      } else if (aPacket.why.type == "breakpointConditionThrown" && aPacket.why.message) {
+        let where = aPacket.frame.where;
+        let aLocation = {
+          line: where.line,
+          column: where.column,
+          actor: where.source ? where.source.actor : null
+        };
+        DebuggerView.Sources.showBreakpointConditionThrownMessage(
+          aLocation,
+          aPacket.why.message
+        );
+      }
     }
 
     this.interruptedByResumeButton = false;
@@ -589,6 +601,10 @@ StackFrames.prototype = {
       
       case "breakpoint":
         this._currentBreakpointLocation = aPacket.frame.where;
+        break;
+      case "breakpointConditionThrown":
+        this._currentBreakpointLocation = aPacket.frame.where;
+        this._conditionThrowMessage = aPacket.why.message;
         break;
       
       case "clientEvaluated":

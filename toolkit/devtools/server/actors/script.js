@@ -4934,22 +4934,35 @@ BreakpointActor.prototype = {
 
 
 
+
+
+
   checkCondition: function(aFrame) {
     let completion = aFrame.eval(this.condition);
     if (completion) {
       if (completion.throw) {
         
-        
-        return true;
+        let message = "Unknown exception";
+        try {
+          if (completion.throw.getOwnPropertyDescriptor) {
+            message = completion.throw.getOwnPropertyDescriptor("message").value;
+          } else if (completion.toString) {
+            message = completion.toString();
+          }
+        } catch (ex) {}
+        return {
+          result: true,
+          message: message
+        };
       } else if (completion.yield) {
         dbg_assert(false,
                    "Shouldn't ever get yield completions from an eval");
       } else {
-        return completion.return ? true : false;
+        return { result: completion.return ? true : false };
       }
     } else {
       
-      return undefined;
+      return { result: undefined };
     }
   },
 
@@ -4976,12 +4989,24 @@ BreakpointActor.prototype = {
 
     if (this.threadActor._hiddenBreakpoints.has(this.actorID)) {
       reason.type = "pauseOnDOMEvents";
-    } else if (!this.condition || this.checkCondition(aFrame)) {
+    } else if (!this.condition) {
       reason.type = "breakpoint";
       
       reason.actors = [ this.actorID ];
     } else {
-      return undefined;
+      let { result, message } = this.checkCondition(aFrame)
+
+      if (result) {
+        if (!message) {
+          reason.type = "breakpoint";
+        } else {
+          reason.type = "breakpointConditionThrown";
+          reason.message = message;
+        }
+        reason.actors = [ this.actorID ];
+      } else {
+        return undefined;
+      }
     }
     return this.threadActor._pauseAndRespond(aFrame, reason);
   },
