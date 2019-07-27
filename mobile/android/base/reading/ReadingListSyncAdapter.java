@@ -2,7 +2,6 @@
 
 
 
-
 package org.mozilla.gecko.reading;
 
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
