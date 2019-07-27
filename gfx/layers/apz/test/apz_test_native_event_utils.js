@@ -31,6 +31,15 @@ function nativeHorizontalWheelEventMsg() {
   throw "Native wheel events not supported on platform " + getPlatform();
 }
 
+function nativeMouseMoveEventMsg() {
+  switch (getPlatform()) {
+    case "windows": return 1; 
+    case "mac": return 5; 
+    case "linux": return 3; 
+  }
+  throw "Native wheel events not supported on platform " + getPlatform();
+}
+
 
 
 
@@ -90,4 +99,28 @@ function synthesizeNativeWheelAndWaitForScrollEvent(aElement, aX, aY, aDeltaX, a
     setTimeout(aCallback, 0);
   }, useCapture);
   return synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY);
+}
+
+
+
+function synthesizeNativeMouseMove(aElement, aX, aY) {
+  var targetWindow = aElement.ownerDocument.defaultView;
+  aX += targetWindow.mozInnerScreenX;
+  aY += targetWindow.mozInnerScreenY;
+  _getDOMWindowUtils().sendNativeMouseEvent(aX, aY, nativeMouseMoveEventMsg(), 0, aElement);
+  return true;
+}
+
+
+
+
+
+
+function synthesizeNativeMouseMoveAndWaitForMoveEvent(aElement, aX, aY, aCallback) {
+  var targetWindow = aElement.ownerDocument.defaultView;
+  targetWindow.addEventListener("mousemove", function mousemoveWaiter(e) {
+    targetWindow.removeEventListener("mousemove", mousemoveWaiter);
+    setTimeout(aCallback, 0);
+  });
+  return synthesizeNativeMouseMove(aElement, aX, aY);
 }
