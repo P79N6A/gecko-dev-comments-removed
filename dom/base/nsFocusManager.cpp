@@ -1614,11 +1614,6 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     return true;
   }
 
-  nsRefPtr<SelectionCarets> selectionCarets = presShell->GetSelectionCarets();
-  if (selectionCarets) {
-    selectionCarets->NotifyBlur();
-  }
-
   bool clearFirstBlurEvent = false;
   if (!mFirstBlurEvent) {
     mFirstBlurEvent = content;
@@ -1688,8 +1683,14 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
 
   
   
-  if (aIsLeavingDocument || !mActiveWindow)
+  if (aIsLeavingDocument || !mActiveWindow) {
     SetCaretVisible(presShell, false, nullptr);
+    nsRefPtr<SelectionCarets> selectionCarets = presShell->GetSelectionCarets();
+    if (selectionCarets) {
+      selectionCarets->NotifyBlur();
+    }
+  }
+
 
   
   
