@@ -626,6 +626,29 @@ StandardClassIsDependent(JSProtoKey key)
     return key != keyFromClass;
 }
 
+
+
+
+
+
+
+
+inline JSProtoKey
+ParentKeyForStandardClass(JSProtoKey key)
+{
+    
+    if (key == JSProto_Object)
+        return JSProto_Null;
+
+    
+    
+    if (StandardClassIsDependent(key))
+        return JSCLASS_CACHED_PROTO_KEY(ProtoKeyToClass(key));
+
+    
+    return JSProto_Object;
+}
+
 inline bool
 IsInnerObject(JSObject *obj) {
     return !!GetObjectClass(obj)->ext.outerObject;
