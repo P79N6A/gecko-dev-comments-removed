@@ -1920,8 +1920,11 @@ IonBuilder::processIfElseTrueEnd(CFGState &state)
         return ControlStatus_Error;
     graph().moveBlockToEnd(current);
 
-    if (state.branch.test)
-        filterTypesAtTest(state.branch.test);
+    if (state.branch.test) {
+        MTest *test = state.branch.test;
+        if (!improveTypesAtTest(test->getOperand(0), test->ifTrue() == current, test))
+            return ControlStatus_Error;
+    }
 
     return ControlStatus_Jumped;
 }
@@ -3074,69 +3077,14 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
     return ControlStatus_Jumped;
 }
 
-bool
-IonBuilder::filterTypesAtTest(MTest *test)
+void
+IonBuilder::replaceTypeSet(MDefinition *subject, types::TemporaryTypeSet *type, MTest *test)
 {
-    JS_ASSERT(test->ifTrue() == current || test->ifFalse() == current);
-
-    bool trueBranch = test->ifTrue() == current;
-
-    MDefinition *subject = nullptr;
-    bool removeUndefined = false;
-    bool removeNull = false;
-    bool setTypeToObject = false;
-
-    
-    
-    
-    
-    MDefinition *ins = test->getOperand(0);
-    if (ins->isIsObject() && trueBranch) {
-        setTypeToObject = true;
-        subject = ins->getOperand(0);
-    } else if (!trueBranch && ins->isNot() && ins->toNot()->getOperand(0)->isIsObject()) {
-        setTypeToObject = true;
-        subject = ins->getOperand(0)->getOperand(0);
-    } else {
-        test->filtersUndefinedOrNull(trueBranch, &subject, &removeUndefined, &removeNull);
-    }
-
-    
-    if (!subject)
-        return true;
-
-    
-    if (!subject->resultTypeSet() || subject->resultTypeSet()->unknown())
-        return true;
-
-    
-    
-    if (!(removeUndefined && subject->resultTypeSet()->hasType(types::Type::UndefinedType())) &&
-        !(removeNull && subject->resultTypeSet()->hasType(types::Type::NullType())) &&
-        !(setTypeToObject && subject->type() != MIRType_Object))
-    {
-        return true;
-    }
-
-    
-    
-    
     MDefinition *replace = nullptr;
     for (uint32_t i = 0; i < current->stackDepth(); i++) {
         if (current->getSlot(i) != subject)
             continue;
-
-        
         if (!replace) {
-            types::TemporaryTypeSet *type;
-            if (setTypeToObject)
-                type = subject->resultTypeSet()->cloneObjectsOnly(alloc_->lifoAlloc());
-            else
-                type = subject->resultTypeSet()->filter(alloc_->lifoAlloc(), removeUndefined,
-                                                                             removeNull);
-            if (!type)
-                return false;
-
             replace = ensureDefiniteTypeSet(subject, type);
             if (replace != subject) {
                 
@@ -3146,11 +3094,194 @@ IonBuilder::filterTypesAtTest(MTest *test)
                 replace->setDependency(test);
             }
         }
-
         current->setSlot(i, replace);
     }
+}
 
-   return true;
+bool
+IonBuilder::detectAndOrStructure(MPhi *ins, bool *branchIsAnd)
+{
+    if (current->numPredecessors() != 1)
+        return false;
+
+    MTest *initialTest;
+    MBasicBlock *initialBlock;
+    MBasicBlock *branchBlock;
+    MBasicBlock *testBlock = ins->block();
+
+    
+    *branchIsAnd = true;
+    
+    if (testBlock->numPredecessors() != 2)
+        return false;
+
+    if (testBlock->getPredecessor(0)->lastIns()->isTest())
+        initialBlock = testBlock->getPredecessor(0);
+    else if (testBlock->getPredecessor(1)->lastIns()->isTest())
+        initialBlock = testBlock->getPredecessor(1);
+    else
+        return false;
+
+    initialTest = initialBlock->lastIns()->toTest();
+
+    if (initialTest->ifTrue() == testBlock) {
+        branchBlock = initialTest->ifFalse();
+        *branchIsAnd = false;
+    } else {
+        branchBlock = initialTest->ifTrue();
+    }
+
+    if (branchBlock->numSuccessors() != 1 || branchBlock->getSuccessor(0) != testBlock)
+        return false;
+
+    if (branchBlock->numPredecessors() != 1)
+        return false;
+
+    MPhi *phi = ins->toPhi();
+
+    MDefinition *branchResult = phi->getOperand(testBlock->indexForPredecessor(branchBlock));
+    MDefinition *initialResult = phi->getOperand(testBlock->indexForPredecessor(initialBlock));
+
+    if (branchBlock->stackDepth() != initialBlock->stackDepth())
+        return false;
+    if (branchBlock->stackDepth() != testBlock->stackDepth() + 1)
+        return false;
+    if (branchResult != branchBlock->peek(-1) || initialResult != initialBlock->peek(-1))
+        return false;
+
+    return true;
+}
+
+bool
+IonBuilder::improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test)
+{
+    
+    if (ins->compareType() != MCompare::Compare_Undefined &&
+        ins->compareType() != MCompare::Compare_Null)
+    {
+        return true;
+    }
+
+    MOZ_ASSERT(ins->jsop() == JSOP_STRICTNE || ins->jsop() == JSOP_NE ||
+               ins->jsop() == JSOP_STRICTEQ || ins->jsop() == JSOP_EQ);
+
+    
+    if (!trueBranch && (ins->jsop() == JSOP_STRICTNE || ins->jsop() == JSOP_NE))
+        return true;
+
+    
+    if (trueBranch && (ins->jsop() == JSOP_STRICTEQ || ins->jsop() == JSOP_EQ))
+        return true;
+
+    bool filtersUndefined = false;
+    bool filtersNull = false;
+    if (ins->jsop() == JSOP_STRICTEQ || ins->jsop() == JSOP_STRICTNE) {
+        filtersUndefined = (ins->compareType() == MCompare::Compare_Undefined);
+        filtersNull = (ins->compareType() == MCompare::Compare_Null);
+    } else {
+        filtersUndefined = filtersNull = true;
+    }
+
+    MOZ_ASSERT(IsNullOrUndefined(ins->rhs()->type()));
+
+    MDefinition *subject = ins->lhs();
+    if (!subject->resultTypeSet() || subject->resultTypeSet()->unknown())
+        return false;
+
+    
+    types::TemporaryTypeSet *type = nullptr;
+    if ((filtersUndefined && subject->mightBeType(MIRType_Undefined)) ||
+        (filtersNull && subject->mightBeType(MIRType_Null)))
+    {
+        type = subject->resultTypeSet()->filter(alloc_->lifoAlloc(), filtersUndefined,
+                                                                     filtersNull);
+    }
+
+    if (!type)
+        return false;
+
+    replaceTypeSet(subject, type, test);
+
+    return true;
+}
+
+bool
+IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
+{
+    
+    
+    if (!ins)
+        return true;
+
+    switch(ins->op()) {
+      case MDefinition::Op_Not:
+        return improveTypesAtTest(ins->toNot()->getOperand(0), !trueBranch, test);
+      case MDefinition::Op_IsObject: {
+        types::TemporaryTypeSet *oldType = ins->getOperand(0)->resultTypeSet();
+        if (!oldType)
+            return true;
+        if (oldType->unknown() || !oldType->mightBeMIRType(MIRType_Object))
+            return true;
+
+        types::TemporaryTypeSet *type = nullptr;
+        if (trueBranch)
+            type = oldType->cloneObjectsOnly(alloc_->lifoAlloc());
+        else
+            type = oldType->cloneWithoutObjects(alloc_->lifoAlloc());
+
+        if (!type)
+            return false;
+
+        replaceTypeSet(ins->getOperand(0), type, test);
+        return true;
+      }
+      case MDefinition::Op_Phi: {
+        bool branchIsAnd = true;
+        if (!detectAndOrStructure(ins->toPhi(), &branchIsAnd))
+            return true;
+
+        
+        if (branchIsAnd) {
+            if (trueBranch) {
+                if (!improveTypesAtTest(ins->toPhi()->getOperand(0), true, test))
+                    return false;
+                if (!improveTypesAtTest(ins->toPhi()->getOperand(1), true, test))
+                    return false;
+            }
+        } else {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            if (!trueBranch) {
+                if (!improveTypesAtTest(ins->toPhi()->getOperand(0), false, test))
+                    return false;
+                if (!improveTypesAtTest(ins->toPhi()->getOperand(1), false, test))
+                    return false;
+            }
+        }
+        return true;
+      }
+
+      case MDefinition::Op_Compare:
+        return improveTypesAtCompare(ins->toCompare(), trueBranch, test);
+
+      default:
+        break;
+    }
+
+    return true;
 }
 
 bool
@@ -3606,7 +3737,8 @@ IonBuilder::jsop_ifeq(JSOp op)
         return false;
 
     
-    filterTypesAtTest(test);
+    if (!improveTypesAtTest(test->getOperand(0), test->ifTrue() == current, test))
+        return false;
 
     return true;
 }

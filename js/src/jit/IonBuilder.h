@@ -344,7 +344,11 @@ class IonBuilder : public MIRGenerator
     MConstant *constantInt(int32_t i);
 
     
-    bool filterTypesAtTest(MTest *test);
+    bool improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test);
+    bool improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test);
+    
+    bool detectAndOrStructure(MPhi *ins, bool *branchIsTrue);
+    void replaceTypeSet(MDefinition *subject, types::TemporaryTypeSet *type, MTest *test);
 
     
     
