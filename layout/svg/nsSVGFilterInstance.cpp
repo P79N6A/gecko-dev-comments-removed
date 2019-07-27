@@ -24,12 +24,14 @@ using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
 nsSVGFilterInstance::nsSVGFilterInstance(const nsStyleFilter& aFilter,
-                                         nsIFrame *aTargetFrame,
+                                         nsIContent* aTargetContent,
+                                         const UserSpaceMetrics& aMetrics,
                                          const gfxRect& aTargetBBox,
                                          const gfxSize& aUserSpaceToFilterSpaceScale,
                                          const gfxSize& aFilterSpaceToUserSpaceScale) :
   mFilter(aFilter),
-  mTargetFrame(aTargetFrame),
+  mTargetContent(aTargetContent),
+  mMetrics(aMetrics),
   mTargetBBox(aTargetBBox),
   mUserSpaceToFilterSpaceScale(aUserSpaceToFilterSpaceScale),
   mFilterSpaceToUserSpaceScale(aFilterSpaceToUserSpaceScale),
@@ -86,7 +88,7 @@ nsSVGFilterInstance::ComputeBounds()
   uint16_t filterUnits =
     mFilterFrame->GetEnumValue(SVGFilterElement::FILTERUNITS);
   gfxRect userSpaceBounds = nsSVGUtils::GetRelativeRect(filterUnits,
-    XYWH, mTargetBBox, mTargetFrame);
+    XYWH, mTargetBBox, mMetrics);
 
   
   
@@ -126,16 +128,14 @@ nsSVGFilterInstance::GetFilterFrame()
 
   
   
-  nsIContent* targetElement = mTargetFrame->GetContent();
-  if (!targetElement) {
-    
+  if (!mTargetContent) {
     return nullptr;
   }
 
   
   nsReferencedElement filterElement;
   bool watch = false;
-  filterElement.Reset(targetElement, url, watch);
+  filterElement.Reset(mTargetContent, url, watch);
   Element* element = filterElement.get();
   if (!element) {
     
@@ -163,7 +163,7 @@ nsSVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType, float aValue) const
   if (mPrimitiveUnits == SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
     value = nsSVGUtils::ObjectSpace(mTargetBBox, &val);
   } else {
-    value = nsSVGUtils::UserSpace(mTargetFrame, &val);
+    value = nsSVGUtils::UserSpace(mMetrics, &val);
   }
 
   switch (aCtxType) {
@@ -194,7 +194,7 @@ nsSVGFilterInstance::ConvertLocation(const Point3D& aPoint) const
               nsIDOMSVGLength::SVG_LENGTHTYPE_NUMBER);
 
   gfxRect feArea = nsSVGUtils::GetRelativeRect(mPrimitiveUnits,
-    val, mTargetBBox, mTargetFrame);
+    val, mTargetBBox, mMetrics);
   gfxRect r = UserSpaceToFilterSpace(feArea);
   return Point3D(r.x, r.y, GetPrimitiveNumber(SVGContentUtils::XY, aPoint.z));
 }
@@ -240,7 +240,7 @@ nsSVGFilterInstance::ComputeFilterPrimitiveSubregion(nsSVGFE* aFilterElement,
   }
 
   gfxRect feArea = nsSVGUtils::GetRelativeRect(mPrimitiveUnits,
-    &fE->mLengthAttributes[nsSVGFE::ATTR_X], mTargetBBox, mTargetFrame);
+    &fE->mLengthAttributes[nsSVGFE::ATTR_X], mTargetBBox, mMetrics);
   Rect region = ToRect(UserSpaceToFilterSpace(feArea));
 
   if (!fE->mLengthAttributes[nsSVGFE::ATTR_X].IsExplicitlySet())
@@ -387,7 +387,7 @@ nsSVGFilterInstance::BuildPrimitives(nsTArray<FilterPrimitiveDescription>& aPrim
   nsDataHashtable<nsStringHashKey, int32_t> imageTable(8);
 
   
-  nsCOMPtr<nsIPrincipal> principal = mTargetFrame->GetContent()->NodePrincipal();
+  nsCOMPtr<nsIPrincipal> principal = mTargetContent->NodePrincipal();
 
   for (uint32_t primitiveElementIndex = 0;
        primitiveElementIndex < primitives.Length();

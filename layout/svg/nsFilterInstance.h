@@ -25,6 +25,12 @@ class gfxASurface;
 class nsIFrame;
 class nsSVGFilterPaintCallback;
 
+namespace mozilla {
+namespace dom {
+class UserSpaceMetrics;
+}
+}
+
 
 
 
@@ -48,6 +54,7 @@ class nsFilterInstance
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
   typedef mozilla::gfx::FilterDescription FilterDescription;
+  typedef mozilla::dom::UserSpaceMetrics UserSpaceMetrics;
 
 public:
   
@@ -110,7 +117,9 @@ public:
 
 
 
+
   nsFilterInstance(nsIFrame *aTargetFrame,
+                   const UserSpaceMetrics& aMetrics,
                    const nsTArray<nsStyleFilter>& aFilterChain,
                    nsSVGFilterPaintCallback *aPaintCallback,
                    const gfxMatrix& aPaintTransform,
@@ -268,6 +277,11 @@ private:
 
 
   nsIFrame* mTargetFrame;
+
+  
+
+
+  const UserSpaceMetrics& mMetrics;
 
   nsSVGFilterPaintCallback* mPaintCallback;
 

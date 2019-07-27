@@ -70,6 +70,7 @@ class nsSVGFilterInstance
   typedef mozilla::gfx::IntRect IntRect;
   typedef mozilla::gfx::SourceSurface SourceSurface;
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
+  typedef mozilla::dom::UserSpaceMetrics UserSpaceMetrics;
 
 public:
   
@@ -81,7 +82,8 @@ public:
 
 
   nsSVGFilterInstance(const nsStyleFilter& aFilter,
-                      nsIFrame *aTargetFrame,
+                      nsIContent* aTargetContent,
+                      const UserSpaceMetrics& aMetrics,
                       const gfxRect& aTargetBBox,
                       const gfxSize& aUserSpaceToFilterSpaceScale,
                       const gfxSize& aFilterSpaceToUserSpaceScale);
@@ -210,7 +212,12 @@ private:
   
 
 
-  nsIFrame* mTargetFrame;
+  nsIContent* mTargetContent;
+
+  
+
+
+  const UserSpaceMetrics& mMetrics;
 
   
 
