@@ -503,6 +503,16 @@ assertStmt("try { } catch (e if foo) { } catch (e if bar) { } catch (e) { } fina
                    blockStmt([])));
 
 
+
+assertExpr("b = { a() { } }", aExpr("=", ident("b"),
+              objExpr([{ key: ident("a"), value: funExpr(ident("a"), [], blockStmt([])), method:
+              true}])));
+
+assertExpr("b = { *a() { } }", aExpr("=", ident("b"),
+              objExpr([{ key: ident("a"), value: genFunExpr(ident("a"), [], blockStmt([])), method:
+              true}])));
+
+
 (function() {
     var threw = false;
     try {
