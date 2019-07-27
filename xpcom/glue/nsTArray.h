@@ -1153,13 +1153,6 @@ public:
   }
 
   
-  template<class Item>
-  elem_type* InsertElementAt(index_type aIndex, const Item& aItem)
-  {
-    return ReplaceElementsAt(aIndex, 0, &aItem, 1);
-  }
-
-  
   
   
   elem_type* InsertElementAt(index_type aIndex)
@@ -1175,8 +1168,8 @@ public:
   }
 
   
-  
-  elem_type* InsertElementAt(index_type aIndex, elem_type&& aItem)
+  template<class Item>
+  elem_type* InsertElementAt(index_type aIndex, Item&& aItem)
   {
     if (!Alloc::Successful(this->EnsureCapacity(Length() + 1,
                                                 sizeof(elem_type)))) {
@@ -1184,8 +1177,7 @@ public:
     }
     this->ShiftData(aIndex, 0, 1, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
     elem_type* elem = Elements() + aIndex;
-    nsTArrayElementTraits<elem_type>::Construct(elem,
-                                                mozilla::Forward<elem_type>(aItem));
+    elem_traits::Construct(elem, mozilla::Forward<Item>(aItem));
     return elem;
   }
 
@@ -1279,26 +1271,17 @@ public:
 
   
   template<class Item>
-  elem_type* AppendElement(const Item& aItem)
-  {
-    return AppendElements(&aItem, 1);
-  }
-
-  
-  elem_type* AppendElement(elem_type&& aItem)
+  elem_type* AppendElement(Item&& aItem)
   {
     if (!Alloc::Successful(this->EnsureCapacity(Length() + 1,
                                                 sizeof(elem_type)))) {
       return nullptr;
     }
-    index_type len = Length();
-    elem_type* iter = Elements() + len;
-    nsTArrayElementTraits<elem_type>::Construct(iter,
-                                                mozilla::Forward<elem_type>(aItem));
+    elem_type* elem = Elements() + Length();
+    elem_traits::Construct(elem, mozilla::Forward<Item>(aItem));
     this->IncrementLength(1);
-    return iter;
+    return elem;
   }
-
 
   
   
