@@ -172,6 +172,9 @@ RootActor.prototype = {
     
     
     profilerDataFilterable: true,
+    
+    
+    profilerBufferStatus: true,
   },
 
   
