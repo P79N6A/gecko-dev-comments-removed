@@ -11,6 +11,7 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/debug.js", this);
+Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
@@ -30,6 +31,9 @@ const PAYLOAD_VERSION = 1;
 
 
 #expand const HISTOGRAMS_FILE_VERSION = "__HISTOGRAMS_FILE_VERSION__";
+
+const LOGGER_NAME = "Toolkit.Telemetry";
+const LOGGER_PREFIX = "TelemetrySession::";
 
 const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_SERVER = PREF_BRANCH + "server";
@@ -261,6 +265,7 @@ this.TelemetrySession = Object.freeze({
 let Impl = {
   _histograms: {},
   _initialized: false,
+  _log: null,
   _prevValues: {},
   
   
@@ -289,6 +294,8 @@ let Impl = {
 
 
   getSimpleMeasurements: function getSimpleMeasurements(forSavedSession) {
+    this._log.trace("getSimpleMeasurements");
+
     let si = Services.startup.getStartupInfo();
 
     
@@ -451,6 +458,8 @@ let Impl = {
   },
 
   getHistograms: function getHistograms(hls) {
+    this._log.trace("getHistograms");
+
     let registered = Telemetry.registeredHistograms([]);
     let ret = {};
 
@@ -466,6 +475,8 @@ let Impl = {
   },
 
   getAddonHistograms: function getAddonHistograms() {
+    this._log.trace("getAddonHistograms");
+
     let ahs = Telemetry.addonHistogramSnapshots;
     let ret = {};
 
@@ -483,6 +494,8 @@ let Impl = {
   },
 
   getKeyedHistograms: function() {
+    this._log.trace("getKeyedHistograms");
+
     let registered = Telemetry.registeredKeyedHistograms([]);
     let ret = {};
 
@@ -499,6 +512,8 @@ let Impl = {
   },
 
   getThreadHangStats: function getThreadHangStats(stats) {
+    this._log.trace("getThreadHangStats");
+
     stats.forEach((thread) => {
       thread.activity = this.packHistogram(thread.activity);
       thread.hangs.forEach((hang) => {
@@ -517,6 +532,8 @@ let Impl = {
 
 
   getMetadata: function getMetadata(reason) {
+    this._log.trace("getMetadata - Reason " + reason);
+
     let ai = Services.appinfo;
     let ret = {
       reason: reason,
@@ -628,6 +645,8 @@ let Impl = {
 
 
   gatherMemory: function gatherMemory() {
+    this._log.trace("gatherMemory");
+
     let mgr;
     try {
       mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
@@ -750,6 +769,8 @@ let Impl = {
 
 
   gatherStartupHistograms: function gatherStartupHistograms() {
+    this._log.trace("gatherStartupHistograms");
+
     let info = Telemetry.registeredHistograms([]);
     let snapshots = Telemetry.histogramSnapshots;
     for (let name of info) {
@@ -767,6 +788,8 @@ let Impl = {
 
 
   assemblePayloadWithMeasurements: function assemblePayloadWithMeasurements(simpleMeasurements, info) {
+    this._log.trace("assemblePayloadWithMeasurements");
+
     
     let payloadObj = {
       ver: PAYLOAD_VERSION,
@@ -809,6 +832,7 @@ let Impl = {
   },
 
   getSessionPayload: function getSessionPayload(reason) {
+    this._log.trace("getSessionPayload - Reason " + reason);
     let measurements = this.getSimpleMeasurements(reason == "saved-session");
     let info = !IS_CONTENT_PROCESS ? this.getMetadata(reason) : null;
     return this.assemblePayloadWithMeasurements(measurements, info);
@@ -820,6 +844,7 @@ let Impl = {
   },
 
   getSessionPayloadAndSlug: function getSessionPayloadAndSlug(reason) {
+    this._log.trace("getSessionPayloadAndSlug - Reason " + reason);
     return this.assemblePing(this.getSessionPayload(reason), reason);
   },
 
@@ -827,6 +852,7 @@ let Impl = {
 
 
   send: function send(reason) {
+    this._log.trace("send - Reason " + reason);
     
     this.gatherMemory();
     return TelemetryPing.send(reason, this.getSessionPayloadAndSlug(reason));
@@ -875,6 +901,7 @@ let Impl = {
       
       
       Telemetry.canRecord = false;
+      this._log.config("enableTelemetryRecording - Can't send data, disabling Telemetry recording.");
       return false;
     }
 #endif
@@ -885,6 +912,7 @@ let Impl = {
       
       
       Telemetry.canRecord = false;
+      this._log.config("enableTelemetryRecording - Telemetry is disabled, turning off Telemetry recording.");
       return false;
     }
 
@@ -895,6 +923,12 @@ let Impl = {
 
 
   setupChromeProcess: function setupChromeProcess(testing) {
+    if (testing && !this._log) {
+      this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
+    }
+
+    this._log.trace("setupChromeProcess");
+
     
     this._thirdPartyCookies = new ThirdPartyCookieProbe();
     this._thirdPartyCookies.init();
@@ -911,6 +945,7 @@ let Impl = {
     }
 
     if (!this.enableTelemetryRecording(testing)) {
+      this._log.config("setupChromeProcess - Telemetry recording is disabled, skipping Chrome process setup.");
       return Promise.resolve();
     }
 
@@ -956,6 +991,8 @@ let Impl = {
 
 
   setupContentProcess: function setupContentProcess() {
+    this._log.trace("setupContentProcess");
+
     if (!this.enableTelemetryRecording()) {
       return;
     }
@@ -979,6 +1016,7 @@ let Impl = {
   },
 
   getFlashVersion: function getFlashVersion() {
+    this._log.trace("getFlashVersion");
     let host = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
     let tags = host.getPluginTags();
 
@@ -991,6 +1029,7 @@ let Impl = {
   },
 
   receiveMessage: function receiveMessage(message) {
+    this._log.trace("receiveMessage - Message name " + message.name);
     switch (message.name) {
     case MESSAGE_TELEMETRY_PAYLOAD:
     {
@@ -1015,11 +1054,13 @@ let Impl = {
   },
 
   sendContentProcessPing: function sendContentProcessPing(reason) {
+    this._log.trace("sendContentProcessPing - Reason " + reason);
     let payload = this.getSessionPayload(reason);
     cpmm.sendAsyncMessage(MESSAGE_TELEMETRY_PAYLOAD, payload);
   },
 
   savePendingPings: function savePendingPings() {
+    this._log.trace("savePendingPings");
     let sessionPing = this.getSessionPayloadAndSlug("saved-session");
     return TelemetryFile.savePendingPings(sessionPing);
   },
@@ -1048,6 +1089,7 @@ let Impl = {
   },
 
   getPayload: function getPayload() {
+    this._log.trace("getPayload");
     
     
     if (Object.keys(this._slowSQLStartup).length == 0) {
@@ -1059,6 +1101,7 @@ let Impl = {
   },
 
   gatherStartup: function gatherStartup() {
+    this._log.trace("gatherStartup");
     let counters = processInfo.getCounters();
     if (counters) {
       [this._startupIO.startupSessionRestoreReadBytes,
@@ -1073,6 +1116,7 @@ let Impl = {
   },
 
   sendIdlePing: function sendIdlePing(aTest) {
+    this._log.trace("sendIdlePing");
     if (this._isIdleObserver) {
       idleService.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
       this._isIdleObserver = false;
@@ -1092,6 +1136,12 @@ let Impl = {
 
 
   observe: function (aSubject, aTopic, aData) {
+    if (!this._log) {
+      this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
+    }
+
+    this._log.trace("observe - " + aTopic + " notified.");
+
     switch (aTopic) {
     case "profile-after-change":
       
