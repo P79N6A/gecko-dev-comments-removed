@@ -8,10 +8,21 @@ let gSearch = {
 
   currentEngineName: null,
 
+  get useNewUI() {
+    let newUI = Services.prefs.getBoolPref("browser.search.showOneOffButtons");
+    delete this.useNewUI;
+    this.useNewUI = newUI;
+    return newUI;
+  },
+
   init: function () {
     for (let idSuffix of this._nodeIDSuffixes) {
       this._nodes[idSuffix] =
         document.getElementById("newtab-search-" + idSuffix);
+    }
+
+    if (this.useNewUI) {
+      this._nodes.logo.classList.add("magnifier");
     }
 
     window.addEventListener("ContentSearchService", this);
@@ -123,6 +134,11 @@ let gSearch = {
 
   _setUpPanel: function () {
     
+    if (this.useNewUI) {
+      return;
+    }
+
+    
     if (this._newEngines) {
       this._buildPanel(this._newEngines);
       delete this._newEngines;
@@ -198,28 +214,30 @@ let gSearch = {
   _setCurrentEngine: function (engine) {
     this.currentEngineName = engine.name;
 
-    let type = "";
-    let uri;
-    let logoBuf = window.devicePixelRatio >= 2 ?
-                  engine.logo2xBuffer || engine.logoBuffer :
-                  engine.logoBuffer || engine.logo2xBuffer;
-    if (logoBuf) {
-      uri = URL.createObjectURL(new Blob([logoBuf]));
-      type = "logo";
-    }
-    else if (engine.iconBuffer) {
-      uri = this._getFaviconURIFromBuffer(engine.iconBuffer);
-      type = "favicon";
-    }
-    this._nodes.logo.setAttribute("type", type);
+    if (!this.useNewUI) {
+      let type = "";
+      let uri;
+      let logoBuf = window.devicePixelRatio >= 2 ?
+                    engine.logo2xBuffer || engine.logoBuffer :
+                    engine.logoBuffer || engine.logo2xBuffer;
+      if (logoBuf) {
+        uri = URL.createObjectURL(new Blob([logoBuf]));
+        type = "logo";
+      }
+      else if (engine.iconBuffer) {
+        uri = this._getFaviconURIFromBuffer(engine.iconBuffer);
+        type = "favicon";
+      }
+      this._nodes.logo.setAttribute("type", type);
 
-    if (uri) {
-      this._nodes.logo.style.backgroundImage = "url(" + uri + ")";
+      if (uri) {
+        this._nodes.logo.style.backgroundImage = "url(" + uri + ")";
+      }
+      else {
+        this._nodes.logo.style.backgroundImage = "";
+      }
+      this._nodes.text.placeholder = engine.placeholder;
     }
-    else {
-      this._nodes.logo.style.backgroundImage = "";
-    }
-    this._nodes.text.placeholder = engine.placeholder;
 
     
     if (!this._suggestionController) {
