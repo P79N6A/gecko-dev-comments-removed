@@ -428,6 +428,11 @@ private:
 
   bool IsDeniedCrossSiteRequest();
 
+  
+  
+  
+  void PopulateNetworkInterfaceId();
+
 public:
   void Send(JSContext* , ErrorResult& aRv)
   {
@@ -536,6 +541,16 @@ public:
   nsIChannel* GetChannel()
   {
     return mChannel;
+  }
+
+  void GetNetworkInterfaceId(nsACString& aId) const
+  {
+    aId = mNetworkInterfaceId;
+  }
+
+  void SetNetworkInterfaceId(const nsACString& aId)
+  {
+    mNetworkInterfaceId = aId;
   }
 
   
@@ -761,6 +776,10 @@ protected:
 
   bool mIsSystem;
   bool mIsAnon;
+
+  
+  
+  nsCString mNetworkInterfaceId;
 
   
 
