@@ -66,6 +66,7 @@
 #include "nsIPermissionManager.h"
 #include "nsMimeTypes.h"
 #include "nsIHttpChannelInternal.h"
+#include "nsIClassOfService.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsFormData.h"
 #include "nsStreamListenerWrapper.h"
@@ -2889,14 +2890,17 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
   
   AddLoadFlags(mChannel, nsIRequest::INHIBIT_PIPELINE);
 
+  nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(mChannel));
+  if (cos) {
+    
+    
+    
+    cos->AddClassFlags(nsIClassOfService::Unblocked);
+  }
+
   nsCOMPtr<nsIHttpChannelInternal>
     internalHttpChannel(do_QueryInterface(mChannel));
   if (internalHttpChannel) {
-    
-    
-    
-    internalHttpChannel->SetLoadUnblocked(true);
-
     
     internalHttpChannel->SetResponseTimeoutEnabled(false);
   }

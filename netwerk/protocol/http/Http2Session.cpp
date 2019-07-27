@@ -103,6 +103,7 @@ Http2Session::Http2Session(nsISocketTransport *aSocketTransport)
   , mPreviousUsed(false)
   , mWaitingForSettingsAck(false)
   , mGoAwayOnPush(false)
+  , mUseH2Deps(false)
 {
   MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
 
@@ -793,6 +794,10 @@ Http2Session::GenerateGoAway(uint32_t aStatusCode)
 
 
 
+
+
+
+
 void
 Http2Session::SendHello()
 {
@@ -801,8 +806,10 @@ Http2Session::SendHello()
 
   
   
+  
   static const uint32_t maxSettings = 4;
-  static const uint32_t maxDataLen = 24 + kFrameHeaderBytes + maxSettings * 6 + 13;
+  static const uint32_t prioritySize = 5 * (kFrameHeaderBytes + 5);
+  static const uint32_t maxDataLen = 24 + kFrameHeaderBytes + maxSettings * 6 + 13 + prioritySize;
   char *packet = EnsureOutputBuffer(maxDataLen);
   memcpy(packet, kMagicHello, 24);
   mOutputQueueUsed += 24;
@@ -855,23 +862,55 @@ Http2Session::SendHello()
 
   
   uint32_t sessionWindowBump = ASpdySession::kInitialRwin - kDefaultRwin;
-  if (kDefaultRwin >= ASpdySession::kInitialRwin)
-    goto sendHello_complete;
+  if (kDefaultRwin < ASpdySession::kInitialRwin) {
+    
+    mLocalSessionWindow = ASpdySession::kInitialRwin;
 
-  
-  mLocalSessionWindow = ASpdySession::kInitialRwin;
+    packet = mOutputQueueBuffer.get() + mOutputQueueUsed;
+    CreateFrameHeader(packet, 4, FRAME_TYPE_WINDOW_UPDATE, 0, 0);
+    mOutputQueueUsed += kFrameHeaderBytes + 4;
+    CopyAsNetwork32(packet + kFrameHeaderBytes, sessionWindowBump);
 
-  packet = mOutputQueueBuffer.get() + mOutputQueueUsed;
-  CreateFrameHeader(packet, 4, FRAME_TYPE_WINDOW_UPDATE, 0, 0);
-  mOutputQueueUsed += kFrameHeaderBytes + 4;
-  CopyAsNetwork32(packet + kFrameHeaderBytes, sessionWindowBump);
+    LOG3(("Session Window increase at start of session %p %u\n",
+          this, sessionWindowBump));
+    LogIO(this, nullptr, "Session Window Bump ", packet, kFrameHeaderBytes + 4);
+  }
 
-  LOG3(("Session Window increase at start of session %p %u\n",
-        this, sessionWindowBump));
-  LogIO(this, nullptr, "Session Window Bump ", packet, kFrameHeaderBytes + 4);
+  if (gHttpHandler->UseH2Deps() && gHttpHandler->CriticalRequestPrioritization()) {
+    mUseH2Deps = true;
+    MOZ_ASSERT(mNextStreamID == kLeaderGroupID);
+    CreatePriorityNode(kLeaderGroupID, 0, 200, "leader");
+    mNextStreamID += 2;
+    MOZ_ASSERT(mNextStreamID == kOtherGroupID);
+    CreatePriorityNode(kOtherGroupID, 0, 100, "other");
+    mNextStreamID += 2;
+    MOZ_ASSERT(mNextStreamID == kBackgroundGroupID);
+    CreatePriorityNode(kBackgroundGroupID, 0, 0, "background");
+    mNextStreamID += 2;
+    MOZ_ASSERT(mNextStreamID == kSpeculativeGroupID);
+    CreatePriorityNode(kSpeculativeGroupID, kBackgroundGroupID, 0, "speculative");
+    mNextStreamID += 2;
+    MOZ_ASSERT(mNextStreamID == kFollowerGroupID);
+    CreatePriorityNode(kFollowerGroupID, kLeaderGroupID, 0, "follower");
+    mNextStreamID += 2;
+  }
 
-sendHello_complete:
   FlushOutputQueue();
+}
+
+void
+Http2Session::CreatePriorityNode(uint32_t streamID, uint32_t dependsOn, uint8_t weight,
+                                 const char *label)
+{
+  char *packet = mOutputQueueBuffer.get() + mOutputQueueUsed;
+  CreateFrameHeader(packet, 5, FRAME_TYPE_PRIORITY, 0, streamID);
+  mOutputQueueUsed += kFrameHeaderBytes + 5;
+  CopyAsNetwork32(packet + kFrameHeaderBytes, dependsOn); 
+  packet[kFrameHeaderBytes + 4] = weight; 
+
+  LOG3(("Http2Session %p generate Priority Frame 0x%X depends on 0x%X "
+        "weight %d for %s class\n", this, streamID, dependsOn, weight, label));
+  LogIO(this, nullptr, "Priority dep node", packet, kFrameHeaderBytes + 5);
 }
 
 

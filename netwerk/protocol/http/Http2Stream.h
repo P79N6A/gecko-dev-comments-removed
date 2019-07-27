@@ -126,6 +126,7 @@ public:
   uint32_t Priority() { return mPriority; }
   void SetPriority(uint32_t);
   void SetPriorityDependency(uint32_t, uint8_t, bool);
+  void UpdatePriorityDependency();
 
   
   
@@ -264,8 +265,9 @@ private:
   
   int64_t                      mRequestBodyLenRemaining;
 
-  uint32_t                     mPriority;
-  uint8_t                      mPriorityWeight;
+  uint32_t                     mPriority; 
+  uint8_t                      mPriorityWeight; 
+  uint8_t                      mPriorityDependency; 
 
   
   

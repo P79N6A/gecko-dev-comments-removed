@@ -136,6 +136,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mCountRecv(0)
     , mCountSent(0)
     , mAppId(NECKO_NO_APP_ID)
+    , mClassOfService(0)
 {
     LOG(("Creating nsHttpTransaction @%p\n", this));
     gHttpHandler->GetMaxPipelineObjectSize(&mMaxPipelineObjectSize);

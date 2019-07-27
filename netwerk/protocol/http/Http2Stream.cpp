@@ -26,6 +26,7 @@
 #include "nsHttp.h"
 #include "nsHttpHandler.h"
 #include "nsHttpRequestHead.h"
+#include "nsIClassOfService.h"
 #include "nsISocketTransport.h"
 #include "nsStandardURL.h"
 #include "prnetdb.h"
@@ -504,8 +505,11 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
                mTxInlineFrameUsed, mTxInlineFrameSize);
 
   mTxInlineFrameUsed += messageSize;
-  LOG3(("%p Generating %d bytes of HEADERS for stream 0x%X with priority weight %u frames %u\n",
-        this, mTxInlineFrameUsed, mStreamID, mPriorityWeight, numFrames));
+  UpdatePriorityDependency();
+  LOG3(("Http2Stream %p Generating %d bytes of HEADERS for stream 0x%X with "
+        "priority weight %u dep 0x%X frames %u uri=%s\n",
+        this, mTxInlineFrameUsed, mStreamID, mPriorityWeight,
+        mPriorityDependency, numFrames, nsCString(head->RequestURI()).get()));
 
   uint32_t outputOffset = 0;
   uint32_t compressedDataOffset = 0;
@@ -534,9 +538,7 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
     outputOffset += Http2Session::kFrameHeaderBytes;
 
     if (!idx) {
-      
-      
-      memset(mTxInlineFrame.get() + outputOffset, 0, 4);
+      memcpy(mTxInlineFrame.get() + outputOffset, &mPriorityDependency, 4);
       memcpy(mTxInlineFrame.get() + outputOffset + 4, &mPriorityWeight, 1);
       outputOffset += 5;
     }
@@ -1063,6 +1065,8 @@ Http2Stream::SetPriority(uint32_t newPriority)
   mPriority = static_cast<uint32_t>(httpPriority);
   mPriorityWeight = (nsISupportsPriority::PRIORITY_LOWEST + 1) -
     (httpPriority - kNormalPriority);
+
+  mPriorityDependency = 0; 
 }
 
 void
@@ -1073,6 +1077,53 @@ Http2Stream::SetPriorityDependency(uint32_t newDependency, uint8_t newWeight,
   LOG3(("Http2Stream::SetPriorityDependency %p 0x%X received dependency=0x%X "
         "weight=%u exclusive=%d", this, mStreamID, newDependency, newWeight,
         exclusive));
+}
+
+void
+Http2Stream::UpdatePriorityDependency()
+{
+  if (!mSession->UseH2Deps()) {
+    return;
+  }
+
+  nsHttpTransaction *trans = mTransaction->QueryHttpTransaction();
+  if (!trans) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  uint32_t classFlags = trans->ClassOfService();
+
+  if (classFlags & nsIClassOfService::Leader) {
+    mPriorityDependency = Http2Session::kLeaderGroupID;
+  } else if (classFlags & nsIClassOfService::Follower) {
+    mPriorityDependency = Http2Session::kFollowerGroupID;
+  } else if (classFlags & nsIClassOfService::Speculative) {
+    mPriorityDependency = Http2Session::kSpeculativeGroupID;
+  } else if (classFlags & nsIClassOfService::Background) {
+    mPriorityDependency = Http2Session::kBackgroundGroupID;
+  } else if (classFlags & nsIClassOfService::Unblocked) {
+    mPriorityDependency = Http2Session::kOtherGroupID;
+  } else {
+    mPriorityDependency = Http2Session::kFollowerGroupID; 
+  }
+
+  LOG3(("Http2Stream::UpdatePriorityDependency %p "
+        "classFlags %X depends on stream 0x%X\n",
+        this, classFlags, mPriorityDependency));
 }
 
 void

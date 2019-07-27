@@ -19,6 +19,7 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 #include "nsICancelable.h"
+#include "nsIClassOfService.h"
 #include "nsIDNSRecord.h"
 #include "nsIDNSService.h"
 #include "nsIStreamConverterService.h"
@@ -2293,8 +2294,10 @@ WebSocketChannel::SetupRequest()
   
   
   
-  rv = mChannel->SetLoadUnblocked(true);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(mChannel));
+  if (cos) {
+    cos->AddClassFlags(nsIClassOfService::Unblocked);
+  }
 
   
   

@@ -1753,8 +1753,7 @@ nsHttpConnectionMgr::TryDispatchTransaction(nsConnectionEntry *ent,
                 }
             }
         }
-    }
-    else {
+    } else {
         
         
         trans->DispatchedAsBlocking();
