@@ -680,9 +680,13 @@ let DirectoryLinksProvider = {
       });
     }
     
-    else if (action == "click") {
-      let {targetedSite, url} = sites[triggeringSiteIndex].link;
-      if (targetedSite) {
+    
+    
+    
+    else {
+      
+      let {frecent_sites, targetedSite, url} = sites[triggeringSiteIndex].link;
+      if (frecent_sites || targetedSite) {
         this._setFrequencyCapClick(url);
       }
     }
