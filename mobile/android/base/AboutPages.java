@@ -55,8 +55,6 @@ public class AboutPages {
     }
 
     private static final String[] DEFAULT_ICON_PAGES = new String[] {
-        HOME,
-
         ADDONS,
         CONFIG,
         DOWNLOADS,
@@ -72,10 +70,15 @@ public class AboutPages {
         return DEFAULT_ICON_PAGES;
     }
 
-    public static boolean isDefaultIconPage(final String url) {
+    public static boolean isBuiltinIconPage(final String url) {
         if (url == null ||
             !url.startsWith("about:")) {
             return false;
+        }
+
+        
+        if (isAboutHome(url)) {
+            return true;
         }
 
         
