@@ -86,6 +86,7 @@ namespace mozilla {
 class CSSStyleSheet;
 class ErrorResult;
 class EventStates;
+class PendingPlayerTracker;
 class SVGAttrAnimationRuleProcessor;
 
 namespace css {
@@ -1821,6 +1822,17 @@ public:
   
   
   virtual nsSMILAnimationController* GetAnimationController() = 0;
+
+  
+  
+  
+  
+  virtual mozilla::PendingPlayerTracker* GetPendingPlayerTracker() = 0;
+
+  
+  
+  
+  virtual mozilla::PendingPlayerTracker* GetOrCreatePendingPlayerTracker() = 0;
 
   
   

@@ -59,6 +59,7 @@
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/PendingPlayerTracker.h"
 #include "mozilla/dom/DOMImplementation.h"
 #include "mozilla/dom/StyleSheetList.h"
 #include "nsDataHashtable.h"
@@ -1047,6 +1048,15 @@ public:
   
   nsSMILAnimationController* GetAnimationController() MOZ_OVERRIDE;
 
+  virtual mozilla::PendingPlayerTracker*
+  GetPendingPlayerTracker() MOZ_FINAL
+  {
+    return mPendingPlayerTracker;
+  }
+
+  virtual mozilla::PendingPlayerTracker*
+  GetOrCreatePendingPlayerTracker() MOZ_OVERRIDE;
+
   void SetImagesNeedAnimating(bool aAnimating) MOZ_OVERRIDE;
 
   virtual void SuppressEventHandling(SuppressionType aWhat,
@@ -1510,6 +1520,10 @@ protected:
 
   
   nsTObserverArray<nsIDocumentObserver*> mObservers;
+
+  
+  
+  nsRefPtr<mozilla::PendingPlayerTracker> mPendingPlayerTracker;
 
   
   
