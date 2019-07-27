@@ -205,6 +205,8 @@ class OSXBootstrapper(BaseBootstrapper):
                     self._install_xcode_app_store()
                     assert False 
 
+                output = e.output
+
             
             
             
