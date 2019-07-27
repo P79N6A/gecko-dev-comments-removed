@@ -469,6 +469,21 @@ bool
 ValueNumberer::visitDefinition(MDefinition *def)
 {
     
+    
+    const MDefinition *dep = def->dependency();
+    if (dep != nullptr && dep->block()->isDead()) {
+        JitSpew(JitSpew_GVN, "    AliasAnalysis invalidated");
+        if (updateAliasAnalysis_ && !dependenciesBroken_) {
+            
+            
+            JitSpew(JitSpew_GVN, "      Will recompute!");
+            dependenciesBroken_ = true;
+        }
+        
+        def->setDependency(def->toInstruction());
+    }
+
+    
     MDefinition *sim = simplified(def);
     if (sim != def) {
         if (sim == nullptr)
@@ -520,16 +535,6 @@ ValueNumberer::visitDefinition(MDefinition *def)
                            "discardDef shouldn't have added anything to the worklist");
             }
             def = rep;
-        }
-    }
-
-    
-    
-    if (updateAliasAnalysis_ && !dependenciesBroken_) {
-        const MDefinition *dep = def->dependency();
-        if (dep != nullptr && dep->block()->isDead()) {
-            JitSpew(JitSpew_GVN, "    AliasAnalysis invalidated; will recompute!");
-            dependenciesBroken_ = true;
         }
     }
 
