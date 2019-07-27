@@ -4,24 +4,24 @@
 
 package org.mozilla.gecko.overlays.ui;
 
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.util.AttributeSet;
-import android.util.Log;
-import android.view.MotionEvent;
-import android.widget.ListAdapter;
-import android.widget.ListView;
-import org.mozilla.gecko.Assert;
-import org.mozilla.gecko.R;
-import org.mozilla.gecko.overlays.service.sharemethods.ParcelableClientRecord;
-
-import java.util.Arrays;
-
 import static org.mozilla.gecko.overlays.ui.SendTabList.State.LIST;
 import static org.mozilla.gecko.overlays.ui.SendTabList.State.LOADING;
 import static org.mozilla.gecko.overlays.ui.SendTabList.State.NONE;
 import static org.mozilla.gecko.overlays.ui.SendTabList.State.SHOW_DEVICES;
+
+import java.util.Arrays;
+
+import org.mozilla.gecko.Assert;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.overlays.service.sharemethods.ParcelableClientRecord;
+
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 
 
 
@@ -44,7 +44,8 @@ import static org.mozilla.gecko.overlays.ui.SendTabList.State.SHOW_DEVICES;
 
 
 public class SendTabList extends ListView {
-    private static final String LOGTAG = "SendTabList";
+    @SuppressWarnings("unused")
+    private static final String LOGTAG = "GeckoSendTabList";
 
     
     
@@ -107,10 +108,8 @@ public class SendTabList extends ListView {
         }
     }
 
-    public void setSyncClients(ParcelableClientRecord[] clients) {
-        if (clients == null) {
-            clients = new ParcelableClientRecord[0];
-        }
+    public void setSyncClients(final ParcelableClientRecord[] c) {
+        final ParcelableClientRecord[] clients = c == null ? new ParcelableClientRecord[0] : c;
 
         int size = clients.length;
         if (size == 0) {
