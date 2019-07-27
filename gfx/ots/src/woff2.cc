@@ -55,10 +55,6 @@ const uint32_t kCompressionTypeNone = 0;
 const uint32_t kCompressionTypeGzip = 1;
 const uint32_t kCompressionTypeBrotli = 2;
 
-
-
-const uint32_t kShortFlagsContinue = 3;
-
 const uint32_t kKnownTags[] = {
   TAG('c', 'm', 'a', 'p'),  
   TAG('h', 'e', 'a', 'd'),  
@@ -89,6 +85,40 @@ const uint32_t kKnownTags[] = {
   TAG('G', 'D', 'E', 'F'),  
   TAG('G', 'P', 'O', 'S'),  
   TAG('G', 'S', 'U', 'B'),  
+  TAG('E', 'B', 'S', 'C'),  
+  TAG('J', 'S', 'T', 'F'),  
+  TAG('M', 'A', 'T', 'H'),  
+  TAG('C', 'B', 'D', 'T'),  
+  TAG('C', 'B', 'L', 'C'),  
+  TAG('C', 'O', 'L', 'R'),  
+  TAG('C', 'P', 'A', 'L'),  
+  TAG('S', 'V', 'G', ' '),  
+  TAG('s', 'b', 'i', 'x'),  
+  TAG('a', 'c', 'n', 't'),  
+  TAG('a', 'v', 'a', 'r'),  
+  TAG('b', 'd', 'a', 't'),  
+  TAG('b', 'l', 'o', 'c'),  
+  TAG('b', 's', 'l', 'n'),  
+  TAG('c', 'v', 'a', 'r'),  
+  TAG('f', 'd', 's', 'c'),  
+  TAG('f', 'e', 'a', 't'),  
+  TAG('f', 'm', 't', 'x'),  
+  TAG('f', 'v', 'a', 'r'),  
+  TAG('g', 'v', 'a', 'r'),  
+  TAG('h', 's', 't', 'y'),  
+  TAG('j', 'u', 's', 't'),  
+  TAG('l', 'c', 'a', 'r'),  
+  TAG('m', 'o', 'r', 't'),  
+  TAG('m', 'o', 'r', 'x'),  
+  TAG('o', 'p', 'b', 'd'),  
+  TAG('p', 'r', 'o', 'p'),  
+  TAG('t', 'r', 'a', 'k'),  
+  TAG('Z', 'a', 'p', 'f'),  
+  TAG('S', 'i', 'l', 'f'),  
+  TAG('G', 'l', 'a', 't'),  
+  TAG('G', 'l', 'o', 'c'),  
+  TAG('F', 'e', 'a', 't'),  
+  TAG('S', 'i', 'l', 'l'),  
 };
 
 struct Point {
@@ -769,7 +799,6 @@ bool Woff2Uncompress(uint8_t* dst_buf, size_t dst_size,
 
 bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
     size_t num_tables) {
-  uint32_t last_compression_type = 0;
   for (size_t i = 0; i < num_tables; ++i) {
     Table* table = &tables->at(i);
     uint8_t flag_byte;
@@ -777,29 +806,24 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
       return OTS_FAILURE();
     }
     uint32_t tag;
-    if ((flag_byte & 0x1f) == 0x1f) {
+    if ((flag_byte & 0x3f) == 0x3f) {
       if (!file->ReadU32(&tag)) {
         return OTS_FAILURE();
       }
     } else {
-      if ((flag_byte & 0x1f) >= arraysize(kKnownTags)) {
-        return OTS_FAILURE();
-      }
-      tag = kKnownTags[flag_byte & 0x1f];
+      tag = kKnownTags[flag_byte & 0x3f];
     }
-    uint32_t flags = flag_byte >> 6;
-    if (flags == kShortFlagsContinue) {
-      flags = last_compression_type | kWoff2FlagsContinueStream;
-    } else {
-      if (flags == kCompressionTypeNone ||
-          flags == kCompressionTypeGzip ||
-          flags == kCompressionTypeBrotli) {
-        last_compression_type = flags;
-      } else {
-        return OTS_FAILURE();
-      }
+    
+    if ((flag_byte & 0xc0) != 0) {
+      return OTS_FAILURE();
     }
-    if ((flag_byte & 0x20) != 0) {
+    uint32_t flags = kCompressionTypeBrotli;
+    if (i > 0) {
+      flags |= kWoff2FlagsContinueStream;
+    }
+    
+    if (tag == TAG('g', 'l', 'y', 'f') ||
+        tag == TAG('l', 'o', 'c', 'a')) {
       flags |= kWoff2FlagsTransform;
     }
     uint32_t dst_length;
@@ -812,26 +836,13 @@ bool ReadShortDirectory(ots::Buffer* file, std::vector<Table>* tables,
         return OTS_FAILURE();
       }
     }
-    uint32_t src_length = transform_length;
-    if ((flag_byte >> 6) == 1 || (flag_byte >> 6) == 2) {
-      if (!ReadBase128(file, &src_length)) {
-        return OTS_FAILURE();
-      }
-    } else if (static_cast<uint32_t>(flag_byte >> 6) == kShortFlagsContinue) {
-      
-      
-      src_length = 0;
-    }
     
-    if (src_length > 1024 * 1024 * 1024 ||
-        transform_length > 1024 * 1024 * 1024 ||
+    if (transform_length > 1024 * 1024 * 1024 ||
         dst_length > 1024 * 1024 * 1024) {
       return OTS_FAILURE();
     }
-
     table->tag = tag;
     table->flags = flags;
-    table->src_length = src_length;
     table->transform_length = transform_length;
     table->dst_length = dst_length;
   }
@@ -880,10 +891,18 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
   
   
   
+  if (!file.Skip(6)) {
+    return OTS_FAILURE();
+  }
+  uint32_t compressed_length;
+  if (!file.ReadU32(&compressed_length)) {
+    return OTS_FAILURE();
+  }
   
   
   
-  if (!file.Skip(30)) {
+  
+  if (!file.Skip(24)) {
     return OTS_FAILURE();
   }
   std::vector<Table> tables(num_tables);
@@ -897,6 +916,7 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
   for (uint16_t i = 0; i < num_tables; ++i) {
     Table* table = &tables.at(i);
     table->src_offset = src_offset;
+    table->src_length = (i == 0 ? compressed_length : 0);
     src_offset += table->src_length;
     if (src_offset > std::numeric_limits<uint32_t>::max()) {
       return OTS_FAILURE();
@@ -983,7 +1003,7 @@ bool ConvertWOFF2ToTTF(uint8_t* result, size_t result_length,
       }
       uncompressed_buf.resize(total_size);
       if (!Woff2Uncompress(&uncompressed_buf[0], total_size,
-          src_buf, table->src_length, compression_type)) {
+          src_buf, compressed_length, compression_type)) {
         return OTS_FAILURE();
       }
       transform_buf = &uncompressed_buf[0];
