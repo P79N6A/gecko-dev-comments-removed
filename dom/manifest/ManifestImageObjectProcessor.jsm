@@ -27,19 +27,15 @@ const {
   classes: Cc,
   interfaces: Ci
 } = Components;
-const scriptLoader = Cc['@mozilla.org/moz/jssubscript-loader;1']
-  .getService(Ci.mozIJSSubScriptLoader);
-scriptLoader.loadSubScript(
-  'resource://gre/modules/manifestValueExtractor.js',
-  this); 
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.importGlobalProperties(['URL']);
 imports.netutil = Cc['@mozilla.org/network/util;1']
   .getService(Ci.nsINetUtil);
-imports.DOMUtils = Cc['@mozilla.org/inspector/dom-utils;1']
-  .getService(Ci.inIDOMUtils);
 
-function ManifestImageObjectProcessor() {}
+function ManifestImageObjectProcessor(aConsole, aExtractor) {
+  this.console = aConsole;
+  this.extractor = aExtractor;
+}
 
 
 Object.defineProperties(ManifestImageObjectProcessor, {
@@ -55,8 +51,8 @@ Object.defineProperties(ManifestImageObjectProcessor, {
   }
 });
 
-ManifestImageObjectProcessor.process = function(
-  aManifest, aBaseURL, aMemberName, console
+ManifestImageObjectProcessor.prototype.process = function(
+  aManifest, aBaseURL, aMemberName
 ) {
   const spec = {
     objectName: 'manifest',
@@ -65,8 +61,9 @@ ManifestImageObjectProcessor.process = function(
     expectedType: 'array',
     trim: false
   };
+  const extractor = this.extractor;
   const images = [];
-  const value = extractValue(spec, console);
+  const value = extractor.extractValue(spec);
   if (Array.isArray(value)) {
     
     value.filter(item => !!processSrcMember(item, aBaseURL))
@@ -95,7 +92,7 @@ ManifestImageObjectProcessor.process = function(
       expectedType: 'string',
       trim: true
     };
-    let value = extractValue(spec, console);
+    let value = extractor.extractValue(spec);
     if (value) {
       value = imports.netutil.parseContentType(value, charset, hadCharset);
     }
@@ -117,7 +114,7 @@ ManifestImageObjectProcessor.process = function(
       expectedType: 'string',
       trim: false
     };
-    const value = extractValue(spec, console);
+    const value = extractor.extractValue(spec);
     let url;
     if (value && value.length) {
       try {
@@ -136,7 +133,7 @@ ManifestImageObjectProcessor.process = function(
       expectedType: 'string',
       trim: true
     };
-    const value = extractValue(spec, console);
+    const value = extractor.extractValue(spec);
     if (value) {
       
       value.split(/\s+/)
@@ -171,15 +168,7 @@ ManifestImageObjectProcessor.process = function(
       expectedType: 'string',
       trim: true
     };
-    const value = extractValue(spec, console);
-    let color;
-    if (imports.DOMUtils.isValidCSSColor(value)) {
-      color = value;
-    } else {
-      const msg = `background_color: ${value} is not a valid CSS color.`;
-      console.warn(msg);
-    }
-    return color;
+    return extractor.extractColorValue(spec);
   }
 };
 this.ManifestImageObjectProcessor = ManifestImageObjectProcessor; 
