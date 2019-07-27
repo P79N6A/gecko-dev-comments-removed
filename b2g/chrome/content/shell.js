@@ -1202,7 +1202,6 @@ const kTransferContractId = "@mozilla.org/transfer;1";
 
 
 
-
 Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
                   .registerFactory(kTransferCid, "",
                                    kTransferContractId, null);
