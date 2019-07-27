@@ -156,6 +156,16 @@ public:
 
 
 
+
+  virtual nsresult
+  FetchUuidsInternal(const nsAString& aDeviceAddress,
+                     BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+
+
   virtual nsresult
   StopDiscoveryInternal(BluetoothReplyRunnable* aRunnable) = 0;
 
