@@ -5841,17 +5841,10 @@ UpdateExistingGetPropCallStubs(ICFallbackStub* fallbackStub,
                 if (isOwnGetter)
                     getPropStub->receiverGuard().update(receiverGuard);
 
-                
-                
+                MOZ_ASSERT(getPropStub->holderShape() != holder->lastProperty() ||
+                           !getPropStub->receiverGuard().matches(receiverGuard),
+                           "Why didn't we end up using this stub?");
 
-                
-                
-                
-                
-                
-                
-                
-                
                 
                 
                 getPropStub->holderShape() = holder->lastProperty();
