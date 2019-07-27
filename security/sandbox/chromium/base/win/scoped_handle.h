@@ -13,20 +13,17 @@
 #include "base/logging.h"
 #include "base/move.h"
 
-namespace base {
-namespace win {
-
 
 #if defined(COMPILER_MSVC)
-
-extern "C" {
-  void* _ReturnAddress();
-}
+#include <intrin.h>
 #define BASE_WIN_GET_CALLER _ReturnAddress()
 #elif defined(COMPILER_GCC)
 #define BASE_WIN_GET_CALLER __builtin_extract_return_addr(\\
     __builtin_return_address(0))
 #endif
+
+namespace base {
+namespace win {
 
 
 
