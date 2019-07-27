@@ -349,3 +349,7 @@ let PopupBlocking = {
   },
 };
 PopupBlocking.init();
+
+
+let Console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
+this.console = new Console.ConsoleAPI();
