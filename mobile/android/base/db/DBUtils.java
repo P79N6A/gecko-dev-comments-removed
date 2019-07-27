@@ -211,8 +211,29 @@ public class DBUtils {
 
     @RobocopTarget
     public enum UpdateOperation {
+        
+
+
+
+
         ASSIGN,
+
+        
+
+
+
+
         BITWISE_OR,
+
+        
+
+
+
+
+
+
+
+        EXPRESSION,
     }
 
     
@@ -245,7 +266,10 @@ public class DBUtils {
         
         int setValuesSize = 0;
         for (int i = 0; i < values.length; i++) {
-            setValuesSize += values[i].size();
+            
+            if (ops[i] != UpdateOperation.EXPRESSION) {
+                setValuesSize += values[i].size();
+            }
         }
 
         int bindArgsSize = (whereArgs == null) ? setValuesSize : (setValuesSize + whereArgs.length);
@@ -275,6 +299,16 @@ public class DBUtils {
                         bindArgs[arg++] = entry.getValue();
                         sql.append("= ? | ");
                         sql.append(colName);
+                    }
+                    break;
+                case EXPRESSION:
+                    
+                    for (Map.Entry<String, Object> entry : v.valueSet()) {
+                        final String colName = entry.getKey();
+                        sql.append((arg > 0) ? "," : "");
+                        sql.append(colName);
+                        sql.append(" = ");
+                        sql.append(entry.getValue());
                     }
                     break;
             }

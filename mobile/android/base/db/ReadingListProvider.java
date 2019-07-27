@@ -12,6 +12,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.text.TextUtils;
+import org.mozilla.gecko.db.DBUtils.UpdateOperation;
 
 import static org.mozilla.gecko.db.BrowserContract.ReadingListItems.*;
 
@@ -78,9 +79,6 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
             return null;
         }
 
-        
-        values.put(SYNC_STATUS, SYNC_STATUS_MODIFIED);
-
         final ContentValues out = new ContentValues();
         int flag = 0;
         if (values.containsKey(MARKED_READ_BY) ||
@@ -125,8 +123,15 @@ public class ReadingListProvider extends SharedBrowserDatabaseProvider {
         }
 
         
-        final ContentValues[] valuesAndFlags = {values, flags};
-        final DBUtils.UpdateOperation[] ops = {DBUtils.UpdateOperation.ASSIGN, DBUtils.UpdateOperation.BITWISE_OR};
+        final ContentValues setModified = new ContentValues();
+        setModified.put(SYNC_STATUS, "CASE " + SYNC_STATUS +
+                                     " WHEN " + SYNC_STATUS_SYNCED +
+                                     " THEN " + SYNC_STATUS_MODIFIED +
+                                     " ELSE " + SYNC_STATUS +
+                                     " END");
+
+        final ContentValues[] valuesAndFlags = {values, flags, setModified};
+        final UpdateOperation[] ops = {UpdateOperation.ASSIGN, UpdateOperation.BITWISE_OR, UpdateOperation.EXPRESSION};
 
         return DBUtils.updateArrays(db, TABLE_READING_LIST, valuesAndFlags, ops, selection, selectionArgs);
     }
