@@ -7590,7 +7590,7 @@ nsLayoutUtils::GetContentViewerSize(nsPresContext* aPresContext,
 }
 
  nsSize
-nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
+nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame, bool aSubtractScrollbars)
 {
   
   
@@ -7646,7 +7646,7 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
         }
       }
 
-      if (scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+      if (aSubtractScrollbars && scrollableFrame && !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
         nsMargin margins = scrollableFrame->GetActualScrollbarSizes();
         size.width -= margins.LeftRight();
         size.height -= margins.TopBottom();
