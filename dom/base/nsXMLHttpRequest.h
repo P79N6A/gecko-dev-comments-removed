@@ -549,7 +549,7 @@ public:
   void DispatchProgressEvent(mozilla::DOMEventTargetHelper* aTarget,
                              const nsAString& aType,
                              bool aLengthComputable,
-                             uint64_t aLoaded, uint64_t aTotal);
+                             int64_t aLoaded, int64_t aTotal);
 
   
   
@@ -724,8 +724,8 @@ protected:
   uint32_t mState;
 
   nsRefPtr<nsXMLHttpRequestUpload> mUpload;
-  uint64_t mUploadTransferred;
-  uint64_t mUploadTotal;
+  int64_t mUploadTransferred;
+  int64_t mUploadTotal;
   bool mUploadLengthComputable;
   bool mUploadComplete;
   bool mProgressSinceLastProgressEvent;
@@ -744,7 +744,7 @@ protected:
   bool mWarnAboutMultipartHtml;
   bool mWarnAboutSyncHtml;
   bool mLoadLengthComputable;
-  uint64_t mLoadTotal; 
+  int64_t mLoadTotal; 
   
   
   uint64_t mDataAvailable;
@@ -755,7 +755,7 @@ protected:
   
   
   
-  uint64_t mLoadTransferred;
+  int64_t mLoadTransferred;
   nsCOMPtr<nsITimer> mProgressNotifier;
   void HandleProgressTimerCallback();
 

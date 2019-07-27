@@ -2769,4 +2769,28 @@ bool NS_IsReasonableHTTPHeaderValue(const nsACString& aValue);
 
 bool NS_IsValidHTTPToken(const nsACString& aToken);
 
+namespace mozilla {
+namespace net {
+
+const static uint64_t kJS_MAX_SAFE_UINTEGER = +9007199254740991ULL;
+const static  int64_t kJS_MIN_SAFE_INTEGER  = -9007199254740991LL;
+const static  int64_t kJS_MAX_SAFE_INTEGER  = +9007199254740991LL;
+
+
+inline bool
+InScriptableRange(int64_t val)
+{
+    return (val <= kJS_MAX_SAFE_INTEGER) && (val >= kJS_MIN_SAFE_INTEGER);
+}
+
+
+inline bool
+InScriptableRange(uint64_t val)
+{
+    return val <= kJS_MAX_SAFE_UINTEGER;
+}
+
+} 
+} 
+
 #endif 

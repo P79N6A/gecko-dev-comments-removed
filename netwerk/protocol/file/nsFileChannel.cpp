@@ -22,6 +22,9 @@
 #include "nsIMIMEService.h"
 #include <algorithm>
 
+using namespace mozilla;
+using namespace mozilla::net;
+
 
 
 class nsFileCopyEvent : public nsRunnable {
@@ -453,8 +456,9 @@ nsFileChannel::SetUploadStream(nsIInputStream *stream,
       nsresult rv = mUploadStream->Available(&avail);
       if (NS_FAILED(rv))
         return rv;
-      if (avail < INT64_MAX)
-        mUploadLength = avail;
+      
+      
+      mUploadLength = InScriptableRange(avail) ? avail : -1;
     }
   } else {
     mUploadLength = -1;

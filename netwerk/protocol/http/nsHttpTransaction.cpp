@@ -367,8 +367,14 @@ nsHttpTransaction::Init(uint32_t caps,
     else
         mRequestStream = headers;
 
-    rv = mRequestStream->Available(&mRequestSize);
-    if (NS_FAILED(rv)) return rv;
+    uint64_t size_u64;
+    rv = mRequestStream->Available(&size_u64);
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
+
+    
+    mRequestSize = InScriptableRange(size_u64) ? static_cast<int64_t>(size_u64) : -1;
 
     
     rv = NS_NewPipe2(getter_AddRefs(mPipeIn),
@@ -499,9 +505,9 @@ nsHttpTransaction::SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks)
 
 void
 nsHttpTransaction::OnTransportStatus(nsITransport* transport,
-                                     nsresult status, uint64_t progress)
+                                     nsresult status, int64_t progress)
 {
-    LOG(("nsHttpTransaction::OnSocketStatus [this=%p status=%x progress=%llu]\n",
+    LOG(("nsHttpTransaction::OnSocketStatus [this=%p status=%x progress=%lld]\n",
         this, status, progress));
 
     if (TimingEnabled()) {
@@ -548,7 +554,7 @@ nsHttpTransaction::OnTransportStatus(nsITransport* transport,
     if (status == NS_NET_STATUS_RECEIVING_FROM)
         return;
 
-    uint64_t progressMax;
+    int64_t progressMax;
 
     if (status == NS_NET_STATUS_SENDING_TO) {
         
@@ -562,16 +568,16 @@ nsHttpTransaction::OnTransportStatus(nsITransport* transport,
         if (!seekable) {
             LOG(("nsHttpTransaction::OnTransportStatus %p "
                  "SENDING_TO without seekable request stream\n", this));
-            return;
+            progress = 0;
+        } else {
+            int64_t prog = 0;
+            seekable->Tell(&prog);
+            progress = prog;
         }
 
-        int64_t prog = 0;
-        seekable->Tell(&prog);
-        progress = prog;
-
         
         
-        progressMax = mRequestSize; 
+        progressMax = mRequestSize;
     }
     else {
         progress = 0;
@@ -1619,10 +1625,6 @@ nsHttpTransaction::HandleContent(char *buf,
     if (*contentRead) {
         
         mContentRead += *contentRead;
-        
-
-
-
     }
 
     LOG(("nsHttpTransaction::HandleContent [this=%p count=%u read=%u mContentRead=%lld mContentLength=%lld]\n",

@@ -94,9 +94,9 @@ private:
     uint32_t  mHttp1xTransactionCount;
 
     
-    uint64_t  mReceivingFromProgress;
-    uint64_t  mSendingToProgress;
-    bool      mSuppressSendEvents;
+    int64_t  mReceivingFromProgress;
+    int64_t  mSendingToProgress;
+    bool     mSuppressSendEvents;
 };
 
 }} 

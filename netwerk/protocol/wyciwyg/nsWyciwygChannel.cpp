@@ -709,8 +709,7 @@ nsWyciwygChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctx,
 
   
   if (mProgressSink && NS_SUCCEEDED(rv)) {
-    mProgressSink->OnProgress(this, nullptr, offset + count,
-                              uint64_t(mContentLength));
+    mProgressSink->OnProgress(this, nullptr, offset + count, mContentLength);
   }
 
   return rv; 

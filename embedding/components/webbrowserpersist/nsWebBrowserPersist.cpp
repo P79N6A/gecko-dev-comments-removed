@@ -912,8 +912,8 @@ nsWebBrowserPersist::OnDataAvailable(
 
 
 NS_IMETHODIMP nsWebBrowserPersist::OnProgress(
-    nsIRequest *request, nsISupports *ctxt, uint64_t aProgress,
-    uint64_t aProgressMax)
+    nsIRequest *request, nsISupports *ctxt, int64_t aProgress,
+    int64_t aProgressMax)
 {
     if (!mProgressListener)
     {
@@ -925,16 +925,16 @@ NS_IMETHODIMP nsWebBrowserPersist::OnProgress(
     OutputData *data = mOutputMap.Get(keyPtr);
     if (data)
     {
-        data->mSelfProgress = int64_t(aProgress);
-        data->mSelfProgressMax = int64_t(aProgressMax);
+        data->mSelfProgress = aProgress;
+        data->mSelfProgressMax = aProgressMax;
     }
     else
     {
         UploadData *upData = mUploadList.Get(keyPtr);
         if (upData)
         {
-            upData->mSelfProgress = int64_t(aProgress);
-            upData->mSelfProgressMax = int64_t(aProgressMax);
+            upData->mSelfProgress = aProgress;
+            upData->mSelfProgressMax = aProgressMax;
         }
     }
 

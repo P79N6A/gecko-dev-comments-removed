@@ -163,8 +163,8 @@ private:
   
   
   nsresult mStoredStatus;
-  uint64_t mStoredProgress;
-  uint64_t mStoredProgressMax;
+  int64_t mStoredProgress;
+  int64_t mStoredProgressMax;
 
   bool mSentRedirect1Begin          : 1;
   bool mSentRedirect1BeginFailed    : 1;
