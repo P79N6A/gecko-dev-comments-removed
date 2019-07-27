@@ -1794,6 +1794,13 @@ pref("intl.fallbackCharsetList.ISO-8859-1", "windows-1252");
 pref("font.language.group",                 "chrome://global/locale/intl.properties");
 
 
+#ifdef MOZ_WIDGET_ANDROID
+pref("intl.ime.hack.on_ime_unaware_apps.fire_key_events_for_composition", true);
+#else
+pref("intl.ime.hack.on_ime_unaware_apps.fire_key_events_for_composition", false);
+#endif
+
+
 pref("intl.uidirection.ar", "rtl");
 pref("intl.uidirection.he", "rtl");
 pref("intl.uidirection.fa", "rtl");

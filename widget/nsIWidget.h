@@ -423,6 +423,7 @@ struct InputContext {
   InputContext()
     : mNativeIMEContext(nullptr)
     , mOrigin(XRE_IsParentProcess() ? ORIGIN_MAIN : ORIGIN_CONTENT)
+    , mMayBeIMEUnaware(false)
   {}
 
   bool IsPasswordEditor() const
@@ -446,7 +447,6 @@ struct InputContext {
 
   void* mNativeIMEContext;
 
-
   
 
 
@@ -458,6 +458,11 @@ struct InputContext {
     ORIGIN_CONTENT
   };
   Origin mOrigin;
+
+  
+
+
+  bool mMayBeIMEUnaware;
 
   bool IsOriginMainProcess() const
   {
