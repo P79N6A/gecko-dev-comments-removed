@@ -218,6 +218,12 @@ private:
   bool mAsyncShutdownInProgress;
 
   int mChildPid;
+
+  
+  
+  
+  
+  bool mHoldingSelfRef;
 };
 
 } 
