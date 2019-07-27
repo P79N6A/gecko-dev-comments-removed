@@ -44,6 +44,20 @@ function run_test() {
     regSvc.close();
   }
 
+  let isLinux = ("@mozilla.org/gio-service;1" in Components.classes);
+  if (isLinux) {
+    
+    
+    let gIOSvc = Cc["@mozilla.org/gio-service;1"].
+                 createInstance(Ci.nsIGIOService);
+    try {
+      gIOSvc.getAppForURIScheme("mailto");
+      noMailto = false;
+    } catch (ex) {
+      noMailto = true;
+    }
+  }
+
   
   
 
