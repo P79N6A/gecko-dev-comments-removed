@@ -20,6 +20,11 @@ page {
   -moz-user-select: text;
 }
 
+treecol {
+  
+  -moz-user-select: none;
+}
+
 caption {
   -moz-appearance: none;
   margin: 0;
