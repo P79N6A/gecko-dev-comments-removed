@@ -50,6 +50,7 @@ class PTextureChild;
 class TextureChild;
 class BufferTextureClient;
 class TextureClient;
+class KeepAlive;
 
 
 
@@ -280,6 +281,14 @@ public:
 
 
   bool IsValid() const { return mValid; }
+
+  
+
+
+
+
+
+  void KeepUntilFullDeallocation(KeepAlive* aKeep);
 
   
 
@@ -611,6 +620,21 @@ struct TextureClientAutoUnlock
   {
     mTexture->Unlock();
   }
+};
+
+class KeepAlive
+{
+public:
+  virtual ~KeepAlive() {}
+};
+
+template<typename T>
+class TKeepAlive : public KeepAlive
+{
+public:
+  TKeepAlive(T* aData) : mData(aData) {}
+protected:
+  RefPtr<T> mData;
 };
 
 }
