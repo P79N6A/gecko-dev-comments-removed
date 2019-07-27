@@ -34,7 +34,6 @@ public:
   NS_DECL_NSIPARENTCHANNEL
 
   RtspChannelParent(nsIURI *aUri);
-  ~RtspChannelParent();
 
   
   NS_IMETHOD GetContentType(nsACString & aContentType) MOZ_OVERRIDE MOZ_FINAL;
@@ -69,6 +68,8 @@ public:
   bool Init(const RtspChannelConnectArgs& aArgs);
 
 protected:
+  ~RtspChannelParent();
+
   
   
   bool ConnectChannel(const uint32_t& channelId);
