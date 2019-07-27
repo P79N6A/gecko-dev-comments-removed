@@ -7,28 +7,14 @@ var MANIFESTS = [
   do_get_file("data/test_bug519468.manifest")
 ];
 
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 let stubOSLocale = null;
 
-stubID = Components.ID("9d09d686-d913-414c-a1e6-4be8652d7d93");
-localeContractID = "@mozilla.org/intl/nslocaleservice;1";
-
 StubLocaleService = {
-  classDescription: "Stub version of Locale service for testing",
-  classID:          stubID,
-  contractID:       localeContractID,
-  QueryInterface:   XPCOMUtils.generateQI([Ci.nsILocaleService, Ci.nsISupports, Ci.nsIFactory]),
-
-  createInstance: function (outer, iid) {
-    if (outer)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return this.QueryInterface(iid);
-  },
-  lockFactory: function (lock) {
-    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-  },
+  QueryInterface:   XPCOMUtils.generateQI([Ci.nsILocaleService, Ci.nsISupports]),
 
   getLocaleComponentForUserAgent: function SLS_getLocaleComponentForUserAgent()
   {
@@ -36,14 +22,7 @@ StubLocaleService = {
   }
 }
 
-let registrar = Components.manager.nsIComponentRegistrar;
-
-let localeCID = registrar.contractIDToCID(localeContractID)
-let originalFactory =
-      Components.manager.getClassObject(Components.classes[localeContractID],
-                                        Components.interfaces.nsIFactory);
-
-registrar.registerFactory(stubID, "Unit test Locale Service", localeContractID, StubLocaleService);
+MockRegistrar.register("@mozilla.org/intl/nslocaleservice;1", StubLocaleService);
 
 
 do_test_pending()
