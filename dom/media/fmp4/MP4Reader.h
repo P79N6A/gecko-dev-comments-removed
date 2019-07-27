@@ -185,7 +185,7 @@ private:
     nsRefPtr<MediaDataDecoder> mDecoder;
     
     
-    nsRefPtr<MediaTaskQueue> mTaskQueue;
+    nsRefPtr<FlushableMediaTaskQueue> mTaskQueue;
     
     nsAutoPtr<DecoderCallback> mCallback;
     

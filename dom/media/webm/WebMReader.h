@@ -186,7 +186,7 @@ public:
   uint64_t GetLastVideoFrameTime();
   void SetLastVideoFrameTime(uint64_t aFrameTime);
   layers::LayersBackend GetLayersBackendType() { return mLayersBackendType; }
-  MediaTaskQueue* GetVideoTaskQueue() { return mVideoTaskQueue; }
+  FlushableMediaTaskQueue* GetVideoTaskQueue() { return mVideoTaskQueue; }
 
 protected:
   
@@ -277,7 +277,7 @@ private:
   layers::LayersBackend mLayersBackendType;
 
   
-  nsRefPtr<MediaTaskQueue> mVideoTaskQueue;
+  nsRefPtr<FlushableMediaTaskQueue> mVideoTaskQueue;
 
   
   bool mHasVideo;

@@ -27,9 +27,7 @@ typedef MediaPromise<bool, bool, false> ShutdownPromise;
 
 
 
-class MediaTaskQueue MOZ_FINAL {
-  ~MediaTaskQueue();
-
+class MediaTaskQueue {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaTaskQueue)
 
@@ -42,12 +40,6 @@ public:
   nsresult ForceDispatch(TemporaryRef<nsIRunnable> aRunnable);
 
   nsresult SyncDispatch(TemporaryRef<nsIRunnable> aRunnable);
-
-  nsresult FlushAndDispatch(TemporaryRef<nsIRunnable> aRunnable);
-
-  
-  
-  void Flush();
 
   
   
@@ -70,7 +62,9 @@ public:
   
   bool IsCurrentThreadIn();
 
-private:
+protected:
+  virtual ~MediaTaskQueue();
+
 
   
   
@@ -81,7 +75,6 @@ private:
 
   nsresult DispatchLocked(TemporaryRef<nsIRunnable> aRunnable,
                           DispatchMode aMode);
-  void FlushLocked();
 
   RefPtr<SharedThreadPool> mPool;
 
@@ -113,24 +106,6 @@ private:
   bool mIsShutdown;
   MediaPromiseHolder<ShutdownPromise> mShutdownPromise;
 
-  class MOZ_STACK_CLASS AutoSetFlushing
-  {
-  public:
-    explicit AutoSetFlushing(MediaTaskQueue* aTaskQueue) : mTaskQueue(aTaskQueue)
-    {
-      mTaskQueue->mQueueMonitor.AssertCurrentThreadOwns();
-      mTaskQueue->mIsFlushing = true;
-    }
-    ~AutoSetFlushing()
-    {
-      mTaskQueue->mQueueMonitor.AssertCurrentThreadOwns();
-      mTaskQueue->mIsFlushing = false;
-    }
-
-  private:
-    MediaTaskQueue* mTaskQueue;
-  };
-
   
   bool mIsFlushing;
 
@@ -144,6 +119,37 @@ private:
   private:
     RefPtr<MediaTaskQueue> mQueue;
   };
+};
+
+class FlushableMediaTaskQueue : public MediaTaskQueue
+{
+public:
+  explicit FlushableMediaTaskQueue(TemporaryRef<SharedThreadPool> aPool) : MediaTaskQueue(aPool) {}
+  nsresult FlushAndDispatch(TemporaryRef<nsIRunnable> aRunnable);
+  void Flush();
+
+private:
+
+  class MOZ_STACK_CLASS AutoSetFlushing
+  {
+  public:
+    explicit AutoSetFlushing(FlushableMediaTaskQueue* aTaskQueue) : mTaskQueue(aTaskQueue)
+    {
+      mTaskQueue->mQueueMonitor.AssertCurrentThreadOwns();
+      mTaskQueue->mIsFlushing = true;
+    }
+    ~AutoSetFlushing()
+    {
+      mTaskQueue->mQueueMonitor.AssertCurrentThreadOwns();
+      mTaskQueue->mIsFlushing = false;
+    }
+
+  private:
+    FlushableMediaTaskQueue* mTaskQueue;
+  };
+
+  void FlushLocked();
+
 };
 
 } 

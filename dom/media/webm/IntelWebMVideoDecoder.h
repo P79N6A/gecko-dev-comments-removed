@@ -64,7 +64,7 @@ private:
 
   
   
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
+  nsRefPtr<FlushableMediaTaskQueue> mTaskQueue;
 
   
   
