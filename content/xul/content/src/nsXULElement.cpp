@@ -49,6 +49,7 @@
 #include "nsIRDFNode.h"
 #include "nsIRDFService.h"
 #include "nsIScriptContext.h"
+#include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIServiceManager.h"
 #include "mozilla/css/StyleRule.h"
@@ -804,12 +805,34 @@ IsInFeedSubscribeLine(nsXULElement* aElement)
 }
 #endif
 
+class XULInContentErrorReporter : public nsRunnable
+{
+public:
+  XULInContentErrorReporter(nsIDocument* aDocument) : mDocument(aDocument) {}
+
+  NS_IMETHOD Run()
+  {
+    mDocument->WarnOnceAbout(nsIDocument::eImportXULIntoContent, false);
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsIDocument> mDocument;
+};
+
 nsresult
 nsXULElement::BindToTree(nsIDocument* aDocument,
                          nsIContent* aParent,
                          nsIContent* aBindingParent,
                          bool aCompileEventHandlers)
 {
+  if (!aBindingParent &&
+      aDocument &&
+      !aDocument->AllowXULXBL() &&
+      !aDocument->HasWarnedAbout(nsIDocument::eImportXULIntoContent)) {
+    nsContentUtils::AddScriptRunner(new XULInContentErrorReporter(aDocument));
+  }
+
   nsresult rv = nsStyledElement::BindToTree(aDocument, aParent,
                                             aBindingParent,
                                             aCompileEventHandlers);
