@@ -138,6 +138,8 @@ public:
   nsRefPtrHashtable<nsPtrHashKey<nsISupports>, imgRequestProxy> mRequests; 
 
   
+  
+  
   NS_METHOD_(MozExternalRefCountType) AddRef();
   NS_METHOD_(MozExternalRefCountType) Release();
 };
