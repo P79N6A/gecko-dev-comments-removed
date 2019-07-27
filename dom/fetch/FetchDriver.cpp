@@ -671,14 +671,6 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
     NS_WARNING("Failed to visit all headers.");
   }
 
-  mResponse = BeginAndGetFilteredResponse(response);
-
-  nsCOMPtr<nsISupports> securityInfo;
-  rv = channel->GetSecurityInfo(getter_AddRefs(securityInfo));
-  if (securityInfo) {
-    mResponse->SetSecurityInfo(securityInfo);
-  }
-
   
   
   
@@ -697,8 +689,17 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
     
     return rv;
   }
+  response->SetBody(pipeInputStream);
 
-  mResponse->SetBody(pipeInputStream);
+  nsCOMPtr<nsISupports> securityInfo;
+  rv = channel->GetSecurityInfo(getter_AddRefs(securityInfo));
+  if (securityInfo) {
+    response->SetSecurityInfo(securityInfo);
+  }
+
+  
+  
+  mResponse = BeginAndGetFilteredResponse(response);
 
   nsCOMPtr<nsIEventTarget> sts = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
