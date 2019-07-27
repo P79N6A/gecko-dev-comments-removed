@@ -287,6 +287,14 @@ nsPACMan::Shutdown()
   CancelExistingLoad();
   mShutdown = true;
   PostCancelPendingQ(NS_ERROR_ABORT);
+
+  
+  LOG(("nsPACMan::Shutdown Thread shutdown start %p", mPACThread.get()));
+  if (mPACThread) {
+    mPACThread->Shutdown();
+    mPACThread = nullptr;
+  }
+  LOG(("nsPACMan::Shutdown Thread shutdown finish"));
 }
 
 nsresult
@@ -494,11 +502,12 @@ nsPACMan::ProcessPendingQ()
   NS_ABORT_IF_FALSE(!NS_IsMainThread(), "wrong thread");
   while (ProcessPending());
 
-  
-  mPAC.GC();
-
-  if (mShutdown)
+  if (mShutdown) {
     mPAC.Shutdown();
+  } else {
+    
+    mPAC.GC();
+  }
 }
 
 
