@@ -136,7 +136,7 @@ const WorkerSandbox = Class({
     
     let content = sandbox(principals, {
       sandboxPrototype: proto,
-      wantXrays: true,
+      wantXrays: !requiresAddonGlobal(worker),
       wantGlobalProperties: wantGlobalProperties,
       wantExportHelpers: true,
       sameZoneAs: window,
