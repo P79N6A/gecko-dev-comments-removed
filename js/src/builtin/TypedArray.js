@@ -164,6 +164,53 @@ function TypedArrayIndexOf(searchElement, fromIndex = 0) {
 }
 
 
+function TypedArrayJoin(separator) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, separator, "TypedArrayJoin");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    var sep = separator === undefined ? "," : ToString(separator);
+
+    
+    if (len === 0)
+        return "";
+
+    
+    var element0 = O[0];
+
+    
+    
+    var R = ToString(element0);
+
+    
+    for (var k = 1; k < len; k++) {
+        
+        var S = R + sep;
+
+        
+        var element = O[k];
+
+        
+        
+        var next = ToString(element);
+
+        
+        R = S + next;
+    }
+
+    
+    return R;
+}
+
+
 function TypedArrayLastIndexOf(searchElement, fromIndex = undefined) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
