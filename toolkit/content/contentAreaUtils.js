@@ -1103,6 +1103,8 @@ function getCharsetforSave(aDocument)
 
 
 
+
+
 function openURL(aURL)
 {
   var uri = makeURI(aURL);
@@ -1158,7 +1160,12 @@ function openURL(aURL)
       }
     }
 
-    var channel = Services.io.newChannelFromURI(uri);
+    var channel = Services.io.newChannelFromURI2(uri,
+                                                 null,      
+                                                 Services.scriptSecurityManager.getSystemPrincipal(),
+                                                 null,      
+                                                 Ci.nsILoadInfo.SEC_NORMAL,
+                                                 Ci.nsIContentPolicy.TYPE_OTHER);
     var uriLoader = Components.classes["@mozilla.org/uriloader;1"]
                               .getService(Components.interfaces.nsIURILoader);
     uriLoader.openURI(channel,
