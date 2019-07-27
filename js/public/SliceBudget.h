@@ -33,6 +33,12 @@ struct JS_PUBLIC_API(WorkBudget)
 
 struct JS_PUBLIC_API(SliceBudget)
 {
+    
+    
+    
+    TimeBudget timeBudget;
+    WorkBudget workBudget;
+
     int64_t deadline; 
     intptr_t counter;
 
@@ -64,9 +70,11 @@ struct JS_PUBLIC_API(SliceBudget)
         return checkOverBudget();
     }
 
-    bool isUnlimited() {
+    bool isUnlimited() const {
         return deadline == unlimitedDeadline;
     }
+
+    int describe(char* buffer, size_t maxlen) const;
 
   private:
     bool checkOverBudget();
