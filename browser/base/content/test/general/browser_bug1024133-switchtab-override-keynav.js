@@ -18,7 +18,7 @@ add_task(function* test_switchtab_override_keynav() {
       gBrowser.removeTab(tab);
       gBrowser.removeTab(secondTab);
     } catch(ex) {  }
-    return promiseClearHistory();
+    return PlacesTestUtils.clearHistory();
   });
 
   gURLBar.focus();

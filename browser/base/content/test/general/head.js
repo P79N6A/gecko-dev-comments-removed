@@ -392,40 +392,6 @@ function promiseHistoryClearedState(aURIs, aShouldBeCleared) {
 
 
 
-
-function promiseTopicObserved(topic)
-{
-  let deferred = Promise.defer();
-  info("Waiting for observer topic " + topic);
-  Services.obs.addObserver(function PTO_observe(subject, topic, data) {
-    Services.obs.removeObserver(PTO_observe, topic);
-    deferred.resolve([subject, data]);
-  }, topic, false);
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-function promiseClearHistory() {
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  PlacesUtils.bhistory.removeAllPages();
-  return promise;
-}
-
-
-
-
-
-
-
-
-
-
 function waitForDocLoadAndStopIt(aExpectedURL, aBrowser=gBrowser.selectedBrowser) {
   function content_script() {
     let { interfaces: Ci, utils: Cu } = Components;
