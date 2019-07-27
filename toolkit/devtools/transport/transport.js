@@ -96,6 +96,8 @@ const PACKET_HEADER_MAX = 200;
 
 
 
+
+
 function DebuggerTransport(input, output) {
   this._input = input;
   this._scriptableInput = new ScriptableInputStream(input);
@@ -135,6 +137,8 @@ DebuggerTransport.prototype = {
   },
 
   
+
+
 
 
 
@@ -576,9 +580,10 @@ LocalDebuggerTransport.prototype = {
         type: type,
         length: length,
         copyTo: (output) => {
-          deferred.resolve(
-            StreamUtils.copyStream(pipe.inputStream, output, length));
-          return deferred.promise;
+          let copying =
+            StreamUtils.copyStream(pipe.inputStream, output, length);
+          deferred.resolve(copying);
+          return copying;
         },
         stream: pipe.inputStream,
         done: deferred
@@ -598,9 +603,10 @@ LocalDebuggerTransport.prototype = {
 
       sendDeferred.resolve({
         copyFrom: (input) => {
-          copyDeferred.resolve(
-            StreamUtils.copyStream(input, pipe.outputStream, length));
-          return copyDeferred.promise;
+          let copying =
+            StreamUtils.copyStream(input, pipe.outputStream, length);
+          copyDeferred.resolve(copying);
+          return copying;
         },
         stream: pipe.outputStream,
         done: copyDeferred

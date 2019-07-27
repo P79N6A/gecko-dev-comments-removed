@@ -1200,6 +1200,8 @@ DebuggerServerConnection.prototype = {
 
 
 
+
+
   onBulkPacket: function(packet) {
     let { actor: actorKey, type, length } = packet;
 

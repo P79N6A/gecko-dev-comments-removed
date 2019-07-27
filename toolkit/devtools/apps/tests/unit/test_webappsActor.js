@@ -3,7 +3,9 @@
 
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const {require} = devtools;
-const {installHosted, installPackaged} = require("devtools/app-actor-front");
+const AppActorFront = require("devtools/app-actor-front");
+const {installHosted, installPackaged} = AppActorFront;
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 let gAppId = "actor-test";
 const APP_ORIGIN = "app://" + gAppId;
@@ -178,29 +180,54 @@ add_test(function testFileUploadInstall() {
   
   gClient.traits.bulk = false;
 
-  installPackaged(gClient, gActor, packageFile.path, gAppId)
+  let progressDeferred = promise.defer();
+  
+  AppActorFront.on("install-progress", function onProgress(e, progress) {
+    if (progress.bytesSent == progress.totalBytes) {
+      AppActorFront.off("install-progress", onProgress);
+      progressDeferred.resolve();
+    }
+  });
+
+  let installed =
+    installPackaged(gClient, gActor, packageFile.path, gAppId)
     .then(function ({ appId }) {
       do_check_eq(appId, gAppId);
-
-      
-      gClient.traits.bulk = true;
-
-      run_next_test();
     }, function (e) {
       do_throw("Failed install uploaded packaged app: " + e.error + ": " + e.message);
+    });
+
+  promise.all([progressDeferred.promise, installed])
+    .then(() => {
+      
+      gClient.traits.bulk = true;
+      run_next_test();
     });
 });
 
 add_test(function testBulkUploadInstall() {
   let packageFile = do_get_file("data/app.zip");
   do_check_true(gClient.traits.bulk);
-  installPackaged(gClient, gActor, packageFile.path, gAppId)
+
+  let progressDeferred = promise.defer();
+  
+  AppActorFront.on("install-progress", function onProgress(e, progress) {
+    if (progress.bytesSent == progress.totalBytes) {
+      AppActorFront.off("install-progress", onProgress);
+      progressDeferred.resolve();
+    }
+  });
+
+  let installed =
+    installPackaged(gClient, gActor, packageFile.path, gAppId)
     .then(function ({ appId }) {
       do_check_eq(appId, gAppId);
-      run_next_test();
     }, function (e) {
       do_throw("Failed bulk install uploaded packaged app: " + e.error + ": " + e.message);
     });
+
+  promise.all([progressDeferred.promise, installed])
+    .then(run_next_test);
 });
 
 add_test(function testInstallHosted() {
@@ -250,4 +277,3 @@ function run_test() {
 
   run_next_test();
 }
-

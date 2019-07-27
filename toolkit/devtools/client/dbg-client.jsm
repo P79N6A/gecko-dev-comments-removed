@@ -664,6 +664,8 @@ DebuggerClient.prototype = {
 
 
 
+
+
   request: function (aRequest, aOnResponse) {
     if (!this.mainRoot) {
       throw Error("Have not yet received a hello packet from the server.");
@@ -686,6 +688,10 @@ DebuggerClient.prototype = {
   },
 
   
+
+
+
+
 
 
 
@@ -906,6 +912,8 @@ DebuggerClient.prototype = {
   },
 
   
+
+
 
 
 
