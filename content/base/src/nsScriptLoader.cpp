@@ -53,7 +53,6 @@
 
 #include "mozilla/CORSMode.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/unused.h"
 
 #ifdef PR_LOGGING
@@ -545,43 +544,6 @@ CSPAllowsInlineScript(nsIScriptElement *aElement, nsIDocument *aDocument)
   return true;
 }
 
-static void
-AccumulateJavaScriptVersionTelemetry(nsIScriptElement* aElement,
-                                     JSVersion aVersion)
-{
-  uint32_t minorVersion;
-  switch (aVersion) {
-    case JSVERSION_DEFAULT: minorVersion = 5; break;
-    case JSVERSION_1_6:     minorVersion = 6; break;
-    case JSVERSION_1_7:     minorVersion = 7; break;
-    case JSVERSION_1_8:     minorVersion = 8; break;
-    default:                MOZ_ASSERT_UNREACHABLE("Unexpected JSVersion");
-    case JSVERSION_UNKNOWN: minorVersion = 0; break;
-  }
-
-  
-  if (minorVersion < 6) {
-    return;
-  }
-
-  nsCOMPtr<nsIURI> scriptURI = aElement->GetScriptURI();
-  if (!scriptURI) {
-    return;
-  }
-
-  
-  bool chrome = false;
-  scriptURI->SchemeIs("chrome", &chrome);
-  if (!chrome) {
-    scriptURI->SchemeIs("resource", &chrome);
-  }
-  if (chrome) {
-    return;
-  }
-
-  Telemetry::Accumulate(Telemetry::JS_MINOR_VERSION, minorVersion);
-}
-
 bool
 nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 {
@@ -610,7 +572,6 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   aElement->GetScriptType(type);
   if (!type.IsEmpty()) {
     NS_ENSURE_TRUE(ParseTypeAttribute(type, &version), false);
-    AccumulateJavaScriptVersionTelemetry(aElement, version);
   } else {
     
     
