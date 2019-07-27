@@ -165,7 +165,7 @@ nsBoxObject::GetOffsetRect(nsIntRect& aRect)
     nsPoint origin = frame->GetPositionIgnoringScrolling();
 
     
-    Element *docElement = mContent->GetCurrentDoc()->GetRootElement();
+    Element* docElement = mContent->GetComposedDoc()->GetRootElement();
     nsIFrame* parent = frame->GetParent();
     for (;;) {
       

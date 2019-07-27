@@ -632,7 +632,7 @@ void nsTextControlFrame::SetFocus(bool aOn, bool aRepaint)
   if (!isFocusedRightNow) {
     
     uint32_t lastFocusMethod = 0;
-    nsIDocument* doc = GetContent()->GetCurrentDoc();
+    nsIDocument* doc = GetContent()->GetComposedDoc();
     if (doc) {
       nsIFocusManager* fm = nsFocusManager::GetFocusManager();
       if (fm) {

@@ -2522,7 +2522,7 @@ nsTreeBodyFrame::GetCursor(const nsPoint& aPoint,
   
   
   bool dummy;
-  if (mView && GetContent()->GetCurrentDoc()->GetScriptHandlingObject(dummy)) {
+  if (mView && GetContent()->GetComposedDoc()->GetScriptHandlingObject(dummy)) {
     int32_t row;
     nsTreeColumn* col;
     nsIAtom* child;
@@ -2803,7 +2803,7 @@ nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   
-  if (!mView || !GetContent()->GetCurrentDoc()->GetWindow())
+  if (!mView || !GetContent ()->GetComposedDoc()->GetWindow())
     return;
 
   aLists.Content()->AppendNewToTop(new (aBuilder)
