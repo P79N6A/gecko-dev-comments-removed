@@ -198,6 +198,7 @@ private:
   
   
   void ClearSurfaceForUnboundedSource(const CompositionOp &aOperator);
+
 private: 
   cairo_t* mContext;
   cairo_surface_t* mSurface;
