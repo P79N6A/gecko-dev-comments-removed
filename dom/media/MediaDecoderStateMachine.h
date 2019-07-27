@@ -164,13 +164,6 @@ private:
 
   
   
-  void UpdateStreamBlockingForPlayState();
-
-  
-  void UpdateStreamBlockingForStateMachinePlaying();
-
-  
-  
   
   void RecreateDecodedStream(MediaStreamGraph* aGraph);
 

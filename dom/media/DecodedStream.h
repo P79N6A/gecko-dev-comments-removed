@@ -41,6 +41,7 @@ public:
   ~DecodedStreamData();
   bool IsFinished() const;
   int64_t GetPosition() const;
+  void SetPlaying(bool aPlaying);
 
   
 
@@ -66,12 +67,7 @@ public:
   
   const nsRefPtr<SourceMediaStream> mStream;
   nsRefPtr<DecodedStreamGraphListener> mListener;
-  
-  
-  bool mHaveBlockedForPlayState;
-  
-  
-  bool mHaveBlockedForStateMachineNotPlaying;
+  bool mPlaying;
   
   
   bool mEOSVideoCompensation;
@@ -96,6 +92,7 @@ public:
   nsTArray<OutputStreamData>& OutputStreams();
   ReentrantMonitor& GetReentrantMonitor() const;
   void Connect(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
+  void SetPlaying(bool aPlaying);
 
 private:
   void Connect(OutputStreamData* aStream);
