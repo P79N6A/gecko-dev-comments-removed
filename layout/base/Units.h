@@ -576,6 +576,21 @@ gfx::MarginTyped<dst> operator/(const gfx::MarginTyped<src>& aMargin, const gfx:
                                aMargin.left / aScale.xScale);
 }
 
+
+
+
+template<class src, class dst>
+gfx::ScaleFactor<src, dst> MaxScaleRatio(const gfx::SizeTyped<dst>& aDestSize, const gfx::SizeTyped<src>& aSrcSize) {
+  return gfx::ScaleFactor<src, dst>(std::max(aDestSize.width / aSrcSize.width,
+                                             aDestSize.height / aSrcSize.height));
+}
+
+template<class src, class dst>
+gfx::ScaleFactor<src, dst> MinScaleRatio(const gfx::SizeTyped<dst>& aDestSize, const gfx::SizeTyped<src>& aSrcSize) {
+  return gfx::ScaleFactor<src, dst>(std::min(aDestSize.width / aSrcSize.width,
+                                             aDestSize.height / aSrcSize.height));
+}
+
 }
 
 #endif
