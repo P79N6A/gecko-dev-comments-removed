@@ -609,6 +609,23 @@ GetObjectJSClass(JSObject *obj)
     return js::Jsvalify(GetObjectClass(obj));
 }
 
+JS_FRIEND_API(const Class *)
+ProtoKeyToClass(JSProtoKey key);
+
+
+
+
+
+
+
+inline bool
+StandardClassIsDependent(JSProtoKey key)
+{
+    JSProtoKey keyFromClass = JSCLASS_CACHED_PROTO_KEY(ProtoKeyToClass(key));
+    MOZ_ASSERT(keyFromClass);
+    return key != keyFromClass;
+}
+
 inline bool
 IsInnerObject(JSObject *obj) {
     return !!GetObjectClass(obj)->ext.outerObject;
