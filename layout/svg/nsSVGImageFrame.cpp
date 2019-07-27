@@ -366,12 +366,19 @@ nsSVGImageFrame::PaintSVG(gfxContext& aContext,
     if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
       
       
+      
+      
+      
+      
       SVGImageContext context(CSSIntSize(width, height),
                               Some(imgElem->mPreserveAspectRatio.GetAnimValue()));
 
-      nsRect destRect(0, 0,
-                      appUnitsPerDevPx * width,
-                      appUnitsPerDevPx * height);
+      
+      
+      LayoutDeviceSize devPxSize(width, height);
+      nsRect destRect(nsPoint(),
+                      LayoutDevicePixel::ToAppUnits(devPxSize,
+                                                    appUnitsPerDevPx));
 
       
       
