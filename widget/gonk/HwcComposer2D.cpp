@@ -736,13 +736,6 @@ HwcComposer2D::TryHwComposition()
             return false;
         } else if (blitComposite) {
             
-            
-            if (mGLContext) {
-                mGLContext->MakeCurrent();
-                mGLContext->fClearColor(0.0, 0.0, 0.0, 0.0);
-                mGLContext->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
-            }
-            
             GetGonkDisplay()->UpdateFBSurface(mDpy, mSur);
             FramebufferSurface* fbsurface = (FramebufferSurface*)(GetGonkDisplay()->GetFBSurface());
             if (!fbsurface) {
