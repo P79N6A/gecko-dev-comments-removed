@@ -49,6 +49,9 @@ XPCOMUtils.defineLazyGetter(this, "nsGzipConverter",
 let gMgr = Cc["@mozilla.org/memory-reporter-manager;1"]
              .getService(Ci.nsIMemoryReporterManager);
 
+const gPageName = 'about:memory';
+document.title = gPageName;
+
 const gUnnamedProcessStr = "Main Process";
 
 let gIsDiff = false;
@@ -137,8 +140,13 @@ let gAnonymize;
 let HIDE_FOOTER = 0;
 let SHOW_FOOTER = 1;
 
-function updateMainAndFooter(aMsg, aFooterAction, aClassName)
+function updateTitleMainAndFooter(aTitleNote, aMsg, aFooterAction, aClassName)
 {
+  document.title = gPageName;
+  if (aTitleNote) {
+    document.title += " (" + aTitleNote + ")";
+  }
+
   
   let tmp = gMain.cloneNode(false);
   gMain.parentNode.replaceChild(tmp, gMain);
@@ -163,9 +171,14 @@ function updateMainAndFooter(aMsg, aFooterAction, aClassName)
   switch (aFooterAction) {
    case HIDE_FOOTER:   gFooter.classList.add('hidden');    break;
    case SHOW_FOOTER:   gFooter.classList.remove('hidden'); break;
-   default: assertInput(false, "bad footer action in updateMainAndFooter");
+   default: assertInput(false, "bad footer action in updateTitleMainAndFooter");
   }
   return msgElement;
+}
+
+function updateMainAndFooter(aMsg, aFooterAction, aClassName)
+{
+  return updateTitleMainAndFooter("", aMsg, aFooterAction, aClassName);
 }
 
 function appendTextNode(aP, aText)
@@ -504,7 +517,7 @@ function updateAboutMemoryFromReporters()
       }
 
       let displayReportsAndFooter = function() {
-        updateMainAndFooter("", SHOW_FOOTER);
+        updateTitleMainAndFooter("live measurement", "", SHOW_FOOTER);
         aDisplayReports();
       }
 
@@ -613,7 +626,9 @@ function updateAboutMemoryFromJSONString(aStr)
 
 
 
-function loadMemoryReportsFromFile(aFilename, aFn)
+
+
+function loadMemoryReportsFromFile(aFilename, aTitleNote, aFn)
 {
   updateMainAndFooter("Loading...", HIDE_FOOTER);
 
@@ -622,7 +637,8 @@ function loadMemoryReportsFromFile(aFilename, aFn)
     reader.onerror = () => { throw "FileReader.onerror"; };
     reader.onabort = () => { throw "FileReader.onabort"; };
     reader.onload = (aEvent) => {
-      updateMainAndFooter("", SHOW_FOOTER);  
+      
+      updateTitleMainAndFooter(aTitleNote, "", SHOW_FOOTER);
       aFn(aEvent.target.result);
     };
 
@@ -672,7 +688,7 @@ function loadMemoryReportsFromFile(aFilename, aFn)
 
 function updateAboutMemoryFromFile(aFilename)
 {
-  loadMemoryReportsFromFile(aFilename,
+  loadMemoryReportsFromFile(aFilename,  aFilename,
                             updateAboutMemoryFromJSONString);
 }
 
@@ -687,8 +703,9 @@ function updateAboutMemoryFromFile(aFilename)
 
 function updateAboutMemoryFromTwoFiles(aFilename1, aFilename2)
 {
-  loadMemoryReportsFromFile(aFilename1, function(aStr1) {
-    loadMemoryReportsFromFile(aFilename2, function(aStr2) {
+  let titleNote = "diff of " + aFilename1 + " and " + aFilename2;
+  loadMemoryReportsFromFile(aFilename1, titleNote, function(aStr1) {
+    loadMemoryReportsFromFile(aFilename2, titleNote, function(aStr2) {
       try {
         let obj1 = parseAndUnwrapIfCrashDump(aStr1);
         let obj2 = parseAndUnwrapIfCrashDump(aStr2);
