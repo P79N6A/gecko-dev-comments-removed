@@ -28,8 +28,8 @@ let OverviewView = {
 
 
   initialize: Task.async(function *() {
-    this._start = this._start.bind(this);
-    this._stop = this._stop.bind(this);
+    this._onRecordingStarted = this._onRecordingStarted.bind(this);
+    this._onRecordingStopped = this._onRecordingStopped.bind(this);
     this._onRecordingTick = this._onRecordingTick.bind(this);
     this._onGraphMouseUp = this._onGraphMouseUp.bind(this);
     this._onGraphScroll = this._onGraphScroll.bind(this);
@@ -45,8 +45,8 @@ let OverviewView = {
     this.memoryOverview.on("mouseup", this._onGraphMouseUp);
     this.memoryOverview.on("scroll", this._onGraphScroll);
 
-    PerformanceController.on(EVENTS.RECORDING_STARTED, this._start);
-    PerformanceController.on(EVENTS.RECORDING_STOPPED, this._stop);
+    PerformanceController.on(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
+    PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
   }),
 
   
@@ -61,8 +61,8 @@ let OverviewView = {
     this.memoryOverview.off("scroll", this._onGraphScroll);
 
     clearNamedTimeout("graph-scroll");
-    PerformanceController.off(EVENTS.RECORDING_STARTED, this._start);
-    PerformanceController.off(EVENTS.RECORDING_STOPPED, this._stop);
+    PerformanceController.off(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
+    PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
   },
 
   
@@ -111,12 +111,6 @@ let OverviewView = {
     let markers = PerformanceController.getMarkers();
     let memory = PerformanceController.getMemory();
     let timestamps = PerformanceController.getTicks();
-
-    
-    
-    
-    let fakeTime = interval.startTime + interval.localElapsedTime;
-    interval.endTime = fakeTime;
 
     this.markersOverview.setData({ interval, markers });
     this.emit(EVENTS.MARKERS_GRAPH_RENDERED);
@@ -189,7 +183,7 @@ let OverviewView = {
   
 
 
-  _start: function () {
+  _onRecordingStarted: function () {
     this._timeoutId = setTimeout(this._onRecordingTick, OVERVIEW_UPDATE_INTERVAL);
 
     this.framerateGraph.dropSelection();
@@ -201,7 +195,7 @@ let OverviewView = {
   
 
 
-  _stop: function () {
+  _onRecordingStopped: function () {
     clearTimeout(this._timeoutId);
     this._timeoutId = null;
 

@@ -4,8 +4,8 @@
 "use strict";
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
-const { extend } = require("sdk/util/object");
 const { Task } = require("resource://gre/modules/Task.jsm");
+const { extend } = require("sdk/util/object");
 
 loader.lazyRequireGetter(this, "Services");
 loader.lazyRequireGetter(this, "promise");
@@ -18,6 +18,7 @@ loader.lazyRequireGetter(this, "DevToolsUtils",
 
 loader.lazyImporter(this, "gDevTools",
   "resource:///modules/devtools/gDevTools.jsm");
+
 
 
 
@@ -62,7 +63,6 @@ function PerformanceActorsConnection(target) {
 }
 
 PerformanceActorsConnection.prototype = {
-
   
 
 
@@ -225,9 +225,8 @@ PerformanceFront.prototype = {
     
     if (!isActive) {
       
-      
-      let options = extend({}, this._customPerformanceOptions);
-      yield this._request("profiler", "startProfiler", options);
+      let profilerOptions = extend({}, this._customProfilerOptions);
+      yield this._request("profiler", "startProfiler", profilerOptions);
       this._profilingStartTime = 0;
       this.emit("profiler-activated");
     } else {
@@ -237,9 +236,9 @@ PerformanceFront.prototype = {
 
     
     
+    let startTime = yield this._request("timeline", "start", options);
 
     
-    let startTime = yield this._request("timeline", "start", options);
     return { startTime };
   }),
 
@@ -273,7 +272,7 @@ PerformanceFront.prototype = {
 
 
 
-  _customPerformanceOptions: {
+  _customProfilerOptions: {
     entries: 1000000,
     interval: 1,
     features: ["js"]
