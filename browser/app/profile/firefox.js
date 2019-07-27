@@ -1456,6 +1456,7 @@ pref("devtools.debugger.source-maps-enabled", true);
 pref("devtools.debugger.pretty-print-enabled", true);
 pref("devtools.debugger.auto-pretty-print", false);
 pref("devtools.debugger.auto-black-box", true);
+pref("devtools.debugger.tracer", false);
 pref("devtools.debugger.workers", false);
 pref("devtools.debugger.promise", false);
 
@@ -1917,6 +1918,8 @@ pref("browser.apps.URL", "https://marketplace.firefox.com/discovery/");
 pref("browser.polaris.enabled", false);
 pref("privacy.trackingprotection.ui.enabled", false);
 #endif
+pref("privacy.trackingprotection.introCount", 0);
+pref("privacy.trackingprotection.introURL", "https://support.mozilla.org/kb/tracking-protection-firefox");
 
 #ifdef NIGHTLY_BUILD
 
