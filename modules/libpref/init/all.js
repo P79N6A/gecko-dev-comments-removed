@@ -3532,8 +3532,6 @@ pref("layout.css.scroll-snap.enabled", false);
 
 
 
-pref("print.postscript.paper_size",    "letter");
-pref("print.postscript.orientation",   "portrait");
 
 
 
@@ -3717,8 +3715,6 @@ pref("font.name.monospace.zh-TW", "monospace");
 
 
 
-pref("print.postscript.paper_size",    "letter");
-pref("print.postscript.orientation",   "portrait");
 
 
 
