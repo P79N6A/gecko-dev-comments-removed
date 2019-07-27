@@ -217,6 +217,9 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 #define CSS_PROPERTY_NUMBERS_ARE_PIXELS           (1<<24)
 
 
+#define CSS_PROPERTY_LOGICAL                      (1<<25)
+
+
 
 
 enum nsStyleAnimType {

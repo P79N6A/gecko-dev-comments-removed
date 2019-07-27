@@ -73,6 +73,11 @@
 
 
 
+
+
+
+
+
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_)
 #define DEFINED_CSS_PROP_SHORTHAND
@@ -82,6 +87,26 @@
   CSS_PROP_PUBLIC_OR_PRIVATE(Moz ## name_, name_)
 
 #define CSS_PROP_NO_OFFSET (-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -134,11 +159,35 @@
 #define DEFINED_CSS_PROP_BACKENDONLY
 #endif
 
+
+
+
+
+#if defined(CSS_PROP_LOGICAL) && defined(CSS_PROP_LIST_EXCLUDE_LOGICAL) || defined(CSS_PROP_LOGICAL) && defined(CSS_PROP_LIST_INCLUDE_LOGICAL) || defined(CSS_PROP_LIST_EXCLUDE_LOGICAL) && defined(CSS_PROP_LIST_INCLUDE_LOGICAL)
+#error Do not define more than one of CSS_PROP_LOGICAL, CSS_PROP_LIST_EXCLUDE_LOGICAL and CSS_PROP_LIST_INCLUDE_LOGICAL when capturing properties using CSS_PROP.
+#endif
+
+#ifndef CSS_PROP_LOGICAL
+#ifdef CSS_PROP_LIST_INCLUDE_LOGICAL
+#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_) CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
+#else
+#ifndef CSS_PROP_LIST_EXCLUDE_LOGICAL
+#error Must define exactly one of CSS_PROP_LOGICAL, CSS_PROP_LIST_EXCLUDE_LOGICAL and CSS_PROP_LIST_INCLUDE_LOGICAL when capturing properties using CSS_PROP.
+#endif
+#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
+#endif
+#define DEFINED_CSS_PROP_LOGICAL
+#endif
+
 #else 
 
 
 
 
+
+#if defined(CSS_PROP_LIST_EXCLUDE_LOGICAL) || defined(CSS_PROP_LIST_INCLUDE_LOGICAL)
+#error Do not define CSS_PROP_LIST_EXCLUDE_LOGICAL or CSS_PROP_LIST_INCLUDE_LOGICAL when not capturing properties using CSS_PROP.
+#endif
 
 #ifndef CSS_PROP_FONT
 #define CSS_PROP_FONT(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, stylestructoffset_, animtype_)
@@ -240,6 +289,10 @@
 #ifndef CSS_PROP_BACKENDONLY
 #define CSS_PROP_BACKENDONLY(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_)
 #define DEFINED_CSS_PROP_BACKENDONLY
+#endif
+#ifndef CSS_PROP_LOGICAL
+#define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, struct_, stylestructoffset_, animtype_)
+#define DEFINED_CSS_PROP_LOGICAL
 #endif
 
 #endif 
@@ -4188,6 +4241,10 @@ CSS_PROP_FONT(
 #ifdef DEFINED_CSS_PROP_SHORTHAND
 #undef CSS_PROP_SHORTHAND
 #undef DEFINED_CSS_PROP_SHORTHAND
+#endif
+#ifdef DEFINED_CSS_PROP_LOGICAL
+#undef CSS_PROP_LOGICAL
+#undef DEFINED_CSS_PROP_LOGICAL
 #endif
 
 #undef CSS_PROP_DOMPROP_PREFIXED
