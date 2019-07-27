@@ -881,6 +881,8 @@ let FlameGraphUtils = {
 
 
 
+
+
   createFlameGraphDataFromSamples: function(samples, options = {}, out = []) {
     let cached = this._cache.get(samples);
     if (cached) {
@@ -915,6 +917,11 @@ let FlameGraphUtils = {
       
       if (options.filterFrames) {
         frames = frames.filter(options.filterFrames);
+      }
+
+      
+      if (options.invertStack) {
+        frames.reverse();
       }
 
       
