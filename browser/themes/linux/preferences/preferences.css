@@ -75,18 +75,6 @@ label.small {
 }
 
 
-
-
-.inline-link {
-  color: -moz-nativehyperlinktext;
-  text-decoration: none;
-}
-
-.inline-link:hover {
-  text-decoration: underline;
-}
-
-
 .windowDialog,
 .windowDialog prefpane {
   padding: 0px;
