@@ -20,46 +20,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AnimationTimeline)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-namespace {
-  struct AddAnimationParams {
-    AnimationTimeline::AnimationSequence& mSequence;
-#ifdef DEBUG
-    
-    AnimationTimeline* mTimeline;
-#endif
-  };
-} 
-
-static PLDHashOperator
-AppendAnimationToSequence(nsRefPtrHashKey<dom::Animation>* aKey,
-                          void* aParams)
-{
-  Animation* animation = aKey->GetKey();
-  AddAnimationParams* params = static_cast<AddAnimationParams*>(aParams);
-
-  MOZ_ASSERT(animation->IsRelevant(),
-             "Animations registered with a timeline should be relevant");
-  MOZ_ASSERT(animation->GetTimeline() == params->mTimeline,
-             "Animation should refer to this timeline");
-
-  
-  
-  
-  
-  
-  
-  Element* target;
-  nsCSSPseudoElements::Type pseudoType;
-  animation->GetEffect()->GetTarget(target, pseudoType);
-  if (pseudoType != nsCSSPseudoElements::ePseudo_NotPseudoElement) {
-    return PL_DHASH_NEXT;
-  }
-
-  params->mSequence.AppendElement(animation);
-
-  return PL_DHASH_NEXT;
-}
-
 void
 AnimationTimeline::GetAnimations(AnimationSequence& aAnimations)
 {
@@ -71,12 +31,28 @@ AnimationTimeline::GetAnimations(AnimationSequence& aAnimations)
     }
   }
 
-#ifdef DEBUG
-  AddAnimationParams params{ aAnimations, this };
-#else
-  AddAnimationParams params{ aAnimations };
-#endif
-  mAnimations.EnumerateEntries(AppendAnimationToSequence, &params);
+  for (auto iter = mAnimations.Iter(); !iter.Done(); iter.Next()) {
+    Animation* animation = iter.Get()->GetKey();
+
+    MOZ_ASSERT(animation->IsRelevant(),
+               "Animations registered with a timeline should be relevant");
+    MOZ_ASSERT(animation->GetTimeline() == this,
+               "Animation should refer to this timeline");
+
+    
+    
+    
+    
+    
+    
+    
+    Element* target;
+    nsCSSPseudoElements::Type pseudoType;
+    animation->GetEffect()->GetTarget(target, pseudoType);
+    if (pseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement) {
+      aAnimations.AppendElement(animation);
+    }
+  }
 
   
   aAnimations.Sort(AnimationPtrComparator<nsRefPtr<Animation>>());
