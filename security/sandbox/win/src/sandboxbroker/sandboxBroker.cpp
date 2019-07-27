@@ -7,6 +7,7 @@
 #include "sandboxBroker.h"
 #include "sandbox/win/src/sandbox.h"
 #include "sandbox/win/src/sandbox_factory.h"
+#include "sandbox/win/src/security_level.h"
 
 namespace mozilla
 {
@@ -15,6 +16,8 @@ sandbox::BrokerServices *SandboxBroker::sBrokerService = nullptr;
 
 SandboxBroker::SandboxBroker()
 {
+  
+  
   if (!sBrokerService) {
     sBrokerService = sandbox::SandboxFactory::GetBrokerServices();
     if (sBrokerService) {
@@ -25,38 +28,17 @@ SandboxBroker::SandboxBroker()
     }
   }
 
-  
   mPolicy = sBrokerService->CreatePolicy();
 }
 
 bool
-SandboxBroker::AllowPipe(const wchar_t *aPath)
-{
-  return mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_NAMED_PIPES,
-                          sandbox::TargetPolicy::NAMEDPIPES_ALLOW_ANY, aPath);
-}
-
-bool
 SandboxBroker::LaunchApp(const wchar_t *aPath,
-                           const wchar_t *aArguments,
-                           void **aProcessHandle)
+                         const wchar_t *aArguments,
+                         void **aProcessHandle)
 {
-  
   if (!sBrokerService || !mPolicy) {
     return false;
   }
-
-  
-  
-  
-  
-  mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
-  mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
-                         sandbox::USER_RESTRICTED_SAME_ACCESS);
-  mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
-
-  
-  mPolicy->SetAlternateDesktop(false);
 
   
   mPolicy->SetStdoutHandle(::GetStdHandle(STD_OUTPUT_HANDLE));
@@ -77,6 +59,63 @@ SandboxBroker::LaunchApp(const wchar_t *aPath,
 
   return true;
 }
+
+bool
+SandboxBroker::SetSecurityLevelForContentProcess()
+{
+  if (!mPolicy) {
+    return false;
+  }
+
+  mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
+  mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
+                         sandbox::USER_RESTRICTED_SAME_ACCESS);
+  mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
+  mPolicy->SetAlternateDesktop(true);
+  return true;
+}
+
+bool
+SandboxBroker::SetSecurityLevelForPluginProcess()
+{
+  if (!mPolicy) {
+    return false;
+  }
+
+  mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
+  mPolicy->SetTokenLevel(sandbox::USER_UNPROTECTED,
+                         sandbox::USER_UNPROTECTED);
+  return true;
+}
+
+bool
+SandboxBroker::SetSecurityLevelForIPDLUnitTestProcess()
+{
+  if (!mPolicy) {
+    return false;
+  }
+
+  mPolicy->SetJobLevel(sandbox::JOB_NONE, 0);
+  mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
+                         sandbox::USER_RESTRICTED_SAME_ACCESS);
+  return true;
+}
+
+bool
+SandboxBroker::SetSecurityLevelForGMPlugin()
+{
+  if (!mPolicy) {
+    return false;
+  }
+
+  mPolicy->SetJobLevel(sandbox::JOB_LOCKDOWN, 0);
+  mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
+                         sandbox::USER_RESTRICTED_SAME_ACCESS);
+  mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
+  mPolicy->SetAlternateDesktop(true);
+  return true;
+}
+
 
 SandboxBroker::~SandboxBroker()
 {

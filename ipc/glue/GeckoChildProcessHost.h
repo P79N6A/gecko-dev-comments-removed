@@ -20,6 +20,10 @@
 #include "nsXULAppAPI.h"        
 #include "nsString.h"
 
+#if defined(XP_WIN)
+#include "sandboxBroker.h"
+#endif
+
 class nsIFile;
 
 namespace mozilla {
@@ -131,15 +135,10 @@ public:
   
   void SetAlreadyDead();
 
-  void SetSandboxEnabled(bool aSandboxEnabled) {
-    mSandboxEnabled = aSandboxEnabled;
-  }
-
   static void CacheGreDir();
 
 protected:
   GeckoProcessType mProcessType;
-  bool mSandboxEnabled;
   ChildPrivileges mPrivileges;
   Monitor mMonitor;
   FilePath mProcessPath;
@@ -168,7 +167,8 @@ protected:
 #ifdef XP_WIN
   void InitWindowsGroupID();
   nsString mGroupId;
-#endif
+  SandboxBroker mSandboxBroker;
+#endif 
 
 #if defined(OS_POSIX)
   base::file_handle_mapping_vector mFileMap;
