@@ -1,13 +1,13 @@
-
-
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-
-
-
-
-
+// Test that when the toolbox is displayed in a bottom host, that host can be
+// minimized to just the tabbar height, and maximized again.
+// Also test that while minimized, switching to a tool, clicking on the
+// settings, or clicking on the selected tool's tab maximizes the toolbox again.
+// Finally test that the minimize button doesn't exist in other host types.
 
 const URL = "data:text/html;charset=utf8,test page";
 
@@ -27,6 +27,16 @@ add_task(function*() {
 
   info("Try to maximize again the toolbox");
   yield maximize(toolbox);
+  ok(parseInt(toolbox._host.frame.style.marginBottom, 10) == 0,
+     "The toolbox host is shown again");
+
+  info("Try to minimize again using the keyboard shortcut");
+  yield minimizeWithShortcut(toolbox);
+  ok(parseInt(toolbox._host.frame.style.marginBottom, 10) < 0,
+     "The toolbox host has been hidden away with a negative-margin");
+
+  info("Try to maximize again using the keyboard shortcut");
+  yield maximizeWithShortcut(toolbox);
   ok(parseInt(toolbox._host.frame.style.marginBottom, 10) == 0,
      "The toolbox host is shown again");
 
@@ -67,9 +77,27 @@ function* minimize(toolbox) {
   yield onMinimized;
 }
 
+function* minimizeWithShortcut(toolbox) {
+  let key = toolbox.doc.getElementById("toolbox-minimize-key")
+                       .getAttribute("key");
+  let onMinimized = toolbox._host.once("minimized");
+  EventUtils.synthesizeKey(key, {accelKey: true, shiftKey: true},
+                           toolbox.doc.defaultView);
+  yield onMinimized;
+}
+
 function* maximize(toolbox) {
   let button = toolbox.doc.querySelector("#toolbox-dock-bottom-minimize");
   let onMaximized = toolbox._host.once("maximized");
   EventUtils.synthesizeMouseAtCenter(button, {}, toolbox.doc.defaultView);
+  yield onMaximized;
+}
+
+function* maximizeWithShortcut(toolbox) {
+  let key = toolbox.doc.getElementById("toolbox-minimize-key")
+                       .getAttribute("key");
+  let onMaximized = toolbox._host.once("maximized");
+  EventUtils.synthesizeKey(key, {accelKey: true, shiftKey: true},
+                           toolbox.doc.defaultView);
   yield onMaximized;
 }
