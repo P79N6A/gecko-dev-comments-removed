@@ -4863,7 +4863,6 @@ nsHttpChannel::BeginConnect()
     if (mLoadFlags & LOAD_CLASSIFY_URI) {
         nsCOMPtr<nsIURIClassifier> classifier = do_GetService(NS_URICLASSIFIERSERVICE_CONTRACTID);
         if (classifier) {
-            nsCOMPtr<nsIPrincipal> principal = GetPrincipal(false);
             bool tp = false;
             channelClassifier->ShouldEnableTrackingProtection(this, &tp);
             
@@ -4872,6 +4871,7 @@ nsHttpChannel::BeginConnect()
             
             
             if (tp) {
+                nsCOMPtr<nsIPrincipal> principal = GetURIPrincipal();
                 nsresult response = NS_OK;
                 classifier->ClassifyLocal(principal, tp, &response);
                 if (NS_FAILED(response)) {

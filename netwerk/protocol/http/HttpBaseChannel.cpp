@@ -1908,13 +1908,9 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
 }
 
 nsIPrincipal *
-HttpBaseChannel::GetPrincipal(bool requireAppId)
+HttpBaseChannel::GetURIPrincipal()
 {
   if (mPrincipal) {
-      if (requireAppId && mPrincipal->GetUnknownAppId()) {
-        LOG(("HttpBaseChannel::GetPrincipal: No app id [this=%p]", this));
-        return nullptr;
-      }
       return mPrincipal;
   }
 
@@ -1922,21 +1918,15 @@ HttpBaseChannel::GetPrincipal(bool requireAppId)
       nsContentUtils::GetSecurityManager();
 
   if (!securityManager) {
-      LOG(("HttpBaseChannel::GetPrincipal: No security manager [this=%p]",
+      LOG(("HttpBaseChannel::GetURIPrincipal: No security manager [this=%p]",
            this));
       return nullptr;
   }
 
-  securityManager->GetChannelResultPrincipal(this, getter_AddRefs(mPrincipal));
+  securityManager->GetChannelURIPrincipal(this, getter_AddRefs(mPrincipal));
   if (!mPrincipal) {
-      LOG(("HttpBaseChannel::GetPrincipal: No channel principal [this=%p]",
+      LOG(("HttpBaseChannel::GetURIPrincipal: No channel principal [this=%p]",
            this));
-      return nullptr;
-  }
-
-  
-  if (requireAppId && mPrincipal->GetUnknownAppId()) {
-      LOG(("HttpBaseChannel::GetPrincipal: No app id [this=%p]", this));
       return nullptr;
   }
 
@@ -2244,7 +2234,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     
     
     
-    nsCOMPtr<nsIPrincipal> principal = GetPrincipal(false);
+    nsCOMPtr<nsIPrincipal> principal = GetURIPrincipal();
     httpInternal->AddRedirect(principal);
   }
 

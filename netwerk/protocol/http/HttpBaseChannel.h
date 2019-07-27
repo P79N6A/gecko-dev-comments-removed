@@ -290,9 +290,7 @@ protected:
   bool SameOriginWithOriginalUri(nsIURI *aURI);
 
   
-  
-  
-  nsIPrincipal *GetPrincipal(bool requireAppId);
+  nsIPrincipal *GetURIPrincipal();
 
   
   
