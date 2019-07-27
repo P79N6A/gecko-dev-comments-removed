@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_ipc_bluetooth_BluetoothDaemonConnection_h
-#define mozilla_ipc_bluetooth_BluetoothDaemonConnection_h
+#ifndef mozilla_ipc_bluetooth_DaemonSocket_h
+#define mozilla_ipc_bluetooth_DaemonSocket_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/FileUtils.h"
@@ -114,13 +114,13 @@ protected:
 
 
 
-class BluetoothDaemonConnection : public ConnectionOrientedSocket
+class DaemonSocket : public ConnectionOrientedSocket
 {
 public:
-  BluetoothDaemonConnection(DaemonSocketIOConsumer* aIOConsumer,
-                            DaemonSocketConsumer* aConsumer,
-                            int aIndex);
-  virtual ~BluetoothDaemonConnection();
+  DaemonSocket(DaemonSocketIOConsumer* aIOConsumer,
+               DaemonSocketConsumer* aConsumer,
+               int aIndex);
+  virtual ~DaemonSocket();
 
   
   

@@ -1439,7 +1439,7 @@ class BluetoothDaemonProtocol final
 public:
   BluetoothDaemonProtocol();
 
-  void SetConnection(BluetoothDaemonConnection* aConnection);
+  void SetConnection(DaemonSocket* aConnection);
 
   nsresult RegisterModule(uint8_t aId, uint8_t aMode, uint32_t aMaxNumClients,
                           BluetoothSetupResultHandler* aRes) override;
@@ -1477,7 +1477,7 @@ private:
   void HandleGattSvc(const DaemonSocketPDUHeader& aHeader,
                      DaemonSocketPDU& aPDU, void* aUserData);
 
-  BluetoothDaemonConnection* mConnection;
+  DaemonSocket* mConnection;
   nsTArray<void*> mUserDataQ;
 };
 
@@ -1485,7 +1485,7 @@ BluetoothDaemonProtocol::BluetoothDaemonProtocol()
 { }
 
 void
-BluetoothDaemonProtocol::SetConnection(BluetoothDaemonConnection* aConnection)
+BluetoothDaemonProtocol::SetConnection(DaemonSocket* aConnection)
 {
   mConnection = aConnection;
 }
@@ -1863,7 +1863,7 @@ BluetoothDaemonInterface::Init(
   
 
   if (!mCmdChannel) {
-    mCmdChannel = new BluetoothDaemonConnection(mProtocol, this, CMD_CHANNEL);
+    mCmdChannel = new DaemonSocket(mProtocol, this, CMD_CHANNEL);
   } else if (
     NS_WARN_IF(mCmdChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
     
@@ -2355,7 +2355,7 @@ BluetoothDaemonInterface::OnConnectSuccess(int aIndex)
     case CMD_CHANNEL:
       
       if (!mNtfChannel) {
-        mNtfChannel = new BluetoothDaemonConnection(mProtocol, this, NTF_CHANNEL);
+        mNtfChannel = new DaemonSocket(mProtocol, this, NTF_CHANNEL);
       } else if (
         NS_WARN_IF(mNtfChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
         
