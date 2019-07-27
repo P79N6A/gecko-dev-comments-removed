@@ -791,6 +791,11 @@ public:
   ContinueInstall()
   {
     
+    if (!mRegistration) {
+      return;
+    }
+
+    
     
     nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
     MOZ_ASSERT(swm->mSetOfScopesBeingUpdated.Contains(mRegistration->mScope));
