@@ -283,18 +283,28 @@ MediaDecoderReader::BreakCycles()
   mTaskQueue = nullptr;
 }
 
-void
+nsRefPtr<ShutdownPromise>
 MediaDecoderReader::Shutdown()
 {
   MOZ_ASSERT(OnDecodeThread());
   mShutdown = true;
   ReleaseMediaResources();
+  nsRefPtr<ShutdownPromise> p;
+
+  
+  
+  
   if (mTaskQueue && !mTaskQueueIsBorrowed) {
     
+    p = mTaskQueue->BeginShutdown();
+  } else {
     
-    mTaskQueue->BeginShutdown();
+    
+    p = new ShutdownPromise(__func__);
+    p->Resolve(true, __func__);
   }
-  mTaskQueue = nullptr;
+
+  return p;
 }
 
 AudioDecodeRendezvous::AudioDecodeRendezvous()
