@@ -706,8 +706,12 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
   }
   response->SetBody(pipeInputStream);
 
+  nsCOMPtr<nsISupports> securityInfo;
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-  response->InitChannelInfo(channel);
+  rv = channel->GetSecurityInfo(getter_AddRefs(securityInfo));
+  if (securityInfo) {
+    response->SetSecurityInfo(securityInfo);
+  }
 
   
   
