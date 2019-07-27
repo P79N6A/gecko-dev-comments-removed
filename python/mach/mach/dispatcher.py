@@ -85,7 +85,7 @@ class CommandAction(argparse.Action):
         """
         if namespace.help:
             
-            self._handle_main_help(parser)
+            self._handle_main_help(parser, namespace.verbose)
             sys.exit(0)
         elif values:
             command = values[0].lower()
@@ -96,7 +96,7 @@ class CommandAction(argparse.Action):
                     
                     self._handle_subcommand_help(parser, args[0])
                 else:
-                    self._handle_main_help(parser)
+                    self._handle_main_help(parser, namespace.verbose)
                 sys.exit(0)
             elif '-h' in args or '--help' in args:
                 
@@ -146,11 +146,10 @@ class CommandAction(argparse.Action):
 
         command_namespace, extra = subparser.parse_known_args(args)
         setattr(namespace, 'command_args', command_namespace)
-
         if extra:
             raise UnrecognizedArgumentError(command, extra)
 
-    def _handle_main_help(self, parser):
+    def _handle_main_help(self, parser, verbose):
         
         
         
@@ -197,9 +196,10 @@ class CommandAction(argparse.Action):
         if disabled_commands and 'disabled' in r.categories:
             title, description, _priority = r.categories['disabled']
             group = parser.add_argument_group(title, description)
-            for c in disabled_commands:
-                group.add_argument(c['command'], help=c['description'],
-                    action='store_true')
+            if verbose == True:
+                for c in disabled_commands:
+                    group.add_argument(c['command'], help=c['description'],
+                                       action='store_true')
 
         parser.print_help()
 
