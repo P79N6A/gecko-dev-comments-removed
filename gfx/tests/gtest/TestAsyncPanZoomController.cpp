@@ -88,34 +88,23 @@ public:
   }
 
   void AdvanceBy(const TimeDuration& aIncrement) {
-    mTime += aIncrement;
+    TimeStamp target = mTime + aIncrement;
+    while (mTaskQueue.Length() > 0 && mTaskQueue[0].second <= target) {
+      RunNextDelayedTask();
+    }
+    mTime = target;
   }
 
   void PostDelayedTask(Task* aTask, int aDelayMs) {
-    mTaskQueue.AppendElement(std::make_pair(aTask, mTime + TimeDuration::FromMilliseconds(aDelayMs)));
-  }
-
-  void CheckHasDelayedTask() {
-    EXPECT_TRUE(mTaskQueue.Length() > 0);
-  }
-
-  void ClearDelayedTask() {
-    mTaskQueue.RemoveElementAt(0);
-  }
-
-  void DestroyOldestTask() {
-    delete mTaskQueue[0].first;
-    mTaskQueue.RemoveElementAt(0);
-  }
-
-  
-  
-  
-  
-  void RunDelayedTask() {
-    mTaskQueue[0].first->Run();
-    delete mTaskQueue[0].first;
-    mTaskQueue.RemoveElementAt(0);
+    TimeStamp runAtTime = mTime + TimeDuration::FromMilliseconds(aDelayMs);
+    int insIndex = mTaskQueue.Length();
+    while (insIndex > 0) {
+      if (mTaskQueue[insIndex - 1].second <= runAtTime) {
+        break;
+      }
+      insIndex--;
+    }
+    mTaskQueue.InsertElementAt(insIndex, std::make_pair(aTask, runAtTime));
   }
 
   
@@ -124,14 +113,33 @@ public:
   
   
   int RunThroughDelayedTasks() {
-    int numTasks = mTaskQueue.Length();
+    nsTArray<std::pair<Task*, TimeStamp>> runQueue;
+    runQueue.SwapElements(mTaskQueue);
+    int numTasks = runQueue.Length();
     for (int i = 0; i < numTasks; i++) {
-      RunDelayedTask();
+      mTime = runQueue[i].second;
+      runQueue[i].first->Run();
+
+      
+      
+      delete runQueue[i].first;
     }
     return numTasks;
   }
 
 private:
+  void RunNextDelayedTask() {
+    std::pair<Task*, TimeStamp> next = mTaskQueue[0];
+    mTaskQueue.RemoveElementAt(0);
+    mTime = next.second;
+    next.first->Run();
+    
+    
+    delete next.first;
+  }
+
+  
+  
   nsTArray<std::pair<Task*, TimeStamp>> mTaskQueue;
   TimeStamp mTime;
 };
@@ -1386,7 +1394,6 @@ protected:
     
     Pan(apzc, mcc, touchStart, touchEnd);
     
-    while (mcc->RunThroughDelayedTasks());
 
     
     
@@ -1429,8 +1436,8 @@ protected:
 
     
     Pan(apzc, mcc, touchStart, touchEnd, false, nullptr, nullptr, &blockId);
+    apzc->ConfirmTarget(blockId);
     apzc->ContentReceivedInputBlock(blockId, false);
-    while (mcc->RunThroughDelayedTasks());
 
     
     ParentLayerPoint point, finalPoint;
@@ -1484,18 +1491,20 @@ TEST_F(APZCFlingStopTester, FlingStopPreventDefault) {
 TEST_F(APZCGestureDetectorTester, ShortPress) {
   MakeApzcUnzoomable();
 
+  MockFunction<void(std::string checkPointName)> check;
+  {
+    InSequence s;
+    
+    
+    EXPECT_CALL(check, Call("pre-tap"));
+    EXPECT_CALL(check, Call("post-tap"));
+    EXPECT_CALL(*mcc, HandleSingleTap(CSSPoint(10, 10), 0, apzc->GetGuid())).Times(1);
+  }
+
+  check.Call("pre-tap");
   TapAndCheckStatus(apzc, 10, 10, mcc, TimeDuration::FromMilliseconds(100));
-  
-  
-  mcc->ClearDelayedTask();
-  mcc->ClearDelayedTask();
-
-  
-  
-  mcc->CheckHasDelayedTask();
-
-  EXPECT_CALL(*mcc, HandleSingleTap(CSSPoint(10, 10), 0, apzc->GetGuid())).Times(1);
-  mcc->RunDelayedTask();
+  check.Call("post-tap");
+  while (mcc->RunThroughDelayedTasks());
 
   apzc->AssertStateIsReset();
 }
@@ -1503,18 +1512,20 @@ TEST_F(APZCGestureDetectorTester, ShortPress) {
 TEST_F(APZCGestureDetectorTester, MediumPress) {
   MakeApzcUnzoomable();
 
+  MockFunction<void(std::string checkPointName)> check;
+  {
+    InSequence s;
+    
+    
+    EXPECT_CALL(check, Call("pre-tap"));
+    EXPECT_CALL(check, Call("post-tap"));
+    EXPECT_CALL(*mcc, HandleSingleTap(CSSPoint(10, 10), 0, apzc->GetGuid())).Times(1);
+  }
+
+  check.Call("pre-tap");
   TapAndCheckStatus(apzc, 10, 10, mcc, TimeDuration::FromMilliseconds(400));
-  
-  
-  mcc->ClearDelayedTask();
-  mcc->ClearDelayedTask();
-
-  
-  
-  mcc->CheckHasDelayedTask();
-
-  EXPECT_CALL(*mcc, HandleSingleTap(CSSPoint(10, 10), 0, apzc->GetGuid())).Times(1);
-  mcc->RunDelayedTask();
+  check.Call("post-tap");
+  while (mcc->RunThroughDelayedTasks());
 
   apzc->AssertStateIsReset();
 }
@@ -1554,15 +1565,9 @@ protected:
     }
 
     
-    mcc->CheckHasDelayedTask();
-
-    
     check.Call("preHandleLongTap");
-    mcc->RunDelayedTask();
+    mcc->RunThroughDelayedTasks();
     check.Call("postHandleLongTap");
-
-    
-    mcc->DestroyOldestTask();
 
     
     
@@ -1570,8 +1575,7 @@ protected:
     
     
     apzc->ContentReceivedInputBlock(blockId, false);
-    mcc->CheckHasDelayedTask();
-    mcc->RunDelayedTask();
+    mcc->RunThroughDelayedTasks();
 
     mcc->AdvanceByMillis(1000);
 
@@ -1579,7 +1583,7 @@ protected:
     
     check.Call("preHandleSingleTap");
     status = TouchUp(apzc, 10, 10, mcc->Time());
-    mcc->RunDelayedTask();
+    mcc->RunThroughDelayedTasks();
     EXPECT_EQ(nsEventStatus_eConsumeDoDefault, status);
     check.Call("postHandleSingleTap");
 
@@ -1620,15 +1624,10 @@ protected:
       EXPECT_CALL(check, Call("postHandleLongTap"));
     }
 
-    mcc->CheckHasDelayedTask();
-
     
     check.Call("preHandleLongTap");
-    mcc->RunDelayedTask();
+    mcc->RunThroughDelayedTasks();
     check.Call("postHandleLongTap");
-
-    
-    mcc->DestroyOldestTask();
 
     
     
@@ -1636,8 +1635,7 @@ protected:
     
     
     apzc->ContentReceivedInputBlock(blockId, true);
-    mcc->CheckHasDelayedTask();
-    mcc->RunDelayedTask();
+    mcc->RunThroughDelayedTasks();
 
     mcc->AdvanceByMillis(1000);
 
