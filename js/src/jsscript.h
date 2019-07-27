@@ -62,12 +62,12 @@ namespace frontend {
 
 
 
-typedef enum JSTryNoteKind {
+enum JSTryNoteKind {
     JSTRY_CATCH,
     JSTRY_FINALLY,
     JSTRY_ITER,
     JSTRY_LOOP
-} JSTryNoteKind;
+};
 
 
 
@@ -1872,9 +1872,13 @@ class LazyScript : public gc::TenuredCell
     
     void *table_;
 
+    
+    
+  protected:
 #if JS_BITS_PER_WORD == 32
     uint32_t padding;
 #endif
+  private:
 
     struct PackedView {
         
