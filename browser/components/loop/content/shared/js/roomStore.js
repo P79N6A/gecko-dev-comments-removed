@@ -423,8 +423,15 @@ loop.store = loop.store || {};
 
 
     renameRoom: function(actionData) {
+      var newRoomName = actionData.newRoomName.trim();
+
+      
+      if (!newRoomName || this.getStoreState("roomName") === newRoomName) {
+        return;
+      }
+
       this.setStoreState({error: null});
-      this._mozLoop.rooms.rename(actionData.roomToken, actionData.newRoomName,
+      this._mozLoop.rooms.rename(actionData.roomToken, newRoomName,
         function(err) {
           if (err) {
             this.dispatchAction(new sharedActions.RenameRoomError({error: err}));
