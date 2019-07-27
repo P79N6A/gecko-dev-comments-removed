@@ -118,12 +118,9 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsRect GetCaretRect()
-    {
-      nsRect r;
-      r.UnionRect(mCaretRect, GetHookRect());
-      return r;
-    }
+
+
+    nsIFrame* GetPaintGeometry(nsRect* aRect);
     
 
 
