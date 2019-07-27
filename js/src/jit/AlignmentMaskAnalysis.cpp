@@ -33,42 +33,42 @@ AnalyzeAsmHeapAddress(MDefinition *ptr, MIRGraph &graph)
     
     
     
+    
+    
+    
+    
+    
+    
 
     if (!ptr->isBitAnd())
         return;
 
     MDefinition *lhs = ptr->toBitAnd()->getOperand(0);
     MDefinition *rhs = ptr->toBitAnd()->getOperand(1);
-    int lhsIndex = 0;
-    if (lhs->isConstantValue()) {
+    if (lhs->isConstantValue())
         mozilla::Swap(lhs, rhs);
-        lhsIndex = 1;
-    }
-    if (!lhs->isAdd() || !lhs->hasOneUse() || !rhs->isConstantValue())
+    if (!lhs->isAdd() || !rhs->isConstantValue())
         return;
 
     MDefinition *op0 = lhs->toAdd()->getOperand(0);
     MDefinition *op1 = lhs->toAdd()->getOperand(1);
-    int op0Index = 0;
-    if (op0->isConstantValue()) {
+    if (op0->isConstantValue())
         mozilla::Swap(op0, op1);
-        op0Index = 1;
-    }
     if (!op1->isConstantValue())
         return;
 
     uint32_t i = op1->constantValue().toInt32();
     uint32_t m = rhs->constantValue().toInt32();
-    if (!IsAlignmentMask(m) || ((i & m) != i))
+    if (!IsAlignmentMask(m) || (i & m) != i)
         return;
 
-    ptr->replaceAllUsesWith(lhs);
-    ptr->toBitAnd()->replaceOperand(lhsIndex, op0);
-    lhs->toAdd()->replaceOperand(op0Index, ptr);
-
-    MInstructionIterator iter = ptr->block()->begin(ptr->toBitAnd());
-    ++iter;
-    lhs->block()->moveBefore(*iter, lhs->toAdd());
+    
+    MInstruction *and_ = MBitAnd::NewAsmJS(graph.alloc(), op0, rhs);
+    ptr->block()->insertBefore(ptr->toBitAnd(), and_);
+    MInstruction *add = MAdd::NewAsmJS(graph.alloc(), and_, op1, MIRType_Int32);
+    ptr->block()->insertBefore(ptr->toBitAnd(), add);
+    ptr->replaceAllUsesWith(add);
+    ptr->block()->discard(ptr->toBitAnd());
 }
 
 bool
