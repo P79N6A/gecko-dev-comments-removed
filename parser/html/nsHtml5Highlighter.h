@@ -24,7 +24,7 @@ class nsHtml5Highlighter
 
 
 
-    nsHtml5Highlighter(nsAHtml5TreeOpSink* aOpSink);
+    explicit nsHtml5Highlighter(nsAHtml5TreeOpSink* aOpSink);
 
     
 
