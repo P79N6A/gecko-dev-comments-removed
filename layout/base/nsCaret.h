@@ -90,10 +90,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-
-
-
-    nsresult DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset);
+    void SetCaretPosition(nsIDOMNode* aNode, int32_t aOffset);
 
     
 
@@ -203,11 +200,6 @@ protected:
 
     int32_t               mOverrideOffset;
 
-    
-
-
-
-    bool                  mIsBlinking;
     
 
 

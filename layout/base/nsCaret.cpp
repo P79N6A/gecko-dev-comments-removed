@@ -117,7 +117,6 @@ IsBidiUI()
 
 nsCaret::nsCaret()
 : mOverrideOffset(0)
-, mIsBlinking(true)
 , mIsBlinkOn(false)
 , mVisible(false)
 , mReadOnly(false)
@@ -418,22 +417,14 @@ void nsCaret::SetVisibilityDuringSelection(bool aVisibility)
   SchedulePaint();
 }
 
-nsresult nsCaret::DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset)
+void
+nsCaret::SetCaretPosition(nsIDOMNode* aNode, int32_t aOffset)
 {
-  NS_ENSURE_ARG(aNode);
-
-  
-  
-  
-  mIsBlinking = false;
-  ResetBlinking();
-
   mOverrideContent = do_QueryInterface(aNode);
   mOverrideOffset = aOffset;
 
+  ResetBlinking();
   SchedulePaint();
-
-  return NS_OK;
 }
 
 void
@@ -461,7 +452,7 @@ nsIFrame*
 nsCaret::GetPaintGeometry(nsRect* aRect)
 {
   
-  if (!IsVisible() || (mIsBlinking && !mIsBlinkOn)) {
+  if (!IsVisible() || !mIsBlinkOn) {
     return nullptr;
   }
 
@@ -559,12 +550,12 @@ nsCaret::NotifySelectionChanged(nsIDOMDocument *, nsISelection *aDomSel,
 
 void nsCaret::ResetBlinking()
 {
-  if (mReadOnly || !mIsBlinking) {
+  mIsBlinkOn = true;
+
+  if (mReadOnly) {
     StopBlinking();
     return;
   }
-
-  mIsBlinkOn = true;
 
   if (!mBlinkTimer) {
     nsresult  err;
