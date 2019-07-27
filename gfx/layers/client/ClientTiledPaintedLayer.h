@@ -99,12 +99,6 @@ private:
   
 
 
-
-  bool UseFastPath();
-
-  
-
-
   bool IsScrollingOnCompositor(const FrameMetrics& aParentMetrics);
 
   
