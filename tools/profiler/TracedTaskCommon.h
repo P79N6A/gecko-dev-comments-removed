@@ -19,22 +19,25 @@ class TracedTaskCommon
 {
 public:
   TracedTaskCommon();
-  virtual ~TracedTaskCommon() {}
+  virtual ~TracedTaskCommon();
+
+  void DispatchTask(int aDelayTimeMs = 0);
+
+  void SetTLSTraceInfo();
+  void GetTLSTraceInfo();
+  void ClearTLSTraceInfo();
 
 protected:
   void Init();
 
   
   
-  void SetTraceInfo();
-  void ClearTraceInfo();
-
   
-  
-  uint64_t mTaskId;
-
-  uint64_t mSourceEventId;
   SourceEventType mSourceEventType;
+  uint64_t mSourceEventId;
+  uint64_t mParentTaskId;
+  uint64_t mTaskId;
+  bool mIsTraceInfoInit;
 };
 
 class TracedRunnable : public TracedTaskCommon
@@ -46,7 +49,7 @@ public:
   TracedRunnable(nsIRunnable* aOriginalObj);
 
 private:
-  virtual ~TracedRunnable() {}
+  virtual ~TracedRunnable();
 
   nsCOMPtr<nsIRunnable> mOriginalObj;
 };
@@ -56,46 +59,12 @@ class TracedTask : public TracedTaskCommon
 {
 public:
   TracedTask(Task* aOriginalObj);
-  ~TracedTask()
-  {
-    if (mOriginalObj) {
-      delete mOriginalObj;
-      mOriginalObj = nullptr;
-    }
-  }
+  ~TracedTask();
 
   virtual void Run();
 
 private:
   Task* mOriginalObj;
-};
-
-
-
-class FakeTracedTask : public TracedTaskCommon
-{
-public:
-  NS_INLINE_DECL_REFCOUNTING(FakeTracedTask)
-
-  FakeTracedTask(int* aVptr);
-  void BeginFakeTracedTask();
-  void EndFakeTracedTask();
-private:
-  virtual ~FakeTracedTask() {}
-
-  
-  FakeTracedTask() = delete;
-  FakeTracedTask(const FakeTracedTask& aTask) = delete;
-  FakeTracedTask& operator=(const FakeTracedTask& aTask) = delete;
-};
-
-class AutoRunFakeTracedTask
-{
-public:
-  AutoRunFakeTracedTask(FakeTracedTask* aFakeTracedTask);
-  ~AutoRunFakeTracedTask();
-private:
-  nsRefPtr<FakeTracedTask> mFakeTracedTask;
 };
 
 } 

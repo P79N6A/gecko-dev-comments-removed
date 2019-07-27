@@ -454,7 +454,7 @@ TimerThread::AddTimerInternal(nsTimerImpl* aTimer)
 #ifdef MOZ_TASK_TRACER
   
   
-  aTimer->DispatchTracedTask();
+  aTimer->GetTLSTraceInfo();
 #endif
 
   return insertSlot - mTimers.Elements();
