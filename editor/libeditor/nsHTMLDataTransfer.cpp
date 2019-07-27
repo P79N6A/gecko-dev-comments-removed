@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "mozilla/dom/DocumentFragment.h"
+#include "mozilla/dom/OwningNonNull.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Base64.h"
 #include "mozilla/BasicEvents.h"
@@ -321,13 +322,21 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
   
 
   
-  nsCOMArray<nsIDOMNode> nodeList;
-  rv = CreateListOfNodesToPaste(fragmentAsNode, nodeList,
-                                streamStartParent, streamStartOffset,
-                                streamEndParent, streamEndOffset);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsTArray<OwningNonNull<nsINode>> nodeList;
+  nsCOMPtr<nsINode> fragmentAsNodeNode = do_QueryInterface(fragmentAsNode);
+  NS_ENSURE_STATE(fragmentAsNodeNode || !fragmentAsNode);
+  nsCOMPtr<nsINode> streamStartParentNode =
+    do_QueryInterface(streamStartParent);
+  NS_ENSURE_STATE(streamStartParentNode || !streamStartParent);
+  nsCOMPtr<nsINode> streamEndParentNode =
+    do_QueryInterface(streamEndParent);
+  NS_ENSURE_STATE(streamEndParentNode || !streamEndParent);
+  CreateListOfNodesToPaste(*static_cast<DocumentFragment*>(fragmentAsNodeNode.get()),
+                           nodeList,
+                           streamStartParentNode, streamStartOffset,
+                           streamEndParentNode, streamEndOffset);
 
-  if (nodeList.Count() == 0) {
+  if (nodeList.Length() == 0) {
     return NS_OK;
   }
 
@@ -352,9 +361,9 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     
     
     
-    nsIDOMNode* firstNode = nodeList[0];
-    if (!nsHTMLEditUtils::IsTableElement(firstNode))
+    if (!nsHTMLEditUtils::IsTableElement(nodeList[0])) {
       cellSelectionMode = false;
+    }
   }
 
   if (!cellSelectionMode)
@@ -395,6 +404,11 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
 
   if (!handled)
   {
+    nsCOMArray<nsIDOMNode> nodeListDOM;
+    for (auto& node : nodeList) {
+      nodeListDOM.AppendObject(GetAsDOMNode(node));
+    }
+
     
     
     rv = GetStartNodeAndOffset(selection, getter_AddRefs(parentNode), &offsetOfNewNode);
@@ -402,7 +416,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     NS_ENSURE_TRUE(parentNode, NS_ERROR_FAILURE);
 
     
-    NormalizeEOLInsertPosition(nodeList[0], address_of(parentNode), &offsetOfNewNode);
+    NormalizeEOLInsertPosition(nodeListDOM[0], address_of(parentNode), &offsetOfNewNode);
 
     
     
@@ -432,14 +446,14 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     
     
     nsCOMArray<nsIDOMNode> startListAndTableArray;
-    rv = GetListAndTableParents(false, nodeList, startListAndTableArray);
+    rv = GetListAndTableParents(false, nodeListDOM, startListAndTableArray);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     int32_t highWaterMark = -1;
     if (startListAndTableArray.Count() > 0)
     {
-      rv = DiscoverPartialListsAndTables(nodeList, startListAndTableArray, &highWaterMark);
+      rv = DiscoverPartialListsAndTables(nodeListDOM, startListAndTableArray, &highWaterMark);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -448,33 +462,33 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     
     if (highWaterMark >= 0)
     {
-      rv = ReplaceOrphanedStructure(false, nodeList, startListAndTableArray, highWaterMark);
+      rv = ReplaceOrphanedStructure(false, nodeListDOM, startListAndTableArray, highWaterMark);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
     nsCOMArray<nsIDOMNode> endListAndTableArray;
-    rv = GetListAndTableParents(true, nodeList, endListAndTableArray);
+    rv = GetListAndTableParents(true, nodeListDOM, endListAndTableArray);
     NS_ENSURE_SUCCESS(rv, rv);
     highWaterMark = -1;
 
     
     if (endListAndTableArray.Count() > 0)
     {
-      rv = DiscoverPartialListsAndTables(nodeList, endListAndTableArray, &highWaterMark);
+      rv = DiscoverPartialListsAndTables(nodeListDOM, endListAndTableArray, &highWaterMark);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
     if (highWaterMark >= 0)
     {
-      rv = ReplaceOrphanedStructure(true, nodeList, endListAndTableArray, highWaterMark);
+      rv = ReplaceOrphanedStructure(true, nodeListDOM, endListAndTableArray, highWaterMark);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
     nsCOMPtr<nsIDOMNode> parentBlock, lastInsertNode, insertedContextParent;
-    int32_t listCount = nodeList.Count();
+    int32_t listCount = nodeListDOM.Count();
     int32_t j;
     if (IsBlockNode(parentNode))
       parentBlock = parentNode;
@@ -484,7 +498,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     for (j=0; j<listCount; j++)
     {
       bool bDidInsert = false;
-      nsCOMPtr<nsIDOMNode> curNode = nodeList[j];
+      nsCOMPtr<nsIDOMNode> curNode = nodeListDOM[j];
 
       NS_ENSURE_TRUE(curNode, NS_ERROR_FAILURE);
       NS_ENSURE_TRUE(curNode != fragmentAsNode, NS_ERROR_FAILURE);
@@ -2166,41 +2180,34 @@ nsresult nsHTMLEditor::ParseFragment(const nsAString & aFragStr,
   return rv;
 }
 
-nsresult nsHTMLEditor::CreateListOfNodesToPaste(nsIDOMNode  *aFragmentAsNode,
-                                                nsCOMArray<nsIDOMNode>& outNodeList,
-                                                nsIDOMNode *aStartNode,
-                                                int32_t aStartOffset,
-                                                nsIDOMNode *aEndNode,
-                                                int32_t aEndOffset)
+void
+nsHTMLEditor::CreateListOfNodesToPaste(DocumentFragment& aFragment,
+                                       nsTArray<OwningNonNull<nsINode>>& outNodeList,
+                                       nsINode* aStartNode,
+                                       int32_t aStartOffset,
+                                       nsINode* aEndNode,
+                                       int32_t aEndOffset)
 {
-  NS_ENSURE_TRUE(aFragmentAsNode, NS_ERROR_NULL_POINTER);
-
-  nsresult rv;
-
   
   
-  if (!aStartNode)
-  {
-    int32_t fragLen;
-    rv = GetLengthOfDOMNode(aFragmentAsNode, (uint32_t&)fragLen);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    aStartNode = aFragmentAsNode;
+  if (!aStartNode) {
+    aStartNode = &aFragment;
     aStartOffset = 0;
-    aEndNode = aFragmentAsNode;
-    aEndOffset = fragLen;
+    aEndNode = &aFragment;
+    aEndOffset = aFragment.Length();
   }
 
   nsRefPtr<nsRange> docFragRange;
-  rv = nsRange::CreateRange(aStartNode, aStartOffset, aEndNode, aEndOffset, getter_AddRefs(docFragRange));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsresult rv = nsRange::CreateRange(aStartNode, aStartOffset,
+                                     aEndNode, aEndOffset,
+                                     getter_AddRefs(docFragRange));
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  NS_ENSURE_SUCCESS(rv, );
 
   
   nsTrivialFunctor functor;
   nsDOMSubtreeIterator iter(*docFragRange);
   iter.AppendList(functor, outNodeList);
-
-  return NS_OK;
 }
 
 nsresult
