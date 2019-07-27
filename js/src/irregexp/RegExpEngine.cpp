@@ -82,7 +82,7 @@ static const int kSurrogateRangeCount = ArrayLength(kSurrogateRanges);
 static const int kLineTerminatorRanges[] = { 0x000A, 0x000B, 0x000D, 0x000E,
     0x2028, 0x202A, 0x10000 };
 static const int kLineTerminatorRangeCount = ArrayLength(kLineTerminatorRanges);
-static const unsigned kMaxOneByteCharCode = 0xff;
+static const int kMaxOneByteCharCode = 0xff;
 static const int kMaxUtf16CodeUnit = 0xffff;
 
 static char16_t
@@ -3180,7 +3180,7 @@ SplitSearchSpace(RangeBoundaryVector &ranges,
     
     
     
-    if (*border - 1 > (int) kMaxOneByteCharCode &&  
+    if (*border - 1 > kMaxOneByteCharCode &&  
         end_index - start_index > (*new_start_index - start_index) * 2 &&
         last - first > kSize * 2 &&
         binary_chop_index > *new_start_index &&
