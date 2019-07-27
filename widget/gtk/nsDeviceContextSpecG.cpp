@@ -80,9 +80,7 @@ nsTArray<nsString>* GlobalPrinters::mGlobalPrinterList = nullptr;
 
 
 nsDeviceContextSpecGTK::nsDeviceContextSpecGTK()
-  : mPrintJob(nullptr)
-  , mGtkPrinter(nullptr)
-  , mGtkPrintSettings(nullptr)
+  : mGtkPrintSettings(nullptr)
   , mGtkPageSetup(nullptr)
 {
   DO_PR_DEBUG_LOG(("nsDeviceContextSpecGTK::nsDeviceContextSpecGTK()\n"));
@@ -122,6 +120,10 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
 
   
   
+  MOZ_ASSERT(!mSpoolFile);
+
+  
+  
   gchar *buf;
   gint fd = g_file_open_tmp("XXXXXX.tmp", &buf, nullptr);
   if (-1 == fd)
@@ -158,27 +160,18 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetSurfaceForPrinter(gfxASurface **aSurfac
       format = nsIPrintSettings::kOutputFormatPS;
     } else {
       const gchar* fmtGTK = gtk_print_settings_get(mGtkPrintSettings, GTK_PRINT_SETTINGS_OUTPUT_FILE_FORMAT);
-      if (!fmtGTK && GTK_IS_PRINTER(mGtkPrinter)) {
-        
-
-        
-        
-        
-        if (gtk_major_version > 2 ||
-            (gtk_major_version == 2 && gtk_minor_version >= 24)) {
-          format =
-            gtk_printer_accepts_pdf(mGtkPrinter) ?
-            static_cast<int16_t>(nsIPrintSettings::kOutputFormatPDF) :
-            static_cast<int16_t>(nsIPrintSettings::kOutputFormatPS);
+      if (fmtGTK) {
+        if (nsDependentCString(fmtGTK).EqualsIgnoreCase("pdf")) {
+          format = nsIPrintSettings::kOutputFormatPDF;
         } else {
           format = nsIPrintSettings::kOutputFormatPS;
         }
-
-      } else if (nsDependentCString(fmtGTK).EqualsIgnoreCase("pdf")) {
-        format = nsIPrintSettings::kOutputFormatPDF;
-      } else {
-        format = nsIPrintSettings::kOutputFormatPS;
       }
+    }
+
+    
+    if (format == nsIPrintSettings::kOutputFormatNative) {
+      return NS_ERROR_FAILURE;
     }
   }
 
@@ -217,7 +210,10 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::Init(nsIWidget *aWidget,
       (gtk_major_version == 2 && gtk_minor_version < 10))
     return NS_ERROR_NOT_AVAILABLE;  
 
-  mPrintSettings = aPS;
+  mPrintSettings = do_QueryInterface(aPS);
+  if (!mPrintSettings)
+    return NS_ERROR_NO_INTERFACE;
+
   mIsPPreview = aIsPrintPreview;
 
   
@@ -226,13 +222,8 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::Init(nsIWidget *aWidget,
 
   mToPrinter = !toFile && !aIsPrintPreview;
 
-  nsCOMPtr<nsPrintSettingsGTK> printSettingsGTK(do_QueryInterface(aPS));
-  if (!printSettingsGTK)
-    return NS_ERROR_NO_INTERFACE;
-
-  mGtkPrinter = printSettingsGTK->GetGtkPrinter();
-  mGtkPrintSettings = printSettingsGTK->GetGtkPrintSettings();
-  mGtkPageSetup = printSettingsGTK->GetGtkPageSetup();
+  mGtkPrintSettings = mPrintSettings->GetGtkPrintSettings();
+  mGtkPageSetup = mPrintSettings->GetGtkPageSetup();
 
   
   
@@ -279,31 +270,81 @@ ns_release_macro(gpointer aData) {
   NS_RELEASE(spoolFile);
 }
 
+
+gboolean nsDeviceContextSpecGTK::PrinterEnumerator(GtkPrinter *aPrinter,
+                                                   gpointer aData) {
+  nsDeviceContextSpecGTK *spec = (nsDeviceContextSpecGTK*)aData;
+
+  
+  nsXPIDLString printerName;
+  nsresult rv =
+    spec->mPrintSettings->GetPrinterName(getter_Copies(printerName));
+  if (NS_SUCCEEDED(rv) && printerName) {
+    NS_ConvertUTF16toUTF8 requestedName(printerName);
+    const char* currentName = gtk_printer_get_name(aPrinter);
+    if (requestedName.Equals(currentName)) {
+      nsDeviceContextSpecGTK::StartPrintJob(spec, aPrinter);
+      return TRUE;
+    }
+  }
+
+  
+  return FALSE;
+}
+
+
+void nsDeviceContextSpecGTK::StartPrintJob(nsDeviceContextSpecGTK* spec,
+                                           GtkPrinter* printer) {
+  GtkPrintJob* job = gtk_print_job_new(spec->mTitle.get(),
+                                       printer,
+                                       spec->mGtkPrintSettings,
+                                       spec->mGtkPageSetup);
+
+  if (!gtk_print_job_set_source_file(job, spec->mSpoolName.get(), nullptr))
+    return;
+
+  NS_ADDREF(spec->mSpoolFile.get());
+  gtk_print_job_send(job, print_callback, spec->mSpoolFile, ns_release_macro);
+}
+
+void
+nsDeviceContextSpecGTK::EnumeratePrinters()
+{
+  gtk_enumerate_printers(&nsDeviceContextSpecGTK::PrinterEnumerator, this,
+                         nullptr, TRUE);
+}
+
 NS_IMETHODIMP nsDeviceContextSpecGTK::BeginDocument(const nsAString& aTitle, char16_t * aPrintToFileName,
                                                     int32_t aStartPage, int32_t aEndPage)
 {
-  if (mToPrinter) {
-    if (!GTK_IS_PRINTER(mGtkPrinter))
-      return NS_ERROR_FAILURE;
-
-    mPrintJob = gtk_print_job_new(NS_ConvertUTF16toUTF8(aTitle).get(), mGtkPrinter,
-                                  mGtkPrintSettings, mGtkPageSetup);
-  }
-
+  mTitle.Truncate();
+  AppendUTF16toUTF8(aTitle, mTitle);
   return NS_OK;
 }
 
 NS_IMETHODIMP nsDeviceContextSpecGTK::EndDocument()
 {
   if (mToPrinter) {
-    if (!mPrintJob)
-      return NS_OK; 
+    
+    
+    
+    
+    
+    
+    
+    
 
-    if (!gtk_print_job_set_source_file(mPrintJob, mSpoolName.get(), nullptr))
-      return NS_ERROR_GFX_PRINTER_COULD_NOT_OPEN_FILE;
-
-    NS_ADDREF(mSpoolFile.get());
-    gtk_print_job_send(mPrintJob, print_callback, mSpoolFile, ns_release_macro);
+    GtkPrinter* printer = mPrintSettings->GetGtkPrinter();
+    if (printer) {
+      
+      nsDeviceContextSpecGTK::StartPrintJob(this, printer);
+    } else {
+      
+      
+      nsCOMPtr<nsIRunnable> event =
+        NS_NewRunnableMethod(this, &nsDeviceContextSpecGTK::EnumeratePrinters);
+      NS_DispatchToCurrentThread(event);
+    }
   } else {
     
     nsXPIDLString targetPath;

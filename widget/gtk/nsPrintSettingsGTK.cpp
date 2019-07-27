@@ -198,8 +198,19 @@ nsPrintSettingsGTK::SetGtkPrinter(GtkPrinter *aPrinter)
 {
   if (mGTKPrinter)
     g_object_unref(mGTKPrinter);
-  
+
   mGTKPrinter = (GtkPrinter*) g_object_ref(aPrinter);
+
+  
+  
+  
+  bool shouldTrustGTK =
+    (gtk_major_version > 2 ||
+     (gtk_major_version == 2 && gtk_minor_version >= 24));
+  bool acceptsPDF = shouldTrustGTK && gtk_printer_accepts_pdf(mGTKPrinter);
+
+  SetOutputFormat(acceptsPDF ? nsIPrintSettings::kOutputFormatPDF
+                             : nsIPrintSettings::kOutputFormatPS);
 }
 
 
