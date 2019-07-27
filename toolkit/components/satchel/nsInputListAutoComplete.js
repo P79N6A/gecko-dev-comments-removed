@@ -23,7 +23,7 @@ InputListAutoComplete.prototype = {
     
     
     if (formHistoryResult) {
-      entries = formHistoryResult.wrappedJSObject.entries;
+      let entries = formHistoryResult.wrappedJSObject.entries;
       for (let i = 0; i < entries.length; ++i) {
         historyResults.push(entries[i].text);
         historyComments.push("");
