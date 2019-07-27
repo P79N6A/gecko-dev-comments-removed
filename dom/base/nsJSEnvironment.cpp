@@ -351,17 +351,19 @@ NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
 class ScriptErrorEvent : public nsRunnable
 {
 public:
-  ScriptErrorEvent(JSRuntime* aRuntime,
+  ScriptErrorEvent(nsPIDOMWindow* aWindow,
+                   JSRuntime* aRuntime,
                    xpc::ErrorReport* aReport,
                    JS::Handle<JS::Value> aError)
-    : mReport(aReport)
+    : mWindow(aWindow)
+    , mReport(aReport)
     , mError(aRuntime, aError)
   {}
 
   NS_IMETHOD Run()
   {
     nsEventStatus status = nsEventStatus_eIgnore;
-    nsPIDOMWindow* win = mReport->mWindow;
+    nsPIDOMWindow* win = mWindow;
     MOZ_ASSERT(win);
     
     
@@ -407,6 +409,7 @@ public:
   }
 
 private:
+  nsCOMPtr<nsPIDOMWindow>         mWindow;
   nsRefPtr<xpc::ErrorReport>      mReport;
   JS::PersistentRootedValue       mError;
 
@@ -467,12 +470,14 @@ SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 
   if (globalObject) {
     nsRefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
-    xpcReport->Init(report, message, globalObject);
+    bool isChrome = nsContentUtils::IsSystemPrincipal(globalObject->PrincipalOrNull());
+    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(globalObject);
+    xpcReport->Init(report, message, isChrome, win ? win->WindowID() : 0);
 
     
     
     
-    if (!xpcReport->mWindow || JSREPORT_IS_WARNING(xpcReport->mFlags) ||
+    if (!win || JSREPORT_IS_WARNING(xpcReport->mFlags) ||
         report->errorNumber == JSMSG_OUT_OF_MEMORY)
     {
       xpcReport->LogToConsole();
@@ -481,7 +486,7 @@ SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 
     
     
-    nsContentUtils::AddScriptRunner(new ScriptErrorEvent(JS_GetRuntime(cx), xpcReport, exception));
+    nsContentUtils::AddScriptRunner(new ScriptErrorEvent(win, JS_GetRuntime(cx), xpcReport, exception));
   }
 }
 
