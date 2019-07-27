@@ -211,8 +211,8 @@ private:
   int mCurrentVgs;
   int mCurrentVgm;
   bool mReceiveVgsFlag;
+  
   bool mDialingRequestProcessed;
-  bool mFirstCKPD;
   PhoneType mPhoneType;
   nsString mDeviceAddress;
   nsString mMsisdn;
