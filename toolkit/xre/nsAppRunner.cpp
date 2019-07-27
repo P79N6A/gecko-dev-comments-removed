@@ -105,6 +105,7 @@
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
+#include "mozilla/a11y/Compatibility.h"
 #endif
 
 #include "nsCRT.h"
@@ -585,7 +586,7 @@ bool gSafeMode = false;
 
 
 class nsXULAppInfo : public nsIXULAppInfo,
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
                      public nsIObserver,
 #endif
 #ifdef XP_WIN
@@ -603,7 +604,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIXULAPPINFO
   NS_DECL_NSIXULRUNTIME
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
   NS_DECL_NSIOBSERVER
 #endif
 #ifdef MOZ_CRASHREPORTER
@@ -618,7 +619,7 @@ public:
 NS_INTERFACE_MAP_BEGIN(nsXULAppInfo)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIXULRuntime)
   NS_INTERFACE_MAP_ENTRY(nsIXULRuntime)
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
 #endif
 #ifdef XP_WIN
@@ -824,7 +825,7 @@ static bool gBrowserTabsRemoteAutostart = false;
 static nsString gBrowserTabsRemoteDisabledReason;
 static bool gBrowserTabsRemoteAutostartInitialized = false;
 
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
 NS_IMETHODIMP
 nsXULAppInfo::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData) {
   if (!nsCRT::strcmp(aTopic, "getE10SBlocked")) {
@@ -859,17 +860,20 @@ nsXULAppInfo::GetAccessibilityEnabled(bool* aResult)
 }
 
 NS_IMETHODIMP
-nsXULAppInfo::GetAccessibilityIsUIA(bool* aResult)
+nsXULAppInfo::GetAccessibilityIsBlacklistedForE10S(bool* aResult)
 {
   *aResult = false;
-#if defined(ACCESSIBILITY) && defined(XP_WIN)
-  
-  if (GetAccService() != nullptr &&
-      (::GetModuleHandleW(L"uiautomation") ||
-       ::GetModuleHandleW(L"uiautomationcore"))) {
+#if defined(ACCESSIBILITY)
+#if defined(XP_WIN)
+  if (GetAccService() && mozilla::a11y::Compatibility::IsBlacklistedForE10S()) {
+    *aResult = true;
+  }
+#elif defined(XP_MACOSX)
+  if (GetAccService()) {
     *aResult = true;
   }
 #endif
+#endif 
   return NS_OK;
 }
 
@@ -4339,7 +4343,7 @@ XRE_IsParentProcess()
   return XRE_GetProcessType() == GeckoProcessType_Default;
 }
 
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
 static void
 LogE10sBlockedReason(const char *reason) {
   gBrowserTabsRemoteDisabledReason.Assign(NS_ConvertASCIItoUTF16(reason));
@@ -4381,7 +4385,7 @@ mozilla::BrowserTabsRemoteAutostart()
   } else {
     status = kE10sDisabledByUser;
   }
-#if !defined(E10S_TESTING_ONLY)
+#if !defined(NIGHTLY_BUILD)
   
   
   
@@ -4445,7 +4449,7 @@ mozilla::BrowserTabsRemoteAutostart()
       gBrowserTabsRemoteAutostart = false;
 
       status = kE10sDisabledForMacGfx;
-#ifdef E10S_TESTING_ONLY
+#ifdef NIGHTLY_BUILD
       LogE10sBlockedReason("Hardware acceleration is disabled");
 #endif
     }

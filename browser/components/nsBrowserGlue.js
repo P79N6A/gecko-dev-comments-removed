@@ -2811,8 +2811,7 @@ let E10SUINotification = {
       
       
       Services.obs.addObserver(this, "a11y-init-or-shutdown", true);
-      if (Services.appinfo.accessibilityEnabled &&
-          !Services.appinfo.accessibilityIsUIA) {
+      if (Services.appinfo.accessibilityIsBlacklistedForE10S) {
         this._showE10sAccessibilityWarning();
       }
     } else {

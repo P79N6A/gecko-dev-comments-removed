@@ -39,6 +39,26 @@ public:
 
   static bool IsDolphin() { return !!(sConsumers & DOLPHIN); }
 
+  
+
+
+
+  static bool IsBlacklistedForE10S()
+  {
+    
+    return !!(sConsumers &
+              (NVDA     |
+               JAWS     |
+               OLDJAWS  |
+               WE       |
+               DOLPHIN  |
+               SEROTEK  |
+               COBRA    |
+               ZOOMTEXT |
+               KAZAGURU |
+               YOUDAO));
+  }
+
 private:
   Compatibility();
   Compatibility(const Compatibility&);
