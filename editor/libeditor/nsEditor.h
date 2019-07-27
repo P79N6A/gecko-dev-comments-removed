@@ -18,6 +18,7 @@
 #include "nsIObserver.h"                
 #include "nsIPhonetic.h"                
 #include "nsIPlaintextEditor.h"         
+#include "nsISelectionController.h"     
 #include "nsISupportsImpl.h"            
 #include "nsIWeakReferenceUtils.h"      
 #include "nsLiteralString.h"            
@@ -421,6 +422,8 @@ protected:
 
   void EnsureComposition(mozilla::WidgetGUIEvent* aEvent);
 
+  nsresult GetSelection(int16_t aSelectionType, nsISelection** aSelection);
+
 public:
 
   
@@ -618,7 +621,8 @@ public:
 #if DEBUG_JOE
   static void DumpNode(nsIDOMNode *aNode, int32_t indent=0);
 #endif
-  mozilla::dom::Selection* GetSelection();
+  mozilla::dom::Selection* GetSelection(int16_t aSelectionType =
+      nsISelectionController::SELECTION_NORMAL);
 
   
   
