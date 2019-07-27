@@ -193,7 +193,24 @@ public:
                                 nsILayoutHistoryState* aFrameState,
                                 bool                   aAllowLazyConstruction);
 
-  enum RemoveFlags { REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION };
+  enum RemoveFlags {
+    REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION, REMOVE_DESTROY_FRAMES };
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult ContentRemoved(nsIContent*  aContainer,
                           nsIContent*  aChild,
                           nsIContent*  aOldNextSibling,

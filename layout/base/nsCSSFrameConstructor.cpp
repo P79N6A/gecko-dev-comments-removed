@@ -7715,8 +7715,12 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*  aContainer,
 
 #ifdef MOZ_XUL
   if (NotifyListBoxBody(presContext, aContainer, aChild, aOldNextSibling,
-                        mDocument, childFrame, CONTENT_REMOVED))
+                        mDocument, childFrame, CONTENT_REMOVED)) {
+    if (aFlags == REMOVE_DESTROY_FRAMES) {
+      CaptureStateForFramesOf(aChild, mTempFrameTreeState);
+    }
     return NS_OK;
+  }
 
 #endif 
 
@@ -7757,6 +7761,10 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*  aContainer,
                                            aFlags, aDestroyedFramesFor);
     LAYOUT_PHASE_TEMP_REENTER();
     return rv;
+  }
+
+  if (aFlags == REMOVE_DESTROY_FRAMES) {
+    CaptureStateForFramesOf(aChild, mTempFrameTreeState);
   }
 
   if (childFrame) {
@@ -7916,7 +7924,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*  aContainer,
     
     
     if (aContainer && !aChild->IsRootOfAnonymousSubtree() &&
-        aFlags != REMOVE_FOR_RECONSTRUCTION &&
+        aFlags == REMOVE_CONTENT &&
         GetParentType(parentType) == eTypeBlock) {
       
       
@@ -8999,13 +9007,16 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent*  aContent,
 
     
     bool didReconstruct;
-    rv = ContentRemoved(container, aContent,
-                        aContent->IsRootOfAnonymousSubtree() ?
-                          nullptr :
-                          aContent->GetNextSibling(),
-                        REMOVE_FOR_RECONSTRUCTION, &didReconstruct,
-                        aDestroyedFramesFor);
-    if (NS_SUCCEEDED(rv) && !didReconstruct) {
+    nsIContent* nextSibling = aContent->IsRootOfAnonymousSubtree() ?
+      nullptr : aContent->GetNextSibling();
+    const bool reconstruct = aFlags != REMOVE_DESTROY_FRAMES;
+    RemoveFlags flags = reconstruct ? REMOVE_FOR_RECONSTRUCTION : aFlags;
+    rv = ContentRemoved(container, aContent, nextSibling, flags,
+                        &didReconstruct, aDestroyedFramesFor);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    if (reconstruct && !didReconstruct) {
       
       
       
