@@ -6,6 +6,7 @@
 
 var loop = loop || {};
 loop.store = loop.store || {};
+
 loop.store.ActiveRoomStore = (function() {
   "use strict";
 
@@ -48,72 +49,44 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
-
-
-
-  function ActiveRoomStore(options) {
-    options = options || {};
-
-    if (!options.dispatcher) {
-      throw new Error("Missing option dispatcher");
-    }
-    this._dispatcher = options.dispatcher;
-
-    if (!options.mozLoop) {
-      throw new Error("Missing option mozLoop");
-    }
-    this._mozLoop = options.mozLoop;
-
-    if (!options.sdkDriver) {
-      throw new Error("Missing option sdkDriver");
-    }
-    this._sdkDriver = options.sdkDriver;
-
-    
-    
-    
-    
-    this._dispatcher.register(this, [
-      "setupWindowData",
-      "fetchServerData"
-    ]);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    this._storeState = {
-      roomState: ROOM_STATES.INIT,
-      audioMuted: false,
-      videoMuted: false,
-      failureReason: undefined
-    };
-  }
-
-  ActiveRoomStore.prototype = _.extend({
+  var ActiveRoomStore = loop.store.createStore({
     
 
 
 
     expiresTimeFactor: 0.9,
 
-    getStoreState: function() {
-      return this._storeState;
+    
+    
+    
+    
+    actions: [
+      "setupWindowData",
+      "fetchServerData"
+    ],
+
+    initialize: function(options) {
+      if (!options.mozLoop) {
+        throw new Error("Missing option mozLoop");
+      }
+      this._mozLoop = options.mozLoop;
+
+      if (!options.sdkDriver) {
+        throw new Error("Missing option sdkDriver");
+      }
+      this._sdkDriver = options.sdkDriver;
     },
 
-    setStoreState: function(newState) {
-      for (var key in newState) {
-        this._storeState[key] = newState[key];
-      }
-      this.trigger("change");
+    
+
+
+    getInitialStoreState: function() {
+      return {
+        roomState: ROOM_STATES.INIT,
+        audioMuted: false,
+        videoMuted: false,
+        failureReason: undefined
+      };
     },
 
     
@@ -147,8 +120,8 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
-    _registerActions: function() {
-      this._dispatcher.register(this, [
+    _registerPostSetupActions: function() {
+      this.dispatcher.register(this, [
         "roomFailure",
         "setupRoomInfo",
         "updateRoomInfo",
@@ -178,7 +151,7 @@ loop.store.ActiveRoomStore = (function() {
         return;
       }
 
-      this._registerActions();
+      this._registerPostSetupActions();
 
       this.setStoreState({
         roomState: ROOM_STATES.GATHER
@@ -188,23 +161,20 @@ loop.store.ActiveRoomStore = (function() {
       this._mozLoop.rooms.get(actionData.roomToken,
         function(error, roomData) {
           if (error) {
-            this._dispatcher.dispatch(new sharedActions.RoomFailure({
-              error: error
-            }));
+            this.dispatchAction(new sharedActions.RoomFailure({error: error}));
             return;
           }
 
-          this._dispatcher.dispatch(
-            new sharedActions.SetupRoomInfo({
-              roomToken: actionData.roomToken,
-              roomName: roomData.roomName,
-              roomOwner: roomData.roomOwner,
-              roomUrl: roomData.roomUrl
-            }));
+          this.dispatchAction(new sharedActions.SetupRoomInfo({
+            roomToken: actionData.roomToken,
+            roomName: roomData.roomName,
+            roomOwner: roomData.roomOwner,
+            roomUrl: roomData.roomUrl
+          }));
 
           
           
-          this._dispatcher.dispatch(new sharedActions.JoinRoom());
+          this.dispatchAction(new sharedActions.JoinRoom());
         }.bind(this));
     },
 
@@ -222,7 +192,7 @@ loop.store.ActiveRoomStore = (function() {
         return;
       }
 
-      this._registerActions();
+      this._registerPostSetupActions();
 
       this.setStoreState({
         roomToken: actionData.token,
@@ -272,7 +242,7 @@ loop.store.ActiveRoomStore = (function() {
 
 
     _handleRoomUpdate: function(eventName, roomData) {
-      this._dispatcher.dispatch(new sharedActions.UpdateRoomInfo({
+      this.dispatchAction(new sharedActions.UpdateRoomInfo({
         roomName: roomData.roomName,
         roomOwner: roomData.roomOwner,
         roomUrl: roomData.roomUrl
@@ -291,12 +261,11 @@ loop.store.ActiveRoomStore = (function() {
       this._mozLoop.rooms.join(this._storeState.roomToken,
         function(error, responseData) {
           if (error) {
-            this._dispatcher.dispatch(
-              new sharedActions.RoomFailure({error: error}));
+            this.dispatchAction(new sharedActions.RoomFailure({error: error}));
             return;
           }
 
-          this._dispatcher.dispatch(new sharedActions.JoinedRoom({
+          this.dispatchAction(new sharedActions.JoinedRoom({
             apiKey: responseData.apiKey,
             sessionToken: responseData.sessionToken,
             sessionId: responseData.sessionId,
@@ -420,8 +389,7 @@ loop.store.ActiveRoomStore = (function() {
         this._storeState.sessionToken,
         function(error, responseData) {
           if (error) {
-            this._dispatcher.dispatch(
-              new sharedActions.RoomFailure({error: error}));
+            this.dispatchAction(new sharedActions.RoomFailure({error: error}));
             return;
           }
 
@@ -459,9 +427,7 @@ loop.store.ActiveRoomStore = (function() {
         roomState: nextState ? nextState : ROOM_STATES.READY
       });
     }
-
-  }, Backbone.Events);
+  });
 
   return ActiveRoomStore;
-
 })();

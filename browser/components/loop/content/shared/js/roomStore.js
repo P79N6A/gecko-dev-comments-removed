@@ -54,45 +54,7 @@ loop.store = loop.store || {};
 
 
 
-
-
-
-  function RoomStore(options) {
-    options = options || {};
-
-    if (!options.dispatcher) {
-      throw new Error("Missing option dispatcher");
-    }
-    this._dispatcher = options.dispatcher;
-
-    if (!options.mozLoop) {
-      throw new Error("Missing option mozLoop");
-    }
-    this._mozLoop = options.mozLoop;
-
-    if (options.activeRoomStore) {
-      this.activeRoomStore = options.activeRoomStore;
-      this.setStoreState({activeRoom: this.activeRoomStore.getStoreState()});
-      this.activeRoomStore.on("change",
-                              this._onActiveRoomStoreChange.bind(this));
-    }
-
-    this._dispatcher.register(this, [
-      "createRoom",
-      "createRoomError",
-      "copyRoomUrl",
-      "deleteRoom",
-      "deleteRoomError",
-      "emailRoomUrl",
-      "getAllRooms",
-      "getAllRoomsError",
-      "openRoom",
-      "renameRoom",
-      "updateRoomList"
-    ]);
-  }
-
-  RoomStore.prototype = _.extend({
+  loop.store.RoomStore = loop.store.createStore({
     
 
 
@@ -111,55 +73,41 @@ loop.store = loop.store || {};
 
 
 
+    actions: [
+      "createRoom",
+      "createRoomError",
+      "copyRoomUrl",
+      "deleteRoom",
+      "deleteRoomError",
+      "emailRoomUrl",
+      "getAllRooms",
+      "getAllRoomsError",
+      "openRoom",
+      "renameRoom",
+      "updateRoomList"
+    ],
 
-    _storeState: {
-      activeRoom: {},
-      error: null,
-      pendingCreation: false,
-      pendingInitialRetrieval: false,
-      rooms: []
+    initialize: function(options) {
+      if (!options.mozLoop) {
+        throw new Error("Missing option mozLoop");
+      }
+      this._mozLoop = options.mozLoop;
+
+      if (options.activeRoomStore) {
+        this.activeRoomStore = options.activeRoomStore;
+        this.activeRoomStore.on("change",
+                                this._onActiveRoomStoreChange.bind(this));
+      }
     },
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    getStoreState: function(key) {
-      if (key) {
-        return this._storeState[key];
-      }
-      return this._storeState;
-    },
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    setStoreState: function(newState) {
-      for (var key in newState) {
-        this._storeState[key] = newState[key];
-        this.trigger("change:" + key);
-      }
-      this.trigger("change");
+    getInitialStoreState: function() {
+      return {
+        activeRoom: this.activeRoomStore ? this.activeRoomStore.getStoreState() : {},
+        error: null,
+        pendingCreation: false,
+        pendingInitialRetrieval: false,
+        rooms: []
+      };
     },
 
     
@@ -184,20 +132,11 @@ loop.store = loop.store || {};
 
 
 
-    _dispatchAction: function(action) {
-      this._dispatcher.dispatch(action);
-    },
-
-    
-
-
-
-
 
     _onRoomAdded: function(eventName, addedRoomData) {
       addedRoomData.participants = [];
       addedRoomData.ctime = new Date().getTime();
-      this._dispatchAction(new sharedActions.UpdateRoomList({
+      this.dispatchAction(new sharedActions.UpdateRoomList({
         roomList: this._storeState.rooms.concat(new Room(addedRoomData))
       }));
     },
@@ -209,7 +148,7 @@ loop.store = loop.store || {};
 
 
     _onRoomUpdated: function(eventName, updatedRoomData) {
-      this._dispatchAction(new sharedActions.UpdateRoomList({
+      this.dispatchAction(new sharedActions.UpdateRoomList({
         roomList: this._storeState.rooms.map(function(room) {
           return room.roomToken === updatedRoomData.roomToken ?
                  updatedRoomData : room;
@@ -224,7 +163,7 @@ loop.store = loop.store || {};
 
 
     _onRoomRemoved: function(eventName, removedRoomData) {
-      this._dispatchAction(new sharedActions.UpdateRoomList({
+      this.dispatchAction(new sharedActions.UpdateRoomList({
         roomList: this._storeState.rooms.filter(function(room) {
           return room.roomToken !== removedRoomData.roomToken;
         })
@@ -303,7 +242,7 @@ loop.store = loop.store || {};
       this._mozLoop.rooms.create(roomCreationData, function(err) {
         this.setStoreState({pendingCreation: false});
         if (err) {
-          this._dispatchAction(new sharedActions.CreateRoomError({error: err}));
+          this.dispatchAction(new sharedActions.CreateRoomError({error: err}));
         }
       }.bind(this));
     },
@@ -346,7 +285,7 @@ loop.store = loop.store || {};
     deleteRoom: function(actionData) {
       this._mozLoop.rooms.delete(actionData.roomToken, function(err) {
         if (err) {
-         this._dispatchAction(new sharedActions.DeleteRoomError({error: err}));
+         this.dispatchAction(new sharedActions.DeleteRoomError({error: err}));
         }
       }.bind(this));
     },
@@ -376,7 +315,7 @@ loop.store = loop.store || {};
           action = new sharedActions.UpdateRoomList({roomList: rawRoomList});
         }
 
-        this._dispatchAction(action);
+        this.dispatchAction(action);
 
         
         
@@ -428,7 +367,5 @@ loop.store = loop.store || {};
           }
         });
     }
-  }, Backbone.Events);
-
-  loop.store.RoomStore = RoomStore;
+  });
 })();

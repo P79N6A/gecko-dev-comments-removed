@@ -30,6 +30,8 @@ loop.shared.actions = (function() {
   };
 
   return {
+    Action: Action,
+
     
 
 

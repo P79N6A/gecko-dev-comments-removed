@@ -53,6 +53,7 @@ loop.store.ConversationStore = (function() {
     TERMINATED: "cs-terminated"
   };
 
+  
   var ConversationStore = Backbone.Model.extend({
     defaults: {
       
