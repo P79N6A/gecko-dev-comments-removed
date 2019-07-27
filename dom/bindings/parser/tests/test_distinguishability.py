@@ -160,7 +160,7 @@ def WebIDLTest(parser, harness):
                  "optional Dict2", "sequence<long>", "sequence<short>",
                  "MozMap<object>", "MozMap<Dict>", "MozMap<long>",
                  "long[]", "short[]", "Date", "Date?", "any",
-                 "ScalarValueString" ]
+                 "USVString" ]
     
 
     
@@ -171,7 +171,7 @@ def WebIDLTest(parser, harness):
     primitives = numerics + booleans
     nonNumerics = allBut(argTypes, numerics)
     nonBooleans = allBut(argTypes, booleans)
-    strings = [ "DOMString", "ByteString", "Enum", "Enum2", "ScalarValueString" ]
+    strings = [ "DOMString", "ByteString", "Enum", "Enum2", "USVString" ]
     nonStrings = allBut(argTypes, strings)
     nonObjects = primitives + strings
     objects = allBut(argTypes, nonObjects )
@@ -206,7 +206,7 @@ def WebIDLTest(parser, harness):
     setDistinguishable("boolean?", allBut(nonBooleans, nullables))
     setDistinguishable("DOMString", nonStrings)
     setDistinguishable("ByteString", nonStrings)
-    setDistinguishable("ScalarValueString", nonStrings)
+    setDistinguishable("USVString", nonStrings)
     setDistinguishable("Enum", nonStrings)
     setDistinguishable("Enum2", nonStrings)
     setDistinguishable("Interface", notRelatedInterfaces)
