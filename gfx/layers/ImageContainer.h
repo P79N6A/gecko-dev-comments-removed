@@ -180,8 +180,9 @@ protected:
   void* mImplData;
   int32_t mSerial;
   ImageFormat mFormat;
-  static mozilla::Atomic<int32_t> sSerialCounter;
   bool mSent;
+
+  static mozilla::Atomic<int32_t> sSerialCounter;
 };
 
 
@@ -385,7 +386,9 @@ public:
 
 
 
-  void GetCurrentImages(nsTArray<OwningImage>* aImages);
+
+  void GetCurrentImages(nsTArray<OwningImage>* aImages,
+                        uint32_t* aGenerationCounter = nullptr);
 
   
 
@@ -486,6 +489,8 @@ private:
   }
 
   nsRefPtr<Image> mActiveImage;
+  
+  uint32_t mGenerationCounter;
 
   
   
@@ -516,6 +521,8 @@ private:
   
   
   ImageClient* mImageClient;
+
+  static mozilla::Atomic<uint32_t> sGenerationCounter;
 };
 
 class AutoLockImage
