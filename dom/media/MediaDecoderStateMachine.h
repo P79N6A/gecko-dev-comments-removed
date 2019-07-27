@@ -1285,7 +1285,11 @@ protected:
 
   
   
-  bool mGotDurationFromMetaData;
+  
+  
+  
+  
+  bool mNotifyMetadataBeforeFirstFrame;
 
   
   
