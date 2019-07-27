@@ -1978,8 +1978,10 @@ private:
   uint32_t mBoolFlags;
 
 protected:
-  nsIContent* mNextSibling;
-  nsIContent* mPreviousSibling;
+  
+  
+  nsIContent* MOZ_NON_OWNING_REF mNextSibling;
+  nsIContent* MOZ_NON_OWNING_REF mPreviousSibling;
   
   
   
