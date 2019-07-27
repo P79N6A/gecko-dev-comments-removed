@@ -407,6 +407,12 @@ public:
                       const AnimationTiming& aTiming);
 
   
+  
+  ComputedTiming GetComputedTiming(const AnimationTiming& aTiming) const {
+    return GetComputedTimingAt(GetLocalTime(), aTiming);
+  }
+
+  
   static mozilla::TimeDuration ActiveDuration(const AnimationTiming& aTiming);
 
   nsString mName;

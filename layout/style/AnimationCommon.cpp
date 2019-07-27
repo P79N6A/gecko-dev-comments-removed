@@ -460,7 +460,7 @@ ElementAnimation::IsRunning() const
     return false;
   }
 
-  ComputedTiming computedTiming = GetComputedTimingAt(GetLocalTime(), mTiming);
+  ComputedTiming computedTiming = GetComputedTiming(mTiming);
   return computedTiming.mPhase == ComputedTiming::AnimationPhase_Active;
 }
 
@@ -471,7 +471,7 @@ ElementAnimation::IsCurrent() const
     return false;
   }
 
-  ComputedTiming computedTiming = GetComputedTimingAt(GetLocalTime(), mTiming);
+  ComputedTiming computedTiming = GetComputedTiming(mTiming);
   return computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
          computedTiming.mPhase == ComputedTiming::AnimationPhase_Active;
 }
@@ -844,9 +844,7 @@ ElementAnimationCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
-      Nullable<TimeDuration> localTime = anim->GetLocalTime();
-      ComputedTiming computedTiming =
-        ElementAnimation::GetComputedTimingAt(localTime, anim->mTiming);
+      ComputedTiming computedTiming = anim->GetComputedTiming(anim->mTiming);
 
       
       
@@ -888,9 +886,7 @@ ElementAnimationCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
-      Nullable<TimeDuration> localTime = anim->GetLocalTime();
-      ComputedTiming computedTiming =
-        ElementAnimation::GetComputedTimingAt(localTime, anim->mTiming);
+      ComputedTiming computedTiming = anim->GetComputedTiming(anim->mTiming);
 
       if ((computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
            computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) &&
