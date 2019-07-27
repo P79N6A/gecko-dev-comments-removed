@@ -273,12 +273,14 @@ this.ContentSearch = {
   }),
 
   _onMessageAddFormHistoryEntry: function (msg, entry) {
-    
-    
-    
-    
-    if (!msg.target.contentWindow ||
-        PrivateBrowsingUtils.isBrowserPrivate(msg.target)) {
+    let isPrivate = true;
+    try {
+      
+      
+      
+      isPrivate = PrivateBrowsingUtils.isBrowserPrivate(msg.target);
+    } catch (err) {}
+    if (isPrivate || entry === "") {
       return Promise.resolve();
     }
     let browserData = this._suggestionDataForBrowser(msg.target, true);
