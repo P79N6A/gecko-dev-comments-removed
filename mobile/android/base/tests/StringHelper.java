@@ -2,6 +2,8 @@ package org.mozilla.gecko.tests;
 
 
 public class StringHelper {
+    private StringHelper() {}
+
     public static final String OK = "OK";
 
     
