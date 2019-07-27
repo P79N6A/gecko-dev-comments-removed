@@ -6,8 +6,9 @@
 
 const { Cc, Ci, Cu } = require("chrome");
 let protocol = require("devtools/server/protocol");
-let { method, RetVal } = protocol;
+let { method, RetVal, Arg } = protocol;
 const { reportException } = require("devtools/toolkit/DevToolsUtils");
+loader.lazyRequireGetter(this, "events", "sdk/event/core");
 
 
 
@@ -59,9 +60,18 @@ let MemoryActor = protocol.ActorClass({
                   .getService(Ci.nsIMemoryReporterManager);
     this.state = "detached";
     this._dbg = null;
+    this._framesToCounts = null;
+    this._framesToIndices = null;
+    this._framesToForms = null;
+
+    this._onWindowReady = this._onWindowReady.bind(this);
+
+    events.on(this.parent, "window-ready", this._onWindowReady);
   },
 
   destroy: function() {
+    events.off(this.parent, "window-ready", this._onWindowReady);
+
     this._mgr = null;
     if (this.state === "attached") {
       this.detach();
@@ -74,7 +84,6 @@ let MemoryActor = protocol.ActorClass({
 
   attach: method(expectState("detached", function() {
     this.dbg.addDebuggees();
-    this.dbg.enabled = true;
     this.state = "attached";
   }), {
     request: {},
@@ -87,7 +96,7 @@ let MemoryActor = protocol.ActorClass({
 
 
   detach: method(expectState("attached", function() {
-    this.dbg.removeAllDebuggees();
+    this._clearDebuggees();
     this.dbg.enabled = false;
     this._dbg = null;
     this.state = "detached";
@@ -96,6 +105,260 @@ let MemoryActor = protocol.ActorClass({
     response: {
       type: "detached"
     }
+  }),
+
+  _clearDebuggees: function() {
+    if (this._dbg) {
+      if (this.dbg.memory.trackingAllocationSites) {
+        this.dbg.memory.drainAllocationsLog();
+      }
+      this._clearFrames();
+      this.dbg.removeAllDebuggees();
+    }
+  },
+
+  _initFrames: function() {
+    this._framesToCounts = new Map();
+    this._framesToIndices = new Map();
+    this._framesToForms = new Map();
+  },
+
+  _clearFrames: function() {
+    if (this.dbg.memory.trackingAllocationSites) {
+      this._framesToCounts.clear();
+      this._framesToCounts = null;
+      this._framesToIndices.clear();
+      this._framesToIndices = null;
+      this._framesToForms.clear();
+      this._framesToForms = null;
+    }
+  },
+
+  
+
+
+  _onWindowReady: function({ isTopLevel }) {
+    if (this.state == "attached") {
+      if (isTopLevel && this.dbg.memory.trackingAllocationSites) {
+        this._clearDebuggees();
+        this._initFrames();
+      }
+      this.dbg.addDebuggees();
+    }
+  },
+
+  
+
+
+
+  takeCensus: method(expectState("attached", function() {
+    return this.dbg.memory.takeCensus();
+  }), {
+    request: {},
+    response: RetVal("json")
+  }),
+
+  
+
+
+  startRecordingAllocations: method(expectState("attached", function() {
+    this._initFrames();
+    this.dbg.memory.trackingAllocationSites = true;
+  }), {
+    request: {},
+    response: {}
+  }),
+
+  
+
+
+  stopRecordingAllocations: method(expectState("attached", function(shouldRecord) {
+    this.dbg.memory.trackingAllocationSites = false;
+    this._clearFrames();
+  }), {
+    request: {},
+    response: {}
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getAllocations: method(expectState("attached", function() {
+    const allocations = this.dbg.memory.drainAllocationsLog()
+    const packet = {
+      allocations: []
+    };
+
+    for (let stack of allocations) {
+      if (stack && Cu.isDeadWrapper(stack)) {
+        continue;
+      }
+
+      
+      let waived = Cu.waiveXrays(stack);
+
+      
+      
+      
+      
+      this._assignFrameIndices(waived);
+      this._createFrameForms(waived);
+      this._countFrame(waived);
+
+      packet.allocations.push(this._framesToIndices.get(waived));
+    }
+
+    
+    
+    
+    const size = this._framesToForms.size;
+    packet.frames = Array(size).fill(null);
+    packet.counts = Array(size).fill(0);
+
+    
+    for (let [stack, index] of this._framesToIndices) {
+      packet.frames[index] = this._framesToForms.get(stack);
+      packet.counts[index] = this._framesToCounts.get(stack) || 0;
+    }
+
+    return packet;
+  }), {
+    request: {},
+    response: RetVal("json")
+  }),
+
+  
+
+
+
+
+
+
+  _assignFrameIndices: function(frame) {
+    if (this._framesToIndices.has(frame)) {
+      return;
+    }
+
+    if (frame) {
+      this._assignFrameIndices(frame.parent);
+    }
+
+    const index = this._framesToIndices.size;
+    this._framesToIndices.set(frame, index);
+  },
+
+  
+
+
+
+
+
+  _createFrameForms: function(frame) {
+    if (this._framesToForms.has(frame)) {
+      return;
+    }
+
+    let form = null;
+    if (frame) {
+      form = {
+        line: frame.line,
+        column: frame.column,
+        source: frame.source,
+        functionDisplayName: frame.functionDisplayName,
+        parent: this._framesToIndices.get(frame.parent)
+      };
+      this._createFrameForms(frame.parent);
+    }
+
+    this._framesToForms.set(frame, form);
+  },
+
+  
+
+
+
+
+
+  _countFrame: function(frame) {
+    if (!this._framesToCounts.has(frame)) {
+      this._framesToCounts.set(frame, 1);
+    } else {
+      let count = this._framesToCounts.get(frame);
+      this._framesToCounts.set(frame, count + 1);
+    }
+  },
+
+  
+
+
+  forceGarbageCollection: method(function() {
+    for (let i = 0; i < 3; i++) {
+      Cu.forceGC();
+    }
+  }, {
+    request: {},
+    response: {}
+  }),
+
+  
+
+
+
+
+  forceCycleCollection: method(function() {
+    Cu.forceCC();
+  }, {
+    request: {},
+    response: {}
   }),
 
   
