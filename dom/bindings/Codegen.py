@@ -1147,13 +1147,13 @@ class CGHeaders(CGWrapper):
             
             declareIncludes.add("mozilla/dom/CallbackFunction.h")
             
-            declareIncludes.add("mozilla/dom/ToJSValue.h")
+            declareIncludes.add("mozilla/dom/BindingUtils.h")
 
         if len(callbackDescriptors) != 0 or len(jsImplementedDescriptors) != 0:
             
             declareIncludes.add("mozilla/dom/CallbackInterface.h")
             
-            declareIncludes.add("mozilla/dom/ToJSValue.h")
+            declareIncludes.add("mozilla/dom/BindingUtils.h")
 
         
         
@@ -13825,7 +13825,7 @@ class CGCallback(CGClass):
             """
             $*{setupCall}
             JS::Rooted<JS::Value> thisValJS(s.GetContext());
-            if (!ToJSValue(s.GetContext(), thisVal, &thisValJS)) {
+            if (!WrapCallThisValue(s.GetContext(), thisVal, &thisValJS)) {
               aRv.Throw(NS_ERROR_FAILURE);
               return${errorReturn};
             }
