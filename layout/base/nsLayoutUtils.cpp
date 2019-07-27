@@ -7642,25 +7642,31 @@ UpdateCompositionBoundsForRCDRSF(ParentLayerRect& aCompBounds,
   return false;
 }
 
-static bool
-DeflateScrollbarAreaFromCompositionBoundsFor(nsIFrame* aScrollFrame)
+ nsMargin
+nsLayoutUtils::ScrollbarAreaToExcludeFromCompositionBoundsFor(nsIFrame* aScrollFrame)
 {
   if (!aScrollFrame || !aScrollFrame->GetScrollTargetFrame()) {
-    return false;
+    return nsMargin();
   }
   nsPresContext* presContext = aScrollFrame->PresContext();
   nsIPresShell* presShell = presContext->GetPresShell();
   if (!presShell) {
-    return false;
+    return nsMargin();
   }
   bool isRootScrollFrame = aScrollFrame == presShell->GetRootScrollFrame();
   bool isRootContentDocRootScrollFrame = isRootScrollFrame
                                       && presContext->IsRootContentDocument();
-  
-  
-  
-  return isRootContentDocRootScrollFrame &&
-         !LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars);
+  if (!isRootContentDocRootScrollFrame) {
+    return nsMargin();
+  }
+  if (LookAndFeel::GetInt(LookAndFeel::eIntID_UseOverlayScrollbars)) {
+    return nsMargin();
+  }
+  nsIScrollableFrame* scrollableFrame = aScrollFrame->GetScrollTargetFrame();
+  if (!scrollableFrame) {
+    return nsMargin();
+  }
+  return scrollableFrame->GetActualScrollbarSizes();
 }
 
  nsSize
@@ -7690,9 +7696,8 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame, bool aSubtract
     }
   }
 
-  if (aSubtractScrollbars && DeflateScrollbarAreaFromCompositionBoundsFor(aFrame)) {
-    MOZ_ASSERT(scrollableFrame);
-    nsMargin margins = scrollableFrame->GetActualScrollbarSizes();
+  if (aSubtractScrollbars) {
+    nsMargin margins = ScrollbarAreaToExcludeFromCompositionBoundsFor(aFrame);
     size.width -= margins.LeftRight();
     size.height -= margins.TopBottom();
   }
@@ -7748,14 +7753,11 @@ nsLayoutUtils::CalculateRootCompositionSize(nsIFrame* aFrame,
 
   
   nsIFrame* rootRootScrollFrame = rootPresShell ? rootPresShell->GetRootScrollFrame() : nullptr;
-  if (DeflateScrollbarAreaFromCompositionBoundsFor(rootRootScrollFrame)) {
-    nsIScrollableFrame* rootScrollableFrame = rootRootScrollFrame->GetScrollTargetFrame();
-    MOZ_ASSERT(rootScrollableFrame);
-    CSSMargin margins = CSSMargin::FromAppUnits(rootScrollableFrame->GetActualScrollbarSizes());
-    
-    rootCompositionSize.width -= margins.LeftRight();
-    rootCompositionSize.height -= margins.TopBottom();
-  }
+  nsMargin scrollbarMargins = ScrollbarAreaToExcludeFromCompositionBoundsFor(rootRootScrollFrame);
+  CSSMargin margins = CSSMargin::FromAppUnits(scrollbarMargins);
+  
+  rootCompositionSize.width -= margins.LeftRight();
+  rootCompositionSize.height -= margins.TopBottom();
 
   return rootCompositionSize / aMetrics.DisplayportPixelsPerCSSPixel();
 }
@@ -8275,13 +8277,10 @@ nsLayoutUtils::ComputeFrameMetrics(nsIFrame* aForFrame,
       compositionBounds, true, metrics.GetCumulativeResolution());
   }
 
-  if (DeflateScrollbarAreaFromCompositionBoundsFor(aScrollFrame)) {
-    MOZ_ASSERT(scrollableFrame);
-    nsMargin sizes = scrollableFrame->GetActualScrollbarSizes();
-    
-    ParentLayerMargin boundMargins = CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f);
-    frameBounds.Deflate(boundMargins);
-  }
+  nsMargin sizes = ScrollbarAreaToExcludeFromCompositionBoundsFor(aScrollFrame);
+  
+  ParentLayerMargin boundMargins = CSSMargin::FromAppUnits(sizes) * CSSToParentLayerScale(1.0f);
+  frameBounds.Deflate(boundMargins);
 
   metrics.SetCompositionBounds(frameBounds);
 

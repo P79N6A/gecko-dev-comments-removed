@@ -2631,6 +2631,19 @@ public:
                                           bool aIsRoot,
                                           const ContainerLayerParameters& aContainerParameters);
 
+  
+
+
+
+
+
+
+
+
+
+
+  static nsMargin ScrollbarAreaToExcludeFromCompositionBoundsFor(nsIFrame* aScrollFrame);
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
