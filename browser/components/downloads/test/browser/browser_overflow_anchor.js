@@ -1,69 +1,69 @@
 
 
 
+registerCleanupFunction(function*() {
+  
+  yield task_resetState();
+});
 
 
 
 
 
-function test_task() {
-  try {
-    
-    yield task_resetState();
 
-    
-    
-    let oldWidth = window.outerWidth;
+add_task(function* test_overflow_anchor() {
+  
+  yield task_resetState();
 
-    
-    let button = CustomizableUI.getWidget("downloads-button")
-                               .forWindow(window);
-    ok(!button.overflowed, "Downloads button should not be overflowed.");
+  
+  
+  let oldWidth = window.outerWidth;
 
-    
-    
-    
-    const kFlexyItems = ["urlbar-container", "search-container"];
-    registerCleanupFunction(() => unlockWidth(kFlexyItems));
-    lockWidth(kFlexyItems);
+  
+  let button = CustomizableUI.getWidget("downloads-button")
+                             .forWindow(window);
+  ok(!button.overflowed, "Downloads button should not be overflowed.");
 
-    
-    
-    window.resizeTo(oldWidth / 2, window.outerHeight);
-    yield waitForOverflowed(button, true);
+  
+  
+  
+  const kFlexyItems = ["urlbar-container", "search-container"];
+  registerCleanupFunction(() => unlockWidth(kFlexyItems));
+  lockWidth(kFlexyItems);
 
-    let promise = promisePanelOpened();
-    button.node.doCommand();
-    yield promise;
+  
+  
+  window.resizeTo(oldWidth / 2, window.outerHeight);
+  yield waitForOverflowed(button, true);
 
-    let panel = DownloadsPanel.panel;
-    let chevron = document.getElementById("nav-bar-overflow-button");
-    is(panel.anchorNode, chevron, "Panel should be anchored to the chevron.");
+  let promise = promisePanelOpened();
+  button.node.doCommand();
+  yield promise;
 
-    DownloadsPanel.hidePanel();
+  let panel = DownloadsPanel.panel;
+  let chevron = document.getElementById("nav-bar-overflow-button");
+  is(panel.anchorNode, chevron, "Panel should be anchored to the chevron.");
 
-    
-    unlockWidth(kFlexyItems);
+  DownloadsPanel.hidePanel();
 
-    
-    window.resizeTo(oldWidth, window.outerHeight);
+  
+  unlockWidth(kFlexyItems);
 
-    
-    yield waitForOverflowed(button, false);
+  
+  window.resizeTo(oldWidth, window.outerHeight);
 
-    
-    promise = promisePanelOpened();
-    button.node.doCommand();
-    yield promise;
+  
+  yield waitForOverflowed(button, false);
 
-    is(panel.anchorNode.id, "downloads-indicator-anchor");
+  
+  promise = promisePanelOpened();
+  button.node.doCommand();
+  yield promise;
 
-    DownloadsPanel.hidePanel();
-  } finally {
-    
-    yield task_resetState();
-  }
-}
+  is(panel.anchorNode.id, "downloads-indicator-anchor");
+
+  DownloadsPanel.hidePanel();
+});
 
 
 

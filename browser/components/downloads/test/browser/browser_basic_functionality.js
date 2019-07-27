@@ -3,12 +3,15 @@
 
 
 
+registerCleanupFunction(function*() {
+  yield task_resetState();
+});
 
 
 
 
-function test_task()
-{
+
+add_task(function* test_basic_functionality() {
   
   const DownloadData = [
     { state: nsIDM.DOWNLOAD_NOTSTARTED },
@@ -18,40 +21,35 @@ function test_task()
     { state: nsIDM.DOWNLOAD_CANCELED },
   ];
 
-  try {
-    
-    yield promiseFocus();
+  
+  yield promiseFocus();
 
-    
-    yield task_resetState();
+  
+  yield task_resetState();
 
-    
-    var originalCountLimit = DownloadsView.kItemCountLimit;
-    DownloadsView.kItemCountLimit = DownloadData.length;
-    registerCleanupFunction(function () {
-      DownloadsView.kItemCountLimit = originalCountLimit;
-    });
+  
+  var originalCountLimit = DownloadsView.kItemCountLimit;
+  DownloadsView.kItemCountLimit = DownloadData.length;
+  registerCleanupFunction(function () {
+    DownloadsView.kItemCountLimit = originalCountLimit;
+  });
 
-    
-    yield task_addDownloads(DownloadData);
+  
+  yield task_addDownloads(DownloadData);
 
-    
-    yield task_openPanel();
+  
+  yield task_openPanel();
 
-    
-    let richlistbox = document.getElementById("downloadsListBox");
-
-
+  
+  let richlistbox = document.getElementById("downloadsListBox");
+  
 
 
-    let itemCount = richlistbox.children.length;
-    for (let i = 0; i < itemCount; i++) {
-      let element = richlistbox.children[itemCount - i - 1];
-      let dataItem = new DownloadsViewItemController(element).dataItem;
-      is(dataItem.state, DownloadData[i].state, "Download states match up");
-    }
-  } finally {
-    
-    yield task_resetState();
+
+  let itemCount = richlistbox.children.length;
+  for (let i = 0; i < itemCount; i++) {
+    let element = richlistbox.children[itemCount - i - 1];
+    let dataItem = new DownloadsViewItemController(element).dataItem;
+    is(dataItem.state, DownloadData[i].state, "Download states match up");
   }
-}
+});

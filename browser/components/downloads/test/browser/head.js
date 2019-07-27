@@ -31,15 +31,6 @@ registerCleanupFunction(function () {
 
 
 
-function test()
-{
-  waitForExplicitFinish();
-  Task.spawn(test_task).then(null, ex => ok(false, ex)).then(finish);
-}
-
-
-
-
 function promiseFocus()
 {
   let deferred = Promise.defer();
