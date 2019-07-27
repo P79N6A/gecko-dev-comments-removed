@@ -578,7 +578,8 @@ SourceBuffer::PrepareAppend(const uint8_t* aData, uint32_t aLength, ErrorResult&
   
   
   if (aLength > mEvictionThreshold ||
-      ((mContentManager->GetSize() > mEvictionThreshold - aLength) &&
+      ((!mIsUsingFormatReader &&
+        mContentManager->GetSize() > mEvictionThreshold - aLength) &&
        evicted != Result::CANT_EVICT)) {
     aRv.Throw(NS_ERROR_DOM_QUOTA_EXCEEDED_ERR);
     return nullptr;
