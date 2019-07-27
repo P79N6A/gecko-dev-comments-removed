@@ -797,15 +797,17 @@ LoginManagerPrompter.prototype = {
     let { browser } = this._getNotifyWindow();
 
     let saveMsgNames = {
-      prompt: "rememberLoginMsg",
-      buttonLabel: "rememberLoginButtonText",
-      buttonAccessKey: "rememberLoginButtonAccessKey",
+      prompt: "rememberPasswordMsgNoUsername",
+      buttonLabel: "notifyBarRememberPasswordButtonText",
+      buttonAccessKey: "notifyBarRememberPasswordButtonAccessKey",
     };
 
     let changeMsgNames = {
-      prompt: "updateLoginMsg",
-      buttonLabel: "updateLoginButtonText",
-      buttonAccessKey: "updateLoginButtonAccessKey",
+      
+      
+      prompt: "updatePasswordMsg",
+      buttonLabel: "notifyBarUpdateButtonText",
+      buttonAccessKey: "notifyBarUpdateButtonAccessKey",
     };
 
     let initialMsgNames = type == "password-save" ? saveMsgNames
