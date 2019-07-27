@@ -274,7 +274,6 @@ public:
       return;
     }
 
-    nsresult sourceCondition, sinkCondition;
     nsresult cancelStatus;
     bool canceled;
     {
@@ -282,6 +281,13 @@ public:
       canceled = mCanceled;
       cancelStatus = mCancelStatus;
     }
+
+    
+    
+    
+    MOZ_ASSERT(NS_FAILED(cancelStatus) == canceled, "cancel needs an error");
+    nsresult sourceCondition = cancelStatus;
+    nsresult sinkCondition = cancelStatus;
 
     
     
