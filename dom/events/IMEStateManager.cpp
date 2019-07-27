@@ -180,6 +180,7 @@ GetNotifyIMEMessageName(IMEMessage aMessage)
 nsIContent* IMEStateManager::sContent = nullptr;
 nsPresContext* IMEStateManager::sPresContext = nullptr;
 bool IMEStateManager::sInstalledMenuKeyboardListener = false;
+bool IMEStateManager::sIsTestingIME = false;
 bool IMEStateManager::sIsGettingNewIMEState = false;
 
 
@@ -649,20 +650,6 @@ IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
   }
 
   
-  
-  
-  if (sActiveIMEContentObserver && IsIMEObserverNeeded(aNewIMEState)) {
-    PR_LOG(sISMLog, PR_LOG_DEBUG,
-      ("ISM:   IMEStateManager::UpdateIMEState(), try to reinitialize the "
-       "active IMEContentObserver"));
-    if (!sActiveIMEContentObserver->MaybeReinitialize(widget, sPresContext,
-                                                      aContent, aEditor)) {
-      PR_LOG(sISMLog, PR_LOG_ERROR,
-        ("ISM:   IMEStateManager::UpdateIMEState(), failed to reinitialize the "
-         "active IMEContentObserver"));
-    }
-  }
-
   
   
   bool createTextStateManager =
@@ -1141,9 +1128,18 @@ IMEStateManager::GetRootEditableNode(nsPresContext* aPresContext,
 
 
 bool
-IMEStateManager::IsIMEObserverNeeded(const IMEState& aState)
+IMEStateManager::IsEditableIMEState(nsIWidget* aWidget)
 {
-  return aState.IsEditable();
+  switch (aWidget->GetInputContext().mIMEState.mEnabled) {
+    case IMEState::ENABLED:
+    case IMEState::PASSWORD:
+      return true;
+    case IMEState::PLUGIN:
+    case IMEState::DISABLED:
+      return false;
+    default:
+      MOZ_CRASH("Unknown IME enable state");
+  }
 }
 
 
@@ -1198,11 +1194,17 @@ IMEStateManager::CreateIMEContentObserver(nsIEditor* aEditor)
   }
 
   
-  if (!IsIMEObserverNeeded(widget->GetInputContext().mIMEState)) {
+  if (!IsEditableIMEState(widget)) {
     MOZ_LOG(sISMLog, PR_LOG_DEBUG,
       ("ISM:   IMEStateManager::CreateIMEContentObserver() doesn't create "
        "IMEContentObserver because of non-editable IME state"));
     return;
+  }
+
+  static bool sInitializeIsTestingIME = true;
+  if (sInitializeIsTestingIME) {
+    Preferences::AddBoolVarCache(&sIsTestingIME, "test.IME", false);
+    sInitializeIsTestingIME = false;
   }
 
   MOZ_LOG(sISMLog, PR_LOG_DEBUG,
