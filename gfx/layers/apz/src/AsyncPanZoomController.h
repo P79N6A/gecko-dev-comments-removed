@@ -981,6 +981,10 @@ public:
     UpdateTransformScale();
   }
 
+  void AddHitTestRegion(const nsIntRegion& aRegion) {
+    mVisibleRegion.OrWith(aRegion);
+  }
+
   Matrix4x4 GetAncestorTransform() const {
     return mAncestorTransform;
   }
@@ -1000,6 +1004,7 @@ public:
 
 private:
   
+
 
 
   nsIntRegion mVisibleRegion;

@@ -23,6 +23,7 @@
 #include "UnitTransforms.h"             
 #include "gfxPrefs.h"                   
 #include "OverscrollHandoffChain.h"     
+#include "LayersLogging.h"              
 
 #define APZCTM_LOG(...)
 
@@ -154,6 +155,37 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   }
 }
 
+static nsIntRegion
+ComputeTouchSensitiveRegion(GeckoContentController* aController,
+                            const FrameMetrics& aMetrics,
+                            const nsIntRegion& aObscured)
+{
+  
+  
+  
+  
+  ParentLayerRect visible(aMetrics.mCompositionBounds);
+  CSSRect touchSensitiveRegion;
+  if (aController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
+    
+    
+    
+    visible = visible.Intersect(touchSensitiveRegion
+                                * aMetrics.mDevPixelsPerCSSPixel
+                                * aMetrics.GetParentResolution());
+  }
+
+  
+  
+  
+  ParentLayerIntRect roundedVisible = RoundedIn(visible);
+  nsIntRegion unobscured;
+  unobscured.Sub(nsIntRect(roundedVisible.x, roundedVisible.y,
+                           roundedVisible.width, roundedVisible.height),
+                 aObscured);
+  return unobscured;
+}
+
 AsyncPanZoomController*
 APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                              Layer* aLayer, uint64_t aLayersId,
@@ -250,37 +282,13 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                   aIsFirstPaint && (aLayersId == aOriginatingLayersId));
         apzc->SetScrollHandoffParentId(aLayer->GetScrollHandoffParentId());
 
-        
-        
-        
-        
-        ParentLayerRect visible(metrics.mCompositionBounds);
-        CSSRect touchSensitiveRegion;
-        if (state->mController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
-          
-          
-          
-          visible = visible.Intersect(touchSensitiveRegion
-                                      * metrics.mDevPixelsPerCSSPixel
-                                      * metrics.GetParentResolution());
-        }
-
-        
-        
-        
-        ParentLayerIntRect roundedVisible = RoundedIn(visible);
-        nsIntRegion unobscured;
-        unobscured.Sub(nsIntRect(roundedVisible.x, roundedVisible.y,
-                                 roundedVisible.width, roundedVisible.height),
-                       aObscured);
-
+        nsIntRegion unobscured = ComputeTouchSensitiveRegion(state->mController, metrics, aObscured);
         apzc->SetLayerHitTestData(unobscured, aTransform, transform);
-        APZCTM_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
-                                                                              visible.width, visible.height,
-                                                                              apzc);
+        APZCTM_LOG("Setting region %s as visible region for APZC %p\n",
+            Stringify(unobscured).c_str(), apzc);
 
         mApzcTreeLog << "APZC " << guid
-                     << "\tcb=" << visible
+                     << "\tcb=" << metrics.mCompositionBounds
                      << "\tsr=" << metrics.mScrollableRect
                      << (aLayer->GetVisibleRegion().IsEmpty() ? "\tscrollinfo" : "")
                      << (apzc->HasScrollgrab() ? "\tscrollgrab" : "")
@@ -329,6 +337,25 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         }
 
         insertResult.first->second = apzc;
+      } else {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        nsIntRegion unobscured = ComputeTouchSensitiveRegion(state->mController, metrics, aObscured);
+        apzc->AddHitTestRegion(unobscured);
+        APZCTM_LOG("Adding region %s to visible region of APZC %p\n", Stringify(unobscured).c_str(), apzc);
       }
     }
   }
