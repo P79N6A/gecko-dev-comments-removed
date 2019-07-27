@@ -34,6 +34,12 @@ XPCOMUtils.defineLazyModuleGetter(this, 'Sync',
   'resource:///modules/readinglist/Sync.jsm');
 
 
+XPCOMUtils.defineLazyGetter(this, "fxAccountsCommon", function() {
+  let namespace = {};
+  Cu.import("resource://gre/modules/FxAccountsCommon.js", namespace);
+  return namespace;
+});
+
 this.EXPORTED_SYMBOLS = ["ReadingListScheduler"];
 
 
@@ -75,6 +81,7 @@ function InternalScheduler(readingList = null) {
     "browserwindow.syncui",
     "FirefoxAccounts",
     "readinglist.api",
+    "readinglist.scheduler",
     "readinglist.serverclient",
     "readinglist.sync",
   ];
@@ -175,6 +182,8 @@ InternalScheduler.prototype = {
         if (this.state == this.STATE_ERROR_AUTHENTICATION) {
           this.state = this.STATE_OK;
         }
+        
+        this._syncNow();
         break;
 
       
@@ -285,10 +294,24 @@ InternalScheduler.prototype = {
       Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
       return intervals.schedule;
     }).catch(err => {
-      this.log.error("Sync failed", err);
       
-      this.state = err == this._engine.ERROR_AUTHENTICATION ?
+      
+      
+      if (err.message == fxAccountsCommon.ERROR_NO_ACCOUNT ||
+          err.message == fxAccountsCommon.ERROR_UNVERIFIED_ACCOUNT) {
+        
+        this.log.info("Can't sync due to FxA account state " + err.message);
+        this.state = this.STATE_OK;
+        this._logManager.resetFileLog(this._logManager.REASON_SUCCESS);
+        Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
+        
+        
+        return intervals.schedule;
+      }
+      this.state = err.message == fxAccountsCommon.ERROR_AUTH_ERROR ?
                    this.STATE_ERROR_AUTHENTICATION : this.STATE_ERROR_OTHER;
+      this.log.error("Sync failed, now in state '${state}': ${err}",
+                     {state: this.state, err});
       this._logManager.resetFileLog(this._logManager.REASON_ERROR);
       Services.obs.notifyObservers(null, "readinglist:sync:error", null);
       return intervals.retry;
