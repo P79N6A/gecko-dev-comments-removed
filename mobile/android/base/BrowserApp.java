@@ -2577,7 +2577,7 @@ public class BrowserApp extends GeckoApp
         mBrowserSearchContainer.setVisibility(View.VISIBLE);
 
         
-        mHomePager.setVisibility(View.INVISIBLE);
+        mHomePagerContainer.setVisibility(View.INVISIBLE);
 
         final FragmentManager fm = getSupportFragmentManager();
 
@@ -2599,7 +2599,7 @@ public class BrowserApp extends GeckoApp
 
         
         
-        mHomePager.setVisibility(View.VISIBLE);
+        mHomePagerContainer.setVisibility(View.VISIBLE);
 
         mBrowserSearchContainer.setVisibility(View.INVISIBLE);
 
