@@ -44,6 +44,13 @@ public:
   static SourceSurface* Lookup(dom::Element* aImage,
                                dom::HTMLCanvasElement* aCanvas,
                                gfxIntSize* aSize);
+
+  
+
+
+
+
+  static SourceSurface* SimpleLookup(dom::Element* aImage);
 };
 
 }
