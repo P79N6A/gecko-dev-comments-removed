@@ -793,7 +793,7 @@ class GCRuntime
 
 
 
-    volatile uintptr_t interFrameGC;
+    bool interFrameGC;
 
     
     int64_t sliceBudget;
