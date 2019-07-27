@@ -5,6 +5,7 @@
 package org.mozilla.gecko.db;
 
 import android.annotation.TargetApi;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.os.Build;
@@ -111,6 +112,50 @@ public class DBUtils {
         
         if (attempt > 1) {
             Telemetry.addToHistogram(HISTOGRAM_DATABASE_UNLOCKED, attempt - 1);
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public static boolean copyTable(SQLiteDatabase source, String sourceTableName,
+                                    SQLiteDatabase destination, String destinationTableName) {
+        Cursor cursor = null;
+        try {
+            destination.beginTransaction();
+
+            cursor = source.query(sourceTableName, null, null, null, null, null, null);
+            Log.d(LOGTAG, "Trying to copy " + cursor.getCount() + " rows from " + sourceTableName + " to " + destinationTableName);
+
+            final ContentValues contentValues = new ContentValues();
+            while (cursor.moveToNext()) {
+                contentValues.clear();
+                DatabaseUtils.cursorRowToContentValues(cursor, contentValues);
+                destination.insert(destinationTableName, null, contentValues);
+            }
+
+            destination.setTransactionSuccessful();
+            Log.d(LOGTAG, "Successfully copied " + cursor.getCount() + " rows from " + sourceTableName + " to " + destinationTableName);
+            return true;
+        } catch (Exception e) {
+            Log.w(LOGTAG, "Got exception copying rows from " + sourceTableName + " to " + destinationTableName + "; ignoring.", e);
+            return false;
+        } finally {
+            destination.endTransaction();
+            if (cursor != null) {
+                cursor.close();
+            }
         }
     }
 
