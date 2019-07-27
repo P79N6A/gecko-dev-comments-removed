@@ -1958,30 +1958,6 @@ RilObject.prototype = {
     });
   },
 
-  holdConference: function(options) {
-    if (this._isCdma) {
-      
-      options.success = false;
-      options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-      this.sendChromeMessage(options);
-      return;
-    }
-
-    this.switchActiveCall(options);
-  },
-
-  resumeConference: function(options) {
-    if (this._isCdma) {
-      
-      options.success = false;
-      options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-      this.sendChromeMessage(options);
-      return;
-    }
-
-    this.switchActiveCall(options);
-  },
-
   
 
 
