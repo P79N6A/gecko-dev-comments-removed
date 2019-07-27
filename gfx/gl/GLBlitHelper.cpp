@@ -187,6 +187,9 @@ bool
 GLBlitHelper::InitTexQuadProgram(BlitType target)
 {
     const char kTexBlit_VertShaderSource[] = "\
+        #ifdef GL_ES                                  \n\
+        precision mediump float;                      \n\
+        #endif                                        \n\
         attribute vec2 aPosition;                     \n\
                                                       \n\
         uniform float uYflip;                         \n\
@@ -263,6 +266,9 @@ GLBlitHelper::InitTexQuadProgram(BlitType target)
 
 
     const char kTexYUVPlanarBlit_FragShaderSource[] = "\
+        #ifdef GL_ES                                                        \n\
+        precision mediump float                                             \n\
+        #endif                                                              \n\
         varying vec2 vTexCoord;                                             \n\
         uniform sampler2D uYTexture;                                        \n\
         uniform sampler2D uCbTexture;                                       \n\
