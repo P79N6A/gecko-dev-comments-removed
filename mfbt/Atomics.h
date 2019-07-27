@@ -511,10 +511,8 @@ namespace detail {
 template<typename T, MemoryOrdering Order>
 class AtomicBase
 {
-  
-  
-  static_assert(sizeof(T) == 4 || (sizeof(uintptr_t) == 8 && sizeof(T) == 8),
-                "mozilla/Atomics.h only supports 32-bit and pointer-sized types");
+  static_assert(sizeof(T) == 4 || sizeof(T) == 8,
+                "mozilla/Atomics.h only supports 32-bit and 64-bit types");
 
 protected:
   typedef typename detail::AtomicIntrinsics<T, Order> Intrinsics;
