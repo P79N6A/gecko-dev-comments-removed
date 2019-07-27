@@ -395,7 +395,7 @@ pref("browser.dom.window.dump.enabled", false);
 
 pref("security.apps.privileged.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
 
-pref("security.apps.certified.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
+pref("security.apps.certified.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline' app://theme.gaiamobile.org");
 
 
 
@@ -927,6 +927,11 @@ pref("gfx.gralloc.fence-with-readpixels", true);
 
 
 pref("b2g.neterror.url", "app://system.gaiamobile.org/net_error.html");
+
+
+pref("b2g.theme.origin", "app://theme.gaiamobile.org");
+pref("dom.mozApps.themable", true);
+pref("dom.mozApps.selected_theme", "default_theme.gaiamobile.org");
 
 
 pref("media.webspeech.synth.enabled", true);

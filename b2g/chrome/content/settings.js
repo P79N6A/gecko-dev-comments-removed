@@ -395,6 +395,46 @@ setUpdateTrackingId();
 })();
 
 
+
+SettingsListener.observe("theme.selected",
+                         "app://default_theme.gaiamobile.org/manifest.webapp",
+                         function(value) {
+  if (!value) {
+    return;
+  }
+
+  let newTheme;
+  try {
+    let enabled = Services.prefs.getBoolPref("dom.mozApps.themable");
+    if (!enabled) {
+      return;
+    }
+
+    
+    let uri = Services.io.newURI(value, null, null);
+    
+    if (uri.scheme !== "app") {
+      return;
+    }
+    newTheme = uri.host;
+  } catch(e) {
+    return;
+  }
+
+  let currentTheme;
+  try {
+    currentTheme = Services.prefs.getCharPref('dom.mozApps.selected_theme');
+  } catch(e) {};
+
+  if (currentTheme != newTheme) {
+    debug("New theme selected " + value);
+    Services.prefs.setCharPref('dom.mozApps.selected_theme', newTheme);
+    Services.prefs.savePrefFile(null);
+    Services.obs.notifyObservers(null, 'app-theme-changed', newTheme);
+  }
+});
+
+
 let settingsToObserve = {
   'app.update.channel': {
     resetToPref: true
