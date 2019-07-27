@@ -234,8 +234,7 @@ SignatureAlgorithmOIDValue(Reader& algorithmID,
     
     algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha1;
   } else {
-    
-    return Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
+    algorithm = SignatureAlgorithm::unsupported_algorithm;
   }
 
   return Success;

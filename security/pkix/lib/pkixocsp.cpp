@@ -130,8 +130,8 @@ CheckOCSPResponseSignerCert(TrustDomain& trustDomain,
   }
 
   
-  rv = trustDomain.VerifySignedData(potentialSigner.GetSignedData(),
-                                    issuerSubjectPublicKeyInfo);
+  rv = WrappedVerifySignedData(trustDomain, potentialSigner.GetSignedData(),
+                               issuerSubjectPublicKeyInfo);
 
   
   
@@ -207,7 +207,7 @@ VerifyOCSPSignedData(TrustDomain& trustDomain,
                      const SignedDataWithSignature& signedResponseData,
                      Input spki)
 {
-  Result rv = trustDomain.VerifySignedData(signedResponseData, spki);
+  Result rv = WrappedVerifySignedData(trustDomain, signedResponseData, spki);
   if (rv == Result::ERROR_BAD_SIGNATURE) {
     rv = Result::ERROR_OCSP_BAD_SIGNATURE;
   }

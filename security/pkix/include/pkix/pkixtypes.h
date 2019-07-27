@@ -74,6 +74,9 @@ MOZILLA_PKIX_ENUM_CLASS SignatureAlgorithm
 
   
   dsa_with_sha1 = 18,
+
+  
+  unsupported_algorithm = 19,
 };
 
 struct SignedDataWithSignature
