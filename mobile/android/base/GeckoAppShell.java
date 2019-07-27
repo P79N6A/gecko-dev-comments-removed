@@ -1417,9 +1417,18 @@ public class GeckoAppShell
     }
 
     
-    public static void vibrateOnHapticFeedbackEnabled(long milliseconds) {
+    private static long[] convertIntToLongArray(int[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    
+    public static void vibrateOnHapticFeedbackEnabled(int[] milliseconds) {
         if (Settings.System.getInt(getContext().getContentResolver(), Settings.System.HAPTIC_FEEDBACK_ENABLED, 0) > 0) {
-            vibrate(milliseconds);
+            vibrate(convertIntToLongArray(milliseconds), -1);
         }
     }
 
