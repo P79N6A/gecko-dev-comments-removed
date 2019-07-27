@@ -45,14 +45,8 @@ var W3CTest = {
 
 
   "prefixes": [
-    [
-      {status: 'FAIL', expected: 'PASS', message: "TEST-UNEXPECTED-FAIL"},
-      {status: 'PASS', expected: 'PASS', message: "TEST-PASS"}
-    ],
-    [
-      {status: 'FAIL', expected: 'FAIL', message: "TEST-KNOWN-FAIL"},
-      {status: 'PASS', expected: 'FAIL', message: "TEST-UNEXPECTED-PASS"}
-    ]
+    ["TEST-UNEXPECTED-FAIL", "TEST-PASS"],
+    ["TEST-KNOWN-FAIL", "TEST-UNEXPECTED-PASS"]
   ],
 
   
@@ -139,21 +133,14 @@ var W3CTest = {
 
   "_log": function(test) {
     var url = this.getURL();
-    var message = this.formatTestMessage(test);
-    var result = this.prefixes[+test.todo][+test.result];
-
+    var msg = this.prefixes[+test.todo][+test.result] + " | ";
+    if (url) {
+      msg += url;
+    }
+    msg += " | " + this.formatTestMessage(test);
     if (this.runner) {
-      this.runner.structuredLogger.testStatus(url,
-                                              test.name,
-                                              result.status,
-                                              result.expected,
-                                              message);
+      this.runner[(test.result === !test.todo) ? "log" : "error"](msg);
     } else {
-      var msg = result.message + " | ";
-      if (url) {
-        msg += url;
-      }
-      msg += " | " + this.formatTestMessage(test);
       dump(msg + "\n");
     }
   },

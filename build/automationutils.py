@@ -602,31 +602,29 @@ class ShutdownLeaks(object):
     self.currentTest = None
     self.seenShutdown = False
 
-  def log(self, message):
-    if message['action'] == 'log':
-        line = message['message']
-        if line[2:11] == "DOMWINDOW":
-          self._logWindow(line)
-        elif line[2:10] == "DOCSHELL":
-          self._logDocShell(line)
-    elif message['action'] == 'test_start':
-      fileName = message['test'].replace("chrome://mochitests/content/browser/", "")
+  def log(self, line):
+    if line[2:11] == "DOMWINDOW":
+      self._logWindow(line)
+    elif line[2:10] == "DOCSHELL":
+      self._logDocShell(line)
+    elif line.startswith("TEST-START"):
+      fileName = line.split(" ")[-1].strip().replace("chrome://mochitests/content/browser/", "")
       self.currentTest = {"fileName": fileName, "windows": set(), "docShells": set()}
-    elif message['action'] == 'test_end':
+    elif line.startswith("INFO TEST-END"):
       
       if self.currentTest and (self.currentTest["windows"] or self.currentTest["docShells"]):
         self.tests.append(self.currentTest)
       self.currentTest = None
-    elif message['action'] == 'suite_end':
+    elif line.startswith("INFO TEST-START | Shutdown"):
       self.seenShutdown = True
 
   def process(self):
     for test in self._parseLeakingTests():
       for url, count in self._zipLeakedWindows(test["leakedWindows"]):
-        self.logger("TEST-UNEXPECTED-FAIL | %s | leaked %d window(s) until shutdown [url = %s]" % (test["fileName"], count, url))
+        self.logger("TEST-UNEXPECTED-FAIL | %s | leaked %d window(s) until shutdown [url = %s]", test["fileName"], count, url)
 
       if test["leakedDocShells"]:
-        self.logger("TEST-UNEXPECTED-FAIL | %s | leaked %d docShell(s) until shutdown" % (test["fileName"], len(test["leakedDocShells"])))
+        self.logger("TEST-UNEXPECTED-FAIL | %s | leaked %d docShell(s) until shutdown", test["fileName"], len(test["leakedDocShells"]))
 
   def _logWindow(self, line):
     created = line[:2] == "++"
@@ -635,7 +633,7 @@ class ShutdownLeaks(object):
 
     
     if not pid or not serial:
-      self.logger("TEST-UNEXPECTED-FAIL | ShutdownLeaks | failed to parse line <%s>" % line)
+      self.logger("TEST-UNEXPECTED-FAIL | ShutdownLeaks | failed to parse line <%s>", line)
       return
 
     key = pid + "." + serial
@@ -656,7 +654,7 @@ class ShutdownLeaks(object):
 
     
     if not pid or not id:
-      self.logger("TEST-UNEXPECTED-FAIL | ShutdownLeaks | failed to parse line <%s>" % line)
+      self.logger("TEST-UNEXPECTED-FAIL | ShutdownLeaks | failed to parse line <%s>", line)
       return
 
     key = pid + "." + id
