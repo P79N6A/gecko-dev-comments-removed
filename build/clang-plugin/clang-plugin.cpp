@@ -12,6 +12,8 @@
 #include "clang/Frontend/MultiplexConsumer.h"
 #include "clang/Sema/Sema.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include <memory>
 
 #define CLANG_VERSION_FULL (CLANG_VERSION_MAJOR * 100 + CLANG_VERSION_MINOR)
@@ -53,6 +55,66 @@ private:
   NonHeapClassChecker nonheapClassChecker;
   MatchFinder astMatcher;
 };
+
+namespace {
+
+bool isInIgnoredNamespace(const Decl *decl) {
+  const DeclContext *DC = decl->getDeclContext()->getEnclosingNamespaceContext();
+  const NamespaceDecl *ND = dyn_cast<NamespaceDecl>(DC);
+  if (!ND) {
+    return false;
+  }
+
+  while (const DeclContext *ParentDC = ND->getParent()) {
+    if (!isa<NamespaceDecl>(ParentDC)) {
+      break;
+    }
+    ND = cast<NamespaceDecl>(ParentDC);
+  }
+
+  
+  return ND->getName() == "std" ||              
+         ND->getName() == "__gnu_cxx" ||        
+         ND->getName() == "boost" ||            
+         ND->getName() == "webrtc" ||           
+         ND->getName() == "icu_52" ||           
+         ND->getName() == "google" ||           
+         ND->getName() == "google_breakpad" ||  
+         ND->getName() == "soundtouch" ||       
+         ND->getName() == "stagefright" ||      
+         ND->getName() == "MacFileUtilities" || 
+         ND->getName() == "dwarf2reader" ||     
+         ND->getName() == "arm_ex_to_module" || 
+         ND->getName() == "testing";            
+}
+
+bool isIgnoredPath(const Decl *decl) {
+  decl = decl->getCanonicalDecl();
+  SourceLocation Loc = decl->getLocation();
+  const SourceManager &SM = decl->getASTContext().getSourceManager();
+  SmallString<1024> FileName = SM.getFilename(Loc);
+  llvm::sys::fs::make_absolute(FileName);
+  llvm::sys::path::reverse_iterator begin = llvm::sys::path::rbegin(FileName),
+                                    end   = llvm::sys::path::rend(FileName);
+  for (; begin != end; ++begin) {
+    if (begin->compare_lower(StringRef("skia")) == 0 ||
+        begin->compare_lower(StringRef("angle")) == 0 ||
+        begin->compare_lower(StringRef("harfbuzz")) == 0 ||
+        begin->compare_lower(StringRef("hunspell")) == 0 ||
+        begin->compare_lower(StringRef("scoped_ptr.h")) == 0 ||
+        begin->compare_lower(StringRef("graphite2")) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool isInterestingDecl(const Decl *decl) {
+  return !isInIgnoredNamespace(decl) &&
+         !isIgnoredPath(decl);
+}
+
+}
 
 class MozChecker : public ASTConsumer, public RecursiveASTVisitor<MozChecker> {
   DiagnosticsEngine &Diag;
@@ -126,6 +188,32 @@ public:
         Diag.Report((*it)->getLocation(), overrideNote);
       }
     }
+
+    if (isInterestingDecl(d)) {
+      for (CXXRecordDecl::ctor_iterator ctor = d->ctor_begin(),
+           e = d->ctor_end(); ctor != e; ++ctor) {
+        
+        if (!ctor->isConvertingConstructor(false)) {
+          continue;
+        }
+        
+        if (ctor->isCopyOrMoveConstructor()) {
+          continue;
+        }
+        
+        if (ctor->isDeleted()) {
+          continue;
+        }
+        
+        if (MozChecker::hasCustomAnnotation(*ctor, "moz_implicit")) {
+          continue;
+        }
+        unsigned ctorID = Diag.getDiagnosticIDs()->getCustomDiagID(
+          DiagnosticIDs::Error, "bad implicit conversion constructor for %0");
+        Diag.Report(ctor->getLocation(), ctorID) << d->getDeclName();
+      }
+    }
+
     return true;
   }
 };
