@@ -92,6 +92,9 @@ class OptimizationInfo
     uint32_t maxInlineDepth_;
 
     
+    bool scalarReplacement_;
+
+    
     
     
     
@@ -163,6 +166,10 @@ class OptimizationInfo
         if (!js_JitOptions.forceRegisterAllocator)
             return registerAllocator_;
         return js_JitOptions.forcedRegisterAllocator;
+    }
+
+    bool scalarReplacementEnabled() const {
+        return scalarReplacement_ && !js_JitOptions.disableScalarReplacement;
     }
 
     uint32_t smallFunctionMaxInlineDepth() const {

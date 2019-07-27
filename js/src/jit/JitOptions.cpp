@@ -37,6 +37,9 @@ JitOptions::JitOptions()
     compileTryCatch = true;
 
     
+    disableScalarReplacement = true; 
+
+    
     disableGvn = false;
 
     
