@@ -175,7 +175,6 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/MacroForEach.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 
@@ -256,14 +255,7 @@ const AllocKind gc::slotsToThingKind[] = {
 static_assert(JS_ARRAY_LENGTH(slotsToThingKind) == SLOTS_TO_THING_KIND_LIMIT,
               "We have defined a slot count for each kind.");
 
-
-#define CHECK_MIN_THING_SIZE_INNER(x_)                                         \
-    static_assert(x_ >= SortedArenaList::MinThingSize,                         \
-    #x_ " is less than SortedArenaList::MinThingSize!");
-#define CHECK_MIN_THING_SIZE(...) { __VA_ARGS__ }; /* Define the array. */     \
-    MOZ_FOR_EACH(CHECK_MIN_THING_SIZE_INNER, (), (__VA_ARGS__ UINT32_MAX))
-
-const uint32_t Arena::ThingSizes[] = CHECK_MIN_THING_SIZE(
+const uint32_t Arena::ThingSizes[] = {
     sizeof(JSObject),           
     sizeof(JSObject),           
     sizeof(JSObject_Slots2),    
@@ -286,10 +278,7 @@ const uint32_t Arena::ThingSizes[] = CHECK_MIN_THING_SIZE(
     sizeof(JSExternalString),   
     sizeof(JS::Symbol),         
     sizeof(jit::JitCode),       
-);
-
-#undef CHECK_MIN_THING_SIZE_INNER
-#undef CHECK_MIN_THING_SIZE
+};
 
 #define OFFSET(type) uint32_t(sizeof(ArenaHeader) + (ArenaSize - sizeof(ArenaHeader)) % sizeof(type))
 
@@ -461,7 +450,7 @@ Arena::setAsFullyUnused(AllocKind thingKind)
 }
 
 template<typename T>
-inline size_t
+inline bool
 Arena::finalize(FreeOp *fop, AllocKind thingKind, size_t thingSize)
 {
     
@@ -507,7 +496,7 @@ Arena::finalize(FreeOp *fop, AllocKind thingKind, size_t thingSize)
         
         JS_ASSERT(newListTail == &newListHead);
         JS_EXTRA_POISON(data, JS_SWEPT_TENURED_PATTERN, sizeof(data));
-        return nmarked;
+        return true;
     }
 
     JS_ASSERT(firstThingOrSuccessorOfLastMarkedThing != firstThing);
@@ -528,32 +517,14 @@ Arena::finalize(FreeOp *fop, AllocKind thingKind, size_t thingSize)
     JS_ASSERT(nfree + nmarked == thingsPerArena(thingSize));
 #endif
     aheader.setFirstFreeSpan(&newListHead);
-    return nmarked;
-}
-
-ArenaList 
-SortedArenaList::toArenaList()
-{
-    
-    size_t tailIndex = 0;
-    for (size_t headIndex = 1; headIndex <= thingsPerArena_; ++headIndex) {
-        if (headAt(headIndex)) {
-            segments[tailIndex].linkTo(headAt(headIndex));
-            tailIndex = headIndex;
-        }
-    }
-    
-    
-    segments[tailIndex].linkTo(nullptr);
-    
-    return ArenaList(segments[0]);
+    return false;
 }
 
 template<typename T>
 static inline bool
 FinalizeTypedArenas(FreeOp *fop,
                     ArenaHeader **src,
-                    SortedArenaList &dest,
+                    ArenaList &dest,
                     AllocKind thingKind,
                     SliceBudget &budget)
 {
@@ -570,24 +541,22 @@ FinalizeTypedArenas(FreeOp *fop,
     bool releaseArenas = !InParallelSection();
 
     size_t thingSize = Arena::thingSize(thingKind);
-    size_t thingsPerArena = Arena::thingsPerArena(thingSize);
 
     while (ArenaHeader *aheader = *src) {
         *src = aheader->next;
-        size_t nmarked = aheader->getArena()->finalize<T>(fop, thingKind, thingSize);
-        size_t nfree = thingsPerArena - nmarked;
-
-        if (nmarked)
-            dest.insertAt(aheader, nfree);
+        bool allClear = aheader->getArena()->finalize<T>(fop, thingKind, thingSize);
+        if (!allClear)
+            dest.insertAtCursor(aheader);
         else if (releaseArenas)
             aheader->chunk()->releaseArena(aheader);
         else
-            aheader->chunk()->recycleArena(aheader, dest, thingKind, thingsPerArena);
+            aheader->chunk()->recycleArena(aheader, dest, thingKind);
 
-        budget.step(thingsPerArena);
+        budget.step(Arena::thingsPerArena(thingSize));
         if (budget.isOverBudget())
             return false;
     }
+    dest.deepCheck();
 
     return true;
 }
@@ -599,7 +568,7 @@ FinalizeTypedArenas(FreeOp *fop,
 static bool
 FinalizeArenas(FreeOp *fop,
                ArenaHeader **src,
-               SortedArenaList &dest,
+               ArenaList &dest,
                AllocKind thingKind,
                SliceBudget &budget)
 {
@@ -996,11 +965,10 @@ Chunk::addArenaToFreeList(JSRuntime *rt, ArenaHeader *aheader)
 }
 
 void
-Chunk::recycleArena(ArenaHeader *aheader, SortedArenaList &dest, AllocKind thingKind,
-                    size_t thingsPerArena)
+Chunk::recycleArena(ArenaHeader *aheader, ArenaList &dest, AllocKind thingKind)
 {
     aheader->getArena()->setAsFullyUnused(thingKind);
-    dest.insertAt(aheader, thingsPerArena);
+    dest.insertAtCursor(aheader);
 }
 
 void
@@ -1926,6 +1894,10 @@ ArenaLists::allocateFromArenaInline(Zone *zone, AllocKind thingKind,
 
 
 
+
+
+
+
     JS_ASSERT(al->isCursorAtEnd());
     aheader = chunk->allocateArena(zone, thingKind);
     if (!aheader)
@@ -1933,7 +1905,7 @@ ArenaLists::allocateFromArenaInline(Zone *zone, AllocKind thingKind,
 
     if (MOZ_UNLIKELY(zone->wasGCStarted()))
         rt->gc.arenaAllocatedDuringGC(zone, aheader);
-    al->insertAtCursor(aheader);
+    al->insertAtStart(aheader);
 
     
 
@@ -2006,14 +1978,9 @@ ArenaLists::forceFinalizeNow(FreeOp *fop, AllocKind thingKind)
     ArenaHeader *arenas = arenaLists[thingKind].head();
     arenaLists[thingKind].clear();
 
-    size_t thingsPerArena = Arena::thingsPerArena(Arena::thingSize(thingKind));
-    SortedArenaList finalizedSorted(thingsPerArena);
-
     SliceBudget budget;
-    FinalizeArenas(fop, &arenas, finalizedSorted, thingKind, budget);
+    FinalizeArenas(fop, &arenas, arenaLists[thingKind], thingKind, budget);
     JS_ASSERT(!arenas);
-
-    arenaLists[thingKind] = finalizedSorted.toArenaList();
 }
 
 void
@@ -2061,13 +2028,12 @@ ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgr
     AllocKind thingKind = listHead->getAllocKind();
     Zone *zone = listHead->zone;
 
-    size_t thingsPerArena = Arena::thingsPerArena(Arena::thingSize(thingKind));
-    SortedArenaList finalizedSorted(thingsPerArena);
-
+    ArenaList finalized;
     SliceBudget budget;
-    FinalizeArenas(fop, &listHead, finalizedSorted, thingKind, budget);
+    FinalizeArenas(fop, &listHead, finalized, thingKind, budget);
     JS_ASSERT(!listHead);
 
+    
     
     
     
@@ -2075,17 +2041,10 @@ ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgr
     ArenaLists *lists = &zone->allocator.arenas;
     ArenaList *al = &lists->arenaLists[thingKind];
 
-    
-    ArenaList finalized = finalizedSorted.toArenaList();
-
-    
-    bool allClear = finalized.isEmpty();
-
     AutoLockGC lock(fop->runtime());
     JS_ASSERT(lists->backgroundFinalizeState[thingKind] == BFS_RUN);
 
-    
-    *al = finalized.insertListWithCursorAtEnd(*al);
+    al->appendToListWithCursorAtEnd(finalized);
 
     
 
@@ -2096,7 +2055,7 @@ ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgr
 
 
 
-    if (onBackgroundThread && !allClear)
+    if (onBackgroundThread && !finalized.isEmpty())
         lists->backgroundFinalizeState[thingKind] = BFS_JUST_FINISHED;
     else
         lists->backgroundFinalizeState[thingKind] = BFS_DONE;
@@ -4355,17 +4314,13 @@ GCRuntime::beginSweepPhase(bool lastGC)
 }
 
 bool
-ArenaLists::foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget,
-                               SortedArenaList &sweepList)
+ArenaLists::foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget)
 {
-    if (!FinalizeArenas(fop, &arenaListsToSweep[thingKind], sweepList, thingKind, sliceBudget))
-        return false;
+    if (!arenaListsToSweep[thingKind])
+        return true;
 
-    
-    ArenaList finalized = sweepList.toArenaList();
-    arenaLists[thingKind] = finalized.insertListWithCursorAtEnd(arenaLists[thingKind]);
-
-    return true;
+    ArenaList &dest = arenaLists[thingKind];
+    return FinalizeArenas(fop, &arenaListsToSweep[thingKind], dest, thingKind, sliceBudget);
 }
 
 bool
@@ -4397,16 +4352,8 @@ GCRuntime::sweepPhase(SliceBudget &sliceBudget)
                 while (sweepKindIndex < FinalizePhaseLength[finalizePhase]) {
                     AllocKind kind = FinalizePhases[finalizePhase][sweepKindIndex];
 
-                    
-                    size_t thingsPerArena = Arena::thingsPerArena(Arena::thingSize(kind));
-                    incrementalSweepList.setThingsPerArena(thingsPerArena);
-
-                    if (!zone->allocator.arenas.foregroundFinalize(&fop, kind, sliceBudget,
-                                                                   incrementalSweepList))
+                    if (!zone->allocator.arenas.foregroundFinalize(&fop, kind, sliceBudget))
                         return false;  
-
-                    
-                    incrementalSweepList.reset(thingsPerArena);
 
                     ++sweepKindIndex;
                 }
@@ -5780,8 +5727,8 @@ ArenaLists::adoptArenas(JSRuntime *rt, ArenaLists *fromArenaLists)
 #endif
         ArenaList *fromList = &fromArenaLists->arenaLists[thingKind];
         ArenaList *toList = &arenaLists[thingKind];
-        fromList->check();
-        toList->check();
+        fromList->deepCheck();
+        toList->deepCheck();
         ArenaHeader *next;
         for (ArenaHeader *fromHeader = fromList->head(); fromHeader; fromHeader = next) {
             
@@ -5797,7 +5744,7 @@ ArenaLists::adoptArenas(JSRuntime *rt, ArenaLists *fromArenaLists)
                 toList->insertAtCursor(fromHeader);
         }
         fromList->clear();
-        toList->check();
+        toList->deepCheck();
     }
 }
 

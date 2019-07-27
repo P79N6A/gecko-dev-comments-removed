@@ -700,12 +700,6 @@ class GCRuntime
 
     GCHelperState helperState;
 
-    
-
-
-
-    SortedArenaList incrementalSweepList;
-
     ConservativeGCData conservativeGC;
 
     friend class js::GCHelperState;
