@@ -49,7 +49,7 @@
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <sys/limits.h>
-#include <sha1.h>
+#include "sha1.h"
 
 
 
