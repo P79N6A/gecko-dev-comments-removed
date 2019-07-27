@@ -880,8 +880,6 @@ EnvironmentCache.prototype = {
     this._currentEnvironment.settings = this._currentEnvironment.settings || {};
     
     this._currentEnvironment.settings.defaultSearchEngine = this._getDefaultSearchEngine();
-    this._currentEnvironment.settings.defaultSearchEngineData =
-      Services.search.getDefaultEngineInfo();
   },
 
   
@@ -902,13 +900,13 @@ EnvironmentCache.prototype = {
 
   _getBuild: function () {
     let buildData = {
-      applicationId: Services.appinfo.ID || null,
-      applicationName: Services.appinfo.name || null,
+      applicationId: Services.appinfo.ID,
+      applicationName: Services.appinfo.name,
       architecture: Services.sysinfo.get("arch"),
-      buildId: Services.appinfo.appBuildID || null,
-      version: Services.appinfo.version || null,
-      vendor: Services.appinfo.vendor || null,
-      platformVersion: Services.appinfo.platformVersion || null,
+      buildId: Services.appinfo.appBuildID,
+      version: Services.appinfo.version,
+      vendor: Services.appinfo.vendor,
+      platformVersion: Services.appinfo.platformVersion,
       xpcomAbi: Services.appinfo.XPCOMABI,
       hotfixVersion: Preferences.get(PREF_HOTFIX_LASTVERSION, null),
     };
@@ -1045,11 +1043,9 @@ EnvironmentCache.prototype = {
     
     let availableExts = [];
     for (let ext of CPU_EXTENSIONS) {
-      try {
-        Services.sysinfo.getProperty(ext);
-        
+      if (getSysinfoProperty(ext, false)) {
         availableExts.push(ext);
-      } catch (e) {}
+      }
     }
 
     cpuData.extensions = availableExts;
