@@ -228,6 +228,8 @@ SourceBuffer::Abort()
 {
   if (mUpdating) {
     
+    mTrackBuffer->Abort();
+    
     AbortUpdating();
   }
 }
@@ -474,7 +476,15 @@ SourceBuffer::AppendDataCompletedWithSuccess(bool aGotMedia)
 void
 SourceBuffer::AppendDataErrored(nsresult aError)
 {
-  AppendError(true);
+  switch (aError) {
+    case NS_ERROR_ABORT:
+      
+      
+      break;
+    default:
+      AppendError(true);
+      break;
+  }
 }
 
 void

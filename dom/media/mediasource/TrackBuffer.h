@@ -103,6 +103,9 @@ public:
   
   bool RangeRemoval(int64_t aStart, int64_t aEnd);
 
+  
+  void Abort();
+
 #ifdef MOZ_EME
   nsresult SetCDMProxy(CDMProxy* aProxy);
 #endif
