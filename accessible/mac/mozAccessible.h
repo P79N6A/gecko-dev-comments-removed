@@ -58,10 +58,13 @@ static const uintptr_t IS_PROXY = 1;
 }
 
 
-- (mozilla::a11y::AccessibleWrap*) getGeckoAccessible;
+- (mozilla::a11y::AccessibleWrap*)getGeckoAccessible;
 
 
-- (id)initWithAccessible:(mozilla::a11y::AccessibleWrap*)geckoParent;
+- (mozilla::a11y::ProxyAccessible*)getProxyAccessible;
+
+
+- (id)initWithAccessible:(uintptr_t)aGeckoObj;
 
 
 - (id <mozAccessible>)parent;
