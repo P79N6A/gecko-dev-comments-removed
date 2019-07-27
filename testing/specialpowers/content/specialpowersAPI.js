@@ -83,7 +83,30 @@ function isObjectOrArray(obj) {
   return arrayClasses.indexOf(className) != -1;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waiveXraysIfAppropriate(obj, propName) {
+  if (propName == 'toString' || isObjectOrArray(obj))
+    return XPCNativeWrapper.unwrap(obj);
+  return obj;
+}
+
 function callGetOwnPropertyDescriptor(obj, name) {
+  obj = waiveXraysIfAppropriate(obj, name);
+
   
   
   
@@ -235,26 +258,8 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  var obj = this.wrappedObject;
-  if (name == 'toString' || isObjectOrArray(obj))
-    obj = XPCNativeWrapper.unwrap(obj);
-
-  
-  
-  
-  
-  
   var desc;
+  var obj = this.wrappedObject;
   function isWrappedNativeXray(o) {
     if (!Cu.isXrayWrapper(o))
       return false;
@@ -289,6 +294,7 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   else {
+    obj = waiveXraysIfAppropriate(obj, name);
     desc = Object.getOwnPropertyDescriptor(obj, name);
     if (!desc) {
       var getter = Object.prototype.__lookupGetter__.call(obj, name);
