@@ -1201,9 +1201,7 @@ IonBuilder::initScopeChain(MDefinition *callee)
         }
     } else {
         
-        
-        MOZ_ASSERT(!script()->isForEval());
-        MOZ_ASSERT(!script()->hasPollutedGlobalScope());
+        MOZ_ASSERT(script()->compileAndGo());
         scope = constant(ObjectValue(script()->global()));
     }
 

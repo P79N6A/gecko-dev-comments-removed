@@ -2495,9 +2495,8 @@ InlineFrameIterator::computeScopeChain(Value scopeChainValue, MaybeReadFallback 
         return callee(fallback)->environment();
 
     
-    
     MOZ_ASSERT(!script()->isForEval());
-    MOZ_ASSERT(!script()->hasPollutedGlobalScope());
+    MOZ_ASSERT(script()->compileAndGo());
     return &script()->global();
 }
 
