@@ -277,15 +277,21 @@ public class DoorHangerPopup extends AnchoredPopup
         
         int tabId = tab.getId();
         boolean shouldShowPopup = false;
+        DoorHanger firstDoorhanger = null;
         for (DoorHanger dh : mDoorHangers) {
             if (dh.getTabId() == tabId) {
                 dh.setVisibility(View.VISIBLE);
                 shouldShowPopup = true;
+                if (firstDoorhanger == null) {
+                    firstDoorhanger = dh;
+                } else {
+                    dh.hideTitle();
+                }
             } else {
                 dh.setVisibility(View.GONE);
             }
         }
- 
+
         
         if (!shouldShowPopup) {
             dismiss();
@@ -297,6 +303,8 @@ public class DoorHangerPopup extends AnchoredPopup
             show();
             return;
         }
+
+        firstDoorhanger.showTitle(tab.getFavicon(), tab.getBaseDomain());
 
         
         

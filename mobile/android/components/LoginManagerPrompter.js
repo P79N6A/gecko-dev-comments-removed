@@ -149,9 +149,7 @@ LoginManagerPrompter.prototype = {
 
 
 
-
-
-    _showLoginNotification : function (aTitle, aBody, aButtons, aUsername, aPassword) {
+    _showLoginNotification : function (aBody, aButtons, aUsername, aPassword) {
         let notifyWin = this._window.top;
         let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
         let browser = chromeWin.BrowserApp.getBrowserForWindow(notifyWin);
@@ -174,7 +172,6 @@ LoginManagerPrompter.prototype = {
         let options = {
             persistWhileVisible: true,
             timeout: Date.now() + 10000,
-            title: aTitle,
             actionText: actionText
         }
 
@@ -195,9 +192,6 @@ LoginManagerPrompter.prototype = {
     _showSaveLoginNotification : function (aLogin) {
         let brandShortName = this._strBundle.brand.GetStringFromName("brandShortName");
         let notificationText  = this._getLocalizedString("saveLogin", [brandShortName]);
-
-        let displayHost = this._getShortDisplayHost(aLogin.hostname);
-        let title = { text: displayHost, resource: aLogin.hostname };
 
         let username = aLogin.username ? this._sanitizeUsername(aLogin.username) : "";
 
@@ -230,7 +224,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification(title, notificationText, buttons, aLogin.username, aLogin.password);
+        this._showLoginNotification(notificationText, buttons, aLogin.username, aLogin.password);
     },
 
     
@@ -261,9 +255,6 @@ LoginManagerPrompter.prototype = {
             notificationText  = this._getLocalizedString("updatePasswordNoUser");
         }
 
-        let displayHost = this._getShortDisplayHost(aOldLogin.hostname);
-        let title = { text: displayHost, resource: aOldLogin.hostname };
-
         
         
         
@@ -290,7 +281,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification(title, notificationText, buttons, aOldLogin.username, aNewPassword);
+        this._showLoginNotification(notificationText, buttons, aOldLogin.username, aNewPassword);
     },
 
 
@@ -460,35 +451,6 @@ LoginManagerPrompter.prototype = {
         }
 
         return hostname;
-    },
-
-
-    
-
-
-
-
-
-
-    _getShortDisplayHost: function (aURIString) {
-        var displayHost;
-
-        var eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"].
-                          getService(Ci.nsIEffectiveTLDService);
-        var idnService = Cc["@mozilla.org/network/idn-service;1"].
-                         getService(Ci.nsIIDNService);
-        try {
-            var uri = Services.io.newURI(aURIString, null, null);
-            var baseDomain = eTLDService.getBaseDomain(uri);
-            displayHost = idnService.convertToDisplayIDN(baseDomain, {});
-        } catch (e) {
-            this.log("_getShortDisplayHost couldn't process " + aURIString);
-        }
-
-        if (!displayHost)
-            displayHost = aURIString;
-
-        return displayHost;
     },
 
 }; 

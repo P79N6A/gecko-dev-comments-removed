@@ -2341,13 +2341,6 @@ var NativeWindow = {
 
 
 
-
-
-
-
-
-
-
     show: function(aMessage, aValue, aButtons, aTabID, aOptions, aCategory) {
       if (aButtons == null) {
         aButtons = [];
