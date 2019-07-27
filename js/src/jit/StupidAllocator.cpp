@@ -14,7 +14,10 @@ using namespace js::jit;
 static inline uint32_t
 DefaultStackSlot(uint32_t vreg)
 {
-    return vreg * sizeof(Value);
+    
+    
+    
+    return vreg * 2 * sizeof(Value);
 }
 
 LAllocation *
@@ -75,10 +78,10 @@ StupidAllocator::init()
         registerCount = 0;
         RegisterSet remainingRegisters(allRegisters_);
         while (!remainingRegisters.empty( false))
-            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeGeneral());
+            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeUnaliasedGeneral());
 
         while (!remainingRegisters.empty( true))
-            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeFloat());
+            registers[registerCount++].reg = AnyRegister(remainingRegisters.takeUnaliasedFloat());
 
         MOZ_ASSERT(registerCount <= MAX_REGISTERS);
     }
