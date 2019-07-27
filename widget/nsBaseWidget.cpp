@@ -94,10 +94,6 @@ bool            gDisableNativeTheme               = false;
 #define TOUCH_INJECT_LONG_TAP_DEFAULT_MSEC 1500
 int32_t nsIWidget::sPointerIdCounter = 0;
 
-
-NS_IMPL_ISUPPORTS(nsBaseWidget, nsIWidget)
-
-
 nsAutoRollup::nsAutoRollup()
 {
   
@@ -112,6 +108,8 @@ nsAutoRollup::~nsAutoRollup()
     NS_RELEASE(nsBaseWidget::mLastRollup);
   }
 }
+
+NS_IMPL_ISUPPORTS(nsBaseWidget, nsIWidget, nsISupportsWeakReference)
 
 
 
