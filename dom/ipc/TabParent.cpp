@@ -2028,25 +2028,14 @@ TabParent::RecvSetInputContext(const int32_t& aIMEEnabled,
                                const int32_t& aCause,
                                const int32_t& aFocusChange)
 {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget || !AllowContentIME()) {
-    return true;
-  }
-
-  InputContext oldContext = widget->GetInputContext();
-
-  
-  
-  if (oldContext.mIMEState.mEnabled != IMEState::DISABLED &&
-      oldContext.IsOriginMainProcess()) {
-    return true;
-  }
-
   
   
   
   mIMETabParent =
     aIMEEnabled != static_cast<int32_t>(IMEState::DISABLED) ? this : nullptr;
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget || !AllowContentIME())
+    return true;
 
   InputContext context;
   context.mIMEState.mEnabled = static_cast<IMEState::Enabled>(aIMEEnabled);
@@ -2054,8 +2043,6 @@ TabParent::RecvSetInputContext(const int32_t& aIMEEnabled,
   context.mHTMLInputType.Assign(aType);
   context.mHTMLInputInputmode.Assign(aInputmode);
   context.mActionHint.Assign(aActionHint);
-  context.mOrigin = InputContext::ORIGIN_CONTENT;
-
   InputContextAction action(
     static_cast<InputContextAction::Cause>(aCause),
     static_cast<InputContextAction::FocusChange>(aFocusChange));
@@ -2500,6 +2487,13 @@ NS_IMETHODIMP
 TabParent::SetIsDocShellActive(bool isActive)
 {
   unused << SendSetIsDocShellActive(isActive);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TabParent::GetTabId(uint64_t* aId)
+{
+  *aId = GetTabId();
   return NS_OK;
 }
 
