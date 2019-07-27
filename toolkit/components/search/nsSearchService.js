@@ -554,6 +554,24 @@ function storeCountryCode(cc) {
   if (cc != "US" && isTimezoneUS) {
     Services.telemetry.getHistogramById("SEARCH_SERVICE_US_TIMEZONE_MISMATCHED_COUNTRY").add(1);
   }
+  
+  
+  let gfxInfo2;
+  try {
+    gfxInfo2 = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo2);
+  } catch (ex) {
+    
+  }
+  if (gfxInfo2) {
+    let macCC = gfxInfo2.countryCode;
+    if (cc == "US" || macCC == "US") {
+      
+      Services.telemetry.getHistogramById("SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_OSX").add(cc != macCC);
+    } else {
+      
+      Services.telemetry.getHistogramById("SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_OSX").add(cc != macCC);
+    }
+  }
 }
 
 
