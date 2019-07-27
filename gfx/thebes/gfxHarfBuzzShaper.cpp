@@ -1795,6 +1795,14 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext     *aContext,
             
             
             
+            
+            
+            
+            hb_position_t baseIOffset, baseBOffset;
+            if (aVertical) {
+                baseIOffset = 2 * (i_offset - i_advance);
+                baseBOffset = GetGlyphHAdvance(ginfo[glyphStart].codepoint);
+            }
             while (1) {
                 gfxTextRun::DetailedGlyph* details =
                     detailedGlyphs.AppendElement();
@@ -1817,9 +1825,9 @@ gfxHarfBuzzShaper::SetGlyphsFromRun(gfxContext     *aContext,
                 }
 
                 if (aVertical) {
-                    i_offset = posInfo[glyphStart].y_offset;
+                    i_offset = baseIOffset - posInfo[glyphStart].y_offset;
                     i_advance = posInfo[glyphStart].y_advance;
-                    b_offset = posInfo[glyphStart].x_offset;
+                    b_offset = baseBOffset - posInfo[glyphStart].x_offset;
                     b_advance = posInfo[glyphStart].x_advance;
                 } else {
                     i_offset = posInfo[glyphStart].x_offset;
