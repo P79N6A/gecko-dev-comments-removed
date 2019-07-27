@@ -147,7 +147,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     contents.setAttribute("tooltiptext", unicodeUrl);
 
     
-    this.push([contents, fullUrl], {
+    const item = this.push([contents, fullUrl], {
       staged: aOptions.staged, 
       attachment: {
         label: label,
@@ -157,6 +157,11 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
         source: aSource
       }
     });
+
+    
+    if (gThreadClient.source(aSource).isBlackBoxed) {
+      item.target.classList.add("black-boxed");
+    }
   },
 
   
