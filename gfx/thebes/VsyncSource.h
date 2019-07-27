@@ -30,6 +30,14 @@ public:
       void AddCompositorVsyncDispatcher(mozilla::CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
       void RemoveCompositorVsyncDispatcher(mozilla::CompositorVsyncDispatcher* aCompositorVsyncDispatcher);
       
+      
+      
+      
+      
+      
+      
+      
+      
       virtual void NotifyVsync(mozilla::TimeStamp aVsyncTimestamp);
 
       

@@ -40,11 +40,6 @@ public:
   CompositorVsyncDispatcher();
 
   
-  
-  
-  
-  
-  
   void NotifyVsync(TimeStamp aVsyncTimestamp);
 
   
