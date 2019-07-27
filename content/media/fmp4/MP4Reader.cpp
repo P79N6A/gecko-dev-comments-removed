@@ -142,6 +142,11 @@ MP4Reader::Shutdown()
   }
   
   mQueuedVideoSample = nullptr;
+
+  if (mPlatform) {
+    mPlatform->Shutdown();
+    mPlatform = nullptr;
+  }
 }
 
 void

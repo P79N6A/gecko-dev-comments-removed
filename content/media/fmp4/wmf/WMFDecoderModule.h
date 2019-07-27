@@ -17,14 +17,11 @@ public:
   virtual ~WMFDecoderModule();
 
   
-  
   nsresult Startup();
 
   
-  
   virtual nsresult Shutdown() MOZ_OVERRIDE;
 
-  
   virtual already_AddRefed<MediaDataDecoder>
   CreateH264Decoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
                     layers::LayersBackend aLayersBackend,
@@ -32,12 +29,12 @@ public:
                     MediaTaskQueue* aVideoTaskQueue,
                     MediaDataDecoderCallback* aCallback) MOZ_OVERRIDE;
 
-  
   virtual already_AddRefed<MediaDataDecoder>
   CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
                    MediaTaskQueue* aAudioTaskQueue,
                    MediaDataDecoderCallback* aCallback) MOZ_OVERRIDE;
 
+  
   static void Init();
 private:
   static bool sIsWMFEnabled;

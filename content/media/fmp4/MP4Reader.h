@@ -60,12 +60,11 @@ public:
 
   virtual nsresult ResetDecode() MOZ_OVERRIDE;
 
+  virtual void Shutdown() MOZ_OVERRIDE;
+
 private:
 
   void ExtractCryptoInitData(nsTArray<uint8_t>& aInitData);
-
-  
-  void Shutdown();
 
   
   void InitLayersBackendType();
