@@ -332,6 +332,12 @@ ScriptedIndirectProxyHandler::derivedSet(JSContext *cx, HandleObject proxy, Hand
     
     
     
+    
+    
+    
+    
+    
+
     Rooted<PropertyDescriptor> desc(cx);
     if (!getOwnPropertyDescriptor(cx, proxy, id, &desc))
         return false;
@@ -341,8 +347,43 @@ ScriptedIndirectProxyHandler::derivedSet(JSContext *cx, HandleObject proxy, Hand
             return false;
     }
 
-    return SetPropertyIgnoringNamedGetter(cx, this, proxy, receiver, id, &desc, descIsOwn, vp,
-                                          result);
+    MOZ_ASSERT_IF(descIsOwn, desc.object());
+    if (desc.object()) {
+        MOZ_ASSERT(desc.getter() != JS_PropertyStub);
+        MOZ_ASSERT(desc.setter() != JS_StrictPropertyStub);
+
+        
+        if (desc.isReadonly())
+            return result.fail(descIsOwn ? JSMSG_READ_ONLY : JSMSG_CANT_REDEFINE_PROP);
+
+        if (desc.hasSetterObject() || desc.setter()) {
+            if (!CallSetter(cx, receiver, id, desc.setter(), desc.attributes(), vp, result))
+                return false;
+            if (!result)
+                return true;
+            if (!proxy->is<ProxyObject>() ||
+                proxy->as<ProxyObject>().handler() != this ||
+                desc.isShared())
+            {
+                return result.succeed();
+            }
+        }
+        desc.value().set(vp.get());
+
+        if (descIsOwn) {
+            MOZ_ASSERT(desc.object() == proxy);
+            return this->defineProperty(cx, proxy, id, &desc, result);
+        }
+        return DefineProperty(cx, receiver, id, desc.value(), desc.getter(), desc.setter(),
+                              desc.attributes(), result);
+    }
+    desc.object().set(receiver);
+    desc.value().set(vp.get());
+    desc.setAttributes(JSPROP_ENUMERATE);
+    desc.setGetter(nullptr);
+    desc.setSetter(nullptr); 
+    return DefineProperty(cx, receiver, id, desc.value(), nullptr, nullptr, JSPROP_ENUMERATE,
+                          result);
 }
 
 bool
