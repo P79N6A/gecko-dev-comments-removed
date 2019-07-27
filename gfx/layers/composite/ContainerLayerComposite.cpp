@@ -424,6 +424,24 @@ ContainerRender(ContainerT* aContainer,
     RenderLayers(aContainer, aManager, RenderTargetPixel::FromUntyped(aClipRect));
   }
   aContainer->mPrepared = nullptr;
+
+  
+  
+  
+  
+  if (gfxPrefs::LayersDrawFPS() && aContainer->IsScrollInfoLayer()) {
+    
+    
+    
+    for (LayerMetricsWrapper i(aContainer); i; i = i.GetFirstChild()) {
+      if (AsyncPanZoomController* apzc = i.GetApzc()) {
+        if (!Matrix4x4(apzc->GetCurrentAsyncTransform()).IsIdentity()) {
+          aManager->UnusedApzTransformWarning();
+          break;
+        }
+      }
+    }
+  }
 }
 
 ContainerLayerComposite::ContainerLayerComposite(LayerManagerComposite *aManager)
