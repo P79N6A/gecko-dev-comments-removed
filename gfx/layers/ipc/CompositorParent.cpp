@@ -343,6 +343,23 @@ CompositorVsyncObserver::Composite(TimeStamp aVsyncTimestamp)
   DispatchTouchEvents(aVsyncTimestamp);
 }
 
+void
+CompositorVsyncObserver::OnForceComposeToTarget()
+{
+  
+
+
+
+
+
+
+
+
+
+  MOZ_ASSERT(CompositorParent::IsInCompositorThread());
+  mVsyncNotificationsSkipped = 0;
+}
+
 bool
 CompositorVsyncObserver::NeedsComposite()
 {
@@ -1039,6 +1056,10 @@ CompositorParent::ForceComposeToTarget(DrawTarget* aTarget, const nsIntRect* aRe
 {
   PROFILER_LABEL("CompositorParent", "ForceComposeToTarget",
     js::ProfileEntry::Category::GRAPHICS);
+
+  if (mCompositorVsyncObserver) {
+    mCompositorVsyncObserver->OnForceComposeToTarget();
+  }
 
   AutoRestore<bool> override(mOverrideComposeReadiness);
   mOverrideComposeReadiness = true;
