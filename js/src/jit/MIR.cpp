@@ -3171,7 +3171,11 @@ MObjectState::MObjectState(MDefinition *obj)
 {
     
     setRecoveredOnBailout();
-    JSObject *templateObject = obj->toNewObject()->templateObject();
+    JSObject *templateObject = nullptr;
+    if (obj->isNewObject())
+        templateObject = obj->toNewObject()->templateObject();
+    else
+        templateObject = obj->toCreateThisWithTemplate()->templateObject();
     numSlots_ = templateObject->slotSpan();
     numFixedSlots_ = templateObject->numFixedSlots();
 }
