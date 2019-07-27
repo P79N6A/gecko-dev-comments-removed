@@ -453,6 +453,7 @@ TiltVisualizer.Presenter.prototype = {
   _loop: function TVP__loop()
   {
     let renderer = this._renderer;
+    let frameStartTime = this.chromeWindow.performance.now();
 
     
     if (!renderer || !renderer.context) {
@@ -460,7 +461,7 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    this.chromeWindow.mozRequestAnimationFrame(this._loop);
+    this.chromeWindow.requestAnimationFrame(this._loop);
 
     
     if (this._redraw) {
@@ -473,17 +474,17 @@ TiltVisualizer.Presenter.prototype = {
       this._controllerUpdate(this._time, this._delta);
     }
 
-    this._handleFrameDelta();
+    this._handleFrameDelta(frameStartTime);
     this._handleKeyframeNotifications();
   },
 
   
 
 
-  _handleFrameDelta: function TVP__handleFrameDelta()
+  _handleFrameDelta: function TVP__handleFrameDelta(frameStartTime)
   {
     this._prevFrameTime = this._currFrameTime;
-    this._currFrameTime = this.chromeWindow.mozAnimationStartTime;
+    this._currFrameTime = frameStartTime;
     this._delta = this._currFrameTime - this._prevFrameTime;
   },
 
