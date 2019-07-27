@@ -536,7 +536,7 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
     sMessageLoop->set_thread_name("Gecko");
     
     
-    sMessageLoop->set_hang_timeouts(512, 8192);
+    sMessageLoop->set_hang_timeouts(128, 8192);
   }
 
   if (XRE_GetProcessType() == GeckoProcessType_Default &&
