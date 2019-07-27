@@ -84,15 +84,15 @@ function zipDirectory(zipFile, dirToArchive) {
   return deferred.promise;
 }
 
-function uploadPackage(client, webappsActor, packageFile) {
+function uploadPackage(client, webappsActor, packageFile, progressCallback) {
   if (client.traits.bulk) {
-    return uploadPackageBulk(client, webappsActor, packageFile);
+    return uploadPackageBulk(client, webappsActor, packageFile, progressCallback);
   } else {
-    return uploadPackageJSON(client, webappsActor, packageFile);
+    return uploadPackageJSON(client, webappsActor, packageFile, progressCallback);
   }
 }
 
-function uploadPackageJSON(client, webappsActor, packageFile) {
+function uploadPackageJSON(client, webappsActor, packageFile, progressCallback) {
   let deferred = promise.defer();
 
   let request = {
@@ -107,7 +107,7 @@ function uploadPackageJSON(client, webappsActor, packageFile) {
   let bytesRead = 0;
 
   function emitProgress() {
-    emitInstallProgress({
+    progressCallback({
       bytesSent: bytesRead,
       totalBytes: fileSize
     });
@@ -163,7 +163,7 @@ function uploadPackageJSON(client, webappsActor, packageFile) {
   return deferred.promise;
 }
 
-function uploadPackageBulk(client, webappsActor, packageFile) {
+function uploadPackageBulk(client, webappsActor, packageFile, progressCallback) {
   let deferred = promise.defer();
 
   let request = {
@@ -190,7 +190,7 @@ function uploadPackageBulk(client, webappsActor, packageFile) {
       NetUtil.asyncFetch(packageFile, function(inputStream) {
         let copying = copyFrom(inputStream);
         copying.on("progress", (e, progress) => {
-          emitInstallProgress(progress);
+          progressCallback(progress);
         });
         copying.then(() => {
           console.log("Bulk upload done");
@@ -212,7 +212,14 @@ function removeServerTemporaryFile(client, fileActor) {
   client.request(request);
 }
 
-function installPackaged(client, webappsActor, packagePath, appId) {
+
+
+
+
+
+
+
+function installPackaged(client, webappsActor, packagePath, appId, progressCallback) {
   let deferred = promise.defer();
   let file = FileUtils.File(packagePath);
   let packagePromise;
@@ -225,7 +232,7 @@ function installPackaged(client, webappsActor, packagePath, appId) {
     packagePromise = promise.resolve(file);
   }
   packagePromise.then((zipFile) => {
-    uploadPackage(client, webappsActor, zipFile)
+    uploadPackage(client, webappsActor, zipFile, progressCallback)
         .then((fileActor) => {
           let request = {
             to: webappsActor,
@@ -259,16 +266,6 @@ function installPackaged(client, webappsActor, packagePath, appId) {
   return deferred.promise;
 }
 exports.installPackaged = installPackaged;
-
-
-
-
-
-
-
-function emitInstallProgress(progress) {
-  exports.emit("install-progress", progress);
-}
 
 function installHosted(client, webappsActor, appId, metadata, manifest) {
   let deferred = promise.defer();
@@ -396,6 +393,8 @@ function App(client, webappsActor, manifest) {
 
   
   this.running = false;
+
+  this.iconURL = null;
 }
 
 App.prototype = {
@@ -427,6 +426,48 @@ App.prototype = {
         });
         return this._target = target;
       });
+  },
+
+  launch: function () {
+    return launchApp(this.client, this.webappsActor,
+                     this.manifest.manifestURL);
+  },
+
+  reload: function () {
+    return reloadApp(this.client, this.webappsActor,
+                     this.manifest.manifestURL);
+  },
+
+  close: function () {
+    return closeApp(this.client, this.webappsActor,
+                    this.manifest.manifestURL)
+  },
+
+  getIcon: function () {
+    if (this.iconURL) {
+      return promise.resolve(this.iconURL);
+    }
+
+    let deferred = promise.defer();
+
+    let request = {
+      to: this.webappsActor,
+      type: "getIconAsDataURL",
+      manifestURL: this.manifest.manifestURL
+    };
+
+    this.client.request(request, res => {
+      if (res.error) {
+        deferred.reject(res.message || res.error);
+      } else if (res.url) {
+        this.iconURL = res.url;
+        deferred.resolve(res.url);
+      } else {
+        deferred.reject("Unable to fetch app icon");
+      }
+    });
+
+    return deferred.promise;
   }
 };
 
@@ -439,8 +480,10 @@ function AppActorFront(client, form) {
   this.actor = form.webappsActor;
 
   this._clientListener = this._clientListener.bind(this);
+  this._onInstallProgress = this._onInstallProgress.bind(this);
 
   this._listeners = [];
+  EventEmitter.decorate(this);
 }
 
 AppActorFront.prototype = {
@@ -475,7 +518,7 @@ AppActorFront.prototype = {
 
 
   _getApp: function (manifestURL) {
-    let app = this._apps.get(manifestURL);
+    let app = this._apps ? this._apps.get(manifestURL) : null;
     if (app) {
       return promise.resolve(app);
     } else {
@@ -487,7 +530,9 @@ AppActorFront.prototype = {
       return this.client.request(request)
                  .then(res => {
                    let app = new App(this.client, this.actor, res.app);
-                   this._apps.set(manifestURL, app);
+                   if (this._apps) {
+                     this._apps.set(manifestURL, app);
+                   }
                    return app;
                  }, e => {
                    console.error("Unable to retrieve app", manifestURL, e);
@@ -500,24 +545,21 @@ AppActorFront.prototype = {
 
 
   watchApps: function (listener) {
-    this._listeners.push(listener);
+    
+    
+    if (this._loadingPromise) {
+      return this._loadingPromise;
+    }
 
     
     
     
-    if (this._listeners.length > 1) {
+    if (this._apps) {
       this.runningApps.forEach((app, manifestURL) => {
         listener("appOpen", app);
       });
       return promise.resolve();
     }
-
-    let client = this.client;
-    let f = this._clientListener;
-    client.addListener("appOpen", f);
-    client.addListener("appClose", f);
-    client.addListener("appInstall", f);
-    client.addListener("appUninstall", f);
 
     
     
@@ -525,8 +567,9 @@ AppActorFront.prototype = {
       to: this.actor,
       type: "getAll"
     };
-    return this.client.request(request)
+    return this._loadingPromise = this.client.request(request)
       .then(res => {
+        delete this._loadingPromise;
         this._apps = new Map();
         for (let a of res.apps) {
           let app = new App(this.client, this.actor, a);
@@ -556,16 +599,80 @@ AppActorFront.prototype = {
       })
       .then(() => {
         
-        let request = {
-          to: this.actor,
-          type: "watchApps"
-        };
-        return this.client.request(request);
+        return this._listenAppEvents(listener);
       });
   },
 
+  fetchIcons: function () {
+    
+    
+    let promises = [];
+    for (let [manifestURL, app] of this._apps) {
+      promises.push(app.getIcon());
+    }
+    return promise.all(promises)
+                  .then(null, () => {}); 
+  },
+
+  _listenAppEvents: function (listener) {
+    this._listeners.push(listener);
+
+    if (this._listeners.length > 1) {
+      return promise.resolve();
+    }
+
+    let client = this.client;
+    let f = this._clientListener;
+    client.addListener("appOpen", f);
+    client.addListener("appClose", f);
+    client.addListener("appInstall", f);
+    client.addListener("appUninstall", f);
+
+    let request = {
+      to: this.actor,
+      type: "watchApps"
+    };
+    return this.client.request(request);
+  },
+
+  _unlistenAppEvents: function (listener) {
+    let idx = this._listeners.indexOf(listener);
+    if (idx != -1) {
+      this._listeners.splice(idx, 1);
+    }
+
+    
+    if (this._listeners.length != 0) {
+      return promise.resolve();
+    }
+
+    let client = this.client;
+    let f = this._clientListener;
+    client.removeListener("appOpen", f);
+    client.removeListener("appClose", f);
+    client.removeListener("appInstall", f);
+    client.removeListener("appUninstall", f);
+
+    
+    
+    delete this._apps;
+
+    let request = {
+      to: this.actor,
+      type: "unwatchApps"
+    };
+    return this.client.request(request);
+  },
+
   _clientListener: function (type, message) {
+
     let { manifestURL } = message;
+
+    
+    if (type == "appInstall" && this._apps && this._apps.has(manifestURL)) {
+      this._apps.delete(manifestURL);
+    }
+
     this._getApp(manifestURL).then((app) => {
       switch(type) {
         case "appOpen":
@@ -573,8 +680,23 @@ AppActorFront.prototype = {
           break;
         case "appClose":
           app.running = false;
+          break;
         case "appInstall":
           
+
+          
+          
+          let request = {
+            to: this.actor,
+            type: "listRunningApps"
+          };
+          this.client.request(request)
+              .then(res => {
+                if (res.apps.indexOf(manifestURL) !== -1) {
+                  app.running = true;
+                  this._notifyListeners("appOpen", app);
+                }
+              });
           break;
         case "appUninstall":
           
@@ -588,6 +710,7 @@ AppActorFront.prototype = {
           return;
       }
       this._notifyListeners(type, app);
+
     });
   },
 
@@ -598,31 +721,101 @@ AppActorFront.prototype = {
   },
 
   unwatchApps: function (listener) {
-    let idx = this._listeners.indexOf(listener);
-    if (idx != -1) {
-      this._listeners.splice(idx, 1);
-    }
+    return this._unlistenAppEvents(listener);
+  },
+
+  
+
+
+
+
+
+
+
+  installPackaged: function (packagePath, appId) {
+    let request = () => {
+      return installPackaged(this.client, this.actor, packagePath, appId,
+                             this._onInstallProgress)
+      .then(response => ({
+        appId: response.appId,
+        manifestURL: "app://" + response.appId + "/manifest.webapp"
+      }));
+    };
+    return this._install(request);
+  },
+
+  _onInstallProgress: function (progress) {
+    this.emit("install-progress", progress);
+  },
+
+  _install: function (request) {
+    let deferred = promise.defer();
+    let finalAppId = null, manifestURL = null;
+    let installs = {};
 
     
-    if (this._listeners.length != 0) {
-      return;
-    }
-
-    let request = {
-      to: this.actor,
-      type: "unwatchApps"
+    
+    
+    let resolve = app => {
+      this._unlistenAppEvents(listener);
+      installs = null;
+      deferred.resolve({ app: app, appId: finalAppId });
     };
-    this.client.request(request);
 
-    let client = this.client;
-    let f = this._clientListener;
-    client.removeListener("appOpen", f);
-    client.removeListener("appClose", f);
-    client.removeListener("appInstall", f);
-    client.removeListener("appUninstall", f);
+    
+    
+    let listener = (type, app) => {
+      if (type == "appInstall") {
+        
+        
+        
+        if (app.manifest.manifestURL === manifestURL) {
+          resolve(app);
+        } else {
+          installs[app.manifest.manifestURL] = app;
+        }
+      }
+    };
+    this._listenAppEvents(listener)
+        
+        .then(request)
+        .then(response => {
+          finalAppId = response.appId;
+          manifestURL = response.manifestURL;
+
+          
+          
+          if (manifestURL in installs) {
+            resolve(installs[manifestURL]);
+          }
+        }, deferred.reject);
+
+    return deferred.promise;
+
+  },
+
+  
+
+
+
+
+
+
+
+  installHosted: function (appId, metadata, manifest) {
+    let manifestURL = metadata.manifestURL ||
+                      metadata.origin + "/manifest.webapp";
+    let request = () => {
+      return installHosted(this.client, this.actor, appId, metadata,
+                           manifest)
+        .then(response => ({
+          appId: response.appId,
+          manifestURL: manifestURL
+        }));
+    };
+    return this._install(request);
   }
 }
 
 exports.AppActorFront = AppActorFront;
-EventEmitter.decorate(exports);
 
