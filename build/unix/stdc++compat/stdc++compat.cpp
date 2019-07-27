@@ -23,6 +23,7 @@
 
 
 
+
 #define GLIBCXX_VERSION(a, b, c) (((a) << 16) | ((b) << 8) | (c))
 
 namespace std {
@@ -59,9 +60,14 @@ namespace std {
     template wstring& wstring::assign(wstring&&);
 #endif 
 #endif 
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 16)
+    
+
+    template int string::_S_compare(size_type, size_type);
+#endif
 }
 
-namespace std __attribute__((visibility("default"))) {
+namespace std MOZ_EXPORT {
 #if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 14)
     
     struct _List_node_base
@@ -174,5 +180,18 @@ extern "C" void
 __cxa_throw_bad_array_new_length()
 {
     MOZ_CRASH();
+}
+#endif
+
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 21)
+
+
+
+
+namespace std {
+    runtime_error::runtime_error(char const* s)
+    : runtime_error(std::string(s))
+    {
+    }
 }
 #endif
