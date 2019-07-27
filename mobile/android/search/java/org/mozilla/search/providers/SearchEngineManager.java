@@ -11,6 +11,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.util.GeckoJarReader;
 import org.mozilla.search.R;
@@ -23,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class SearchEngineManager implements SharedPreferences.OnSharedPreferenceChangeListener {
     private static final String LOG_TAG = "SearchEngineManager";
@@ -118,8 +120,7 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
     public List<SearchEngine> getAllEngines() {
         
-        final String url = getSearchPluginsJarUrl("list.txt");
-        InputStream in = GeckoJarReader.getStream(url);
+        InputStream in = getInputStreamFromJar("list.txt");
 
         
         if (in == null) {
@@ -167,7 +168,7 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
 
     private SearchEngine createEngine(String identifier) {
-        InputStream in = getEngineFromJar(identifier);
+        InputStream in = getInputStreamFromJar(identifier + ".xml");
 
         
         if (in == null) {
@@ -216,8 +217,26 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
 
 
-    private InputStream getEngineFromJar(String identifier) {
-        final String url = getSearchPluginsJarUrl(identifier + ".xml");
+    private InputStream getInputStreamFromJar(String fileName) {
+        final Locale locale = Locale.getDefault();
+
+        
+        final String languageTag = BrowserLocaleManager.getLanguageTag(locale);
+        String url = getSearchPluginsJarURL(languageTag, fileName);
+
+        final InputStream in = GeckoJarReader.getStream(url);
+        if (in != null) {
+            return in;
+        }
+
+        
+        final String language = BrowserLocaleManager.getLanguage(locale);
+        if (languageTag.equals(language)) {
+            
+            return null;
+        }
+
+        url = getSearchPluginsJarURL(language, fileName);
         return GeckoJarReader.getStream(url);
     }
 
@@ -227,10 +246,8 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
 
 
-    private String getSearchPluginsJarUrl(String fileName) {
-        
-        final String locale = "en-US";
 
+    private String getSearchPluginsJarURL(String locale, String fileName) {
         final String path = "!/chrome/" + locale + "/locale/" + locale + "/browser/searchplugins/" + fileName;
         return "jar:jar:file://" + context.getPackageResourcePath() + "!/" + AppConstants.OMNIJAR_NAME + path;
     }
