@@ -38,7 +38,7 @@ add_task(function () {
   yield bookmarksDeferred.promise;
 
   
-  yield promiseAddVisits([
+  yield PlacesTestUtils.addVisits([
     { uri: visitedURIs[0], transition: TRANSITION_LINK },
     { uri: visitedURIs[1], transition: TRANSITION_TYPED },
     { uri: visitedURIs[2], transition: TRANSITION_BOOKMARK },

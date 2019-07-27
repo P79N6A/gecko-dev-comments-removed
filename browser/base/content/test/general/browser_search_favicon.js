@@ -6,67 +6,6 @@ let gEngine;
 let gUnifiedCompletePref = "browser.urlbar.unifiedcomplete";
 let gRestyleSearchesPref = "browser.urlbar.restyleSearches";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function promiseAddVisits(aPlaceInfo) {
-  return new Promise((resolve, reject) => {
-    let places = [];
-    if (aPlaceInfo instanceof Ci.nsIURI) {
-      places.push({ uri: aPlaceInfo });
-    }
-    else if (Array.isArray(aPlaceInfo)) {
-      places = places.concat(aPlaceInfo);
-    } else {
-      places.push(aPlaceInfo)
-    }
-
-    
-    let now = Date.now();
-    for (let i = 0, len = places.length; i < len; ++i) {
-      if (!places[i].title) {
-        places[i].title = "test visit for " + places[i].uri.spec;
-      }
-      places[i].visits = [{
-        transitionType: places[i].transition === undefined ? Ci.nsINavHistoryService.TRANSITION_LINK
-                                                           : places[i].transition,
-        visitDate: places[i].visitDate || (now++) * 1000,
-        referrerURI: places[i].referrer
-      }];
-    }
-
-    PlacesUtils.asyncHistory.updatePlaces(
-      places,
-      {
-        handleError: function AAV_handleError(aResultCode, aPlaceInfo) {
-          let ex = new Components.Exception("Unexpected error in adding visits.",
-                                            aResultCode);
-          reject(ex);
-        },
-        handleResult: function () {},
-        handleCompletion: function UP_handleCompletion() {
-          resolve();
-        }
-      }
-    );
-  });
-}
-
 registerCleanupFunction(() => {
   Services.prefs.clearUserPref(gUnifiedCompletePref);
   Services.prefs.clearUserPref(gRestyleSearchesPref);
@@ -90,7 +29,7 @@ add_task(function*() {
   Services.search.currentEngine = gEngine;
 
   let uri = NetUtil.newURI("http://s.example.com/search?q=foo&client=1");
-  yield promiseAddVisits({ uri: uri, title: "Foo - SearchEngine Search" });
+  yield PlacesTestUtils.addVisits({ uri: uri, title: "Foo - SearchEngine Search" });
 
   let tab = gBrowser.selectedTab = gBrowser.addTab("about:mozilla", {animate: false});
   yield promiseTabLoaded(gBrowser.selectedTab);

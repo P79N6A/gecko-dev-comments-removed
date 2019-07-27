@@ -63,70 +63,6 @@ function uri(aURIString)
 
 
 
-
-
-
-
-
-
-
-
-function promiseAddVisits(aPlaceInfo)
-{
-  let deferred = Promise.defer();
-  let places = [];
-  if (aPlaceInfo instanceof Ci.nsIURI) {
-    places.push({ uri: aPlaceInfo });
-  }
-  else if (Array.isArray(aPlaceInfo)) {
-    places = places.concat(aPlaceInfo);
-  } else {
-    places.push(aPlaceInfo)
-  }
-
-  
-  let now = Date.now();
-  for (let i = 0; i < places.length; i++) {
-    if (!places[i].title) {
-      places[i].title = "test visit for " + places[i].uri.spec;
-    }
-    places[i].visits = [{
-      transitionType: places[i].transition === undefined ? Ci.nsINavHistoryService.TRANSITION_LINK
-                                                         : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000,
-      referrerURI: places[i].referrer
-    }];
-  }
-
-  PlacesUtils.asyncHistory.updatePlaces(
-    places,
-    {
-      handleError: function handleError(aResultCode, aPlaceInfo) {
-        let ex = new Components.Exception("Unexpected error in adding visits.",
-                                          aResultCode);
-        deferred.reject(ex);
-      },
-      handleResult: function () {},
-      handleCompletion: function handleCompletion() {
-        deferred.resolve();
-      }
-    }
-  );
-
-  return deferred.promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-
 function promiseIsURIVisited(aURI)
 {
   let deferred = Promise.defer();
@@ -390,7 +326,7 @@ function test_history_cleared_with_direct_match()
 {
   const TEST_URI = uri("http://mozilla.org/foo");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
-  yield promiseAddVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
   do_check_true(yield promiseIsURIVisited(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
@@ -400,7 +336,7 @@ function test_history_cleared_with_subdomain()
 {
   const TEST_URI = uri("http://www.mozilla.org/foo");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
-  yield promiseAddVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
   do_check_true(yield promiseIsURIVisited(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
@@ -410,7 +346,7 @@ function test_history_not_cleared_with_uri_contains_domain()
 {
   const TEST_URI = uri("http://ilovemozilla.org/foo");
   do_check_false(yield promiseIsURIVisited(TEST_URI));
-  yield promiseAddVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
   do_check_true(yield promiseIsURIVisited(TEST_URI));
   ForgetAboutSite.removeDataFromDomain("mozilla.org");
   do_check_true(yield promiseIsURIVisited(TEST_URI));

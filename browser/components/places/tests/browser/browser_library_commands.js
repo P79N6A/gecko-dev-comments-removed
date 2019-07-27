@@ -19,7 +19,7 @@ add_task(function* test_date_container() {
   let library = yield promiseLibrary();
   info("Ensure date containers under History cannot be cut but can be deleted");
 
-  yield promiseAddVisits(TEST_URI);
+  yield PlacesTestUtils.addVisits(TEST_URI);
 
   
   let PO = library.PlacesOrganizer;
