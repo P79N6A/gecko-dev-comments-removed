@@ -205,6 +205,7 @@ WebGLContext::WebGLContext()
     , mBypassShaderValidation(false)
     , mGLMaxSamples(1)
     , mNeedsFakeNoAlpha(false)
+    , mNeedsFakeNoStencil(false)
 {
     mGeneration = 0;
     mInvalidated = false;
@@ -236,9 +237,10 @@ WebGLContext::WebGLContext()
     mViewportWidth = 0;
     mViewportHeight = 0;
 
-    mScissorTestEnabled = 0;
     mDitherEnabled = 1;
     mRasterizerDiscardEnabled = 0; 
+    mScissorTestEnabled = 0;
+    mStencilTestEnabled = 0;
 
     
     
@@ -899,9 +901,13 @@ WebGLContext::SetDimensions(int32_t signedWidth, int32_t signedHeight)
     ++mGeneration;
 
     
-    if (gl->WorkAroundDriverBugs()) {
+    if (gl->WorkAroundDriverBugs() && gl->IsANGLE()) {
         if (!mOptions.alpha && gl->Caps().alpha)
             mNeedsFakeNoAlpha = true;
+
+        
+        if (gl->Caps().depth && !gl->Caps().stencil)
+            mNeedsFakeNoStencil = true;
     }
 
     
@@ -1862,23 +1868,30 @@ size_t mozilla::RoundUpToMultipleOf(size_t value, size_t multiple)
 
 WebGLContext::ScopedMaskWorkaround::ScopedMaskWorkaround(WebGLContext& webgl)
     : mWebGL(webgl)
-    , mNeedsChange(NeedsChange(webgl))
+    , mFakeNoAlpha(ShouldFakeNoAlpha(webgl))
+    , mFakeNoStencil(ShouldFakeNoStencil(webgl))
 {
-    if (mNeedsChange) {
+    if (mFakeNoAlpha) {
         mWebGL.gl->fColorMask(mWebGL.mColorWriteMask[0],
                               mWebGL.mColorWriteMask[1],
                               mWebGL.mColorWriteMask[2],
                               false);
     }
+    if (mFakeNoStencil) {
+        mWebGL.gl->fDisable(LOCAL_GL_STENCIL_TEST);
+    }
 }
 
 WebGLContext::ScopedMaskWorkaround::~ScopedMaskWorkaround()
 {
-    if (mNeedsChange) {
+    if (mFakeNoAlpha) {
         mWebGL.gl->fColorMask(mWebGL.mColorWriteMask[0],
                               mWebGL.mColorWriteMask[1],
                               mWebGL.mColorWriteMask[2],
                               mWebGL.mColorWriteMask[3]);
+    }
+    if (mFakeNoStencil) {
+        mWebGL.gl->fEnable(LOCAL_GL_STENCIL_TEST);
     }
 }
 

@@ -965,6 +965,7 @@ private:
     realGLboolean mDitherEnabled;
     realGLboolean mRasterizerDiscardEnabled;
     realGLboolean mScissorTestEnabled;
+    realGLboolean mStencilTestEnabled;
 
     bool ValidateCapabilityEnum(GLenum cap, const char* info);
     realGLboolean* GetStateTrackingSlot(GLenum cap);
@@ -1529,17 +1530,26 @@ protected:
     uint64_t mLastUseIndex;
 
     bool mNeedsFakeNoAlpha;
+    bool mNeedsFakeNoStencil;
 
     struct ScopedMaskWorkaround {
         WebGLContext& mWebGL;
-        const bool mNeedsChange;
+        const bool mFakeNoAlpha;
+        const bool mFakeNoStencil;
 
-        static bool NeedsChange(WebGLContext& webgl) {
+        static bool ShouldFakeNoAlpha(WebGLContext& webgl) {
             
             
             return !webgl.mBoundDrawFramebuffer &&
                    webgl.mNeedsFakeNoAlpha &&
                    webgl.mColorWriteMask[3] != false;
+        }
+
+        static bool ShouldFakeNoStencil(WebGLContext& webgl) {
+            
+            return !webgl.mBoundDrawFramebuffer &&
+                   webgl.mNeedsFakeNoStencil &&
+                   webgl.mStencilTestEnabled;
         }
 
         explicit ScopedMaskWorkaround(WebGLContext& webgl);
