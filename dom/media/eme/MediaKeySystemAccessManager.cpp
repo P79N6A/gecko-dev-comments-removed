@@ -10,6 +10,9 @@
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
 #include "mozilla/DetailedPromise.h"
+#ifdef XP_WIN
+#include "mozilla/WindowsVersion.h"
+#endif
 
 namespace mozilla {
 namespace dom {
@@ -44,6 +47,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 MediaKeySystemAccessManager::MediaKeySystemAccessManager(nsPIDOMWindow* aWindow)
   : mWindow(aWindow)
   , mAddedObservers(false)
+#ifdef XP_WIN
+  , mTrialCreator(new GMPVideoDecoderTrialCreator())
+#endif
 {
 }
 
@@ -144,6 +150,16 @@ MediaKeySystemAccessManager::Request(DetailedPromise* aPromise,
   if (aOptions.IsEmpty() ||
       MediaKeySystemAccess::IsSupported(keySystem, aOptions)) {
     nsRefPtr<MediaKeySystemAccess> access(new MediaKeySystemAccess(mWindow, keySystem));
+#ifdef XP_WIN
+    if (IsVistaOrLater()) {
+      
+      
+      
+      
+      mTrialCreator->MaybeAwaitTrialCreate(keySystem, access, aPromise, mWindow);
+      return;
+    }
+#endif
     aPromise->MaybeResolve(access);
     return;
   }
