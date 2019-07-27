@@ -10,8 +10,6 @@
 
 #include "prlog.h"
 
-#ifdef PR_LOGGING
-
 #ifndef PLUGIN_LOGGING    
 #define PLUGIN_LOGGING 1  // master compile-time switch for pluging logging
 #endif
@@ -57,8 +55,6 @@ public:
 };
 
 #endif   
-
-#endif  
 
 
 #ifdef PLUGIN_LOGGING
