@@ -103,8 +103,9 @@ const unwrapDebuggerObjectGlobal = wrappedGlobal => {
     
     
     
+    
     let global = wrappedGlobal.unsafeDereference();
-    Object.getPrototypeOf(global);
+    Object.getPrototypeOf(global) + "";
     return global;
   }
   catch (e) {
