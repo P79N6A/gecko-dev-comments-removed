@@ -7529,36 +7529,6 @@ IonBuilder::getStaticName(JSObject* staticObject, PropertyName* name, bool* psuc
 
 
 bool
-jit::TypeSetIncludes(TypeSet* types, MIRType input, TypeSet* inputTypes)
-{
-    if (!types)
-        return inputTypes && inputTypes->empty();
-
-    switch (input) {
-      case MIRType_Undefined:
-      case MIRType_Null:
-      case MIRType_Boolean:
-      case MIRType_Int32:
-      case MIRType_Double:
-      case MIRType_Float32:
-      case MIRType_String:
-      case MIRType_Symbol:
-      case MIRType_MagicOptimizedArguments:
-        return types->hasType(TypeSet::PrimitiveType(ValueTypeFromMIRType(input)));
-
-      case MIRType_Object:
-        return types->unknownObject() || (inputTypes && inputTypes->isSubset(types));
-
-      case MIRType_Value:
-        return types->unknown() || (inputTypes && inputTypes->isSubset(types));
-
-      default:
-        MOZ_CRASH("Bad input type");
-    }
-}
-
-
-bool
 jit::NeedsPostBarrier(CompileInfo& info, MDefinition* value)
 {
     if (!GetJitContext()->runtime->gcNursery().exists())

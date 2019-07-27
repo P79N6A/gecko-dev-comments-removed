@@ -1771,6 +1771,61 @@ jit::MergeTypes(MIRType* ptype, TemporaryTypeSet** ptypeSet,
     return true;
 }
 
+
+
+bool
+jit::TypeSetIncludes(TypeSet* types, MIRType input, TypeSet* inputTypes)
+{
+    if (!types)
+        return inputTypes && inputTypes->empty();
+
+    switch (input) {
+      case MIRType_Undefined:
+      case MIRType_Null:
+      case MIRType_Boolean:
+      case MIRType_Int32:
+      case MIRType_Double:
+      case MIRType_Float32:
+      case MIRType_String:
+      case MIRType_Symbol:
+      case MIRType_MagicOptimizedArguments:
+        return types->hasType(TypeSet::PrimitiveType(ValueTypeFromMIRType(input)));
+
+      case MIRType_Object:
+        return types->unknownObject() || (inputTypes && inputTypes->isSubset(types));
+
+      case MIRType_Value:
+        return types->unknown() || (inputTypes && inputTypes->isSubset(types));
+
+      default:
+        MOZ_CRASH("Bad input type");
+    }
+}
+
+
+bool
+jit::EqualTypes(MIRType type1, TemporaryTypeSet* typeset1,
+                MIRType type2, TemporaryTypeSet* typeset2)
+{
+    
+    if (type1 != type2)
+        return false;
+
+    
+    if (!typeset1 && !typeset2)
+        return true;
+
+    
+    
+    if (typeset1 && !typeset2)
+        return TypeSetIncludes(typeset1, type2, nullptr);
+    if (!typeset1 && typeset2)
+        return TypeSetIncludes(typeset2, type1, nullptr);
+
+    
+    return typeset1->equals(typeset2);
+}
+
 bool
 MPhi::specializeType()
 {
