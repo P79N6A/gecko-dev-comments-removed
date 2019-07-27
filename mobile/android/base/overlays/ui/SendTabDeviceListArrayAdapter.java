@@ -105,7 +105,8 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
         if (currentState != State.LIST) {
             
             final Drawable sendTabIcon = context.getResources().getDrawable(R.drawable.overlay_send_tab_icon);
-            row.setEnabledLabelAndIcon(dummyRecordName, sendTabIcon);
+            row.setText(dummyRecordName);
+            row.setDrawable(sendTabIcon);
         }
 
         
@@ -124,7 +125,8 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
         final ParcelableClientRecord clientRecord = getItem(position);
         if (currentState == State.LIST) {
             final Drawable clientIcon = context.getResources().getDrawable(getImage(clientRecord));
-            row.setEnabledLabelAndIcon(clientRecord.name, clientIcon);
+            row.setText(clientRecord.name);
+            row.setDrawable(clientIcon);
 
             final String listenerGUID = clientRecord.guid;
 
