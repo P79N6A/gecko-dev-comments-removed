@@ -45,7 +45,10 @@ let ReaderParent = {
 
       case "Reader:ArticleGet":
         this._getArticle(message.data.url, message.target).then((article) => {
-          message.target.messageManager.sendAsyncMessage("Reader:ArticleData", { article: article });
+          
+          if (message.target.messageManager) {
+            message.target.messageManager.sendAsyncMessage("Reader:ArticleData", { article: article });
+          }
         });
         break;
 
