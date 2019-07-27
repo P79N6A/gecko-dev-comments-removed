@@ -219,7 +219,7 @@ class SharedThreadPool;
 
 
 
-TemporaryRef<SharedThreadPool> GetMediaDecodeThreadPool();
+TemporaryRef<SharedThreadPool> GetMediaThreadPool();
 
 enum H264_PROFILE {
   H264_PROFILE_UNKNOWN                     = 0,
