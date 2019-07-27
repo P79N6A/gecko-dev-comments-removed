@@ -24,6 +24,7 @@
 #include "apple/AppleDecoderModule.h"
 #endif
 #ifdef MOZ_WIDGET_ANDROID
+#include "nsIGfxInfo.h"
 #include "AndroidBridge.h"
 #endif
 
@@ -181,6 +182,27 @@ IsAppleAvailable()
 }
 
 static bool
+IsAndroidAvailable()
+{
+#ifndef MOZ_WIDGET_ANDROID
+  return false;
+#else
+  
+  nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
+
+  nsString vendor;
+  if (NS_FAILED(gfxInfo->GetAdapterVendorID(vendor)) ||
+      vendor.Find("Imagination") == 0) {
+    printf_stderr("SNORP: not doing video for PowerVR\n");
+    return nullptr;
+  }
+
+  
+  return AndroidBridge::Bridge()->GetAPIVersion() >= 16;
+#endif
+}
+
+static bool
 IsGonkMP4DecoderAvailable()
 {
   return Preferences::GetBool("media.fragmented-mp4.gonk.enabled", false);
@@ -194,10 +216,7 @@ HavePlatformMPEGDecoders()
          
          IsVistaOrLater() ||
 #endif
-#ifdef MOZ_WIDGET_ANDROID
-         
-         (AndroidBridge::Bridge()->GetAPIVersion() >= 16) ||
-#endif
+         IsAndroidAvailable() ||
          IsFFmpegAvailable() ||
          IsAppleAvailable() ||
          IsGonkMP4DecoderAvailable() ||
