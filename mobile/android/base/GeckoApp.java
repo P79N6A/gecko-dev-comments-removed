@@ -1566,8 +1566,6 @@ public abstract class GeckoApp
                     rec.recordJavaStartupTime(javaDuration);
                 }
 
-                UpdateServiceHelper.registerForUpdates(GeckoApp.this);
-
                 
                 
                 
@@ -1577,6 +1575,14 @@ public abstract class GeckoApp
                 }
             }
         }, 50);
+
+        final int updateServiceDelay = 30 * 1000;
+        ThreadUtils.getBackgroundHandler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                UpdateServiceHelper.registerForUpdates(GeckoApp.this);
+            }
+        }, updateServiceDelay);
 
         if (mIsRestoringActivity) {
             Tab selectedTab = Tabs.getInstance().getSelectedTab();
