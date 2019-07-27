@@ -662,6 +662,10 @@ class MochitestOptions(optparse.OptionParser):
         
         options.ignoreMissingLeaks = ["geckomediaplugin"]
 
+        
+        if mozinfo.isWin:
+            options.ignoreMissingLeaks.append("tab")
+
         return options
 
 
