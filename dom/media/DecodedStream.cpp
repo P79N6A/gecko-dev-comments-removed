@@ -641,7 +641,10 @@ int64_t
 DecodedStream::GetPosition() const
 {
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  return mData->GetPosition();
+  
+  
+  MOZ_ASSERT(mStartTime.isSome());
+  return mStartTime.ref() + mData->GetPosition();
 }
 
 bool
