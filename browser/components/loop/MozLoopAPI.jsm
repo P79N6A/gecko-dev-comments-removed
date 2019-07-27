@@ -284,6 +284,33 @@ function injectLoopAPI(targetWindow) {
 
 
 
+    confirm: {
+      enumerable: true,
+      writable: true,
+      value: function(bodyMessage, okButtonMessage, cancelButtonMessage, callback) {
+        try {
+          let buttonFlags =
+            (Ci.nsIPrompt.BUTTON_POS_0 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING) +
+            (Ci.nsIPrompt.BUTTON_POS_1 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING);
+
+          let chosenButton = Services.prompt.confirmEx(null, "",
+            bodyMessage, buttonFlags, okButtonMessage, cancelButtonMessage,
+            null, null, {});
+
+          callback(null, chosenButton == 0);
+        } catch (ex) {
+          callback(cloneValueInto(ex, targetWindow));
+        }
+      }
+    },
+
+    
+
+
+
+
+
+
 
 
 
