@@ -13676,6 +13676,14 @@ nsGlobalWindow::BeginWindowMove(Event& aMouseDownEvent, Element* aPanel,
   aError = widget->BeginMoveDrag(mouseEvent);
 }
 
+already_AddRefed<nsWindowRoot>
+nsGlobalWindow::GetWindowRoot(mozilla::ErrorResult& aError)
+{
+  FORWARD_TO_OUTER_OR_THROW(GetWindowRoot, (aError), aError, nullptr);
+  nsCOMPtr<nsPIWindowRoot> root = GetTopWindowRoot();
+  return root.forget().downcast<nsWindowRoot>();
+}
+
 
 
 NS_IMETHODIMP
