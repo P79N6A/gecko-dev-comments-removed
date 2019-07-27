@@ -5049,8 +5049,82 @@ SetOutOfMemoryCallback(JSRuntime *rt, OutOfMemoryCallback cb, void *data);
 
 
 
+
 extern JS_PUBLIC_API(bool)
 CaptureCurrentStack(JSContext *cx, MutableHandleObject stackp, unsigned maxFrameCount = 0);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum class SavedFrameResult {
+    Ok,
+    AccessDenied
+};
+
+
+
+
+
+extern JS_PUBLIC_API(SavedFrameResult)
+GetSavedFrameSource(JSContext *cx, HandleObject savedFrame, MutableHandleString sourcep);
+
+
+
+
+extern JS_PUBLIC_API(SavedFrameResult)
+GetSavedFrameLine(JSContext *cx, HandleObject savedFrame, uint32_t *linep);
+
+
+
+
+extern JS_PUBLIC_API(SavedFrameResult)
+GetSavedFrameColumn(JSContext *cx, HandleObject savedFrame, uint32_t *columnp);
+
+
+
+
+
+
+extern JS_PUBLIC_API(SavedFrameResult)
+GetSavedFrameFunctionDisplayName(JSContext *cx, HandleObject savedFrame, MutableHandleString namep);
+
+
+
+
+
+
+extern JS_PUBLIC_API(SavedFrameResult)
+GetSavedFrameParent(JSContext *cx, HandleObject savedFrame, MutableHandleObject parentp);
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+StringifySavedFrameStack(JSContext *cx, HandleObject stack, MutableHandleString stringp);
+
 
 } 
 
