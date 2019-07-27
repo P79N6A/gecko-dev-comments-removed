@@ -5,6 +5,19 @@
 %include ../shared/devedition.inc.css
 
 
+:root[devtoolstheme="dark"] {
+  --search-button-image: url("chrome://browser/skin/devedition/search.svg#search-icon-mac-inverted");
+}
+:root[devtoolstheme="light"] {
+  --search-button-image: url("chrome://browser/skin/devedition/search.svg#search-icon-mac");
+}
+
+
+#navigator-toolbox::after {
+  linear-gradient(to top, var(--chrome-navigator-toolbox-separator-color), var(--chrome-navigator-toolbox-separator-color) 1px, transparent 1px);
+}
+
+
 
 #main-window[tabsintitlebar] #TabsToolbar {
   padding-left: 50px;
@@ -31,12 +44,12 @@
   height: 22px !important;
   box-shadow: none !important;
   border: none !important;
-  background: #252C33 !important;
+  background: var(--chrome-nav-buttons-background) !important;
 }
 
 #back-button:hover:not([disabled="true"]),
 #forward-button:hover:not([disabled="true"]) {
-  background: #1B2127 !important;
+  background: var(--chrome-nav-buttons-hover-background) !important;
 }
 
 #back-button {
@@ -63,11 +76,6 @@
 #forward-button:hover:active:not(:-moz-lwtheme) {
   background-image: none;
   box-shadow: none;
-}
-
-
-.search-go-button {
-  list-style-image: url("chrome://browser/skin/devedition/search.svg#search-icon-mac-inverted");
 }
 
 
