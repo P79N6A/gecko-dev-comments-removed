@@ -33,12 +33,12 @@ public:
 
   void        GetSocketAddr(nsAString& aAddrStr) const;
   DataSocket* GetDataSocket();
-  SocketBase* GetSocketBase();
+  SocketBase* GetSocketBase() override;
 
   
   
 
-  bool IsShutdownOnMainThread() const;
+  bool IsShutdownOnMainThread() const override;
   void ShutdownOnMainThread();
 
   bool IsShutdownOnIOThread() const;
@@ -258,10 +258,8 @@ ListenSocketIO::OnListening()
   AddWatchers(READ_WATCHER, true);
 
   
-  nsRefPtr<nsRunnable> runnable =
-      new SocketIOEventRunnable<ListenSocketIO>(
-        this, SocketIOEventRunnable<ListenSocketIO>::CONNECT_SUCCESS);
-  NS_DispatchToMainThread(runnable);
+  NS_DispatchToMainThread(
+    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS));
 }
 
 void
@@ -282,11 +280,8 @@ ListenSocketIO::FireSocketError()
   Close();
 
   
-  nsRefPtr<nsRunnable> r =
-    new SocketIOEventRunnable<ListenSocketIO>(
-      this, SocketIOEventRunnable<ListenSocketIO>::CONNECT_ERROR);
-
-  NS_DispatchToMainThread(r);
+  NS_DispatchToMainThread(
+    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_ERROR));
 }
 
 bool

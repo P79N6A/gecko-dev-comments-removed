@@ -278,5 +278,42 @@ SocketIOBase::SocketIOBase()
 SocketIOBase::~SocketIOBase()
 { }
 
+
+
+
+
+SocketIOEventRunnable::SocketIOEventRunnable(SocketIOBase* aIO,
+                                             SocketEvent aEvent)
+  : SocketIORunnable<SocketIOBase>(aIO)
+  , mEvent(aEvent)
+{ }
+
+NS_METHOD
+SocketIOEventRunnable::Run()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  SocketIOBase* io = SocketIORunnable<SocketIOBase>::GetIO();
+
+  if (NS_WARN_IF(io->IsShutdownOnMainThread())) {
+    
+    
+    return NS_OK;
+  }
+
+  SocketBase* socketBase = io->GetSocketBase();
+  MOZ_ASSERT(socketBase);
+
+  if (mEvent == CONNECT_SUCCESS) {
+    socketBase->NotifySuccess();
+  } else if (mEvent == CONNECT_ERROR) {
+    socketBase->NotifyError();
+  } else if (mEvent == DISCONNECT) {
+    socketBase->NotifyDisconnect();
+  }
+
+  return NS_OK;
+}
+
 }
 }

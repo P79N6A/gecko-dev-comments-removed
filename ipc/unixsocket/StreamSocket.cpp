@@ -44,7 +44,7 @@ public:
 
   StreamSocket* GetStreamSocket();
   DataSocket* GetDataSocket();
-  SocketBase* GetSocketBase();
+  SocketBase* GetSocketBase() override;
 
   
   
@@ -55,7 +55,7 @@ public:
   
   
 
-  bool IsShutdownOnMainThread() const;
+  bool IsShutdownOnMainThread() const override;
   void ShutdownOnMainThread();
 
   bool IsShutdownOnIOThread() const;
@@ -303,11 +303,8 @@ StreamSocketIO::Accept(int aFd,
   mAddrSize = aAddrLen;
 
   
-
-  nsRefPtr<nsRunnable> r =
-    new SocketIOEventRunnable<StreamSocketIO>(
-      this, SocketIOEventRunnable<StreamSocketIO>::CONNECT_SUCCESS);
-  NS_DispatchToMainThread(r);
+  NS_DispatchToMainThread(
+    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS));
 
   return NS_OK;
 }
@@ -377,10 +374,8 @@ StreamSocketIO::OnAccepted(int aFd,
   }
   SetSocket(aFd, SOCKET_IS_CONNECTED);
 
-  nsRefPtr<nsRunnable> r =
-    new SocketIOEventRunnable<StreamSocketIO>(
-      this, SocketIOEventRunnable<StreamSocketIO>::CONNECT_SUCCESS);
-  NS_DispatchToMainThread(r);
+  NS_DispatchToMainThread(
+    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS));
 
   AddWatchers(READ_WATCHER, true);
   if (HasPendingData()) {
@@ -406,10 +401,8 @@ StreamSocketIO::OnConnected()
     return;
   }
 
-  nsRefPtr<nsRunnable> r =
-    new SocketIOEventRunnable<StreamSocketIO>(
-      this, SocketIOEventRunnable<StreamSocketIO>::CONNECT_SUCCESS);
-  NS_DispatchToMainThread(r);
+  NS_DispatchToMainThread(
+    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS));
 
   AddWatchers(READ_WATCHER, true);
   if (HasPendingData()) {
@@ -475,11 +468,8 @@ StreamSocketIO::FireSocketError()
   Close();
 
   
-  nsRefPtr<nsRunnable> r =
-    new SocketIOEventRunnable<StreamSocketIO>(
-      this, SocketIOEventRunnable<StreamSocketIO>::CONNECT_ERROR);
-
-  NS_DispatchToMainThread(r);
+  NS_DispatchToMainThread(
+    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_ERROR));
 }
 
 bool

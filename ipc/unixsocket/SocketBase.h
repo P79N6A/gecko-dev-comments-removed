@@ -317,6 +317,39 @@ private:
 
 
 
+
+class SocketIOBase
+{
+public:
+  virtual ~SocketIOBase();
+
+  
+
+
+
+
+
+  virtual SocketBase* GetSocketBase() = 0;
+
+  
+
+
+
+
+
+  virtual bool IsShutdownOnMainThread() const = 0;
+
+protected:
+  SocketIOBase();
+};
+
+
+
+
+
+
+
+
 template <typename T>
 class SocketIORunnable : public nsRunnable
 {
@@ -343,8 +376,8 @@ private:
 
 
 
-template <typename T>
-class SocketIOEventRunnable final : public SocketIORunnable<T>
+
+class SocketIOEventRunnable final : public SocketIORunnable<SocketIOBase>
 {
 public:
   enum SocketEvent {
@@ -353,37 +386,9 @@ public:
     DISCONNECT
   };
 
-  SocketIOEventRunnable(T* aIO, SocketEvent e)
-  : SocketIORunnable<T>(aIO)
-  , mEvent(e)
-  { }
+  SocketIOEventRunnable(SocketIOBase* aIO, SocketEvent aEvent);
 
-  NS_IMETHOD Run() override
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    T* io = SocketIORunnable<T>::GetIO();
-
-    if (io->IsShutdownOnMainThread()) {
-      NS_WARNING("I/O consumer has already been closed!");
-      
-      
-      return NS_OK;
-    }
-
-    SocketBase* base = io->GetSocketBase();
-    MOZ_ASSERT(base);
-
-    if (mEvent == CONNECT_SUCCESS) {
-      base->NotifySuccess();
-    } else if (mEvent == CONNECT_ERROR) {
-      base->NotifyError();
-    } else if (mEvent == DISCONNECT) {
-      base->NotifyDisconnect();
-    }
-
-    return NS_OK;
-  }
+  NS_IMETHOD Run() override;
 
 private:
   SocketEvent mEvent;
@@ -438,23 +443,6 @@ public:
 
 private:
   nsAutoPtr<T> mInstance;
-};
-
-
-
-
-
-
-
-
-
-class SocketIOBase
-{
-public:
-  virtual ~SocketIOBase();
-
-protected:
-  SocketIOBase();
 };
 
 
