@@ -1156,6 +1156,9 @@ ToPropertyDescriptor(JSContext *cx, HandleValue v, bool checkAccessors,
 bool
 CheckPropertyDescriptorAccessors(JSContext *cx, Handle<PropertyDescriptor> desc);
 
+void
+CompletePropertyDescriptor(MutableHandle<PropertyDescriptor> desc);
+
 
 
 
