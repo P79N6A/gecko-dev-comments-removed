@@ -80,14 +80,6 @@ public:
   
   static void InitStatics();
 
-  
-  
-  static bool CurrentThreadRequiresTailDispatch()
-  {
-    AbstractThread* current = GetCurrent();
-    return current && current->RequiresTailDispatch();
-  }
-
 protected:
   virtual ~AbstractThread() {}
   static ThreadLocal<AbstractThread*> sCurrentThreadTLS;
