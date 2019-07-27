@@ -1006,6 +1006,82 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod* ins)
 }
 
 void
+CodeGeneratorX86Shared::visitUDivOrModConstant(LUDivOrModConstant *ins) {
+    Register lhs = ToRegister(ins->numerator());
+    Register output = ToRegister(ins->output());
+    uint32_t d = ins->denominator();
+
+    
+    MOZ_ASSERT(output == eax || output == edx);
+    MOZ_ASSERT(lhs != eax && lhs != edx);
+    bool isDiv = (output == edx);
+
+    if (d == 0) {
+        if (ins->mir()->isTruncated())
+            masm.xorl(output, output);
+        else
+            bailout(ins->snapshot());
+
+        return;
+    }
+
+    
+    MOZ_ASSERT((d & (d - 1)) != 0);
+
+    ReciprocalMulConstants rmc = computeDivisionConstants(d,  32);
+
+    
+    masm.movl(Imm32(rmc.multiplier), eax);
+    masm.umull(lhs);
+    if (rmc.multiplier > UINT32_MAX) {
+        
+        
+        
+        MOZ_ASSERT(rmc.shiftAmount > 0);
+        MOZ_ASSERT(rmc.multiplier < (int64_t(1) << 33));
+
+        
+        
+        
+        
+        
+        
+
+        
+        masm.movl(lhs, eax);
+        masm.subl(edx, eax);
+        masm.shrl(Imm32(1), eax);
+
+        
+        masm.addl(eax, edx);
+        masm.shrl(Imm32(rmc.shiftAmount - 1), edx);
+    } else {
+        masm.shrl(Imm32(rmc.shiftAmount), edx);
+    }
+
+    
+    
+    
+    
+    if (!isDiv) {
+        masm.imull(Imm32(d), edx, edx);
+        masm.movl(lhs, eax);
+        masm.subl(edx, eax);
+
+        
+        
+        
+        
+        if (!ins->mir()->isTruncated())
+            bailoutIf(Assembler::Signed, ins->snapshot());
+    } else if (!ins->mir()->isTruncated()) {
+        masm.imull(Imm32(d), edx, eax);
+        masm.cmpl(lhs, eax);
+        bailoutIf(Assembler::NotEqual, ins->snapshot());
+    }
+}
+
+void
 CodeGeneratorX86Shared::visitMulNegativeZeroCheck(MulNegativeZeroCheck* ool)
 {
     LMulI* ins = ool->ins();
@@ -1050,21 +1126,26 @@ CodeGeneratorX86Shared::visitDivPowTwoI(LDivPowTwoI* ins)
             bailoutIf(Assembler::NonZero, ins->snapshot());
         }
 
-        
-        
-        
-        if (mir->canBeNegativeDividend()) {
-            Register lhsCopy = ToRegister(ins->numeratorCopy());
-            MOZ_ASSERT(lhsCopy != lhs);
-            if (shift > 1)
-                masm.sarl(Imm32(31), lhs);
-            masm.shrl(Imm32(32 - shift), lhs);
-            masm.addl(lhsCopy, lhs);
-        }
+        if (mir->isUnsigned()) {
+            masm.shrl(Imm32(shift), lhs);
+        } else {
+            
+            
+            
+            
+            if (mir->canBeNegativeDividend()) {
+                Register lhsCopy = ToRegister(ins->numeratorCopy());
+                MOZ_ASSERT(lhsCopy != lhs);
+                if (shift > 1)
+                    masm.sarl(Imm32(31), lhs);
+                masm.shrl(Imm32(32 - shift), lhs);
+                masm.addl(lhsCopy, lhs);
+            }
+            masm.sarl(Imm32(shift), lhs);
 
-        masm.sarl(Imm32(shift), lhs);
-        if (negativeDivisor)
-            masm.negl(lhs);
+            if (negativeDivisor)
+                masm.negl(lhs);
+        }
     } else if (shift == 0 && negativeDivisor) {
         
         masm.negl(lhs);
@@ -1248,7 +1329,7 @@ CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI* ins)
 
     Label negative;
 
-    if (ins->mir()->canBeNegativeDividend()) {
+    if (!ins->mir()->isUnsigned() && ins->mir()->canBeNegativeDividend()) {
         
         
         masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
@@ -1256,7 +1337,7 @@ CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI* ins)
 
     masm.andl(Imm32((uint32_t(1) << shift) - 1), lhs);
 
-    if (ins->mir()->canBeNegativeDividend()) {
+    if (!ins->mir()->isUnsigned() && ins->mir()->canBeNegativeDividend()) {
         Label done;
         masm.jump(&done);
 
