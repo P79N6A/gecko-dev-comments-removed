@@ -177,6 +177,10 @@ using namespace mozilla::system;
 #include "nsIIPCBackgroundChildCreateCallback.h"
 #endif
 
+#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_LINUX)
+#include "mozilla/Sandbox.h"
+#endif
+
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 static const char* sClipboardTextFlavors[] = { kUnicodeMime };
 
@@ -646,6 +650,18 @@ ContentParent::StartUp()
     if (XRE_GetProcessType() != GeckoProcessType_Default) {
         return;
     }
+
+#if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19
+    
+    
+    if (!CanSandboxContentProcess()) {
+        
+        
+        printf_stderr("Sandboxing support is required on this platform.  "
+                      "Recompile kernel with CONFIG_SECCOMP_FILTER=y\n");
+        MOZ_CRASH("Sandboxing support is required on this platform.");
+    }
+#endif
 
     
     RegisterStrongMemoryReporter(new ContentParentsMemoryReporter());

@@ -918,13 +918,21 @@ ContentChild::AllocPBackgroundChild(Transport* aTransport,
 bool
 ContentChild::RecvSetProcessSandbox()
 {
-  
-  
+    
+    
 #if defined(MOZ_CONTENT_SANDBOX)
 #if defined(XP_LINUX)
-    if (CanSandboxContentProcess()) {
-        SetContentProcessSandbox();
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19
+    
+    
+    MOZ_ASSERT(CanSandboxContentProcess());
+#else
+    
+    if (!CanSandboxContentProcess()) {
+        return true;
     }
+#endif
+    SetContentProcessSandbox();
 #elif defined(XP_WIN)
     mozilla::SandboxTarget::Instance()->StartSandbox();
 #endif
