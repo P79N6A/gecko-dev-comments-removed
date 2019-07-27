@@ -760,7 +760,7 @@ nsDOMMutationObserver::HandleMutation()
 
   mozilla::dom::Sequence<mozilla::dom::OwningNonNull<nsDOMMutationRecord> >
     mutations;
-  if (mutations.SetCapacity(mPendingMutationCount)) {
+  if (mutations.SetCapacity(mPendingMutationCount, mozilla::fallible)) {
     
     
     nsRefPtr<nsDOMMutationRecord> current;

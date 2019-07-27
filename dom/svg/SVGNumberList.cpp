@@ -17,7 +17,7 @@ namespace mozilla {
 nsresult
 SVGNumberList::CopyFrom(const SVGNumberList& rhs)
 {
-  if (!mNumbers.SetCapacity(rhs.Length())) {
+  if (!mNumbers.SetCapacity(rhs.Length(), fallible)) {
     
     return NS_ERROR_OUT_OF_MEMORY;
   }

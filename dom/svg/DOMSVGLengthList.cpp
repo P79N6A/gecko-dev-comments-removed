@@ -255,7 +255,7 @@ DOMSVGLengthList::InsertItemBefore(DOMSVGLength& newItem,
   }
 
   
-  if (!mItems.SetCapacity(mItems.Length() + 1) ||
+  if (!mItems.SetCapacity(mItems.Length() + 1, fallible) ||
       !InternalList().SetCapacity(InternalList().Length() + 1)) {
     error.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;

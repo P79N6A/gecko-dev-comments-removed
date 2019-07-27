@@ -363,7 +363,7 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
     uint32_t argCount = std::max(argc, 2u) - 2;
 
     FallibleTArray<JS::Heap<JS::Value> > args;
-    if (!args.SetCapacity(argCount)) {
+    if (!args.SetCapacity(argCount, fallible)) {
       
       return NS_ERROR_OUT_OF_MEMORY;
     }

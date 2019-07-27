@@ -199,7 +199,7 @@ SVGMotionSMILType::Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const
   MotionSegmentArray& dstArr = ExtractMotionSegmentArray(aDest);
 
   
-  if (!dstArr.SetCapacity(srcArr.Length())) {
+  if (!dstArr.SetCapacity(srcArr.Length(), fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
