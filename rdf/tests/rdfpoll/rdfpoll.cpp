@@ -55,11 +55,9 @@ static NS_DEFINE_CID(kRDFXMLDataSourceCID,  NS_RDFXMLDATASOURCE_CID);
 
 class Observer : public nsIRDFObserver
 {
-protected:
-    virtual ~Observer() {}
-
 public:
     Observer();
+    virtual ~Observer() {}
 
     
     NS_DECL_ISUPPORTS

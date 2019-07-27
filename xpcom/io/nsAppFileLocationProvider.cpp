@@ -451,16 +451,17 @@ public:
     return *aResult ? NS_OK : NS_ERROR_FAILURE;
   }
 
+  
+  
+
+  virtual ~nsAppDirectoryEnumerator()
+  {
+  }
+
 protected:
   nsIDirectoryServiceProvider* mProvider;
   const char** mCurrentKey;
   nsCOMPtr<nsIFile> mNext;
-
-  
-  
-  virtual ~nsAppDirectoryEnumerator()
-  {
-  }
 };
 
 NS_IMPL_ISUPPORTS(nsAppDirectoryEnumerator, nsISimpleEnumerator)
@@ -474,11 +475,8 @@ NS_IMPL_ISUPPORTS(nsAppDirectoryEnumerator, nsISimpleEnumerator)
 #define PATH_SEPARATOR ':'
 #endif
 
-class nsPathsDirectoryEnumerator MOZ_FINAL
-  : public nsAppDirectoryEnumerator
+class nsPathsDirectoryEnumerator : public nsAppDirectoryEnumerator
 {
-  ~nsPathsDirectoryEnumerator() {}
-
 public:
   
 

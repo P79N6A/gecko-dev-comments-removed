@@ -234,6 +234,11 @@ public:
   }
 
   
+  virtual ~nsAStreamCopier()
+  {
+  }
+
+  
   nsresult Start(nsIInputStream* aSource,
                  nsIOutputStream* aSink,
                  nsIEventTarget* aTarget,
@@ -470,11 +475,6 @@ protected:
   bool                           mCloseSink;
   bool                           mCanceled;
   nsresult                       mCancelStatus;
-
-  
-  virtual ~nsAStreamCopier()
-  {
-  }
 };
 
 NS_IMPL_ISUPPORTS(nsAStreamCopier,

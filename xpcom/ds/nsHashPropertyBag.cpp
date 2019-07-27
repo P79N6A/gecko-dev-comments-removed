@@ -93,10 +93,7 @@ nsHashPropertyBag::DeleteProperty(const nsAString& name)
 
 
 
-class nsSimpleProperty MOZ_FINAL : public nsIProperty
-{
-    ~nsSimpleProperty() {}
-
+class nsSimpleProperty MOZ_FINAL : public nsIProperty {
 public:
     nsSimpleProperty(const nsAString& aName, nsIVariant* aValue)
         : mName(aName), mValue(aValue)
