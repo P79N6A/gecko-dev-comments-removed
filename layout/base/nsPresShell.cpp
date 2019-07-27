@@ -8832,7 +8832,7 @@ PresShell::IsVisible()
   
   view = view->GetParent();
   if (!view)
-    return true;
+    return mIsActive;
 
   
   view = view->GetParent();
