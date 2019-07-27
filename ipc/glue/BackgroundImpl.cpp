@@ -292,13 +292,7 @@ private:
     mLiveActorArray->AppendElement(this);
   }
 
-  already_AddRefed<ContentParent>
-  GetContentParent() const;
-
   
-  virtual void
-  ProcessingError(Result aCode, const char* aReason) override;
-
   virtual IToplevelProtocol*
   CloneToplevel(const InfallibleTArray<ProtocolFdMapping>& aFds,
                 ProcessHandle aPeerProcess,
@@ -1020,7 +1014,27 @@ ParentImpl::GetContentParent(PBackgroundParent* aBackgroundActor)
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aBackgroundActor);
 
-  return static_cast<ParentImpl*>(aBackgroundActor)->GetContentParent();
+  auto actor = static_cast<ParentImpl*>(aBackgroundActor);
+  if (actor->mActorDestroyed) {
+    MOZ_ASSERT(false, "GetContentParent called after ActorDestroy was called!");
+    return nullptr;
+  }
+
+  if (actor->mContent) {
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewNonOwningRunnableMethod(actor->mContent, &ContentParent::AddRef);
+    MOZ_ASSERT(runnable);
+
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
+  }
+
+  return already_AddRefed<ContentParent>(actor->mContent.get());
 }
 
 
@@ -1312,78 +1326,6 @@ ParentImpl::MainThreadActorDestroy()
 
   
   Release();
-}
-
-already_AddRefed<ContentParent>
-ParentImpl::GetContentParent() const
-{
-  if (mActorDestroyed) {
-    MOZ_ASSERT(false, "GetContentParent called after ActorDestroy was called!");
-    return nullptr;
-  }
-
-  if (mContent) {
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIRunnable> runnable =
-      NS_NewNonOwningRunnableMethod(mContent, &ContentParent::AddRef);
-    MOZ_ASSERT(runnable);
-
-    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
-  }
-
-  return already_AddRefed<ContentParent>(mContent.get());
-}
-
-void
-ParentImpl::ProcessingError(Result aCode, const char* aReason)
-{
-  AssertIsInMainProcess();
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(!mActorDestroyed);
-
-  BackgroundParentImpl::ProcessingError(aCode, aReason);
-
-  if (!mIsOtherProcessActor) {
-    
-    
-    return;
-  }
-
-  if (aCode == MsgDropped) {
-    
-    
-    return;
-  }
-
-  nsRefPtr<ContentParent> content = GetContentParent();
-  if (NS_WARN_IF(!content)) {
-    return;
-  }
-
-  
-  ContentParent* owningContent = content.forget().take();
-  nsCString owningReason(aReason);
-
-  nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
-    [owningContent, owningReason]()
-    {
-      MOZ_ASSERT(NS_IsMainThread());
-
-      
-      nsRefPtr<ContentParent> content = dont_AddRef(owningContent);
-      MOZ_ASSERT(content);
-
-      content->KillHard(owningReason.get());
-    }
-  );
-  MOZ_ASSERT(runnable);
-
-  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
 }
 
 IToplevelProtocol*
