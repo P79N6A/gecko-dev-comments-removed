@@ -137,10 +137,9 @@ typedef struct CapturingContentInfo {
   nsIContent* mContent;
 } CapturingContentInfo;
 
-
 #define NS_IPRESSHELL_IID \
-{ 0xa4e5ff3a, 0xdc5c, 0x4b3a, \
-  {0xa6, 0x25, 0xd1, 0x64, 0xa9, 0xe5, 0x06, 0x19}}
+		{ 0x42e9a352, 0x76f3, 0x4ba3, \
+		  { 0x94, 0x0b, 0x78, 0x9e, 0x58, 0x38, 0x73, 0x4f } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -788,13 +787,6 @@ public:
 
 
   virtual already_AddRefed<nsCaret> GetCaret() const = 0;
-
-  
-
-
-
-
-  virtual void MaybeInvalidateCaretPosition() = 0;
 
   
 

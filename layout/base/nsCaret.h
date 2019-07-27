@@ -116,13 +116,6 @@ class nsCaret : public nsISelectionListener
 
 
 
-    void      InvalidateOutsideCaret();
-
-    
-
-
-
-
     void      UpdateCaretPosition();
 
     

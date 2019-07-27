@@ -2209,13 +2209,6 @@ already_AddRefed<SelectionCarets> PresShell::GetSelectionCarets() const
   return selectionCaret.forget();
 }
 
-void PresShell::MaybeInvalidateCaretPosition()
-{
-  if (mCaret) {
-    mCaret->InvalidateOutsideCaret();
-  }
-}
-
 void PresShell::SetCaret(nsCaret *aNewCaret)
 {
   mCaret = aNewCaret;
@@ -4288,29 +4281,6 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
 }
 
 void
-PresShell::CharacterDataWillChange(nsIDocument *aDocument,
-                                   nsIContent*  aContent,
-                                   CharacterDataChangeInfo* aInfo)
-{
-  NS_PRECONDITION(!mIsDocumentGone, "Unexpected CharacterDataChanged");
-  NS_PRECONDITION(aDocument == mDocument, "Unexpected aDocument");
-
-  if (mCaret) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    mCaret->InvalidateOutsideCaret();
-  }
-}
-
-void
 PresShell::CharacterDataChanged(nsIDocument *aDocument,
                                 nsIContent*  aContent,
                                 CharacterDataChangeInfo* aInfo)
@@ -4503,11 +4473,6 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
 {
   NS_PRECONDITION(!mIsDocumentGone, "Unexpected ContentRemoved");
   NS_PRECONDITION(aDocument == mDocument, "Unexpected aDocument");
-
-  
-  if (mCaret) {
-    mCaret->InvalidateOutsideCaret();
-  }
 
   
   
@@ -8633,12 +8598,6 @@ PresShell::DidCauseReflow()
 void
 PresShell::WillDoReflow()
 {
-  
-  
-  if (mCaret) {
-    mCaret->InvalidateOutsideCaret();
-  }
-
   mPresContext->FlushUserFontSet();
 
   mPresContext->FlushCounterStyles();
@@ -8666,9 +8625,6 @@ PresShell::DidDoReflow(bool aInterruptible, bool aWasInterrupted)
   }
 
   if (mCaret) {
-    
-    
-    mCaret->InvalidateOutsideCaret();
     mCaret->UpdateCaretPosition();
   }
 

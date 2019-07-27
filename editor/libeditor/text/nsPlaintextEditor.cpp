@@ -762,12 +762,6 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  
-  
-  nsCOMPtr<nsIPresShell> shell = GetPresShell();
-  NS_ENSURE_TRUE(shell, NS_ERROR_NOT_INITIALIZED);
-  shell->MaybeInvalidateCaretPosition();
-
   nsTextRulesInfo ruleInfo(EditAction::insertBreak);
   ruleInfo.maxLength = mMaxTextLength;
   bool cancel, handled;
