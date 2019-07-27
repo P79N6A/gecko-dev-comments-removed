@@ -1289,6 +1289,10 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
   case TOUCHING:
   case CROSS_SLIDING_X:
   case CROSS_SLIDING_Y:
+    
+    
+    mX.SetVelocity(0);
+    mY.SetVelocity(0);
     SetState(NOTHING);
     return nsEventStatus_eIgnore;
 
