@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    
+    <title>injected-inline-script-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    
+
+
+</head>
+
+<body>
+    <script src="resources/inject-script.js"></script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=script-src%20http://127.0.0.1:*"></script>
+</body>
+
+</html>

@@ -1,12 +1,12 @@
 iframe = document.createElement("IFRAME");
 iframe.src = "about:blank";
 document.body.appendChild(iframe);
-iframe.contentWindow.document.body.innerText = "Nothing to see here.";
+iframe.contentWindow.document.body.textContent = "Nothing to see here.";
 
 storageEventList = new Array();
-iframe.contentWindow.onstorage = function (e) {
+iframe.contentWindow.addEventListener("storage", function(e) {
     window.parent.storageEventList.push(e);
-}
+});
 
 function runAfterNStorageEvents(callback, expectedNumEvents)
 {
@@ -35,19 +35,12 @@ function countStorageEvents(callback, expectedNumEvents, times)
 
 function testStorages(testCallback)
 {
-    
-    function allDone()
-    {
-        localStorage.clear();
-        sessionStorage.clear();
-    }
-
-    
-    function runLocalStorage()
-    {
-        testCallback("localStorage", allDone);
-    }
-
-    
-    testCallback("sessionStorage", runLocalStorage);
+    testCallback("sessionStorage");
+    var hit = false;
+    add_result_callback(function() {
+        if (!hit) {
+            hit = true;
+            testCallback("localStorage");
+        }
+    });
 }

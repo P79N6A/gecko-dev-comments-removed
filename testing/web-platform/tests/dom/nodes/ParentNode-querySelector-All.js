@@ -160,7 +160,7 @@ function runValidSelectorTest(type, root, selectors, testType, docType) {
       nodeType = "fragment";
       break;
     default:
-      console.log("Reached unreachable code path.");
+      assert_unreached();
       nodeType = "unknown"; 
   }
 
@@ -172,7 +172,6 @@ function runValidSelectorTest(type, root, selectors, testType, docType) {
 
     if ((!s["exclude"] || (s["exclude"].indexOf(nodeType) === -1 && s["exclude"].indexOf(docType) === -1))
      && (s["testType"] & testType) ) {
-      
       var foundall, found;
 
       test(function() {
@@ -199,8 +198,6 @@ function runValidSelectorTest(type, root, selectors, testType, docType) {
           assert_equals(found, null, "The method should not match anything.");
         }
       }, type + ".querySelector: " + n + ": " + q);
-    } else {
-      
     }
   }
 }
@@ -249,7 +246,7 @@ function getNodeType(node) {
     case Node.DOCUMENT_FRAGMENT_NODE:
       return "fragment";
     default:
-      console.log("Reached unreachable code path.");
+      assert_unreached();
       return "unknown"; 
   }
 }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    
+    <title>scripthash-unicode-normalization</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/content-security-policy/support/alertAssert.sub.js?alerts=%5B%22PASS%22%2C%22PASS%22%5D">
+
+
+    </script>
+    
+
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    
+
+
+
+
+    <script>
+        'Å';
+        alert_assert('PASS');
+
+    </script>
+    <script>
+        'Å';
+        alert_assert('PASS');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests Unicode normalization. While appearing the same, the strings in the scripts are different Unicode points, but through normalization, should be the same when the hash is taken.
+    </p>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>
