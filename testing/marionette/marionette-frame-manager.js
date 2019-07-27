@@ -2,16 +2,14 @@
 
 
 
-this.EXPORTED_SYMBOLS = [
-  "FrameManager"
-];
+let {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+
+this.EXPORTED_SYMBOLS = ["FrameManager"];
 
 let FRAME_SCRIPT = "chrome://marionette/content/marionette-listener.js";
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-Cu.import("resource://gre/modules/Log.jsm");
-let logger = Log.repository.getLogger("Marionette");
 
 let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
                .getService(Ci.mozIJSSubScriptLoader);
@@ -99,16 +97,32 @@ FrameManager.prototype = {
     }
   },
 
-  
-  switchToFrame: function FM_switchToFrame(message) {
+  getOopFrame: function FM_getOopFrame(winId, frameId) {
     
-    let frameWindow = Services.wm.getOuterWindowWithId(message.json.win); 
-    let oopFrame = frameWindow.document.getElementsByTagName("iframe")[message.json.frame]; 
-    let mm = oopFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager; 
+    let outerWin = Services.wm.getOuterWindowWithId(winId);
+    
+    let f = outerWin.document.getElementsByTagName("iframe")[frameId];
+    return f;
+  },
+
+  getFrameMM: function FM_getFrameMM(winId, frameId) {
+    let oopFrame = this.getOopFrame(winId, frameId);
+    let mm = oopFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
+        .frameLoader.messageManager;
+    return mm;
+  },
+
+  
+
+
+
+  switchToFrame: function FM_switchToFrame(winId, frameId) {
+    let oopFrame = this.getOopFrame(winId, frameId);
+    let mm = this.getFrameMM(winId, frameId);
 
     if (!specialpowers.hasOwnProperty("specialPowersObserver")) {
       loader.loadSubScript("chrome://specialpowers/content/SpecialPowersObserver.js",
-                           specialpowers);
+          specialpowers);
     }
 
     
@@ -116,13 +130,10 @@ FrameManager.prototype = {
     for (let i = 0; i < remoteFrames.length; i++) {
       let frame = remoteFrames[i];
       let frameMessageManager = frame.messageManager.get();
-      logger.info("trying remote frame " + i);
       try {
         frameMessageManager.sendAsyncMessage("aliveCheck", {});
-      }
-      catch(e) {
+      } catch (e) {
         if (e.result ==  Components.results.NS_ERROR_NOT_INITIALIZED) {
-          logger.info("deleting frame");
           remoteFrames.splice(i, 1);
           continue;
         }
@@ -130,29 +141,31 @@ FrameManager.prototype = {
       if (frameMessageManager == mm) {
         this.currentRemoteFrame = frame;
         this.addMessageManagerListeners(mm);
+
         if (!frame.specialPowersObserver) {
           frame.specialPowersObserver = new specialpowers.SpecialPowersObserver();
           frame.specialPowersObserver.init(mm);
         }
 
-        mm.sendAsyncMessage("Marionette:restart", {});
+        mm.sendAsyncMessage("Marionette:restart");
         return oopFrame.id;
       }
     }
 
     
     
+    
     this.addMessageManagerListeners(mm);
-    let aFrame = new MarionetteRemoteFrame(message.json.win, message.json.frame);
+    let aFrame = new MarionetteRemoteFrame(winId, frameId);
     aFrame.messageManager = Cu.getWeakReference(mm);
     remoteFrames.push(aFrame);
     this.currentRemoteFrame = aFrame;
 
-    logger.info("frame-manager load script: " + mm.toString());
     mm.loadFrameScript(FRAME_SCRIPT, true, true);
 
     aFrame.specialPowersObserver = new specialpowers.SpecialPowersObserver();
     aFrame.specialPowersObserver.init(mm);
+
     return oopFrame.id;
   },
 
@@ -192,26 +205,24 @@ FrameManager.prototype = {
 
 
 
-  addMessageManagerListeners: function MDA_addMessageManagerListeners(messageManager) {
-    messageManager.addWeakMessageListener("Marionette:ok", this.server);
-    messageManager.addWeakMessageListener("Marionette:done", this.server);
-    messageManager.addWeakMessageListener("Marionette:error", this.server);
-    messageManager.addWeakMessageListener("Marionette:emitTouchEvent", this.server);
-    messageManager.addWeakMessageListener("Marionette:log", this.server);
-    messageManager.addWeakMessageListener("Marionette:register", this.server);
-    messageManager.addWeakMessageListener("Marionette:runEmulatorCmd", this.server);
-    messageManager.addWeakMessageListener("Marionette:runEmulatorShell", this.server);
-    messageManager.addWeakMessageListener("Marionette:shareData", this.server);
-    messageManager.addWeakMessageListener("Marionette:switchToModalOrigin", this.server);
-    messageManager.addWeakMessageListener("Marionette:switchToFrame", this.server);
-    messageManager.addWeakMessageListener("Marionette:switchedToFrame", this.server);
-    messageManager.addWeakMessageListener("Marionette:addCookie", this.server);
-    messageManager.addWeakMessageListener("Marionette:getVisibleCookies", this.server);
-    messageManager.addWeakMessageListener("Marionette:deleteCookie", this.server);
-    messageManager.addWeakMessageListener("Marionette:listenersAttached", this.server);
-    messageManager.addWeakMessageListener("MarionetteFrame:handleModal", this);
-    messageManager.addWeakMessageListener("MarionetteFrame:getCurrentFrameId", this);
-    messageManager.addWeakMessageListener("MarionetteFrame:getInterruptedState", this);
+
+
+  addMessageManagerListeners: function FM_addMessageManagerListeners(mm) {
+    mm.addWeakMessageListener("Marionette:emitTouchEvent", this.server);
+    mm.addWeakMessageListener("Marionette:log", this.server);
+    mm.addWeakMessageListener("Marionette:runEmulatorCmd", this.server);
+    mm.addWeakMessageListener("Marionette:runEmulatorShell", this.server);
+    mm.addWeakMessageListener("Marionette:shareData", this.server);
+    mm.addWeakMessageListener("Marionette:switchToModalOrigin", this.server);
+    mm.addWeakMessageListener("Marionette:switchedToFrame", this.server);
+    mm.addWeakMessageListener("Marionette:addCookie", this.server);
+    mm.addWeakMessageListener("Marionette:getVisibleCookies", this.server);
+    mm.addWeakMessageListener("Marionette:deleteCookie", this.server);
+    mm.addWeakMessageListener("Marionette:register", this.server);
+    mm.addWeakMessageListener("Marionette:listenersAttached", this.server);
+    mm.addWeakMessageListener("MarionetteFrame:handleModal", this);
+    mm.addWeakMessageListener("MarionetteFrame:getCurrentFrameId", this);
+    mm.addWeakMessageListener("MarionetteFrame:getInterruptedState", this);
   },
 
   
@@ -226,22 +237,18 @@ FrameManager.prototype = {
 
 
 
-  removeMessageManagerListeners: function MDA_removeMessageManagerListeners(messageManager) {
-    messageManager.removeWeakMessageListener("Marionette:ok", this.server);
-    messageManager.removeWeakMessageListener("Marionette:done", this.server);
-    messageManager.removeWeakMessageListener("Marionette:error", this.server);
-    messageManager.removeWeakMessageListener("Marionette:log", this.server);
-    messageManager.removeWeakMessageListener("Marionette:shareData", this.server);
-    messageManager.removeWeakMessageListener("Marionette:register", this.server);
-    messageManager.removeWeakMessageListener("Marionette:runEmulatorCmd", this.server);
-    messageManager.removeWeakMessageListener("Marionette:runEmulatorShell", this.server);
-    messageManager.removeWeakMessageListener("Marionette:switchToFrame", this.server);
-    messageManager.removeWeakMessageListener("Marionette:switchedToFrame", this.server);
-    messageManager.removeWeakMessageListener("Marionette:addCookie", this.server);
-    messageManager.removeWeakMessageListener("Marionette:getVisibleCookies", this.server);
-    messageManager.removeWeakMessageListener("Marionette:deleteCookie", this.server);
-    messageManager.removeWeakMessageListener("Marionette:listenersAttached", this.server);
-    messageManager.removeWeakMessageListener("MarionetteFrame:handleModal", this);
-    messageManager.removeWeakMessageListener("MarionetteFrame:getCurrentFrameId", this);
-  },
+  removeMessageManagerListeners: function FM_removeMessageManagerListeners(mm) {
+    mm.removeWeakMessageListener("Marionette:log", this.server);
+    mm.removeWeakMessageListener("Marionette:shareData", this.server);
+    mm.removeWeakMessageListener("Marionette:runEmulatorCmd", this.server);
+    mm.removeWeakMessageListener("Marionette:runEmulatorShell", this.server);
+    mm.removeWeakMessageListener("Marionette:switchedToFrame", this.server);
+    mm.removeWeakMessageListener("Marionette:addCookie", this.server);
+    mm.removeWeakMessageListener("Marionette:getVisibleCookies", this.server);
+    mm.removeWeakMessageListener("Marionette:deleteCookie", this.server);
+    mm.removeWeakMessageListener("Marionette:listenersAttached", this.server);
+    mm.removeWeakMessageListener("Marionette:register", this.server);
+    mm.removeWeakMessageListener("MarionetteFrame:handleModal", this);
+    mm.removeWeakMessageListener("MarionetteFrame:getCurrentFrameId", this);
+  }
 };
