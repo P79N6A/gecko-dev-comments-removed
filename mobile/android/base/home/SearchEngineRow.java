@@ -79,7 +79,7 @@ class SearchEngineRow extends AnimatedHeightLayout {
                 
                 
                 
-                if (v != mUserEnteredView && !StringUtils.isSearchQuery(suggestion, false)) {
+                if (v != mUserEnteredView && !StringUtils.isSearchQuery(suggestion, true)) {
                     if (mUrlOpenListener != null) {
                         Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.SUGGESTION, "url");
 
