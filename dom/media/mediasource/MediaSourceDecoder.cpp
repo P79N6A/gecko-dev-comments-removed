@@ -305,7 +305,7 @@ MediaSourceDecoder::SetCDMProxy(CDMProxy* aProxy)
   rv = mReader->SetCDMProxy(aProxy);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  {
+  if (aProxy) {
     
     
     

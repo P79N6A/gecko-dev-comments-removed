@@ -42,7 +42,7 @@ MP4Decoder::SetCDMProxy(CDMProxy* aProxy)
 {
   nsresult rv = MediaDecoder::SetCDMProxy(aProxy);
   NS_ENSURE_SUCCESS(rv, rv);
-  {
+  if (aProxy) {
     
     
     
