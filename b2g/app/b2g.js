@@ -29,7 +29,6 @@ pref("browser.sessionstore.restore_on_demand", false);
 pref("browser.sessionstore.resume_from_crash", false);
 
 pref("browser.tabs.remote.autostart.1", false);
-pref("browser.tabs.remote.autostart.2", false);
 #endif
 
 
@@ -418,9 +417,9 @@ pref("browser.dom.window.dump.enabled", false);
 
 
 
-pref("security.apps.certified.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline' app://theme.gaiamobile.org");
+pref("security.apps.certified.CSP.default", "default-src * data: blob:; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline' app://theme.gaiamobile.org");
 
-pref("security.apps.trusted.CSP.default", "default-src *; object-src 'none'; frame-src 'none'");
+pref("security.apps.trusted.CSP.default", "default-src * data: blob:; object-src 'none'; frame-src 'none'");
 
 
 
@@ -1038,7 +1037,6 @@ pref("apz.fling_curve_function_y2", "1.0");
 pref("apz.fling_curve_threshold_inches_per_ms", "0.01");
 pref("apz.fling_friction", "0.0019");
 pref("apz.max_velocity_inches_per_ms", "0.07");
-pref("apz.touch_start_tolerance", "0.1");
 
 
 
