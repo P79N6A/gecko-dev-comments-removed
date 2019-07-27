@@ -413,7 +413,10 @@ bool MediaDecoderStateMachine::HaveEnoughDecodedAudio(int64_t aAmpleAudioUSecs)
     return false;
   }
 
-  return !mAudioCaptured || mDecodedStream->HaveEnoughAudio(mInfo);
+  
+  
+  
+  return true;
 }
 
 bool MediaDecoderStateMachine::HaveEnoughDecodedVideo()
@@ -425,7 +428,7 @@ bool MediaDecoderStateMachine::HaveEnoughDecodedVideo()
     return false;
   }
 
-  return !mAudioCaptured || mDecodedStream->HaveEnoughVideo(mInfo);
+  return true;
 }
 
 bool
