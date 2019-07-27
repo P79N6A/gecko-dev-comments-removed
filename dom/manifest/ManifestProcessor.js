@@ -22,7 +22,9 @@
 
 'use strict';
 const {
-  utils: Cu
+  utils: Cu,
+  interfaces: Ci,
+  classes: Cc
 } = Components;
 Cu.importGlobalProperties(['URL']);
 const displayModes = new Set(['fullscreen', 'standalone', 'minimal-ui',
@@ -32,12 +34,18 @@ const orientationTypes = new Set(['any', 'natural', 'landscape', 'portrait',
   'portrait-primary', 'portrait-secondary', 'landscape-primary',
   'landscape-secondary'
 ]);
-Cu.import('resource://gre/modules/devtools/Console.jsm');
+const {
+  ConsoleAPI
+} = Cu.import('resource://gre/modules/devtools/Console.jsm', {});
 
 
-Cu.import('resource://gre/modules/ValueExtractor.jsm');
+const {
+  ValueExtractor
+} = Cu.import('resource://gre/modules/ValueExtractor.js', {});
 
-Cu.import('resource://gre/modules/ImageObjectProcessor.jsm');
+const {
+  ImageObjectProcessor
+} = Cu.import('resource://gre/modules/ImageObjectProcessor.js', {});
 
 function ManifestProcessor() {}
 

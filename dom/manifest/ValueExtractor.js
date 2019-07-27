@@ -25,7 +25,9 @@ ValueExtractor.prototype = {
   
   
   
-  extractValue({expectedType, object, objectName, property, trim}) {
+  extractValue({
+      expectedType, object, objectName, property, trim
+    }) {
     const value = object[property];
     const isArray = Array.isArray(value);
     
