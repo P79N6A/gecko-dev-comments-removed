@@ -4449,34 +4449,8 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
             if (inliningDepth_ >= optimizationInfo().maxInlineDepth())
                 return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
 
-            if (targetScript->hasLoops()) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                bool hasOpportunities = false;
-                for (size_t i = 0, e = callInfo.argv().length(); !hasOpportunities && i < e; i++) {
-                    MDefinition *arg = callInfo.argv()[i];
-                    hasOpportunities = arg->isLambda() || arg->isConstant();
-                }
-
-                if (!hasOpportunities)
-                    return DontInline(targetScript, "Vetoed: big function that contains a loop");
-            }
+            if (targetScript->hasLoops())
+                return DontInline(targetScript, "Vetoed: big function that contains a loop");
 
             
             if (script()->length() >= optimizationInfo().inliningMaxCallerBytecodeLength())
