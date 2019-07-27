@@ -55,21 +55,6 @@ public:
   Nullable<TimeDuration> ToTimelineTime(const TimeStamp& aTimeStamp) const;
   TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  void FastForward(const TimeStamp& aTimeStamp);
-
   nsRefreshDriver* GetRefreshDriver() const;
   
   
@@ -91,10 +76,6 @@ protected:
   
   
   mutable TimeStamp mLastRefreshDriverTime;
-
-  
-  
-  mutable TimeStamp mFastForwardTime;
 };
 
 } 

@@ -38,39 +38,6 @@ AnimationTimeline::GetCurrentTimeAsDouble() const
   return AnimationUtils::TimeDurationToDouble(GetCurrentTime());
 }
 
-void
-AnimationTimeline::FastForward(const TimeStamp& aTimeStamp)
-{
-  
-  
-  if (!mFastForwardTime.IsNull() && aTimeStamp <= mFastForwardTime) {
-    return;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  nsRefreshDriver* refreshDriver = GetRefreshDriver();
-  if (refreshDriver && refreshDriver->IsTestControllingRefreshesEnabled()) {
-    return;
-  }
-
-  MOZ_ASSERT(!refreshDriver || aTimeStamp >= refreshDriver->MostRecentRefresh(),
-             "aTimeStamp must be >= the refresh driver time");
-
-  
-  
-  
-  
-
-  mFastForwardTime = aTimeStamp;
-}
-
 TimeStamp
 AnimationTimeline::GetCurrentTimeStamp() const
 {
@@ -95,35 +62,6 @@ AnimationTimeline::GetCurrentTimeStamp() const
       
       refreshTime = result;
     }
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  MOZ_ASSERT(refreshTime.IsNull() || mLastRefreshDriverTime.IsNull() ||
-             refreshTime >= mLastRefreshDriverTime ||
-             mFastForwardTime.IsNull(),
-             "The refresh driver time should not go backwards when the"
-             " fast-forward time is set");
-
-  
-  
-  
-  
-  
-  if (result.IsNull() ||
-       (!mFastForwardTime.IsNull() && mFastForwardTime > result)) {
-    result = mFastForwardTime;
-  } else {
-    
-    mFastForwardTime = TimeStamp();
   }
 
   if (!refreshTime.IsNull()) {
