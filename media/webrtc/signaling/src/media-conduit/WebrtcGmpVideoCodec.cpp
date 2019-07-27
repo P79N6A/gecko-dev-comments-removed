@@ -48,7 +48,7 @@ GetGMPLog()
 #define LOG(level, msg) PR_LOG(GetGMPLog(), (level), msg)
 #else
 #define LOGD(msg)
-#define LOG(leve, msg)
+#define LOG(level, msg)
 #endif
 
 
@@ -390,8 +390,35 @@ WebrtcGmpVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
     
     uint8_t *buffer = aEncodedFrame->Buffer();
     uint8_t *end = aEncodedFrame->Buffer() + aEncodedFrame->Size();
+    size_t size_bytes;
+    switch (aEncodedFrame->BufferType()) {
+      case GMP_BufferSingle:
+        size_bytes = 0;
+        break;
+      case GMP_BufferLength8:
+        size_bytes = 1;
+        break;
+      case GMP_BufferLength16:
+        size_bytes = 2;
+        break;
+      case GMP_BufferLength24:
+        size_bytes = 3;
+        break;
+      case GMP_BufferLength32:
+        size_bytes = 4;
+        break;
+      default:
+        
+        LOG(PR_LOG_ERROR,
+            ("GMP plugin returned incorrect type (%d)", aEncodedFrame->BufferType()));
+        
+        
+        return;
+    }
+
     uint32_t size;
-    while (buffer < end) {
+    
+    while (buffer+size_bytes < end) {
       switch (aEncodedFrame->BufferType()) {
         case GMP_BufferSingle:
           size = aEncodedFrame->Size();
@@ -418,9 +445,14 @@ WebrtcGmpVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
           buffer += 4;
           break;
         default:
-          
-          MOZ_ASSERT(aEncodedFrame->BufferType() != GMP_BufferSingle);
-          return;
+          break; 
+      }
+      if (buffer+size > end) {
+        
+        LOG(PR_LOG_ERROR,
+            ("GMP plugin returned badly formatted encoded data: end is %td bytes past buffer end",
+             buffer+size - end));
+        return;
       }
       webrtc::EncodedImage unit(buffer, size, size);
       unit._frameType = ft;
@@ -430,6 +462,11 @@ WebrtcGmpVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
       mCallback->Encoded(unit, nullptr, nullptr);
 
       buffer += size;
+      
+    }
+    if (buffer != end) {
+      
+      LOGD(("GMP plugin returned %td extra bytes", end - buffer));
     }
   }
 }
