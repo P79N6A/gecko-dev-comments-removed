@@ -91,6 +91,7 @@ Cu.importGlobalProperties(["URL"]);
 
 
 const NOTIFICATION_CHUNK_SIZE = 300;
+const ONRESULT_CHUNK_SIZE = 300;
 
 
 
@@ -338,6 +339,75 @@ this.History = Object.freeze({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+  removeVisitsByFilter: function(filter, onResult = null) {
+    ensureModuleIsOpen();
+
+    if (!filter || typeof filter != "object") {
+      throw new TypeError("Expected a filter");
+    }
+
+    let hasArgs = false;
+    if ("beginDate" in filter) {
+      ensureDate(filter.beginDate);
+      hasArgs = true;
+    }
+    if ("endDate" in filter) {
+      ensureDate(filter.endDate);
+      hasArgs = true;
+    }
+    if (!hasArgs) {
+      throw new TypeError("Expected a non-empty filter");
+    }
+
+    if (onResult && typeof onResult != "function") {
+      throw new TypeError("Invalid function: " + onResult);
+    }
+
+    return Task.spawn(function*() {
+      let promise = removeVisitsByFilter(filter, onResult);
+
+      operationsBarrier.client.addBlocker(
+        "History.removeVisitsByFilter",
+        promise
+      );
+
+      try {
+        return (yield promise);
+      } finally {
+        
+        operationsBarrier.client.removeBlocker(promise);
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   hasVisits: function(page, onResult) {
     throw new Error("Method not implemented");
   },
@@ -423,6 +493,15 @@ function normalizeToURLOrGUID(key) {
 
 
 
+function ensureDate(arg) {
+  if (!arg || typeof arg != "object" || arg.constructor.name != "Date") {
+    throw new TypeError("Expected a Date, got " + arg);
+  }
+}
+
+
+
+
 
 function sqlList(list) {
   return list.map(JSON.stringify).join();
@@ -458,6 +537,200 @@ let invalidateFrecencies = Task.async(function*(db, idList) {
 
 
 
+
+
+
+
+
+
+
+
+let removePagesById = Task.async(function*(db, idList) {
+  if (idList.length == 0) {
+    return;
+  }
+  yield db.execute(`DELETE FROM moz_places
+                    WHERE id IN ( ${ sqlList(idList) } )`);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let cleanupPagesAndNotify = Task.async(function*(db, pages) {
+  yield invalidateFrecencies(db, [p.id for (p of pages) if (p.hasForeign || p.hasVisits)]);
+  yield removePagesById(db, [p.id for (p of pages) if (!p.hasForeign && !p.hasVisits)]);
+
+  let notifiedCount = 0;
+  let observers = PlacesUtils.history.getObservers();
+
+  let reason = Ci.nsINavHistoryObserver.REASON_DELETED;
+
+  for (let page of pages) {
+    let uri = NetUtil.newURI(page.url.href);
+    let guid = page.guid;
+    if (page.hasVisits) {
+      
+      
+      continue;
+    }
+    if (page.hasForeign) {
+      
+      
+      notify(observers, "onDeleteVisits",
+        [uri, 0, guid, reason, -1]);
+    } else {
+      
+      notify(observers, "onDeleteURI",
+        [uri, guid, reason]);
+    }
+    if (++notifiedCount % NOTIFICATION_CHUNK_SIZE == 0) {
+      
+      
+      yield Promise.resolve();
+    }
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+let notifyOnResult = Task.async(function*(data, onResult) {
+  if (!onResult) {
+    return;
+  }
+  let notifiedCount = 0;
+  for (let info of data) {
+    try {
+      onResult(info);
+    } catch (ex) {
+      
+      Promise.reject(ex);
+    }
+    if (++notifiedCount % ONRESULT_CHUNK_SIZE == 0) {
+      
+      
+      yield Promise.resolve();
+    }
+  }
+});
+
+
+let removeVisitsByFilter = Task.async(function*(filter, onResult = null) {
+  let db = yield DBConnPromised;
+
+  
+  
+  
+  let dates = {
+    conditions: [],
+    args: {},
+  };
+  if ("beginDate" in filter) {
+    dates.conditions.push("visit_date >= :begin * 1000");
+    dates.args.begin = Number(filter.beginDate);
+  }
+  if ("endDate" in filter) {
+    dates.conditions.push("visit_date <= :end * 1000");
+    dates.args.end = Number(filter.endDate);
+  }
+
+  let visitsToRemove = [];
+  let pagesToInspect = new Set();
+  let onResultData = onResult ? [] : null;
+
+  yield db.executeCached(
+    `SELECT id, place_id, visit_date / 1000 AS date, visit_type FROM moz_historyvisits
+     WHERE ${ dates.conditions.join(" AND ") }`,
+     dates.args,
+     Task.async(function*(row) {
+       let id = row.getResultByName("id");
+       let place_id = row.getResultByName("place_id");
+       visitsToRemove.push(id);
+       pagesToInspect.add(place_id);
+
+       if (onResult) {
+         onResultData.push({
+           date: new Date(row.getResultByName("date")),
+           transition: row.getResultByName("visit_type")
+         });
+       }
+     })
+  );
+
+  try {
+    if (visitsToRemove.length == 0) {
+      
+      return false;
+    }
+
+    yield db.executeTransaction(function*() {
+      
+      yield db.execute(`DELETE FROM moz_historyvisits
+                        WHERE id IN (${ sqlList(visitsToRemove) } )`);
+
+      
+      let pages = [];
+      yield db.execute(
+        `SELECT id, url, guid,
+          (foreign_count != 0) AS has_foreign,
+          (last_visit_date NOTNULL) as has_visits
+         FROM moz_places
+         WHERE id IN (${ sqlList([...pagesToInspect]) })`,
+         null,
+         row => {
+           let page = {
+             id:  row.getResultByName("id"),
+             guid: row.getResultByName("guid"),
+             hasForeign: row.getResultByName("has_foreign"),
+             hasVisits: row.getResultByName("has_visits"),
+             url: new URL(row.getResultByName("url")),
+           };
+           pages.push(page);
+         });
+
+      
+      yield cleanupPagesAndNotify(db, pages);
+    });
+
+    notifyOnResult(onResultData, onResult); 
+  } finally {
+    
+    PlacesUtils.history.clearEmbedVisits();
+  }
+
+  return visitsToRemove.length != 0;
+});
+
+
+
 let remove = Task.async(function*({guids, urls}, onResult = null) {
   let db = yield DBConnPromised;
 
@@ -468,80 +741,59 @@ let remove = Task.async(function*({guids, urls}, onResult = null) {
         OR url  IN (${ sqlList(urls)  })
      `;
 
+  let onResultData = onResult ? [] : null;
   let pages = [];
   let hasPagesToKeep = false;
   let hasPagesToRemove = false;
   yield db.execute(query, null, Task.async(function*(row) {
-    let toRemove = row.getResultByName("foreign_count") == 0;
-    if (toRemove) {
-      hasPagesToRemove = true;
-    } else {
+    let hasForeign = row.getResultByName("foreign_count") != 0;
+    if (hasForeign) {
       hasPagesToKeep = true;
+    } else {
+      hasPagesToRemove = true;
     }
     let id = row.getResultByName("id");
     let guid = row.getResultByName("guid");
     let url = row.getResultByName("url");
     let page = {
-      id: id,
-      guid: guid,
-      toRemove: toRemove,
-      uri: NetUtil.newURI(url),
+      id,
+      guid,
+      hasForeign,
+      hasVisits: false,
+      url: new URL(url),
     };
     pages.push(page);
     if (onResult) {
-      let pageInfo = {
+      onResultData.push({
         guid: guid,
         title: row.getResultByName("title"),
         frecency: row.getResultByName("frecency"),
         url: new URL(url)
-      };
-      try {
-        yield onResult(pageInfo);
-      } catch (ex) {
-        
-        Promise.reject(ex);
-      }
+      });
     }
   }));
 
-  if (pages.length == 0) {
-    
-    return false;
-  }
-
-  yield db.executeTransaction(function*() {
-    
-    yield db.execute(`DELETE FROM moz_historyvisits
-                      WHERE place_id IN (${ sqlList([p.id for (p of pages)]) })
-                     `);
-
-     
-    if (hasPagesToKeep) {
-      yield invalidateFrecencies(db, [p.id for (p of pages) if (!p.toRemove)]);
+  try {
+    if (pages.length == 0) {
+      
+      return false;
     }
 
-    
-    if (hasPagesToRemove) {
-      let ids = [p.id for (p of pages) if (p.toRemove)];
-      yield db.execute(`DELETE FROM moz_places
-                        WHERE id IN (${ sqlList(ids) })
+    yield db.executeTransaction(function*() {
+      
+      yield db.execute(`DELETE FROM moz_historyvisits
+                        WHERE place_id IN (${ sqlList([p.id for (p of pages)]) })
                        `);
-    }
 
+      
+      yield cleanupPagesAndNotify(db, pages);
+    });
+
+    notifyOnResult(onResultData, onResult); 
+  } finally {
     
-    for (let {guid, uri, toRemove} of pages) {
-      gNotifier.notifyOnPageExpired(
-        uri, 
-        0, 
-        toRemove, 
-        guid, 
-        Ci.nsINavHistoryObserver.REASON_DELETED, 
-        -1 
-      );
-    }
-  });
-
-  PlacesUtils.history.clearEmbedVisits();
+    PlacesUtils.history.clearEmbedVisits();
+  }
 
   return hasPagesToRemove;
 });
