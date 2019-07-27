@@ -74,7 +74,7 @@ class LayerManagerComposite : public LayerManager
 public:
   LayerManagerComposite(Compositor* aCompositor);
   ~LayerManagerComposite();
-  
+
   virtual void Destroy() MOZ_OVERRIDE;
 
   
@@ -336,10 +336,11 @@ public:
 
   virtual TiledLayerComposer* GetTiledLayerComposer() { return nullptr; }
 
-
   virtual void DestroyFrontBuffer() { }
 
   void AddBlendModeEffect(EffectChain& aEffectChain);
+
+  virtual void GenEffectChain(EffectChain& aEffect) { }
 
   
 
