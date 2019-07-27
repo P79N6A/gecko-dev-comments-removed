@@ -6472,15 +6472,19 @@ nsLayoutUtils::GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
   default:
     break;
   }
+  return result | GetTextRunOrientFlagsForStyle(aStyleContext);
+}
+
+ uint32_t
+nsLayoutUtils::GetTextRunOrientFlagsForStyle(nsStyleContext* aStyleContext)
+{
   WritingMode wm(aStyleContext);
   if (wm.IsVertical()) {
     switch (aStyleContext->StyleVisibility()->mTextOrientation) {
     case NS_STYLE_TEXT_ORIENTATION_MIXED:
-      result |= gfxTextRunFactory::TEXT_ORIENT_VERTICAL_MIXED;
-      break;
+      return gfxTextRunFactory::TEXT_ORIENT_VERTICAL_MIXED;
     case NS_STYLE_TEXT_ORIENTATION_UPRIGHT:
-      result |= gfxTextRunFactory::TEXT_ORIENT_VERTICAL_UPRIGHT;
-      break;
+      return gfxTextRunFactory::TEXT_ORIENT_VERTICAL_UPRIGHT;
     case NS_STYLE_TEXT_ORIENTATION_SIDEWAYS:
       
       
@@ -6492,22 +6496,18 @@ nsLayoutUtils::GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
 
 
 
-
     case NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_RIGHT:
-      result |= gfxTextRunFactory::TEXT_ORIENT_VERTICAL_SIDEWAYS_RIGHT;
-      break;
+      return gfxTextRunFactory::TEXT_ORIENT_VERTICAL_SIDEWAYS_RIGHT;
     case NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_LEFT:
       
       
 
 
-
     default:
       NS_NOTREACHED("unknown text-orientation");
-      break;
     }
   }
-  return result;
+  return 0;
 }
 
  void

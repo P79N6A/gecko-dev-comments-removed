@@ -881,7 +881,7 @@ public:
     
     
     
-    gfxTextRun* GetEllipsisTextRun(int32_t aAppUnitsPerDevPixel,
+    gfxTextRun* GetEllipsisTextRun(int32_t aAppUnitsPerDevPixel, uint32_t aFlags,
                                    LazyReferenceContextGetter& aRefContextGetter);
 
     
