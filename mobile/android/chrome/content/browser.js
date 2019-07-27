@@ -3977,6 +3977,130 @@ Tab.prototype = {
     }
   },
 
+  sanitizeRelString: function(linkRel) {
+    
+    let list = [];
+    if (linkRel) {
+      list = linkRel.toLowerCase().split(/\s+/);
+      let hash = {};
+      list.forEach(function(value) { hash[value] = true; });
+      list = [];
+      for (let rel in hash)
+      list.push("[" + rel + "]");
+    }
+    return list;
+  },
+
+  makeFaviconMessage: function(eventTarget) {
+    
+    let maxSize = 0;
+
+    
+    
+    if (eventTarget.hasAttribute("sizes")) {
+      let sizes = eventTarget.getAttribute("sizes").toLowerCase();
+
+      if (sizes == "any") {
+        
+        maxSize = -1;
+      } else {
+        let tokens = sizes.split(" ");
+        tokens.forEach(function(token) {
+          
+          let [w, h] = token.split("x");
+          maxSize = Math.max(maxSize, Math.max(w, h));
+        });
+      }
+    }
+    return {
+      type: "Link:Favicon",
+      tabID: this.id,
+      href: resolveGeckoURI(eventTarget.href),
+      size: maxSize,
+      mime: eventTarget.getAttribute("type") || ""
+    };
+  },
+
+  makeFeedMessage: function(eventTarget, targetType) {
+    try {
+      
+      ContentAreaUtils.urlSecurityCheck(eventTarget.href,
+            eventTarget.ownerDocument.nodePrincipal,
+            Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL);
+
+      if (!this.browser.feeds)
+        this.browser.feeds = [];
+
+      this.browser.feeds.push({
+        href: eventTarget.href,
+        title: eventTarget.title,
+        type: targetType
+      });
+
+      return {
+        type: "Link:Feed",
+        tabID: this.id
+      };
+    } catch (e) {
+        return null;
+    }
+  },
+
+  makeOpenSearchMessage: function(eventTarget) {
+    let type = eventTarget.type && eventTarget.type.toLowerCase();
+    
+    type = type.replace(/^\s+|\s*(?:;.*)?$/g, "");
+
+    
+    let isOpenSearch = (type == "application/opensearchdescription+xml");
+    if (isOpenSearch && eventTarget.title && /^(?:https?|ftp):/i.test(eventTarget.href)) {
+      Services.search.init(() => {
+        let visibleEngines = Services.search.getVisibleEngines();
+        
+        
+        if (visibleEngines.some(function(e) {
+          return e.name == eventTarget.title;
+        })) {
+          
+          return null;
+        }
+
+        if (this.browser.engines) {
+          
+          if (this.browser.engines.some(function(e) {
+            return e.url == eventTarget.href;
+          })) {
+            return null;
+          }
+        } else {
+            this.browser.engines = [];
+        }
+
+        
+        let iconURL = eventTarget.ownerDocument.documentURIObject.prePath + "/favicon.ico";
+
+        let newEngine = {
+          title: eventTarget.title,
+          url: eventTarget.href,
+          iconURL: iconURL
+        };
+
+        this.browser.engines.push(newEngine);
+
+        
+        if (this.browser.engines.length > 1)
+          return null;
+
+        
+        return {
+          type: "Link:OpenSearch",
+          tabID: this.id,
+          visible: true
+        };
+      });
+    }
+  },
+
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
       case "DOMContentLoaded": {
@@ -4066,6 +4190,7 @@ Tab.prototype = {
 
       case "DOMLinkAdded":
       case "DOMLinkChanged": {
+        let jsonMessage = null;
         let target = aEvent.originalTarget;
         if (!target.href || target.disabled)
           return;
@@ -4075,46 +4200,9 @@ Tab.prototype = {
           return;
 
         
-        let list = [];
-        if (target.rel) {
-          list = target.rel.toLowerCase().split(/\s+/);
-          let hash = {};
-          list.forEach(function(value) { hash[value] = true; });
-          list = [];
-          for (let rel in hash)
-            list.push("[" + rel + "]");
-        }
-
+        let list = this.sanitizeRelString(target.rel);
         if (list.indexOf("[icon]") != -1) {
-          
-          let maxSize = 0;
-
-          
-          
-          if (target.hasAttribute("sizes")) {
-            let sizes = target.getAttribute("sizes").toLowerCase();
-
-            if (sizes == "any") {
-              
-              maxSize = -1; 
-            } else {
-              let tokens = sizes.split(" ");
-              tokens.forEach(function(token) {
-                
-                let [w, h] = token.split("x");
-                maxSize = Math.max(maxSize, Math.max(w, h));
-              });
-            }
-          }
-
-          let json = {
-            type: "Link:Favicon",
-            tabID: this.id,
-            href: resolveGeckoURI(target.href),
-            size: maxSize,
-            mime: target.getAttribute("type") || ""
-          };
-          Messaging.sendRequest(json);
+          jsonMessage = this.makeFaviconMessage(target);
         } else if (list.indexOf("[alternate]") != -1 && aEvent.type == "DOMLinkAdded") {
           let type = target.type.toLowerCase().replace(/^\s+|\s*(?:;.*)?$/g, "");
           let isFeed = (type == "application/rss+xml" || type == "application/atom+xml");
@@ -4122,77 +4210,14 @@ Tab.prototype = {
           if (!isFeed)
             return;
 
-          try {
-            
-            ContentAreaUtils.urlSecurityCheck(target.href, target.ownerDocument.nodePrincipal, Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL);
-
-            if (!this.browser.feeds)
-              this.browser.feeds = [];
-            this.browser.feeds.push({ href: target.href, title: target.title, type: type });
-
-            let json = {
-              type: "Link:Feed",
-              tabID: this.id
-            };
-            Messaging.sendRequest(json);
-          } catch (e) {}
+          jsonMessage = this.makeFeedMessage(target, type);
         } else if (list.indexOf("[search]" != -1) && aEvent.type == "DOMLinkAdded") {
-          let type = target.type && target.type.toLowerCase();
-
-          
-          type = type.replace(/^\s+|\s*(?:;.*)?$/g, "");
-
-          
-          let isOpenSearch = (type == "application/opensearchdescription+xml");
-          if (isOpenSearch && target.title && /^(?:https?|ftp):/i.test(target.href)) {
-            Services.search.init(() => {
-              let visibleEngines = Services.search.getVisibleEngines();
-              
-              
-              if (visibleEngines.some(function(e) {
-                return e.name == target.title;
-              })) {
-                
-                return;
-              }
-
-              if (this.browser.engines) {
-                
-                if (this.browser.engines.some(function(e) {
-                  return e.url == target.href;
-                })) {
-                    return;
-                }
-              } else {
-                this.browser.engines = [];
-              }
-
-              
-              let iconURL = target.ownerDocument.documentURIObject.prePath + "/favicon.ico";
-
-              let newEngine = {
-                title: target.title,
-                url: target.href,
-                iconURL: iconURL
-              };
-
-              this.browser.engines.push(newEngine);
-
-              
-              if (this.browser.engines.length > 1)
-                return;
-
-              
-              let newEngineMessage = {
-                type: "Link:OpenSearch",
-                tabID: this.id,
-                visible: true
-              };
-
-              Messaging.sendRequest(newEngineMessage);
-            });
-          }
+          jsonMessage = this.makeOpenSearchMessage(target);
         }
+        if (!jsonMessage)
+         return;
+
+        Messaging.sendRequest(jsonMessage);
         break;
       }
 
