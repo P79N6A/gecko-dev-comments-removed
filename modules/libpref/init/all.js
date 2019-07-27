@@ -3939,6 +3939,10 @@ pref("layers.prefer-d3d9", false);
 pref("layers.force-active", false);
 
 
+
+pref("layers.gralloc.disable", false);
+
+
 pref("geo.enabled", true);
 
 
