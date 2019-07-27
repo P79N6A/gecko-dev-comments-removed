@@ -6,15 +6,19 @@
 #ifndef ChangeAttributeTxn_h__
 #define ChangeAttributeTxn_h__
 
-#include "EditTxn.h"
-#include "nsCOMPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsIDOMElement.h"
-#include "nsISupportsImpl.h"
-#include "nsString.h"
-#include "nscore.h"
+#include "EditTxn.h"                      
+#include "mozilla/Attributes.h"           
+#include "nsCOMPtr.h"                     
+#include "nsCycleCollectionParticipant.h" 
+#include "nsISupportsImpl.h"              
+#include "nsString.h"                     
 
-class nsIEditor;
+class nsIAtom;
+
+namespace mozilla {
+namespace dom {
+
+class Element;
 
 
 
@@ -27,47 +31,39 @@ public:
 
 
 
-
-
-
-  NS_IMETHOD Init(nsIEditor      *aEditor,
-                  nsIDOMElement  *aNode,
-                  const nsAString& aAttribute,
-                  const nsAString& aValue,
-                  bool aRemoveAttribute);
-
-  ChangeAttributeTxn();
+  ChangeAttributeTxn(Element& aElement, nsIAtom& aAttribute,
+                     const nsAString* aValue);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ChangeAttributeTxn, EditTxn)
 
   NS_DECL_EDITTXN
 
-  NS_IMETHOD RedoTransaction();
+  NS_IMETHOD RedoTransaction() MOZ_OVERRIDE;
 
-protected:
+private:
   virtual ~ChangeAttributeTxn();
 
   
-  nsIEditor*  mEditor;
+  nsCOMPtr<Element> mElement;
+
   
-  
-  nsCOMPtr<nsIDOMElement> mElement;
-  
-  
-  nsString mAttribute;
+  nsCOMPtr<nsIAtom> mAttribute;
 
   
   nsString mValue;
 
   
+  bool mRemoveAttribute;
+
+  
+  bool mAttributeWasSet;
+
+  
   nsString mUndoValue;
-
-  
-  bool     mAttributeWasSet;
-
-  
-  bool     mRemoveAttribute;
 };
+
+}
+}
 
 #endif

@@ -3,16 +3,24 @@
 
 
 
+#include "mozilla/dom/Element.h"        
+
 #include "ChangeAttributeTxn.h"
 #include "nsAString.h"
-#include "nsDebug.h"                    
 #include "nsError.h"                    
-#include "nsIDOMElement.h"              
-#include "nsIEditor.h"                  
-#include "nsString.h"                   
 
-ChangeAttributeTxn::ChangeAttributeTxn()
+using namespace mozilla;
+using namespace mozilla::dom;
+
+ChangeAttributeTxn::ChangeAttributeTxn(Element& aElement, nsIAtom& aAttribute,
+                                       const nsAString* aValue)
   : EditTxn()
+  , mElement(&aElement)
+  , mAttribute(&aAttribute)
+  , mValue(aValue ? *aValue : EmptyString())
+  , mRemoveAttribute(!aValue)
+  , mAttributeWasSet(false)
+  , mUndoValue()
 {
 }
 
@@ -28,82 +36,57 @@ NS_IMPL_RELEASE_INHERITED(ChangeAttributeTxn, EditTxn)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ChangeAttributeTxn)
 NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
-NS_IMETHODIMP ChangeAttributeTxn::Init(nsIEditor      *aEditor,
-                                       nsIDOMElement  *aElement,
-                                       const nsAString& aAttribute,
-                                       const nsAString& aValue,
-                                       bool aRemoveAttribute)
+NS_IMETHODIMP
+ChangeAttributeTxn::DoTransaction()
 {
-  NS_ASSERTION(aEditor && aElement, "bad arg");
-  if (!aEditor || !aElement) { return NS_ERROR_NULL_POINTER; }
-
-  mEditor = aEditor;
-  mElement = do_QueryInterface(aElement);
-  mAttribute = aAttribute;
-  mValue = aValue;
-  mRemoveAttribute = aRemoveAttribute;
-  mAttributeWasSet=false;
-  mUndoValue.Truncate();
-  return NS_OK;
-}
-
-NS_IMETHODIMP ChangeAttributeTxn::DoTransaction(void)
-{
-  NS_ASSERTION(mEditor && mElement, "bad state");
-  if (!mEditor || !mElement) { return NS_ERROR_NOT_INITIALIZED; }
+  
+  
+  mAttributeWasSet = mElement->GetAttr(kNameSpaceID_None, mAttribute,
+                                       mUndoValue);
 
   
-  nsresult result = mEditor->GetAttributeValue(mElement, mAttribute, mUndoValue, &mAttributeWasSet);
-  
-  if (!mUndoValue.IsEmpty())
+  if (!mUndoValue.IsEmpty()) {
     mAttributeWasSet = true;
+  }
   
-  
-  
-  if (!mRemoveAttribute)
-    result = mElement->SetAttribute(mAttribute, mValue);
-  else
-    result = mElement->RemoveAttribute(mAttribute);
 
-  return result;
+  
+  if (mRemoveAttribute) {
+    return mElement->UnsetAttr(kNameSpaceID_None, mAttribute, true);
+  }
+
+  return mElement->SetAttr(kNameSpaceID_None, mAttribute, mValue, true);
 }
 
-NS_IMETHODIMP ChangeAttributeTxn::UndoTransaction(void)
+NS_IMETHODIMP
+ChangeAttributeTxn::UndoTransaction()
 {
-  NS_ASSERTION(mEditor && mElement, "bad state");
-  if (!mEditor || !mElement) { return NS_ERROR_NOT_INITIALIZED; }
-
-  nsresult result;
-  if (mAttributeWasSet)
-    result = mElement->SetAttribute(mAttribute, mUndoValue);
-  else
-    result = mElement->RemoveAttribute(mAttribute);
-
-  return result;
+  if (mAttributeWasSet) {
+    return mElement->SetAttr(kNameSpaceID_None, mAttribute, mUndoValue, true);
+  }
+  return mElement->UnsetAttr(kNameSpaceID_None, mAttribute, true);
 }
 
-NS_IMETHODIMP ChangeAttributeTxn::RedoTransaction(void)
+NS_IMETHODIMP
+ChangeAttributeTxn::RedoTransaction()
 {
-  NS_ASSERTION(mEditor && mElement, "bad state");
-  if (!mEditor || !mElement) { return NS_ERROR_NOT_INITIALIZED; }
+  if (mRemoveAttribute) {
+    return mElement->UnsetAttr(kNameSpaceID_None, mAttribute, true);
+  }
 
-  nsresult result;
-  if (!mRemoveAttribute)
-    result = mElement->SetAttribute(mAttribute, mValue);
-  else
-    result = mElement->RemoveAttribute(mAttribute);
-
-  return result;
+  return mElement->SetAttr(kNameSpaceID_None, mAttribute, mValue, true);
 }
 
-NS_IMETHODIMP ChangeAttributeTxn::GetTxnDescription(nsAString& aString)
+NS_IMETHODIMP
+ChangeAttributeTxn::GetTxnDescription(nsAString& aString)
 {
   aString.AssignLiteral("ChangeAttributeTxn: [mRemoveAttribute == ");
 
-  if (!mRemoveAttribute)
-    aString.AppendLiteral("false] ");
-  else
+  if (mRemoveAttribute) {
     aString.AppendLiteral("true] ");
-  aString += mAttribute;
+  } else {
+    aString.AppendLiteral("false] ");
+  }
+  aString += nsDependentAtomString(mAttribute);
   return NS_OK;
 }

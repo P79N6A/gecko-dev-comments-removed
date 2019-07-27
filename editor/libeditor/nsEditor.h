@@ -28,7 +28,6 @@
 #include "nscore.h"                     
 
 class AddStyleSheetTxn;
-class ChangeAttributeTxn;
 class DeleteNodeTxn;
 class EditAggregateTxn;
 class IMETextTxn;
@@ -68,6 +67,7 @@ class ErrorResult;
 class TextComposition;
 
 namespace dom {
+class ChangeAttributeTxn;
 class CreateElementTxn;
 class DataTransfer;
 class DeleteTextTxn;
@@ -256,16 +256,17 @@ protected:
 
   
 
-  NS_IMETHOD CreateTxnForSetAttribute(nsIDOMElement *aElement,
-                                      const nsAString &  aAttribute,
-                                      const nsAString &  aValue,
-                                      ChangeAttributeTxn ** aTxn);
+
+  already_AddRefed<mozilla::dom::ChangeAttributeTxn>
+  CreateTxnForSetAttribute(mozilla::dom::Element& aElement,
+                           nsIAtom& aAttribute, const nsAString& aValue);
 
   
 
-  NS_IMETHOD CreateTxnForRemoveAttribute(nsIDOMElement *aElement,
-                                         const nsAString &  aAttribute,
-                                         ChangeAttributeTxn ** aTxn);
+
+  already_AddRefed<mozilla::dom::ChangeAttributeTxn>
+  CreateTxnForRemoveAttribute(mozilla::dom::Element& aElement,
+                              nsIAtom& aAttribute);
 
   
 
