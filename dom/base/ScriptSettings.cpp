@@ -122,27 +122,11 @@ ScriptSettingsStackEntry::~ScriptSettingsStackEntry()
   ScriptSettingsStack::Pop(this);
 }
 
-
-
-
 nsIGlobalObject*
-BrokenGetEntryGlobal()
+GetEntryGlobal()
 {
-  
-  
-  
-  
-  JSContext *cx = nsContentUtils::GetCurrentJSContextForThread();
-  if (!cx) {
-    MOZ_ASSERT(ScriptSettingsStack::EntryGlobal() == nullptr);
-    return nullptr;
-  }
-
-  return nsJSUtils::GetDynamicScriptGlobal(cx);
+  return ScriptSettingsStack::EntryGlobal();
 }
-
-
-
 
 nsIGlobalObject*
 GetIncumbentGlobal()
@@ -169,6 +153,22 @@ GetIncumbentGlobal()
   
   
   return ScriptSettingsStack::IncumbentGlobal();
+}
+
+nsIGlobalObject*
+GetCurrentGlobal()
+{
+  JSContext *cx = nsContentUtils::GetCurrentJSContextForThread();
+  if (!cx) {
+    return nullptr;
+  }
+
+  JSObject *global = JS::CurrentGlobalOrNull(cx);
+  if (!global) {
+    return nullptr;
+  }
+
+  return xpc::GetNativeForGlobal(global);
 }
 
 nsIPrincipal*

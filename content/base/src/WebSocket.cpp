@@ -686,7 +686,7 @@ WebSocket::Init(JSContext* aCx,
     
     
     
-    nsCOMPtr<nsIGlobalObject> globalObject(BrokenGetEntryGlobal());
+    nsCOMPtr<nsIGlobalObject> globalObject(GetEntryGlobal());
     if (globalObject) {
       nsCOMPtr<nsIPrincipal> principal(globalObject->PrincipalOrNull());
       if (principal) {
