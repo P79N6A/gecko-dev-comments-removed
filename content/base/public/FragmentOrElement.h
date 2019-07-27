@@ -17,7 +17,6 @@
 #include "nsAttrAndChildArray.h"          
 #include "nsCycleCollectionParticipant.h" 
 #include "nsIContent.h"                   
-#include "nsIDOMXPathNSResolver.h"        
 #include "nsINodeList.h"                  
 #include "nsIWeakReference.h"             
 #include "nsNodeUtils.h"                  
@@ -81,29 +80,6 @@ private:
 
   
   nsINode* mNode;
-};
-
-
-
-
-class nsNode3Tearoff : public nsIDOMXPathNSResolver
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsNode3Tearoff)
-
-  NS_DECL_NSIDOMXPATHNSRESOLVER
-
-  explicit nsNode3Tearoff(nsINode *aNode) : mNode(aNode)
-  {
-  }
-
-protected:
-  virtual ~nsNode3Tearoff() {}
-
-private:
-  nsCOMPtr<nsINode> mNode;
 };
 
 
