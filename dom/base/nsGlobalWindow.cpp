@@ -787,6 +787,14 @@ nsOuterWindowProxy::defineProperty(JSContext* cx,
     return true;
   }
 
+  
+  
+  
+  
+  if (desc.isPermanent() && !nsContentUtils::IsCallerChrome()) {
+    return ThrowErrorMessage(cx, MSG_DEFINE_NON_CONFIGURABLE_PROP_ON_WINDOW);
+  }
+
   return js::Wrapper::defineProperty(cx, proxy, id, desc);
 }
 
