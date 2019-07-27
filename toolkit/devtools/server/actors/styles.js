@@ -124,8 +124,30 @@ var PageStyleActor = protocol.ActorClass({
     
     this.refMap = new Map;
 
+    
+    
+    this.fontStyleActors = new Set;
+
     this.onFrameUnload = this.onFrameUnload.bind(this);
     events.on(this.inspector.tabActor, "will-navigate", this.onFrameUnload);
+  },
+
+  destroy: function () {
+    if (!this.walker)
+      return;
+    protocol.Actor.prototype.destroy.call(this);
+    events.off(this.inspector.tabActor, "will-navigate", this.onFrameUnload);
+    this.inspector = null;
+    this.walker = null;
+    this.refMap.forEach(actor => {
+      this.unmanage(actor);
+      actor.destroy();
+    });
+    this.fontStyleActors.forEach(actor => actor.destroy());
+    this.fontStyleActors = null;
+    this.refMap = null;
+    this.cssLogic = null;
+    this._styleElement = null;
   },
 
   get conn() this.inspector.conn,
@@ -307,7 +329,9 @@ var PageStyleActor = protocol.ActorClass({
 
       
       if (font.rule) {
-        fontFace.rule = StyleRuleActor(this, font.rule);
+        let styleActor = StyleRuleActor(this, font.rule);
+        this.fontStyleActors.add(styleActor);
+        fontFace.rule = styleActor;
         fontFace.ruleText = font.rule.cssText;
       }
 
@@ -958,6 +982,16 @@ var StyleRuleActor = protocol.ActorClass({
   },
 
   get conn() this.pageStyle.conn,
+
+  destroy: function () {
+    if (!this.rawStyle)
+      return;
+    protocol.Actor.prototype.destroy.call(this);
+    this.rawStyle = null;
+    this.pageStyle = null;
+    this.rawNode = null;
+    this.rawRule = null;
+  },
 
   
   
