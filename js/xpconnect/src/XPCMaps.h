@@ -148,8 +148,9 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::Iterator Iter() const { return PLDHashTable::Iterator(mTable); }
+    PLDHashTable::RemovingIterator RemovingIter() { return PLDHashTable::RemovingIterator(mTable); }
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
@@ -207,8 +208,8 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::Iterator Iter() const { return PLDHashTable::Iterator(mTable); }
 
     ~IID2WrappedJSClassMap();
 private:
@@ -261,8 +262,8 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::RemovingIterator RemovingIter() { return PLDHashTable::RemovingIterator(mTable); }
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
@@ -317,8 +318,8 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::RemovingIterator RemovingIter() { return PLDHashTable::RemovingIterator(mTable); }
 
     
     
@@ -374,8 +375,9 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::Iterator Iter() const { return PLDHashTable::Iterator(mTable); }
+    PLDHashTable::RemovingIterator RemovingIter() { return PLDHashTable::RemovingIterator(mTable); }
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
@@ -444,8 +446,9 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::Iterator Iter() const { return PLDHashTable::Iterator(mTable); }
+    PLDHashTable::RemovingIterator RemovingIter() { return PLDHashTable::RemovingIterator(mTable); }
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
@@ -507,8 +510,6 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
 
     ~IID2ThisTranslatorMap();
 private:
@@ -543,8 +544,8 @@ public:
     bool GetNewOrUsed(uint32_t flags, char* name, XPCNativeScriptableInfo* si);
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::RemovingIterator RemovingIter() { return PLDHashTable::RemovingIterator(mTable); }
 
     ~XPCNativeScriptableSharedMap();
 private:
@@ -559,6 +560,8 @@ private:
 class XPCWrappedNativeProtoMap
 {
 public:
+    typedef PLDHashEntryStub Entry;
+
     static XPCWrappedNativeProtoMap* newMap(int length);
 
     inline XPCWrappedNativeProto* Add(XPCWrappedNativeProto* proto)
@@ -581,8 +584,9 @@ public:
     }
 
     inline uint32_t Count() { return mTable->EntryCount(); }
-    inline uint32_t Enumerate(PLDHashEnumerator f, void* arg)
-        {return PL_DHashTableEnumerate(mTable, f, arg);}
+
+    PLDHashTable::Iterator Iter() const { return PLDHashTable::Iterator(mTable); }
+    PLDHashTable::RemovingIterator RemovingIter() { return PLDHashTable::RemovingIterator(mTable); }
 
     ~XPCWrappedNativeProtoMap();
 private:
