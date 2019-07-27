@@ -1247,6 +1247,13 @@ gfxHarfBuzzShaper::LoadHmtxTable()
 bool
 gfxHarfBuzzShaper::InitializeVertical()
 {
+    
+    
+    if (mVerticalInitialized) {
+        return mHmtxTable != nullptr;
+    }
+    mVerticalInitialized = true;
+
     if (!mHmtxTable) {
         if (!LoadHmtxTable()) {
             return false;
