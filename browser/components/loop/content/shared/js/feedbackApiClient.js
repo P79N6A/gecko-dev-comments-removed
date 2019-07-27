@@ -51,7 +51,8 @@ loop.FeedbackAPIClient = (function($, _) {
                        "platform",
                        "version",
                        "channel",
-                       "user_agent"],
+                       "user_agent",
+                       "url"],
 
     
 

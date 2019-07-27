@@ -20,17 +20,11 @@ loop.webapp = (function($, _, OT, mozL10n) {
   
 
 
-
-  var router;
-
-  
-
-
   var HomeView = React.createClass({displayName: 'HomeView',
     render: function() {
       return (
         React.DOM.p(null, mozL10n.get("welcome"))
-      )
+      );
     }
   });
 
@@ -104,7 +98,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
     },
 
     render: function() {
-      
       return (
         React.DOM.div({className: "expired-url-info"}, 
           React.DOM.div({className: "info-panel"}, 
@@ -115,7 +108,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
           PromoteFirefoxView({helper: this.props.helper})
         )
       );
-      
     }
   });
 
@@ -146,7 +138,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
       });
 
       return (
-        
         React.DOM.header({className: "standalone-header header-box container-box"}, 
           ConversationBranding(null), 
           React.DOM.div({className: "loop-logo", title: "Firefox WebRTC! logo"}), 
@@ -157,7 +148,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
             callUrlCreationDateString
           )
         )
-        
       );
     }
   });
@@ -176,7 +166,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
     getInitialState: function() {
       return {
         callState: this.props.callState || "connecting"
-      }
+      };
     },
 
     propTypes: {
@@ -200,7 +190,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
     render: function() {
       var callState = mozL10n.get("call_progress_" + this.state.callState + "_description");
       return (
-        
         React.DOM.div({className: "container"}, 
           React.DOM.div({className: "container-box"}, 
             React.DOM.header({className: "pending-header header-box"}, 
@@ -229,7 +218,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
           ConversationFooter(null)
         )
-        
       );
     }
   });
@@ -238,17 +226,20 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
 
 
+
+
+
+
   var StartConversationView = React.createClass({displayName: 'StartConversationView',
-    
+    propTypes: {
+      model: React.PropTypes.instanceOf(sharedModels.ConversationModel)
+                                       .isRequired,
+      
+      notifications: React.PropTypes.object.isRequired,
+      client: React.PropTypes.object.isRequired
+    },
 
-
-
-
-
-
-
-
-    getInitialProps: function() {
+    getDefaultProps: function() {
       return {showCallOptionsMenu: false};
     },
 
@@ -258,14 +249,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
         disableCallButton: false,
         showCallOptionsMenu: this.props.showCallOptionsMenu
       };
-    },
-
-    propTypes: {
-      model: React.PropTypes.instanceOf(sharedModels.ConversationModel)
-                                       .isRequired,
-      
-      notifications: React.PropTypes.object.isRequired,
-      client: React.PropTypes.object.isRequired
     },
 
     componentDidMount: function() {
@@ -348,7 +331,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
       });
 
       return (
-        
         React.DOM.div({className: "container"}, 
           React.DOM.div({className: "container-box"}, 
 
@@ -407,7 +389,37 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
           ConversationFooter(null)
         )
-        
+      );
+    }
+  });
+
+  
+
+
+  var EndedConversationView = React.createClass({displayName: 'EndedConversationView',
+    propTypes: {
+      conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
+                         .isRequired,
+      sdk: React.PropTypes.object.isRequired,
+      feedbackApiClient: React.PropTypes.object.isRequired,
+      onAfterFeedbackReceived: React.PropTypes.func.isRequired
+    },
+
+    render: function() {
+      return (
+        React.DOM.div({className: "ended-conversation"}, 
+          sharedViews.FeedbackView({
+            feedbackApiClient: this.props.feedbackApiClient, 
+            onAfterFeedbackReceived: this.props.onAfterFeedbackReceived}
+          ), 
+          sharedViews.ConversationView({
+            initiate: false, 
+            sdk: this.props.sdk, 
+            model: this.props.conversation, 
+            audio: {enabled: false, visible: false}, 
+            video: {enabled: false, visible: false}}
+          )
+        )
       );
     }
   });
@@ -426,7 +438,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
       helper: React.PropTypes.instanceOf(WebappHelper).isRequired,
       notifications: React.PropTypes.instanceOf(sharedModels.NotificationCollection)
                           .isRequired,
-      sdk: React.PropTypes.object.isRequired
+      sdk: React.PropTypes.object.isRequired,
+      feedbackApiClient: React.PropTypes.object.isRequired
     },
 
     getInitialState: function() {
@@ -450,13 +463,23 @@ loop.webapp = (function($, _, OT, mozL10n) {
       this.props.conversation.off(null, null, this);
     },
 
+    shouldComponentUpdate: function(nextProps, nextState) {
+      
+      return nextState.callStatus !== this.state.callStatus;
+    },
+
+    callStatusSwitcher: function(status) {
+      return function() {
+        this.setState({callStatus: status});
+      }.bind(this);
+    },
+
     
 
 
     render: function() {
       switch (this.state.callStatus) {
         case "failure":
-        case "end":
         case "start": {
           return (
             StartConversationView({
@@ -472,9 +495,20 @@ loop.webapp = (function($, _, OT, mozL10n) {
         case "connected": {
           return (
             sharedViews.ConversationView({
+              initiate: true, 
               sdk: this.props.sdk, 
               model: this.props.conversation, 
               video: {enabled: this.props.conversation.hasVideoStream("outgoing")}}
+            )
+          );
+        }
+        case "end": {
+          return (
+            EndedConversationView({
+              sdk: this.props.sdk, 
+              conversation: this.props.conversation, 
+              feedbackApiClient: this.props.feedbackApiClient, 
+              onAfterFeedbackReceived: this.callStatusSwitcher("start")}
             )
           );
         }
@@ -484,7 +518,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
           );
         }
         default: {
-          return HomeView(null)
+          return HomeView(null);
         }
       }
     },
@@ -494,7 +528,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
 
     _notifyError: function(error) {
-      console.log(error);
+      console.error(error);
       this.props.notifications.errorL10n("connection_error_see_console_notification");
       this.setState({callStatus: "end"});
     },
@@ -628,13 +662,15 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
 
     _handleCallTerminated: function(reason) {
-      this.setState({callStatus: "end"});
-      
       if (reason !== "cancel") {
         
         
         this.props.notifications.errorL10n("call_timeout_notification_text");
       }
+      
+      
+      
+      this.setState({callStatus: "start"});
     },
 
     
@@ -657,7 +693,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
       helper: React.PropTypes.instanceOf(WebappHelper).isRequired,
       notifications: React.PropTypes.instanceOf(sharedModels.NotificationCollection)
                           .isRequired,
-      sdk: React.PropTypes.object.isRequired
+      sdk: React.PropTypes.object.isRequired,
+      feedbackApiClient: React.PropTypes.object.isRequired
     },
 
     getInitialState: function() {
@@ -679,7 +716,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
              conversation: this.props.conversation, 
              helper: this.props.helper, 
              notifications: this.props.notifications, 
-             sdk: this.props.sdk}
+             sdk: this.props.sdk, 
+             feedbackApiClient: this.props.feedbackApiClient}
           )
         );
       } else {
@@ -721,6 +759,12 @@ loop.webapp = (function($, _, OT, mozL10n) {
     var conversation = new sharedModels.ConversationModel({}, {
       sdk: OT
     });
+    var feedbackApiClient = new loop.FeedbackAPIClient(
+      loop.config.feedbackApiUrl, {
+        product: loop.config.feedbackProductName,
+        user_agent: navigator.userAgent,
+        url: document.location.origin
+      });
 
     
     var locationHash = helper.locationHash();
@@ -733,7 +777,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
       conversation: conversation, 
       helper: helper, 
       notifications: notifications, 
-      sdk: OT}
+      sdk: OT, 
+      feedbackApiClient: feedbackApiClient}
     ), document.querySelector("#main"));
 
     
@@ -746,6 +791,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
     PendingConversationView: PendingConversationView,
     StartConversationView: StartConversationView,
     OutgoingConversationView: OutgoingConversationView,
+    EndedConversationView: EndedConversationView,
     HomeView: HomeView,
     UnsupportedBrowserView: UnsupportedBrowserView,
     UnsupportedDeviceView: UnsupportedDeviceView,
