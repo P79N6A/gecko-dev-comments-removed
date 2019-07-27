@@ -29,6 +29,7 @@
 #include "mozilla/layers/TextureHost.h"  
 #include "mozilla/layers/TextureHostOGL.h"  
 #include "mozilla/mozalloc.h"           
+#include "nsAppRunner.h"
 #include "nsAString.h"
 #include "nsIConsoleService.h"          
 #include "nsIWidget.h"                  
@@ -103,6 +104,13 @@ already_AddRefed<mozilla::gl::GLContext>
 CompositorOGL::CreateContext()
 {
   nsRefPtr<GLContext> context;
+
+  
+  void* widgetOpenGLContext = mWidget->GetNativeData(NS_NATIVE_OPENGL_CONTEXT);
+  if (widgetOpenGLContext) {
+    GLContext* alreadyRefed = reinterpret_cast<GLContext*>(widgetOpenGLContext);
+    return already_AddRefed<GLContext>(alreadyRefed);
+  }
 
 #ifdef XP_WIN
   if (PR_GetEnv("MOZ_LAYERS_PREFER_EGL")) {
@@ -435,7 +443,7 @@ CompositorOGL::PrepareViewport(const gfx::IntSize& aSize)
   
   
   Matrix viewMatrix;
-  if (mGLContext->IsOffscreen()) {
+  if (mGLContext->IsOffscreen() && !gIsGtest) {
     
     viewMatrix.PreTranslate(-1.0, -1.0);
     viewMatrix.PreScale(2.0f / float(aSize.width), 2.0f / float(aSize.height));

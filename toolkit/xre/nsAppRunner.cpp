@@ -214,6 +214,8 @@ static nsIProfileLock* gProfileLock;
 int    gRestartArgc;
 char **gRestartArgv;
 
+bool gIsGtest = false;
+
 #ifdef MOZ_WIDGET_QT
 static int    gQtOnlyArgc;
 static char **gQtOnlyArgv;
@@ -3559,7 +3561,9 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
 #endif
     
     if (mozilla::RunGTest) {
+      gIsGtest = true;
       result = mozilla::RunGTest();
+      gIsGtest = false;
     } else {
       result = 1;
       printf("TEST-UNEXPECTED-FAIL | gtest | Not compiled with enable-tests\n");

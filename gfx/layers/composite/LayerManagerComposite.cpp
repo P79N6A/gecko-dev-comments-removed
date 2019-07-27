@@ -43,6 +43,7 @@
 #include "ipc/CompositorBench.h"        
 #include "ipc/ShadowLayerUtils.h"
 #include "mozilla/mozalloc.h"           
+#include "nsAppRunner.h"
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
@@ -332,15 +333,19 @@ LayerManagerComposite::CreateOptimalMaskDrawTarget(const IntSize &aSize)
 already_AddRefed<PaintedLayer>
 LayerManagerComposite::CreatePaintedLayer()
 {
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
+  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
+                       "this should only be called on the drawing side");
+  nsRefPtr<PaintedLayer> layer = new PaintedLayerComposite(this);
+  return layer.forget();
 }
 
 already_AddRefed<ContainerLayer>
 LayerManagerComposite::CreateContainerLayer()
 {
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
+  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
+                       "this should only be called on the drawing side");
+  nsRefPtr<ContainerLayer> layer = new ContainerLayerComposite(this);
+  return layer.forget();
 }
 
 already_AddRefed<ImageLayer>
@@ -353,8 +358,10 @@ LayerManagerComposite::CreateImageLayer()
 already_AddRefed<ColorLayer>
 LayerManagerComposite::CreateColorLayer()
 {
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
+  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
+                       "this should only be called on the drawing side");
+  nsRefPtr<ColorLayer> layer = new ColorLayerComposite(this);
+  return layer.forget();
 }
 
 already_AddRefed<CanvasLayer>

@@ -9,6 +9,7 @@
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/mozalloc.h"           
 #include "gfx2DGlue.h"
+#include "nsAppRunner.h"
 
 namespace mozilla {
 namespace gfx {
@@ -28,7 +29,7 @@ Compositor::GetBackend()
  void
 Compositor::SetBackend(LayersBackend backend)
 {
-  if (sBackend != LayersBackend::LAYERS_NONE && sBackend != backend) {
+  if (!gIsGtest && sBackend != LayersBackend::LAYERS_NONE && sBackend != backend) {
     
     
 

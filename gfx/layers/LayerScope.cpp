@@ -6,6 +6,7 @@
 
 #include "LayerScope.h"
 
+#include "nsAppRunner.h"
 #include "Composer2D.h"
 #include "Effects.h"
 #include "mozilla/TimeStamp.h"
@@ -981,7 +982,7 @@ bool
 LayerScope::CheckSendable()
 {
     
-    MOZ_ASSERT(CompositorParent::IsInCompositorThread());
+    MOZ_ASSERT(CompositorParent::IsInCompositorThread() || gIsGtest);
 
     if (!gfxPrefs::LayerScopeEnabled()) {
         return false;

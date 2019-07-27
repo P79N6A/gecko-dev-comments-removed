@@ -91,6 +91,7 @@ typedef void* nsNativeWidget;
 
 
 #define NS_NATIVE_SHAREABLE_WINDOW 11
+#define NS_NATIVE_OPENGL_CONTEXT   12
 #ifdef XP_MACOSX
 #define NS_NATIVE_PLUGIN_PORT_QD    100
 #define NS_NATIVE_PLUGIN_PORT_CG    101

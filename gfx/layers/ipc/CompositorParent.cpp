@@ -854,8 +854,8 @@ CompositorParent::CompositeCallback(TimeStamp aScheduleTime)
 
 
 
-static void
-SetShadowProperties(Layer* aLayer)
+ void
+CompositorParent::SetShadowProperties(Layer* aLayer)
 {
   
   LayerComposite* layerComposite = aLayer->AsLayerComposite();
@@ -1672,7 +1672,7 @@ CrossProcessCompositorParent::ShadowLayersUpdated(
 
   Layer* shadowRoot = aLayerTree->GetRoot();
   if (shadowRoot) {
-    SetShadowProperties(shadowRoot);
+    CompositorParent::SetShadowProperties(shadowRoot);
   }
   UpdateIndirectTree(id, shadowRoot, aTargetConfig);
 
