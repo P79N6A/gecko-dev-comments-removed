@@ -1431,9 +1431,13 @@ nsStyleSet::ResolveStyleWithReplacement(Element* aElement,
   uint32_t flags = eNoFlags;
   if (aOldStyleContext->IsLinkContext()) {
     flags |= eIsLink;
-  }
-  if (aOldStyleContext->RelevantLinkVisited()) {
-    flags |= eIsVisitedLink;
+
+    
+    
+    
+    if (aOldStyleContext->RelevantLinkVisited()) {
+      flags |= eIsVisitedLink;
+    }
   }
 
   return GetContext(aNewParentContext, ruleNode, nullptr,
