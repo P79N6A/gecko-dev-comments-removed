@@ -827,20 +827,6 @@ gfxPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
   return scaledFont;
 }
 
-cairo_user_data_key_t kDrawSourceSurface;
-static void
-DataSourceSurfaceDestroy(void *dataSourceSurface)
-{
-  static_cast<DataSourceSurface*>(dataSourceSurface)->Release();
-}
-
-cairo_user_data_key_t kDrawTargetForSurface;
-static void
-DataDrawTargetDestroy(void *aTarget)
-{
-  static_cast<DrawTarget*>(aTarget)->Release();
-}
-
 bool
 gfxPlatform::SupportsAzureContentForDrawTarget(DrawTarget* aTarget)
 {
@@ -924,49 +910,6 @@ gfxPlatform::PurgeSkiaCache()
 
   mSkiaGlue->GetGrContext()->freeGpuResources();
 #endif
-}
-
-already_AddRefed<gfxASurface>
-gfxPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
-{
-  if (aTarget->GetBackendType() == BackendType::CAIRO) {
-    cairo_surface_t* csurf =
-      static_cast<cairo_surface_t*>(aTarget->GetNativeSurface(NativeSurfaceType::CAIRO_SURFACE));
-    if (csurf) {
-      return gfxASurface::Wrap(csurf);
-    }
-  }
-
-  
-  
-  
-  
-  
-  RefPtr<SourceSurface> source = aTarget->Snapshot();
-  RefPtr<DataSourceSurface> data = source->GetDataSurface();
-
-  if (!data) {
-    return nullptr;
-  }
-
-  IntSize size = data->GetSize();
-  gfxImageFormat format = SurfaceFormatToImageFormat(data->GetFormat());
-
-
-  nsRefPtr<gfxASurface> surf =
-    new gfxImageSurface(data->GetData(), gfxIntSize(size.width, size.height),
-                        data->Stride(), format);
-
-  if (surf->CairoStatus()) {
-    return nullptr;
-  }
-
-  surf->SetData(&kDrawSourceSurface, data.forget().drop(), DataSourceSurfaceDestroy);
-  
-  aTarget->AddRef();
-  surf->SetData(&kDrawTargetForSurface, aTarget, DataDrawTargetDestroy);
-
-  return surf.forget();
 }
 
 TemporaryRef<DrawTarget>
