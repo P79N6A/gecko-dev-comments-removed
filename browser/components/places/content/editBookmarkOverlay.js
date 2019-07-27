@@ -84,10 +84,16 @@ let gEditItemOverlay = {
   get readOnly() {
     
     
-    return (!this.initialized ||
-            (!this._paneInfo.visibleRows.has("tagsRow") &&
-             (this._paneInfo.isFolderShortcut ||
-              this._paneInfo.isParentReadOnly)));
+    
+    
+    
+    
+    
+    
+    return !this.initialized ||
+           this._paneInfo.isFolderShortcut ||
+           !this._paneInfo.isItem ||
+           (this._paneInfo.isParentReadOnly && !this._paneInfo.isBookmark);
   },
 
   
@@ -189,17 +195,20 @@ let gEditItemOverlay = {
     showOrCollapse("locationRow", isURI, "location");
     if (isURI) {
       this._initLocationField();
-      this._locationField.readOnly = !this._paneInfo.isItem;
+      this._locationField.readOnly = !this.readOnly;
     }
 
-    if (showOrCollapse("descriptionRow",
-                       this._paneInfo.isItem && !this.readOnly,
+    
+    if (showOrCollapse("descriptionRow", isItem && !this.readOnly,
                        "description")) {
       this._initDescriptionField();
+      this._descriptionField.readOnly = this.readOnly;
     }
 
-    if (showOrCollapse("keywordRow", isBookmark, "keyword"))
+    if (showOrCollapse("keywordRow", isBookmark, "keyword")) {
       this._initKeywordField();
+      this._keywordField.readOnly = this.readOnly;
+    }
 
     
     if (showOrCollapse("tagsRow", isURI || bulkTagging, "tags"))
@@ -358,7 +367,7 @@ let gEditItemOverlay = {
 
     
     this._element("foldersSeparator").hidden = (menupopup.childNodes.length <= 6);
-    this._folderMenuList.disabled = this._readOnly;
+    this._folderMenuList.disabled = this.readOnly;
   },
 
   QueryInterface:
@@ -390,7 +399,7 @@ let gEditItemOverlay = {
   },
 
   onTagsFieldChange() {
-    if (!this.readOnly) {
+    if (this._paneInfo.isURI || this._paneInfo.bulkTagging) {
       this._updateTags().then(
         anyChanges => {
           if (anyChanges)
