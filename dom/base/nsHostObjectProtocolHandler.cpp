@@ -485,7 +485,7 @@ nsHostObjectProtocolHandler::NewURI(const nsACString& aSpec,
 
 NS_IMETHODIMP
 nsHostObjectProtocolHandler::NewChannel2(nsIURI* uri,
-                                         nsILoadInfo *aLoadinfo,
+                                         nsILoadInfo* aLoadInfo,
                                          nsIChannel** result)
 {
   *result = nullptr;
@@ -519,13 +519,26 @@ nsHostObjectProtocolHandler::NewChannel2(nsIURI* uri,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
-                                uri,
-                                stream,
-                                info->mPrincipal,
-                                nsILoadInfo::SEC_NORMAL,
-                                nsIContentPolicy::TYPE_OTHER);
-
+  
+  
+  
+  
+  if (aLoadInfo) {
+    rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
+                                          uri,
+                                          stream,
+                                          EmptyCString(), 
+                                          EmptyCString(), 
+                                          aLoadInfo);
+  }
+  else {
+    rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
+                                  uri,
+                                  stream,
+                                  info->mPrincipal,
+                                  nsILoadInfo::SEC_NORMAL,
+                                  nsIContentPolicy::TYPE_OTHER);
+  }
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsString type;
