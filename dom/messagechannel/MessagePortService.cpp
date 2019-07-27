@@ -1,0 +1,328 @@
+
+
+
+
+
+#include "MessagePortService.h"
+#include "MessagePortParent.h"
+#include "SharedMessagePortMessage.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/unused.h"
+#include "nsDataHashtable.h"
+#include "nsTArray.h"
+
+namespace mozilla {
+namespace dom {
+
+namespace {
+StaticRefPtr<MessagePortService> gInstance;
+} 
+
+class MessagePortService::MessagePortServiceData final
+{
+public:
+  explicit MessagePortServiceData(const nsID& aDestinationUUID)
+    : mDestinationUUID(aDestinationUUID)
+    , mSequenceID(1)
+    , mParent(nullptr)
+  {
+    MOZ_COUNT_CTOR(MessagePortServiceData);
+  }
+
+  MessagePortServiceData(const MessagePortServiceData& aOther) = delete;
+  MessagePortServiceData& operator=(const MessagePortServiceData&) = delete;
+
+  ~MessagePortServiceData()
+  {
+    MOZ_COUNT_DTOR(MessagePortServiceData);
+  }
+
+  nsID mDestinationUUID;
+
+  uint32_t mSequenceID;
+  MessagePortParent* mParent;
+
+  struct NextParent
+  {
+    uint32_t mSequenceID;
+    
+    MessagePortParent* mParent;
+  };
+
+  FallibleTArray<NextParent> mNextParents;
+  FallibleTArray<nsRefPtr<SharedMessagePortMessage>> mMessages;
+};
+
+ MessagePortService*
+MessagePortService::GetOrCreate()
+{
+  if (!gInstance) {
+    gInstance = new MessagePortService();
+  }
+
+  return gInstance;
+}
+
+bool
+MessagePortService::RequestEntangling(MessagePortParent* aParent,
+                                      const nsID& aDestinationUUID,
+                                      const uint32_t& aSequenceID)
+{
+  MOZ_ASSERT(aParent);
+  MessagePortServiceData* data;
+
+  
+  
+  if (!mPorts.Get(aParent->ID(), &data)) {
+    
+    if (mPorts.Get(aDestinationUUID, nullptr)) {
+      MOZ_ASSERT(false, "The creation of the 2 ports should be in sync.");
+      return false;
+    }
+
+    data = new MessagePortServiceData(aParent->ID());
+    mPorts.Put(aDestinationUUID, data);
+
+    data = new MessagePortServiceData(aDestinationUUID);
+    mPorts.Put(aParent->ID(), data);
+  }
+
+  
+  if (!data->mDestinationUUID.Equals(aDestinationUUID)) {
+    MOZ_ASSERT(false, "DestinationUUIDs do not match!");
+    return false;
+  }
+
+  if (aSequenceID < data->mSequenceID) {
+    MOZ_ASSERT(false, "Invalid sequence ID!");
+    return false;
+  }
+
+  if (aSequenceID == data->mSequenceID) {
+    if (data->mParent) {
+      MOZ_ASSERT(false, "Two ports cannot have the same sequenceID.");
+      return false;
+    }
+
+    
+    data->mParent = aParent;
+    FallibleTArray<MessagePortMessage> array;
+    if (!SharedMessagePortMessage::FromSharedToMessagesParent(aParent,
+                                                              data->mMessages,
+                                                              array)) {
+      return false;
+    }
+
+    data->mMessages.Clear();
+    return aParent->Entangled(array);
+  }
+
+  
+  
+  MessagePortServiceData::NextParent* nextParent =
+    data->mNextParents.AppendElement(mozilla::fallible);
+  if (!nextParent) {
+    return false;
+  }
+
+  nextParent->mSequenceID = aSequenceID;
+  nextParent->mParent = aParent;
+
+  return true;
+}
+
+bool
+MessagePortService::DisentanglePort(
+                  MessagePortParent* aParent,
+                  FallibleTArray<nsRefPtr<SharedMessagePortMessage>>& aMessages)
+{
+  MessagePortServiceData* data;
+  if (!mPorts.Get(aParent->ID(), &data)) {
+    MOZ_ASSERT(false, "Unknown MessagePortParent should not happen.");
+    return false;
+  }
+
+  if (data->mParent != aParent) {
+    MOZ_ASSERT(false, "DisentanglePort() should be called just from the correct parent.");
+    return false;
+  }
+
+  
+  
+  if (!aMessages.AppendElements(data->mMessages, mozilla::fallible)) {
+    return false;
+  }
+
+  data->mMessages.Clear();
+
+  ++data->mSequenceID;
+
+  
+  uint32_t index = 0;
+  MessagePortParent* nextParent = nullptr;
+  for (; index < data->mNextParents.Length(); ++index) {
+    if (data->mNextParents[index].mSequenceID == data->mSequenceID) {
+      nextParent = data->mNextParents[index].mParent;
+      break;
+    }
+  }
+
+  
+  if (!nextParent) {
+    data->mMessages.SwapElements(aMessages);
+    data->mParent = nullptr;
+    return true;
+  }
+
+  data->mParent = nextParent;
+  data->mNextParents.RemoveElementAt(index);
+
+  FallibleTArray<MessagePortMessage> array;
+  if (!SharedMessagePortMessage::FromSharedToMessagesParent(data->mParent,
+                                                            aMessages,
+                                                            array)) {
+    return false;
+  }
+
+  unused << data->mParent->Entangled(array);
+  return true;
+}
+
+bool
+MessagePortService::ClosePort(MessagePortParent* aParent)
+{
+  MessagePortServiceData* data;
+  if (!mPorts.Get(aParent->ID(), &data)) {
+    MOZ_ASSERT(false, "Unknown MessagePortParent should not happend.");
+    return false;
+  }
+
+  if (data->mParent != aParent) {
+    MOZ_ASSERT(false, "ClosePort() should be called just from the correct parent.");
+    return false;
+  }
+
+  if (!data->mNextParents.IsEmpty()) {
+    MOZ_ASSERT(false, "ClosePort() should be called when there are not next parents.");
+    return false;
+  }
+
+  
+  data->mParent = nullptr;
+
+  CloseAll(aParent->ID());
+  return true;
+}
+
+#ifdef DEBUG
+PLDHashOperator
+MessagePortService::CloseAllDebugCheck(const nsID& aID,
+                                       MessagePortServiceData* aData,
+                                       void* aPtr)
+{
+  nsID* id = static_cast<nsID*>(aPtr);
+  MOZ_ASSERT(!id->Equals(aID));
+  return PL_DHASH_NEXT;
+}
+#endif
+
+void
+MessagePortService::CloseAll(const nsID& aUUID)
+{
+  MessagePortServiceData* data;
+  if (!mPorts.Get(aUUID, &data)) {
+    MaybeShutdown();
+    return;
+  }
+
+  if (data->mParent) {
+    data->mParent->Close();
+  }
+
+  for (const MessagePortServiceData::NextParent& parent : data->mNextParents) {
+    parent.mParent->CloseAndDelete();
+  }
+
+  nsID destinationUUID = data->mDestinationUUID;
+  mPorts.Remove(aUUID);
+
+  CloseAll(destinationUUID);
+
+#ifdef DEBUG
+  mPorts.EnumerateRead(CloseAllDebugCheck, const_cast<nsID*>(&aUUID));
+#endif
+
+  MaybeShutdown();
+}
+
+
+void
+MessagePortService::MaybeShutdown()
+{
+  if (mPorts.Count() == 0) {
+    gInstance = nullptr;
+  }
+}
+
+bool
+MessagePortService::PostMessages(
+                  MessagePortParent* aParent,
+                  FallibleTArray<nsRefPtr<SharedMessagePortMessage>>& aMessages)
+{
+  MessagePortServiceData* data;
+  if (!mPorts.Get(aParent->ID(), &data)) {
+    MOZ_ASSERT(false, "Unknown MessagePortParent should not happend.");
+    return false;
+  }
+
+  if (data->mParent != aParent) {
+    MOZ_ASSERT(false, "PostMessages() should be called just from the correct parent.");
+    return false;
+  }
+
+  MOZ_ALWAYS_TRUE(mPorts.Get(data->mDestinationUUID, &data));
+
+  if (!data->mMessages.AppendElements(aMessages, mozilla::fallible)) {
+    return false;
+  }
+
+  
+  if (data->mParent && data->mParent->CanSendData()) {
+    FallibleTArray<MessagePortMessage> messages;
+    if (!SharedMessagePortMessage::FromSharedToMessagesParent(data->mParent,
+                                                              data->mMessages,
+                                                              messages)) {
+      return false;
+    }
+
+    data->mMessages.Clear();
+    unused << data->mParent->SendReceiveData(messages);
+  }
+
+  return true;
+}
+
+void
+MessagePortService::ParentDestroy(MessagePortParent* aParent)
+{
+  
+  MessagePortServiceData* data;
+  if (!mPorts.Get(aParent->ID(), &data)) {
+    return;
+  }
+
+  if (data->mParent != aParent) {
+    
+    for (uint32_t i = 0; i < data->mNextParents.Length(); ++i) {
+      if (aParent == data->mNextParents[i].mParent) {
+       data->mNextParents.RemoveElementAt(i);
+       break;
+      }
+    }
+  }
+
+  CloseAll(aParent->ID());
+}
+
+} 
+} 
