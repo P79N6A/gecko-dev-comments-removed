@@ -66,6 +66,8 @@ ShaderEditorPanel.prototype = {
     }
 
     return this._destroyer = this.panelWin.shutdownShaderEditor().then(() => {
+      
+      this.panelWin.gFront.destroy();
       this.emit("destroyed");
     });
   }
