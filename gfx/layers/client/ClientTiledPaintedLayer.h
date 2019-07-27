@@ -110,6 +110,13 @@ private:
 
 
 
+
+  bool UseProgressiveDraw();
+
+  
+
+
+
   bool RenderHighPrecision(nsIntRegion& aInvalidRegion,
                            const nsIntRegion& aVisibleRegion,
                            LayerManager::DrawPaintedLayerCallback aCallback,
