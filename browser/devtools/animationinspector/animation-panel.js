@@ -409,6 +409,7 @@ PlayerWidget.prototype = {
 
   onStateChanged: function() {
     let state = this.player.state;
+
     this.updateWidgetState(state);
     this.metaDataComponent.render(state);
     if (this.rateComponent) {
@@ -418,8 +419,7 @@ PlayerWidget.prototype = {
     switch (state.playState) {
       case "finished":
         this.stopTimelineAnimation();
-        this.displayTime(this.player.state.duration);
-        this.stopListeners();
+        this.displayTime(this.player.state.currentTime);
         break;
       case "running":
         this.startTimelineAnimation();
@@ -427,6 +427,10 @@ PlayerWidget.prototype = {
       case "paused":
         this.stopTimelineAnimation();
         this.displayTime(this.player.state.currentTime);
+        break;
+      case "idle":
+        this.stopTimelineAnimation();
+        this.displayTime(0);
         break;
     }
   },
@@ -477,10 +481,6 @@ PlayerWidget.prototype = {
 
 
   pause: function() {
-    if (this.player.state.playState === "finished") {
-      return;
-    }
-
     
     
     this.updateWidgetState({playState: "paused"});
@@ -494,10 +494,6 @@ PlayerWidget.prototype = {
 
 
   play: function() {
-    if (this.player.state.playState === "finished") {
-      return;
-    }
-
     
     
     this.updateWidgetState({playState: "running"});

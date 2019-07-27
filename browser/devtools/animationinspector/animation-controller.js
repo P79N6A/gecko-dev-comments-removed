@@ -111,6 +111,7 @@ let AnimationsController = {
 
     this.onPanelVisibilityChange = this.onPanelVisibilityChange.bind(this);
     this.onNewNodeFront = this.onNewNodeFront.bind(this);
+    this.onAnimationMutations = this.onAnimationMutations.bind(this);
 
     this.startListeners();
 
@@ -153,6 +154,9 @@ let AnimationsController = {
     gInspector.selection.off("new-node-front", this.onNewNodeFront);
     gInspector.sidebar.off("select", this.onPanelVisibilityChange);
     gToolbox.off("select", this.onPanelVisibilityChange);
+    if (this.isListeningToMutations) {
+      this.animationsFront.off("mutations", this.onAnimationMutations);
+    }
   },
 
   isPanelVisible: function() {
@@ -215,6 +219,34 @@ let AnimationsController = {
 
     this.animationPlayers = yield this.animationsFront.getAnimationPlayersForNode(nodeFront);
     this.startAllAutoRefresh();
+
+    
+    
+    if (!this.isListeningToMutations && this.hasMutationEvents) {
+      this.animationsFront.on("mutations", this.onAnimationMutations);
+      this.isListeningToMutations = true;
+    }
+  }),
+
+  onAnimationMutations: Task.async(function*(changes) {
+    
+    
+    for (let {type, player} of changes) {
+      if (type === "added") {
+        this.animationPlayers.push(player);
+        player.startAutoRefresh();
+      }
+
+      if (type === "removed") {
+        player.stopAutoRefresh();
+        yield player.release();
+        let index = this.animationPlayers.indexOf(player);
+        this.animationPlayers.splice(index, 1);
+      }
+    }
+
+    
+    this.emit(this.PLAYERS_UPDATED_EVENT, this.animationPlayers);
   }),
 
   startAllAutoRefresh: function() {
