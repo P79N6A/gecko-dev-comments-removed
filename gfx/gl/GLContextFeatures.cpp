@@ -509,6 +509,20 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "texture_storage",
+        420, 
+        300, 
+        GLContext::ARB_texture_storage,
+        {
+            
+
+
+
+
+            GLContext::Extensions_End
+        }
+    },
+    {
         "transform_feedback2",
         400, 
         300, 

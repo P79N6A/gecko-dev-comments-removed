@@ -581,6 +581,12 @@ struct GLContextSymbols
     PFNGLGETSAMPLERPARAMETERFVPROC fGetSamplerParameterfv;
 
     
+    typedef void (GLAPIENTRY * PFNGLTEXSTORAGE2DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+    PFNGLTEXSTORAGE2DPROC fTexStorage2D;
+    typedef void (GLAPIENTRY * PFNGLTEXSTORAGE3DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
+    PFNGLTEXSTORAGE3DPROC fTexStorage3D;
+
+    
     typedef void (GLAPIENTRY * PFNGLGETUNIFORMINDICESPROC) (GLuint program, GLsizei uniformCount,
                                                             const GLchar* const* uniformNames, GLuint* uniformIndices);
     PFNGLGETUNIFORMINDICESPROC fGetUniformIndices;
