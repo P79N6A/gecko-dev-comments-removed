@@ -140,7 +140,7 @@ static void
 TransformClipRect(Layer* aLayer,
                   const Matrix4x4& aTransform)
 {
-  const nsIntRect* clipRect = aLayer->AsLayerComposite()->GetShadowClipRect();
+  const nsIntRect* clipRect = aLayer->GetClipRect();
   if (clipRect) {
     LayerIntRect transformed = TransformTo<LayerPixel>(
         aTransform, LayerIntRect::FromUntyped(*clipRect));
@@ -582,7 +582,6 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
   Matrix4x4 combinedAsyncTransform;
   bool hasAsyncTransform = false;
   LayerMargin fixedLayerMargins(0, 0, 0, 0);
-  Maybe<nsIntRect> clipRect = ToMaybe(aLayer->AsLayerComposite()->GetShadowClipRect());
 
   for (uint32_t i = 0; i < aLayer->GetFrameMetricsCount(); i++) {
     AsyncPanZoomController* controller = aLayer->GetAsyncPanZoomController(i);
@@ -621,32 +620,9 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
 
     combinedAsyncTransformWithoutOverscroll *= asyncTransformWithoutOverscroll;
     combinedAsyncTransform *= (Matrix4x4(asyncTransformWithoutOverscroll) * overscrollTransform);
-    if (i > 0 && clipRect) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      ParentLayerRect transformed = TransformTo<ParentLayerPixel>(
-        (Matrix4x4(asyncTransformWithoutOverscroll) * overscrollTransform),
-        ParentLayerRect(ViewAs<ParentLayerPixel>(*clipRect)));
-      clipRect = Some(ParentLayerIntRect::ToUntyped(
-        RoundedOut(transformed.Intersect(metrics.mCompositionBounds))));
-    }
   }
 
   if (hasAsyncTransform) {
-    if (clipRect) {
-      aLayer->AsLayerComposite()->SetShadowClipRect(clipRect.ptr());
-    }
     
     
     

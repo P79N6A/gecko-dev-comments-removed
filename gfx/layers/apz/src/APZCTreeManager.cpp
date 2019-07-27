@@ -229,7 +229,6 @@ ComputeClipRegion(GeckoContentController* aController,
     
     
     
-    
     clipRegion = nsIntRegion(ParentLayerIntRect::ToUntyped(
         RoundedToInt(aLayer.Metrics().mCompositionBounds)));
   }
