@@ -1086,8 +1086,11 @@ public:
 protected:
 
   
-  
-  double mInitialPlaybackRate;
+  Canonical<double> mPlaybackRate;
+public:
+  AbstractCanonical<double>* CanonicalPlaybackRate() { return &mPlaybackRate; }
+protected:
+
   bool mInitialPreservesPitch;
 
   

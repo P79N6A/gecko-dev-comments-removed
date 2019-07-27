@@ -306,7 +306,6 @@ public:
     return mReader->GetBuffered(aBuffered);
   }
 
-  void SetPlaybackRate(double aPlaybackRate);
   void SetPreservesPitch(bool aPreservesPitch);
 
   size_t SizeOfVideoQueue() {
@@ -445,6 +444,7 @@ protected:
   already_AddRefed<VideoData> PopVideo();
 
   void VolumeChanged();
+  void LogicalPlaybackRateChanged();
 
   class WakeDecoderRunnable : public nsRunnable {
   public:
@@ -1012,7 +1012,11 @@ protected:
 
   
   
+  
+  
+  
   double mPlaybackRate;
+  Mirror<double> mLogicalPlaybackRate;
 
   
   bool mPreservesPitch;
