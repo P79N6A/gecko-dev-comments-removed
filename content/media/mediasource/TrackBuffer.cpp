@@ -77,12 +77,16 @@ TrackBuffer::Shutdown()
 {
   
   
+  DiscardDecoder();
+
+  
+  
+  
   mParentDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
   mTaskQueue->Shutdown();
   mTaskQueue = nullptr;
 
   ReentrantMonitorAutoEnter mon(mParentDecoder->GetReentrantMonitor());
-  DiscardDecoder();
   for (uint32_t i = 0; i < mDecoders.Length(); ++i) {
     mDecoders[i]->GetReader()->Shutdown();
   }
