@@ -12,7 +12,7 @@
 
 let { Ci, Cc, CC, Cu, Cr } = require("chrome");
 let Services = require("Services");
-let { ActorPool } = require("devtools/server/actors/common");
+let { ActorPool, RegisteredActorFactory, ObservedActorFactory } = require("devtools/server/actors/common");
 let { DebuggerTransport, LocalDebuggerTransport, ChildDebuggerTransport } =
   require("devtools/toolkit/transport/transport");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
@@ -271,8 +271,7 @@ var DebuggerServer = {
     }
 
     for (let id of Object.getOwnPropertyNames(gRegisteredModules)) {
-      let mod = gRegisteredModules[id];
-      mod.module.unregister(mod.api);
+      this.unregisterModule(id);
     }
     gRegisteredModules = {};
 
@@ -304,15 +303,78 @@ var DebuggerServer = {
 
 
 
-  registerModule: function(id) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  registerModule: function(id, options) {
     if (id in gRegisteredModules) {
       throw new Error("Tried to register a module twice: " + id + "\n");
     }
 
-    let moduleAPI = ModuleAPI();
-    let mod = require(id);
-    mod.register(moduleAPI);
-    gRegisteredModules[id] = { module: mod, api: moduleAPI };
+    if (options) {
+      
+      let {prefix, constructor, type} = options;
+      if (typeof(prefix) !== "string") {
+        throw new Error("Lazy actor definition for '" + id + "' requires a string 'prefix' option.");
+      }
+      if (typeof(constructor) !== "string") {
+        throw new Error("Lazy actor definition for '" + id + "' requires a string 'constructor' option.");
+      }
+      if (!("global" in type) && !("tab" in type)) {
+        throw new Error("Lazy actor definition for '" + id + "' requires a dictionnary 'type' option whose attributes can be 'global' or 'tab'.");
+      }
+      let name = prefix + "Actor";
+      let mod = {
+        id: id,
+        prefix: prefix,
+        constructorName: constructor,
+        type: type,
+        globalActor: type.global,
+        tabActor: type.tab
+      };
+      gRegisteredModules[id] = mod;
+      if (mod.tabActor) {
+        this.addTabActor(mod, name);
+      }
+      if (mod.globalActor) {
+        this.addGlobalActor(mod, name);
+      }
+    } else {
+      
+      let moduleAPI = ModuleAPI();
+      let mod = require(id);
+      mod.register(moduleAPI);
+      gRegisteredModules[id] = {
+        module: mod,
+        api: moduleAPI
+      };
+    }
   },
 
   
@@ -330,8 +392,21 @@ var DebuggerServer = {
     if (!mod) {
       throw new Error("Tried to unregister a module that was not previously registered.");
     }
-    mod.module.unregister(mod.api);
-    mod.api.destroy();
+
+    
+    if (mod.tabActor) {
+      this.removeTabActor(mod);
+    }
+    if (mod.globalActor) {
+      this.removeGlobalActor(mod);
+    }
+
+    if (mod.module) {
+      
+      mod.module.unregister(mod.api);
+      mod.api.destroy();
+    }
+
     delete gRegisteredModules[id];
   },
 
@@ -735,15 +810,20 @@ var DebuggerServer = {
 
 
 
-  addTabActor: function DS_addTabActor(aFunction, aName) {
-    let name = aName ? aName : aFunction.prototype.actorPrefix;
+
+
+
+
+
+  addTabActor: function DS_addTabActor(aActor, aName) {
+    let name = aName ? aName : aActor.prototype.actorPrefix;
     if (["title", "url", "actor"].indexOf(name) != -1) {
       throw Error(name + " is not allowed");
     }
     if (DebuggerServer.tabActorFactories.hasOwnProperty(name)) {
       throw Error(name + " already exists");
     }
-    DebuggerServer.tabActorFactories[name] = aFunction;
+    DebuggerServer.tabActorFactories[name] = new RegisteredActorFactory(aActor, name);
   },
 
   
@@ -753,10 +833,14 @@ var DebuggerServer = {
 
 
 
-  removeTabActor: function DS_removeTabActor(aFunction) {
+
+
+
+  removeTabActor: function DS_removeTabActor(aActor) {
     for (let name in DebuggerServer.tabActorFactories) {
       let handler = DebuggerServer.tabActorFactories[name];
-      if (handler.name == aFunction.name) {
+      if ((handler.name && handler.name == aActor.name) ||
+          (handler.id && handler.id == aActor.id)) {
         delete DebuggerServer.tabActorFactories[name];
       }
     }
@@ -780,15 +864,20 @@ var DebuggerServer = {
 
 
 
-  addGlobalActor: function DS_addGlobalActor(aFunction, aName) {
-    let name = aName ? aName : aFunction.prototype.actorPrefix;
+
+
+
+
+
+  addGlobalActor: function DS_addGlobalActor(aActor, aName) {
+    let name = aName ? aName : aActor.prototype.actorPrefix;
     if (["from", "tabs", "selected"].indexOf(name) != -1) {
       throw Error(name + " is not allowed");
     }
     if (DebuggerServer.globalActorFactories.hasOwnProperty(name)) {
       throw Error(name + " already exists");
     }
-    DebuggerServer.globalActorFactories[name] = aFunction;
+    DebuggerServer.globalActorFactories[name] = new RegisteredActorFactory(aActor, name);
   },
 
   
@@ -798,10 +887,14 @@ var DebuggerServer = {
 
 
 
-  removeGlobalActor: function DS_removeGlobalActor(aFunction) {
+
+
+
+  removeGlobalActor: function DS_removeGlobalActor(aActor) {
     for (let name in DebuggerServer.globalActorFactories) {
       let handler = DebuggerServer.globalActorFactories[name];
-      if (handler.name == aFunction.name) {
+      if ((handler.name && handler.name == aActor.name) ||
+          (handler.id && handler.id == aActor.id)) {
         delete DebuggerServer.globalActorFactories[name];
       }
     }
@@ -1063,22 +1156,19 @@ DebuggerServerConnection.prototype = {
     }
 
     
-    if (typeof actor == "function") {
-      let instance;
+    if (actor instanceof ObservedActorFactory) {
       try {
-        instance = new actor();
+        actor= actor.createActor();
       } catch (e) {
         this.transport.send(this._unknownError(
           "Error occurred while creating actor '" + actor.name,
           e));
       }
-      instance.parentID = actor.parentID;
+    } else if (typeof(actor) !== "object") {
       
       
-      
-      instance.actorID = actor.actorID;
-      actor.registeredPool.addActor(instance);
-      actor = instance;
+      throw new Error("Unexpected actor constructor/function in ActorPool " +
+                      "for actorID=" + actorID + ".");
     }
 
     return actor;
