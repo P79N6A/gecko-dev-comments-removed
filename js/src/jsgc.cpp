@@ -2194,6 +2194,9 @@ ArenaList::pickArenasToRelocate()
     
     
 
+    if (isCursorAtEnd())
+        return nullptr;
+
     ArenaHeader **arenap = cursorp_;               
     size_t previousFreeCells = 0;                  
     size_t followingUsedCells = countUsedCells();  
