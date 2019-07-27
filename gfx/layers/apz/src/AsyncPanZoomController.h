@@ -719,11 +719,8 @@ private:
 
 private:
   
-  
   nsTArray<UniquePtr<TouchBlockState>> mTouchBlockQueue;
 
-  
-  
   
   
   
