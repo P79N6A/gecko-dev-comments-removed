@@ -517,6 +517,168 @@ protected:
   static BluetoothGattNotificationHandler* sNotificationHandler;
 };
 
+class BluetoothDaemonGattInterface final
+  : public BluetoothGattInterface
+{
+  class CleanupResultHandler;
+  class InitResultHandler;
+
+public:
+  BluetoothDaemonGattInterface(BluetoothDaemonGattModule* aModule);
+  ~BluetoothDaemonGattInterface();
+
+  void Init(
+    BluetoothGattNotificationHandler* aNotificationHandler,
+    BluetoothGattResultHandler* aRes);
+  void Cleanup(BluetoothGattResultHandler* aRes);
+
+  BluetoothGattClientInterface* GetBluetoothGattClientInterface();
+
+private:
+  void DispatchError(BluetoothGattResultHandler* aRes,
+                     BluetoothStatus aStatus);
+  void DispatchError(BluetoothGattResultHandler* aRes, nsresult aRv);
+
+  BluetoothDaemonGattModule* mModule;
+};
+
+class BluetoothDaemonGattClientInterface final
+  : public BluetoothGattClientInterface
+{
+public:
+  BluetoothDaemonGattClientInterface(BluetoothDaemonGattModule* aModule);
+
+  
+  void RegisterClient(const BluetoothUuid& aUuid,
+                      BluetoothGattClientResultHandler* aRes);
+  void UnregisterClient(int aClientIf,
+                        BluetoothGattClientResultHandler* aRes);
+
+  
+  void Scan(int aClientIf, bool aStart,
+            BluetoothGattClientResultHandler* aRes);
+
+  
+  void Connect(int aClientIf,
+               const nsAString& aBdAddr,
+               bool aIsDirect, 
+               BluetoothTransport aTransport,
+               BluetoothGattClientResultHandler* aRes);
+  void Disconnect(int aClientIf,
+                  const nsAString& aBdAddr,
+                  int aConnId,
+                  BluetoothGattClientResultHandler* aRes);
+
+  
+  void Listen(int aClientIf,
+              bool aIsStart,
+              BluetoothGattClientResultHandler* aRes);
+
+  
+  void Refresh(int aClientIf,
+               const nsAString& aBdAddr,
+               BluetoothGattClientResultHandler* aRes);
+
+  
+  void SearchService(int aConnId,
+                     bool aSearchAll,
+                     const BluetoothUuid& aUuid,
+                     BluetoothGattClientResultHandler* aRes);
+  void GetIncludedService(int aConnId,
+                          const BluetoothGattServiceId& aServiceId,
+                          bool aFirst,
+                          const BluetoothGattServiceId& aStartServiceId,
+                          BluetoothGattClientResultHandler* aRes);
+  void GetCharacteristic(int aConnId,
+                         const BluetoothGattServiceId& aServiceId,
+                         bool aFirst,
+                         const BluetoothGattId& aStartCharId,
+                         BluetoothGattClientResultHandler* aRes);
+  void GetDescriptor(int aConnId,
+                     const BluetoothGattServiceId& aServiceId,
+                     const BluetoothGattId& aCharId,
+                     bool aFirst,
+                     const BluetoothGattId& aDescriptorId,
+                     BluetoothGattClientResultHandler* aRes);
+
+  
+  void ReadCharacteristic(int aConnId,
+                          const BluetoothGattServiceId& aServiceId,
+                          const BluetoothGattId& aCharId,
+                          BluetoothGattAuthReq aAuthReq,
+                          BluetoothGattClientResultHandler* aRes);
+  void WriteCharacteristic(int aConnId,
+                           const BluetoothGattServiceId& aServiceId,
+                           const BluetoothGattId& aCharId,
+                           BluetoothGattWriteType aWriteType,
+                           BluetoothGattAuthReq aAuthReq,
+                           const nsTArray<uint8_t>& aValue,
+                           BluetoothGattClientResultHandler* aRes);
+  void ReadDescriptor(int aConnId,
+                      const BluetoothGattServiceId& aServiceId,
+                      const BluetoothGattId& aCharId,
+                      const BluetoothGattId& aDescriptorId,
+                      BluetoothGattAuthReq aAuthReq,
+                      BluetoothGattClientResultHandler* aRes);
+  void WriteDescriptor(int aConnId,
+                       const BluetoothGattServiceId& aServiceId,
+                       const BluetoothGattId& aCharId,
+                       const BluetoothGattId& aDescriptorId,
+                       BluetoothGattWriteType aWriteType,
+                       BluetoothGattAuthReq aAuthReq,
+                       const nsTArray<uint8_t>& aValue,
+                       BluetoothGattClientResultHandler* aRes);
+
+  
+  void ExecuteWrite(int aConnId,
+                    int aIsExecute,
+                    BluetoothGattClientResultHandler* aRes);
+
+
+  
+  void RegisterNotification(int aClientIf,
+                            const nsAString& aBdAddr,
+                            const BluetoothGattServiceId& aServiceId,
+                            const BluetoothGattId& aCharId,
+                            BluetoothGattClientResultHandler* aRes);
+  void DeregisterNotification(int aClientIf,
+                              const nsAString& aBdAddr,
+                              const BluetoothGattServiceId& aServiceId,
+                              const BluetoothGattId& aCharId,
+                              BluetoothGattClientResultHandler* aRes);
+
+  void ReadRemoteRssi(int aClientIf,
+                      const nsAString& aBdAddr,
+                      BluetoothGattClientResultHandler* aRes);
+
+  void GetDeviceType(const nsAString& aBdAddr,
+                     BluetoothGattClientResultHandler* aRes);
+
+  
+  void SetAdvData(int aServerIf,
+                  bool aIsScanRsp,
+                  bool aIsNameIncluded,
+                  bool aIsTxPowerIncluded,
+                  int aMinInterval,
+                  int aMaxInterval,
+                  int aApperance,
+                  uint16_t aManufacturerLen, char* aManufacturerData,
+                  uint16_t aServiceDataLen, char* aServiceData,
+                  uint16_t aServiceUuidLen, char* aServiceUuid,
+                  BluetoothGattClientResultHandler* aRes);
+
+  void TestCommand(int aCommand,
+                   const BluetoothGattTestParam& aTestParam,
+                   BluetoothGattClientResultHandler* aRes);
+
+private:
+  void DispatchError(BluetoothGattClientResultHandler* aRes,
+                     BluetoothStatus aStatus);
+  void DispatchError(BluetoothGattClientResultHandler* aRes, nsresult aRv);
+  BluetoothDaemonGattModule* mModule;
+};
+
+
 END_BLUETOOTH_NAMESPACE
 
 #endif

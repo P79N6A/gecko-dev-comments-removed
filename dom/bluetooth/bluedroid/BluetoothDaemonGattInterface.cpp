@@ -1360,4 +1360,511 @@ BluetoothDaemonGattModule::HandleNtf(
   (this->*(HandleNtf[index]))(aHeader, aPDU);
 }
 
+
+
+
+
+BluetoothDaemonGattClientInterface::BluetoothDaemonGattClientInterface(
+  BluetoothDaemonGattModule* aModule)
+  : mModule(aModule)
+{ }
+
+BluetoothDaemonGattInterface::BluetoothDaemonGattInterface(
+  BluetoothDaemonGattModule* aModule)
+  : mModule(aModule)
+{ }
+
+BluetoothDaemonGattInterface::~BluetoothDaemonGattInterface()
+{ }
+
+class BluetoothDaemonGattInterface::InitResultHandler final
+  : public BluetoothSetupResultHandler
+{
+public:
+  InitResultHandler(BluetoothGattResultHandler* aRes)
+    : mRes(aRes)
+  {
+    MOZ_ASSERT(mRes);
+  }
+
+  void OnError(BluetoothStatus aStatus) override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    mRes->OnError(aStatus);
+  }
+
+  void RegisterModule() override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    mRes->Init();
+  }
+
+private:
+  nsRefPtr<BluetoothGattResultHandler> mRes;
+};
+
+void
+BluetoothDaemonGattInterface::Init(
+  BluetoothGattNotificationHandler* aNotificationHandler,
+  BluetoothGattResultHandler* aRes)
+{
+  
+  
+  mModule->SetNotificationHandler(aNotificationHandler);
+
+  InitResultHandler* res;
+
+  if (aRes) {
+    res = new InitResultHandler(aRes);
+  } else {
+    
+    res = nullptr;
+  }
+
+  nsresult rv = mModule->RegisterModule(
+    BluetoothDaemonGattModule::SERVICE_ID, 0x00,
+    BluetoothDaemonGattModule::MAX_NUM_CLIENTS, res);
+
+  if (NS_FAILED(rv) && aRes) {
+    DispatchError(aRes, rv);
+  }
+}
+
+class BluetoothDaemonGattInterface::CleanupResultHandler final
+  : public BluetoothSetupResultHandler
+{
+public:
+  CleanupResultHandler(BluetoothDaemonGattModule* aModule,
+                       BluetoothGattResultHandler* aRes)
+    : mModule(aModule)
+    , mRes(aRes)
+  {
+    MOZ_ASSERT(mModule);
+  }
+
+  void OnError(BluetoothStatus aStatus) override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (mRes) {
+      mRes->OnError(aStatus);
+    }
+  }
+
+  void UnregisterModule() override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    
+    
+    
+    mModule->SetNotificationHandler(nullptr);
+
+    if (mRes) {
+      mRes->Cleanup();
+    }
+  }
+
+private:
+  BluetoothDaemonGattModule* mModule;
+  nsRefPtr<BluetoothGattResultHandler> mRes;
+};
+
+void
+BluetoothDaemonGattInterface::Cleanup(
+  BluetoothGattResultHandler* aRes)
+{
+  nsresult rv = mModule->UnregisterModule(
+    BluetoothDaemonGattModule::SERVICE_ID,
+    new CleanupResultHandler(mModule, aRes));
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::RegisterClient(
+  const BluetoothUuid& aUuid, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientRegisterCmd(aUuid, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::UnregisterClient(
+  int aClientIf, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientUnregisterCmd(aClientIf, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::Scan(
+  int aClientIf, bool aStart, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientScanCmd(aClientIf, aStart, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+
+void
+BluetoothDaemonGattClientInterface::Connect(
+  int aClientIf, const nsAString& aBdAddr, bool aIsDirect,
+  BluetoothTransport aTransport, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientConnectCmd(
+    aClientIf, aBdAddr, aIsDirect, aTransport, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::Disconnect(
+  int aClientIf, const nsAString& aBdAddr, int aConnId,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientDisconnectCmd(
+    aClientIf, aBdAddr, aConnId, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::Listen(
+  int aClientIf, bool aIsStart, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientListenCmd(aClientIf, aIsStart, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::Refresh(
+  int aClientIf, const nsAString& aBdAddr, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientRefreshCmd(aClientIf, aBdAddr, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::SearchService(
+  int aConnId, bool aSearchAll, const BluetoothUuid& aUuid,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientSearchServiceCmd(
+    aConnId, !aSearchAll , aUuid, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::GetIncludedService(
+  int aConnId, const BluetoothGattServiceId& aServiceId, bool aFirst,
+  const BluetoothGattServiceId& aStartServiceId,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientGetIncludedServiceCmd(
+    aConnId, aServiceId, !aFirst , aStartServiceId, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::GetCharacteristic(
+  int aConnId, const BluetoothGattServiceId& aServiceId, bool aFirst,
+  const BluetoothGattId& aStartCharId, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientGetCharacteristicCmd(
+    aConnId, aServiceId, !aFirst , aStartCharId, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::GetDescriptor(
+  int aConnId, const BluetoothGattServiceId& aServiceId,
+  const BluetoothGattId& aCharId, bool aFirst,
+  const BluetoothGattId& aDescriptorId, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientGetDescriptorCmd(
+    aConnId, aServiceId, aCharId, !aFirst , aDescriptorId,
+    aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::ReadCharacteristic(
+  int aConnId, const BluetoothGattServiceId& aServiceId,
+  const BluetoothGattId& aCharId, BluetoothGattAuthReq aAuthReq,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientReadCharacteristicCmd(
+    aConnId, aServiceId, aCharId, aAuthReq, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::WriteCharacteristic(
+  int aConnId, const BluetoothGattServiceId& aServiceId,
+  const BluetoothGattId& aCharId, BluetoothGattWriteType aWriteType,
+  BluetoothGattAuthReq aAuthReq, const nsTArray<uint8_t>& aValue,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientWriteCharacteristicCmd(
+    aConnId, aServiceId, aCharId, aWriteType,
+    aValue.Length() * sizeof(uint8_t), aAuthReq,
+    reinterpret_cast<char*>(const_cast<uint8_t*>(aValue.Elements())), aRes);
+
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::ReadDescriptor(
+  int aConnId, const BluetoothGattServiceId& aServiceId,
+  const BluetoothGattId& aCharId, const BluetoothGattId& aDescriptorId,
+  BluetoothGattAuthReq aAuthReq, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientReadDescriptorCmd(
+    aConnId, aServiceId, aCharId, aDescriptorId, aAuthReq, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::WriteDescriptor(
+  int aConnId, const BluetoothGattServiceId& aServiceId,
+  const BluetoothGattId& aCharId, const BluetoothGattId& aDescriptorId,
+  BluetoothGattWriteType aWriteType, BluetoothGattAuthReq aAuthReq,
+  const nsTArray<uint8_t>& aValue, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientWriteDescriptorCmd(
+    aConnId, aServiceId, aCharId, aDescriptorId, aWriteType,
+    aValue.Length() * sizeof(uint8_t), aAuthReq,
+    reinterpret_cast<char*>(const_cast<uint8_t*>(aValue.Elements())), aRes);
+
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::ExecuteWrite(
+  int aConnId, int aIsExecute, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientExecuteWriteCmd(aConnId, aIsExecute, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+
+void
+BluetoothDaemonGattClientInterface::RegisterNotification(
+  int aClientIf, const nsAString& aBdAddr,
+  const BluetoothGattServiceId& aServiceId, const BluetoothGattId& aCharId,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientRegisterNotificationCmd(
+    aClientIf, aBdAddr, aServiceId, aCharId, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::DeregisterNotification(
+  int aClientIf, const nsAString& aBdAddr,
+  const BluetoothGattServiceId& aServiceId, const BluetoothGattId& aCharId,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientDeregisterNotificationCmd(
+    aClientIf, aBdAddr, aServiceId, aCharId, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::ReadRemoteRssi(
+  int aClientIf, const nsAString& aBdAddr,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientReadRemoteRssiCmd(
+    aClientIf, aBdAddr, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::GetDeviceType(
+  const nsAString& aBdAddr, BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientGetDeviceTypeCmd(aBdAddr, aRes);
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::SetAdvData(
+  int aServerIf, bool aIsScanRsp, bool aIsNameIncluded,
+  bool aIsTxPowerIncluded, int aMinInterval, int aMaxInterval, int aApperance,
+  uint16_t aManufacturerLen, char* aManufacturerData,
+  uint16_t aServiceDataLen, char* aServiceData,
+  uint16_t aServiceUUIDLen, char* aServiceUUID,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientSetAdvDataCmd(
+    aServerIf, aIsScanRsp, aIsNameIncluded, aIsTxPowerIncluded, aMinInterval,
+    aMaxInterval, aApperance, aManufacturerLen, aManufacturerData,
+    aServiceDataLen, aServiceData, aServiceUUIDLen, aServiceUUID, aRes);
+
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::TestCommand(
+  int aCommand, const BluetoothGattTestParam& aTestParam,
+  BluetoothGattClientResultHandler* aRes)
+{
+  MOZ_ASSERT(mModule);
+
+  nsresult rv = mModule->ClientTestCommandCmd(aCommand, aTestParam, aRes);
+
+  if (NS_FAILED(rv)) {
+    DispatchError(aRes, rv);
+  }
+}
+
+void
+BluetoothDaemonGattClientInterface::DispatchError(
+  BluetoothGattClientResultHandler* aRes, BluetoothStatus aStatus)
+{
+  BluetoothResultRunnable1<BluetoothGattClientResultHandler, void,
+                           BluetoothStatus, BluetoothStatus>::Dispatch(
+    aRes, &BluetoothGattResultHandler::OnError,
+    ConstantInitOp1<BluetoothStatus>(aStatus));
+}
+
+void
+BluetoothDaemonGattClientInterface::DispatchError(
+  BluetoothGattClientResultHandler* aRes, nsresult aRv)
+{
+  BluetoothStatus status;
+
+  if (NS_WARN_IF(NS_FAILED(Convert(aRv, status)))) {
+    status = STATUS_FAIL;
+  }
+  DispatchError(aRes, status);
+}
+
+void
+BluetoothDaemonGattInterface::DispatchError(
+  BluetoothGattResultHandler* aRes, BluetoothStatus aStatus)
+{
+  BluetoothResultRunnable1<BluetoothGattResultHandler, void,
+                           BluetoothStatus, BluetoothStatus>::Dispatch(
+    aRes, &BluetoothGattResultHandler::OnError,
+    ConstantInitOp1<BluetoothStatus>(aStatus));
+}
+
+void
+BluetoothDaemonGattInterface::DispatchError(
+  BluetoothGattResultHandler* aRes, nsresult aRv)
+{
+  BluetoothStatus status;
+
+  if (NS_WARN_IF(NS_FAILED(Convert(aRv, status)))) {
+    status = STATUS_FAIL;
+  }
+  DispatchError(aRes, status);
+}
+
+BluetoothGattClientInterface*
+BluetoothDaemonGattInterface::GetBluetoothGattClientInterface()
+{
+  MOZ_ASSERT(mModule);
+
+  BluetoothDaemonGattClientInterface* gattClientInterface =
+    new BluetoothDaemonGattClientInterface(mModule);
+
+  return gattClientInterface;
+}
+
 END_BLUETOOTH_NAMESPACE
