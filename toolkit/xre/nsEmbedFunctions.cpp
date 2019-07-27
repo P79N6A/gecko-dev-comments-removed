@@ -74,6 +74,11 @@
 
 #include "GeckoProfiler.h"
 
+#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_WIN)
+#define TARGET_SANDBOX_EXPORTS
+#include "mozilla/warnonlysandbox/wosCallbacks.h"
+#endif
+
 #ifdef MOZ_IPDL_TESTS
 #include "mozilla/_ipdltest/IPDLUnitTests.h"
 #include "mozilla/_ipdltest/IPDLUnitTestProcessChild.h"
@@ -534,6 +539,12 @@ XRE_InitChildProcess(int aArgc,
         NS_LogTerm();
         return NS_ERROR_FAILURE;
       }
+
+#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_WIN)
+      
+      
+      mozilla::warnonlysandbox::InitIfRequired();
+#endif
 
       
       uiMessageLoop.MessageLoop::Run();
