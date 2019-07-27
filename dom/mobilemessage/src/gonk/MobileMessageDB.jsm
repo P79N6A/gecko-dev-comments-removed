@@ -102,13 +102,6 @@ MobileMessageDB.prototype = {
 
 
 
-  isDiskFull: null,
-
-  
-
-
-
-
 
 
 
@@ -294,11 +287,6 @@ MobileMessageDB.prototype = {
     if (DEBUG) debug("Opening transaction for object stores: " + storeNames);
     let self = this;
     this.ensureDB(function(error, db) {
-      if (!error &&
-          txn_type === READ_WRITE &&
-          self.isDiskFull && self.isDiskFull()) {
-        error = Cr.NS_ERROR_FILE_NO_DEVICE_SPACE;
-      }
       if (error) {
         if (DEBUG) debug("Could not open database: " + error);
         callback(error);
