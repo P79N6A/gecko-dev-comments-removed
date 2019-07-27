@@ -33,6 +33,7 @@ import org.mozilla.gecko.TelemetryContract.Method;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.healthreport.HealthReportConstants;
 import org.mozilla.gecko.db.BrowserContract.SuggestedSites;
+import org.mozilla.gecko.home.HomePanelPicker;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -103,6 +104,7 @@ OnSharedPreferenceChangeListener
 
     
     private static final String PREFS_SEARCH_RESTORE_DEFAULTS = NON_PREF_PREFIX + "search.restore_defaults";
+    private static final String PREFS_HOME_ADD_PANEL = NON_PREF_PREFIX + "home.add_panel";
     private static final String PREFS_DATA_REPORTING_PREFERENCES = NON_PREF_PREFIX + "datareporting.preferences";
     private static final String PREFS_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
     private static final String PREFS_CRASHREPORTER_ENABLED = "datareporting.crashreporter.submitEnabled";
@@ -115,13 +117,13 @@ OnSharedPreferenceChangeListener
     private static final String PREFS_DEVTOOLS_REMOTE_ENABLED = "devtools.debugger.remote-enabled";
     private static final String PREFS_DISPLAY_REFLOW_ON_ZOOM = "browser.zoom.reflowOnZoom";
     private static final String PREFS_SYNC = NON_PREF_PREFIX + "sync";
-    private static final String PREFS_STUMBLER_ENABLED = AppConstants.ANDROID_PACKAGE_NAME + ".STUMBLER_PREF";
 
     
     private static final String PREFS_BROWSER_LOCALE = "locale";
 
     public static final String PREFS_RESTORE_SESSION = NON_PREF_PREFIX + "restoreSession3";
     public static final String PREFS_SUGGESTED_SITES = NON_PREF_PREFIX + "home_suggested_sites";
+    public static final String PREFS_NEW_TABLET_UI = NON_PREF_PREFIX + "new_tablet_ui";
 
     
     private static final int REQUEST_CODE_PREF_SCREEN = 5;
@@ -339,9 +341,7 @@ OnSharedPreferenceChangeListener
             int res = 0;
             if (intentExtras != null && intentExtras.containsKey(INTENT_EXTRA_RESOURCES)) {
                 
-                final String resourceName = intentExtras.getString(INTENT_EXTRA_RESOURCES);
-                Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, Method.SETTINGS, resourceName);
-
+                String resourceName = intentExtras.getString(INTENT_EXTRA_RESOURCES);
                 if (resourceName != null) {
                     res = getResources().getIdentifier(resourceName, "xml", getPackageName());
                     if (res == 0) {
@@ -353,7 +353,6 @@ OnSharedPreferenceChangeListener
                 
                 Log.e(LOGTAG, "Displaying default settings.");
                 res = R.xml.preferences;
-                Telemetry.startUISession(TelemetryContract.Session.SETTINGS);
             }
 
             
@@ -470,8 +469,6 @@ OnSharedPreferenceChangeListener
         if (NO_TRANSITIONS) {
             overridePendingTransition(0, 0);
         }
-
-        Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL, Method.BACK, "settings");
     }
 
     @Override
@@ -481,13 +478,6 @@ OnSharedPreferenceChangeListener
             "Sanitize:Finished");
         if (mPrefsRequestId > 0) {
             PrefsHelper.removeObserver(mPrefsRequestId);
-        }
-
-        
-        
-        
-        if (Versions.preHC && getIntent().getExtras() == null) {
-            Telemetry.stopUISession(TelemetryContract.Session.SETTINGS);
         }
     }
 
@@ -571,6 +561,21 @@ OnSharedPreferenceChangeListener
                   setResult(RESULT_CODE_EXIT_SETTINGS);
                   finishChoosingTransition();
                   break;
+              }
+              break;
+
+          case HomePanelPicker.REQUEST_CODE_ADD_PANEL:
+              switch (resultCode) {
+                  case Activity.RESULT_OK:
+                      
+                      mPanelsPreferenceCategory.refresh();
+                      break;
+                  case Activity.RESULT_CANCELED:
+                      
+                      break;
+                  default:
+                      Log.w(LOGTAG, "Unhandled ADD_PANEL result code " + requestCode);
+                      break;
               }
               break;
         }
@@ -674,9 +679,7 @@ OnSharedPreferenceChangeListener
                     preferences.removePreference(pref);
                     i--;
                     continue;
-                } else if (AppConstants.RELEASE_BUILD &&
-                            (PREFS_GEO_REPORTING.equals(key) ||
-                             PREFS_GEO_LEARN_MORE.equals(key))) {
+                } else if (AppConstants.RELEASE_BUILD && PREFS_GEO_REPORTING.equals(key)) {
                     
                     preferences.removePreference(pref);
                     i--;
@@ -713,7 +716,15 @@ OnSharedPreferenceChangeListener
                         @Override
                         public boolean onPreferenceClick(Preference preference) {
                             GeckoPreferences.this.restoreDefaultSearchEngines();
-                            Telemetry.sendUIEvent(TelemetryContract.Event.SEARCH_RESTORE_DEFAULTS, Method.LIST_ITEM);
+                            return true;
+                        }
+                    });
+                } else if (PREFS_HOME_ADD_PANEL.equals(key)) {
+                    pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+                        @Override
+                        public boolean onPreferenceClick(Preference preference) {
+                            Intent dialogIntent = new Intent(GeckoPreferences.this, HomePanelPicker.class);
+                            startActivityForResultChoosingTransition(dialogIntent, HomePanelPicker.REQUEST_CODE_ADD_PANEL);
                             return true;
                         }
                     });
@@ -773,7 +784,6 @@ OnSharedPreferenceChangeListener
         
         if (itemId == R.id.restore_defaults) {
             restoreDefaultSearchEngines();
-            Telemetry.sendUIEvent(TelemetryContract.Event.SEARCH_RESTORE_DEFAULTS, Method.MENU);
             return true;
        }
 
@@ -850,34 +860,6 @@ OnSharedPreferenceChangeListener
     public static void broadcastHealthReportPrune(final Context context) {
         final Intent intent = new Intent(HealthReportConstants.ACTION_HEALTHREPORT_PRUNE);
         broadcastAction(context, intent);
-    }
-
-    
-
-
-
-    public static void broadcastStumblerPref(final Context context, final boolean value) {
-       Intent intent = new Intent(PREFS_STUMBLER_ENABLED)
-                .putExtra("pref", PREFS_GEO_REPORTING)
-                .putExtra("branch", GeckoSharedPrefs.APP_PREFS_NAME)
-                .putExtra("enabled", value)
-                .putExtra("moz_mozilla_api_key", AppConstants.MOZ_STUMBLER_API_KEY);
-       if (GeckoAppShell.getGeckoInterface() != null) {
-           intent.putExtra("user_agent", GeckoAppShell.getGeckoInterface().getDefaultUAString());
-       }
-       if (!AppConstants.MOZILLA_OFFICIAL) {
-           intent.putExtra("is_debug", true);
-       }
-       broadcastAction(context, intent);
-    }
-
-    
-
-
-
-    public static void broadcastStumblerPref(final Context context) {
-        final boolean value = getBooleanPref(context, PREFS_GEO_REPORTING, true);
-        broadcastStumblerPref(context, value);
     }
 
     
@@ -1012,9 +994,6 @@ OnSharedPreferenceChangeListener
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         final String prefName = preference.getKey();
         Log.i(LOGTAG, "Changed " + prefName + " = " + newValue);
-
-        Telemetry.sendUIEvent(TelemetryContract.Event.EDIT, Method.SETTINGS, prefName);
-
         if (PREFS_MP_ENABLED.equals(prefName)) {
             showDialog((Boolean) newValue ? DIALOG_CREATE_MASTER_PASSWORD : DIALOG_REMOVE_MASTER_PASSWORD);
 
@@ -1040,7 +1019,6 @@ OnSharedPreferenceChangeListener
             
             broadcastHealthReportUploadPref(this, ((Boolean) newValue).booleanValue());
         } else if (PREFS_GEO_REPORTING.equals(prefName)) {
-            broadcastStumblerPref(this, ((Boolean) newValue).booleanValue());
             
             newValue = ((Boolean) newValue) ? 1 : 0;
         } else if (handlers.containsKey(prefName)) {
