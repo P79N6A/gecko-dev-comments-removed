@@ -61,6 +61,17 @@ function checkLoopPanelIsHidden() {
 
 if (Services.prefs.getBoolPref("loop.enabled")) {
   loopButton = window.LoopUI.toolbarButton.node;
+  registerCleanupFunction(() => {
+    
+    
+    
+    
+    let frameId = loopButton.getAttribute("notificationFrameId");
+    let frame = document.getElementById(frameId);
+    if (frame) {
+      frame.remove();
+    }
+  });
 } else {
   ok(true, "Loop is disabled so skip the UITour Loop tests");
   tests = [];
