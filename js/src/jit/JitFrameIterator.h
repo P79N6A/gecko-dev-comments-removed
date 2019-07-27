@@ -410,7 +410,7 @@ class SnapshotIterator
     SnapshotReader snapshot_;
     RecoverReader recover_;
     JitFrameLayout* fp_;
-    MachineState machine_;
+    const MachineState* machine_;
     IonScript* ionScript_;
     RInstructionResults* instructionResults_;
 
@@ -429,17 +429,17 @@ class SnapshotIterator
   private:
     
     bool hasRegister(Register reg) const {
-        return machine_.has(reg);
+        return machine_->has(reg);
     }
     uintptr_t fromRegister(Register reg) const {
-        return machine_.read(reg);
+        return machine_->read(reg);
     }
 
     bool hasRegister(FloatRegister reg) const {
-        return machine_.has(reg);
+        return machine_->has(reg);
     }
     double fromRegister(FloatRegister reg) const {
-        return machine_.read(reg);
+        return machine_->read(reg);
     }
 
     
@@ -550,7 +550,7 @@ class SnapshotIterator
     
     
 
-    explicit SnapshotIterator(const JitFrameIterator& iter);
+    SnapshotIterator(const JitFrameIterator& iter, const MachineState* machineState);
     SnapshotIterator();
 
     Value read() {
@@ -654,6 +654,9 @@ class InlineFrameIterator
     RootedScript script_;
     jsbytecode* pc_;
     uint32_t numActualArgs_;
+
+    
+    MachineState machine_;
 
     struct Nop {
         void operator()(const Value& v) { }
