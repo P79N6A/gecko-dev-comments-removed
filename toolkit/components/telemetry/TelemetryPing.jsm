@@ -279,6 +279,9 @@ let Impl = {
   _connectionsBarrier: new AsyncShutdown.Barrier("TelemetryPing: Waiting for pending ping activity"),
 
   
+  _pendingPingRequests: new Map(),
+
+  
 
 
   _getApplicationSection: function() {
@@ -583,6 +586,8 @@ let Impl = {
     request.overrideMimeType("text/plain");
     request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
 
+    this._pendingPingRequests.set(url, request);
+
     let startTime = new Date();
     let deferred = PromiseUtils.defer();
 
@@ -595,6 +600,7 @@ let Impl = {
         }
       };
 
+      this._pendingPingRequests.delete(url);
       this.onPingRequestFinished(success, startTime, ping, isPersisted)
         .then(() => onCompletion(),
               (error) => {
@@ -819,6 +825,18 @@ let Impl = {
       return;
     }
 
+    
+    for (let [url, request] of this._pendingPingRequests) {
+      this._log.trace("_cleanupOnShutdown - aborting ping request for " + url);
+      try {
+        request.abort();
+      } catch (e) {
+        this._log.error("_cleanupOnShutdown - failed to abort request to " + url, e);
+      }
+    }
+    this._pendingPingRequests.clear();
+
+    
     try {
       
       yield this._shutdownBarrier.wait();
@@ -829,7 +847,7 @@ let Impl = {
       try {
         yield TelemetryEnvironment.shutdown();
       } catch (e) {
-        this._log.error("shutdown - environment shutdown failure", e);
+        this._log.error("_cleanupOnShutdown - environment shutdown failure", e);
       }
     } finally {
       
