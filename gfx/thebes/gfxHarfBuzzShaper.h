@@ -9,6 +9,7 @@
 #include "gfxFont.h"
 
 #include "harfbuzz/hb.h"
+#include "nsUnicodeProperties.h"
 
 class gfxHarfBuzzShaper : public gfxFontShaper {
 public:
@@ -50,6 +51,21 @@ public:
 
     hb_position_t GetHKerning(uint16_t aFirstGlyph,
                               uint16_t aSecondGlyph) const;
+
+    static hb_script_t
+    GetHBScriptUsedForShaping(int32_t aScript) {
+        
+        hb_script_t hbScript;
+        if (aScript <= MOZ_SCRIPT_INHERITED) {
+            
+            
+            hbScript = HB_SCRIPT_LATIN;
+        } else {
+            hbScript =
+                hb_script_t(mozilla::unicode::GetScriptTagForCode(aScript));
+        }
+        return hbScript;
+    }
 
 protected:
     nsresult SetGlyphsFromRun(gfxContext      *aContext,
