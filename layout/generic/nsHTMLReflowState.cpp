@@ -1945,11 +1945,11 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(
       cbSize.ISize(wm) = aContainingBlockRS->frame->ISize(wm) -
                          computedBorder.IStartEnd(wm);
       NS_ASSERTION(cbSize.ISize(wm) >= 0,
-                   "Negative containing block width!");
+                   "Negative containing block isize!");
       cbSize.BSize(wm) = aContainingBlockRS->frame->BSize(wm) -
                          computedBorder.BStartEnd(wm);
       NS_ASSERTION(cbSize.BSize(wm) >= 0,
-                   "Negative containing block height!");
+                   "Negative containing block bsize!");
     } else {
       
       
@@ -2185,6 +2185,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext*     aPresContext,
     ComputeMinMaxValues(cbSize);
 
     
+    
 
     if (NS_CSS_FRAME_TYPE_INTERNAL_TABLE == mFrameType) {
       
@@ -2211,11 +2212,11 @@ nsHTMLReflowState::InitConstraints(nsPresContext*     aPresContext,
           if (ComputedISize() < 0)
             ComputedISize() = 0;
         }
-        NS_ASSERTION(ComputedISize() >= 0, "Bogus computed width");
+        NS_ASSERTION(ComputedISize() >= 0, "Bogus computed isize");
 
       } else {
         NS_ASSERTION(inlineSizeUnit == inlineSize.GetUnit(),
-                     "unexpected width unit change");
+                     "unexpected inline size unit change");
         ComputedISize() = ComputeISizeValue(cbSize.ISize(wm),
                                             mStylePosition->mBoxSizing,
                                             inlineSize);
