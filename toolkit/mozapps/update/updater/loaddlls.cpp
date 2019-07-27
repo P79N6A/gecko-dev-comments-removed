@@ -74,7 +74,7 @@ struct AutoLoadSystemDependencies
     WCHAR systemDirectory[MAX_PATH + 1] = { L'\0' };
     
     
-    GetSystemDirectory(systemDirectory, MAX_PATH + 1);
+    GetSystemDirectoryW(systemDirectory, MAX_PATH + 1);
     size_t systemDirLen = wcslen(systemDirectory);
 
     

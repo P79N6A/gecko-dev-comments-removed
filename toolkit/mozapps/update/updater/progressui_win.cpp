@@ -200,7 +200,7 @@ DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 int
-InitProgressUI(int *argc, NS_tchar ***argv)
+InitProgressUI(int *argc, WCHAR ***argv)
 {
   return 0;
 }
@@ -245,8 +245,47 @@ ShowProgressUI(bool indeterminate, bool initUIStrings)
       return 0;
   }
 
+  
+  WCHAR appPath[MAX_PATH + 1] = { L'\0' };
+  if (!GetModuleFileNameW(nullptr, appPath, MAX_PATH)) {
+    return -1;
+  }
+
+  if (wcslen(appPath) + wcslen(L".Local") >= MAX_PATH) {
+    return -1;
+  }
+
+  wcscat(appPath, L".Local");
+
+  if (!_waccess(appPath, 04)) {
+    return -1;
+  }
+
+  
   if (initUIStrings && InitProgressUIStrings() == -1) {
     return -1;
+  }
+
+  if (!GetModuleFileNameW(nullptr, appPath, MAX_PATH)) {
+    return -1;
+  }
+
+  
+  ACTCTXW actx = {0};
+  actx.cbSize = sizeof(ACTCTXW);
+  actx.dwFlags = ACTCTX_FLAG_RESOURCE_NAME_VALID | ACTCTX_FLAG_HMODULE_VALID;
+  actx.hModule = GetModuleHandle(NULL); 
+  
+  
+  actx.lpSource = appPath;
+  actx.lpResourceName = MAKEINTRESOURCE(IDR_COMCTL32_MANIFEST);
+
+  HANDLE hactx = INVALID_HANDLE_VALUE;
+  hactx = CreateActCtxW(&actx);
+  ULONG_PTR actxCookie = NULL;
+  if (hactx != INVALID_HANDLE_VALUE) {
+    
+    ActivateActCtx(hactx, &actxCookie);
   }
 
   INITCOMMONCONTROLSEX icc = {
@@ -258,6 +297,11 @@ ShowProgressUI(bool indeterminate, bool initUIStrings)
   DialogBox(GetModuleHandle(nullptr),
             MAKEINTRESOURCE(IDD_DIALOG), nullptr,
             (DLGPROC) DialogProc);
+
+  if (hactx != INVALID_HANDLE_VALUE) {
+    
+    DeactivateActCtx(0, actxCookie);
+  }
 
   return 0;
 }
