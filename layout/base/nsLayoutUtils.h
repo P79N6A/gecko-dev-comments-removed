@@ -1509,30 +1509,6 @@ public:
 
 
 
-  static void DrawPixelSnapped(nsRenderingContext* aRenderingContext,
-                               nsPresContext*       aPresContext,
-                               gfxDrawable*         aDrawable,
-                               GraphicsFilter       aFilter,
-                               const nsRect&        aDest,
-                               const nsRect&        aFill,
-                               const nsPoint&       aAnchor,
-                               const nsRect&        aDirty);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   static nsresult DrawSingleUnscaledImage(nsRenderingContext* aRenderingContext,
                                           nsPresContext*       aPresContext,
