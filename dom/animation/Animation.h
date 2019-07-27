@@ -12,7 +12,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h" 
 #include "mozilla/dom/AnimationBinding.h" 
-#include "mozilla/dom/DocumentTimeline.h" 
+#include "mozilla/dom/AnimationTimeline.h" 
 #include "mozilla/dom/KeyframeEffect.h" 
 #include "mozilla/dom/Promise.h" 
 #include "nsCSSProperty.h" 
@@ -53,7 +53,7 @@ protected:
   virtual ~Animation() {}
 
 public:
-  explicit Animation(DocumentTimeline* aTimeline)
+  explicit Animation(AnimationTimeline* aTimeline)
     : mTimeline(aTimeline)
     , mPlaybackRate(1.0)
     , mPendingState(PendingState::NotPending)
@@ -68,7 +68,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Animation)
 
-  DocumentTimeline* GetParentObject() const { return mTimeline; }
+  AnimationTimeline* GetParentObject() const { return mTimeline; }
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
@@ -92,7 +92,7 @@ public:
 
   KeyframeEffectReadOnly* GetEffect() const { return mEffect; }
   void SetEffect(KeyframeEffectReadOnly* aEffect);
-  DocumentTimeline* Timeline() const { return mTimeline; }
+  AnimationTimeline* Timeline() const { return mTimeline; }
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   void SetStartTime(const Nullable<TimeDuration>& aNewStartTime);
   Nullable<TimeDuration> GetCurrentTime() const;
@@ -339,7 +339,7 @@ protected:
   virtual css::CommonAnimationManager* GetAnimationManager() const = 0;
   AnimationCollection* GetCollection() const;
 
-  nsRefPtr<DocumentTimeline> mTimeline;
+  nsRefPtr<AnimationTimeline> mTimeline;
   nsRefPtr<KeyframeEffectReadOnly> mEffect;
   
   Nullable<TimeDuration> mStartTime; 
