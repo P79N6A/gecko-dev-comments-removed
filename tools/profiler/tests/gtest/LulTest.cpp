@@ -16,7 +16,7 @@
 
 
 static void
-gtest_logging_sink_for_LUL(const char* str) {
+gtest_logging_sink_for_LulIntegration(const char* str) {
   if (DEBUG_LUL_TEST == 0) {
     return;
   }
@@ -32,11 +32,11 @@ gtest_logging_sink_for_LUL(const char* str) {
   }
 }
 
-TEST(LUL, unwind_consistency) {
+TEST(LulIntegration, unwind_consistency) {
   
   
   
-  lul::LUL* lul = new lul::LUL(gtest_logging_sink_for_LUL);
+  lul::LUL* lul = new lul::LUL(gtest_logging_sink_for_LulIntegration);
   read_procmaps(lul);
 
   

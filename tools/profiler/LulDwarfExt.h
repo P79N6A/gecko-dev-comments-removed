@@ -1062,7 +1062,7 @@ class CallFrameInfo::Handler {
 
 
 
-class CallFrameInfo::Reporter final {
+class CallFrameInfo::Reporter {
  public:
   
   
