@@ -114,29 +114,33 @@ bool
 SVGRectElement::GetGeometryBounds(Rect* aBounds, Float aStrokeWidth,
                                   const Matrix& aTransform)
 {
-  Rect r;
+  Rect rect;
   Float rx, ry;
-  GetAnimatedLengthValues(&r.x, &r.y, &r.width, &r.height, &rx, &ry, nullptr);
+  GetAnimatedLengthValues(&rect.x, &rect.y, &rect.width,
+                          &rect.height, &rx, &ry, nullptr);
 
-  if (r.IsEmpty()) {
+  if (rect.IsEmpty()) {
     
-    r.SetEmpty(); 
-    *aBounds = r;
+    rect.SetEmpty(); 
+    *aBounds = rect; 
     return true;
   }
 
-  rx = std::max(rx, 0.0f);
-  ry = std::max(ry, 0.0f);
+  if (!aTransform.IsRectilinear()) {
+    
+    rx = std::max(rx, 0.0f);
+    ry = std::max(ry, 0.0f);
 
-  if (rx != 0 || ry != 0) {
-    return false;
+    if (rx != 0 || ry != 0) {
+      return false;
+    }
   }
 
   if (aStrokeWidth > 0.f) {
-    r.Inflate(aStrokeWidth / 2.f);
+    rect.Inflate(aStrokeWidth / 2.f);
   }
 
-  *aBounds = aTransform.TransformBounds(r);
+  *aBounds = aTransform.TransformBounds(rect);
   return true;
 }
 
