@@ -1031,6 +1031,7 @@ void imgLoader::GlobalInit()
     sCacheMaxSize = cachesize;
   else
     sCacheMaxSize = 5 * 1024 * 1024;
+  sCacheMaxSize = sCacheMaxSize > 0 ? sCacheMaxSize : 0;
 
   sMemReporter = new imgMemoryReporter();
   RegisterStrongMemoryReporter(sMemReporter);
@@ -1306,7 +1307,7 @@ void imgLoader::CheckCacheLimits(imgCacheTable &cache, imgCacheQueue &queue)
                  "imgLoader::CheckCacheLimits -- incorrect cache size");
 
   
-  while (queue.GetSize() >= sCacheMaxSize) {
+  while (queue.GetSize() > sCacheMaxSize) {
     
     nsRefPtr<imgCacheEntry> entry(queue.Pop());
 
