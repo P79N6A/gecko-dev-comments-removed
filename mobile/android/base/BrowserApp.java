@@ -664,16 +664,6 @@ public class BrowserApp extends GeckoApp
         
         IconDirectoryEntry.setMaxBPP(GeckoAppShell.getScreenDepth());
 
-        Class<?> mediaManagerClass = getMediaPlayerManager();
-        if (mediaManagerClass != null) {
-            try {
-                Method init = mediaManagerClass.getMethod("init", Context.class);
-                init.invoke(null, this);
-            } catch(Exception ex) {
-                Log.e(LOGTAG, "Error initializing media manager", ex);
-            }
-        }
-
         if (getProfile().inGuestMode()) {
             GuestSession.showNotification(this);
         } else {
@@ -1498,7 +1488,10 @@ public class BrowserApp extends GeckoApp
                     BrowserDB.getCount(getContentResolver(), "favicons"));
             Telemetry.HistogramAdd("FENNEC_THUMBNAILS_COUNT",
                     BrowserDB.getCount(getContentResolver(), "thumbnails"));
-            Telemetry.HistogramAdd("BROWSER_IS_USER_DEFAULT", (isDefaultBrowser() ? 1 : 0));
+            Telemetry.HistogramAdd("BROWSER_IS_USER_DEFAULT", (isDefaultBrowser(Intent.ACTION_VIEW) ? 1 : 0));
+            if (Versions.feature16Plus) {
+                Telemetry.HistogramAdd("BROWSER_IS_ASSIST_DEFAULT", (isDefaultBrowser(Intent.ACTION_ASSIST) ? 1 : 0));
+            }
         } else if ("Updater:Launch".equals(event)) {
             handleUpdaterLaunch();
 
@@ -1515,8 +1508,8 @@ public class BrowserApp extends GeckoApp
 
 
 
-    private boolean isDefaultBrowser() {
-        final Intent viewIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.mozilla.org"));
+    private boolean isDefaultBrowser(String action) {
+        final Intent viewIntent = new Intent(action, Uri.parse("http://www.mozilla.org"));
         final ResolveInfo info = getPackageManager().resolveActivity(viewIntent, PackageManager.MATCH_DEFAULT_ONLY);
         if (info == null) {
             
@@ -1549,6 +1542,19 @@ public class BrowserApp extends GeckoApp
                     }
                 });
 
+                if (AppConstants.MOZ_MEDIA_PLAYER) {
+                    
+                    Class<?> mediaManagerClass = getMediaPlayerManager();
+                    if (mediaManagerClass != null) {
+                        try {
+                            Method init = mediaManagerClass.getMethod("init", Context.class);
+                            init.invoke(null, this);
+                        } catch(Exception ex) {
+                            Log.e(LOGTAG, "Error initializing media manager", ex);
+                        }
+                    }
+                }
+
                 if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
                     
                     
@@ -1561,6 +1567,7 @@ public class BrowserApp extends GeckoApp
                         }
                     }, oneSecondInMillis);
                 }
+
                 super.handleMessage(event, message);
             } else if (event.equals("Gecko:Ready")) {
                 
