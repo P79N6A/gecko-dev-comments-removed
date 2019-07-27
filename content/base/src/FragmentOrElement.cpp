@@ -171,7 +171,7 @@ nsIContent::GetFlattenedTreeParent() const
 
   
   
-  if (parent && parent->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+  if (parent && parent->IsInShadowTree()) {
     ShadowRoot* parentShadowRoot = ShadowRoot::FromNode(parent);
     if (parentShadowRoot) {
       return parentShadowRoot->GetHost();

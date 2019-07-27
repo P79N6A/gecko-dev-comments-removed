@@ -4529,7 +4529,7 @@ nsContentUtils::IsInSameAnonymousTree(const nsINode* aNode,
   
   
   
-  if (aNode->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+  if (aNode->IsInShadowTree()) {
     return nodeAsContent->GetContainingShadow() ==
       aContent->GetContainingShadow();
   }
