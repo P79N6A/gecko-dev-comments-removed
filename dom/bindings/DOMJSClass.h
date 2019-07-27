@@ -123,6 +123,9 @@ struct NativeProperties
   const Prefable<const ConstantSpec>* constants;
   jsid* constantIds;
   const ConstantSpec* constantSpecs;
+
+  
+  int32_t iteratorAliasMethodIndex;
 };
 
 struct NativePropertiesHolder
