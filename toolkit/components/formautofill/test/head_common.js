@@ -5,7 +5,16 @@
 
 
 
+
+
+
+
 "use strict";
+
+
+
+
+
 
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadPaths",
                                   "resource://gre/modules/DownloadPaths.jsm");
@@ -15,34 +24,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "FormAutofill",
                                   "resource://gre/modules/FormAutofill.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
-
-let gTerminationTasks = [];
-let add_termination_task = taskFn => gTerminationTasks.push(taskFn);
-
-
-
-
-
-
-
-
-
-let terminationTaskFn = function* test_common_terminate() {
-  for (let taskFn of gTerminationTasks) {
-    try {
-      yield Task.spawn(taskFn);
-    } catch (ex) {
-      Output.print(ex);
-      Assert.ok(false);
-    }
-  }
-};
 
 
 
@@ -227,13 +210,7 @@ let TestData = {
 
 
 
-add_task(function* test_common_initialize() {
-  
-  Services.prefs.setBoolPref("dom.forms.requestAutocomplete", true);
-  add_termination_task(function* () {
-    Services.prefs.clearUserPref("dom.forms.requestAutocomplete");
-  });
-
+add_task_in_parent_process(function* () {
   
   let mockIntegrationFn = base => ({
     createRequestAutocompleteUI: Task.async(function* () {
@@ -256,5 +233,13 @@ add_task(function* test_common_initialize() {
   FormAutofill.registerIntegration(mockIntegrationFn);
   add_termination_task(function* () {
     FormAutofill.unregisterIntegration(mockIntegrationFn);
+  });
+});
+
+add_task_in_both_processes(function* () {
+  
+  Services.prefs.setBoolPref("dom.forms.requestAutocomplete", true);
+  add_termination_task(function* () {
+    Services.prefs.clearUserPref("dom.forms.requestAutocomplete");
   });
 });

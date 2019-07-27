@@ -10,7 +10,7 @@
 
 
 
-add_task(function* test_initialize() {
+add_task_in_parent_process(function* test_initialize() {
   FormAutofillTest.requestAutocompleteResponse = { canceled: true };
 });
 
