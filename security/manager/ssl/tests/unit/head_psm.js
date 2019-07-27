@@ -256,6 +256,9 @@ function add_connection_test(aHost, aExpectedResult,
     let sts = Cc["@mozilla.org/network/socket-transport-service;1"]
                 .getService(Ci.nsISocketTransportService);
     this.transport = sts.createTransport(["ssl"], 1, aHost, REMOTE_PORT, null);
+    
+    
+    this.transport.connectionFlags |= Ci.nsISocketTransport.DISABLE_IPV6;
     this.transport.setEventSink(this, this.thread);
     this.inputStream = null;
     this.outputStream = null;
