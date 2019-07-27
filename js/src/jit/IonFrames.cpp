@@ -452,7 +452,7 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
                 
                 
                 
-                script->resetUseCount();
+                script->resetWarmUpCounter();
 
                 
                 jsbytecode *catchPC = script->main() + tn->start + tn->length;
@@ -570,7 +570,7 @@ HandleExceptionBaseline(JSContext *cx, const JitFrameIterator &frame, ResumeFrom
                 
                 
                 
-                script->resetUseCount();
+                script->resetWarmUpCounter();
 
                 
                 rfe->kind = ResumeFromException::RESUME_CATCH;

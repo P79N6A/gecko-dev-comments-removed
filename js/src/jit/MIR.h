@@ -631,13 +631,13 @@ class MDefinition : public MNode
     
     
     
-    size_t useCount() const;
+    size_t warmUpCounter() const;
 
     
     
     
     
-    size_t defUseCount() const;
+    size_t defWarmUpCounter() const;
 #endif
 
     
@@ -11321,8 +11321,8 @@ class MRecompileCheck : public MNullaryInstruction
   public:
     INSTRUCTION_HEADER(RecompileCheck);
 
-    static MRecompileCheck *New(TempAllocator &alloc, JSScript *script_, uint32_t useCount) {
-        return new(alloc) MRecompileCheck(script_, useCount);
+    static MRecompileCheck *New(TempAllocator &alloc, JSScript *script_, uint32_t warmUpCounter) {
+        return new(alloc) MRecompileCheck(script_, warmUpCounter);
     }
 
     JSScript *script() const {

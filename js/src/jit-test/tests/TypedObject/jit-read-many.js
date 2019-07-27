@@ -9,7 +9,7 @@ if (!this.hasOwnProperty("TypedObject"))
 
 
 
-setJitCompilerOption("ion.usecount.trigger", 30);
+setJitCompilerOption("ion.warmup.trigger", 30);
 
 var N0 = 50;
 var N1 = 100;

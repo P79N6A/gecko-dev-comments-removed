@@ -738,7 +738,7 @@ class FastInvokeGuard
             if (script_->canIonCompile()) {
                 
                 
-                script_->incUseCount(5);
+                script_->incWarmUpCounter(5);
             }
         }
 

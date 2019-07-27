@@ -316,7 +316,7 @@ class ICEntry
 
 
 #define IC_STUB_KIND_LIST(_)    \
-    _(UseCount_Fallback)        \
+    _(WarmUpCounter_Fallback)   \
                                 \
     _(Profiler_Fallback)        \
     _(Profiler_PushFunction)    \
@@ -790,7 +790,7 @@ class ICStub
           case Call_ScriptedApplyArray:
           case Call_ScriptedApplyArguments:
           case Call_ScriptedFunCall:
-          case UseCount_Fallback:
+          case WarmUpCounter_Fallback:
           case GetElem_NativeSlot:
           case GetElem_NativePrototypeSlot:
           case GetElem_NativePrototypeCallNative:
@@ -1177,19 +1177,19 @@ class ICMultiStubCompiler : public ICStubCompiler
 
 
 
-class ICUseCount_Fallback : public ICFallbackStub
+class ICWarmUpCounter_Fallback : public ICFallbackStub
 {
     friend class ICStubSpace;
 
-    explicit ICUseCount_Fallback(JitCode *stubCode)
-      : ICFallbackStub(ICStub::UseCount_Fallback, stubCode)
+    explicit ICWarmUpCounter_Fallback(JitCode *stubCode)
+      : ICFallbackStub(ICStub::WarmUpCounter_Fallback, stubCode)
     { }
 
   public:
-    static inline ICUseCount_Fallback *New(ICStubSpace *space, JitCode *code) {
+    static inline ICWarmUpCounter_Fallback *New(ICStubSpace *space, JitCode *code) {
         if (!code)
             return nullptr;
-        return space->allocate<ICUseCount_Fallback>(code);
+        return space->allocate<ICWarmUpCounter_Fallback>(code);
     }
 
     
@@ -1199,11 +1199,11 @@ class ICUseCount_Fallback : public ICFallbackStub
 
       public:
         explicit Compiler(JSContext *cx)
-          : ICStubCompiler(cx, ICStub::UseCount_Fallback)
+          : ICStubCompiler(cx, ICStub::WarmUpCounter_Fallback)
         { }
 
-        ICUseCount_Fallback *getStub(ICStubSpace *space) {
-            return ICUseCount_Fallback::New(space, getStubCode());
+        ICWarmUpCounter_Fallback *getStub(ICStubSpace *space) {
+            return ICWarmUpCounter_Fallback::New(space, getStubCode());
         }
     };
 };

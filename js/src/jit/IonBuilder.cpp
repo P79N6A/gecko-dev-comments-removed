@@ -656,13 +656,13 @@ IonBuilder::build()
                 script()->filename(), script()->lineno(), (void *)script(),
                 ExecutionModeString(info().executionMode()));
     } else if (info().executionMode() == SequentialExecution && script()->hasIonScript()) {
-        JitSpew(JitSpew_Scripts, "Recompiling script %s:%d (%p) (usecount=%d, level=%s)",
+        JitSpew(JitSpew_Scripts, "Recompiling script %s:%d (%p) (warmup-counter=%d, level=%s)",
                 script()->filename(), script()->lineno(), (void *)script(),
-                (int)script()->getUseCount(), OptimizationLevelString(optimizationInfo().level()));
+                (int)script()->getWarmUpCounter(), OptimizationLevelString(optimizationInfo().level()));
     } else {
-        JitSpew(JitSpew_Scripts, "Compiling script %s:%d (%p) (usecount=%d, level=%s)",
+        JitSpew(JitSpew_Scripts, "Compiling script %s:%d (%p) (warmup-counter=%d, level=%s)",
                 script()->filename(), script()->lineno(), (void *)script(),
-                (int)script()->getUseCount(), OptimizationLevelString(optimizationInfo().level()));
+                (int)script()->getWarmUpCounter(), OptimizationLevelString(optimizationInfo().level()));
     }
 #endif
 
@@ -1277,11 +1277,11 @@ IonBuilder::traverseBytecode()
         
         Vector<MDefinition *, 4, IonAllocPolicy> popped(alloc());
         Vector<size_t, 4, IonAllocPolicy> poppedUses(alloc());
-        unsigned nuses = GetUseCount(script_, script_->pcToOffset(pc));
+        unsigned nuses = GetWarmUpCounter(script_, script_->pcToOffset(pc));
 
         for (unsigned i = 0; i < nuses; i++) {
             MDefinition *def = current->peek(-int32_t(i + 1));
-            if (!popped.append(def) || !poppedUses.append(def->defUseCount()))
+            if (!popped.append(def) || !poppedUses.append(def->defWarmUpCounter()))
                 return false;
         }
 #endif
@@ -1328,7 +1328,7 @@ IonBuilder::traverseBytecode()
                           
                           popped[i]->isNewDerivedTypedObject() ||
 
-                          popped[i]->defUseCount() > poppedUses[i]);
+                          popped[i]->defWarmUpCounter() > poppedUses[i]);
                 break;
             }
         }
@@ -4367,7 +4367,7 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
         
         
         
-        if (targetScript->getUseCount() < optimizationInfo().usesBeforeInlining() &&
+        if (targetScript->getWarmUpCounter() < optimizationInfo().usesBeforeInlining() &&
             !targetScript->baselineScript()->ionCompiledOrInlined() &&
             info().executionMode() != DefinitePropertiesAnalysis)
         {
@@ -6385,8 +6385,8 @@ IonBuilder::insertRecompileCheck()
     
     OptimizationLevel nextLevel = js_IonOptimizations.nextLevel(curLevel);
     const OptimizationInfo *info = js_IonOptimizations.get(nextLevel);
-    uint32_t useCount = info->usesBeforeCompile(topBuilder->script());
-    current->add(MRecompileCheck::New(alloc(), topBuilder->script(), useCount));
+    uint32_t warmUpCounter = info->usesBeforeCompile(topBuilder->script());
+    current->add(MRecompileCheck::New(alloc(), topBuilder->script(), warmUpCounter));
 }
 
 JSObject *

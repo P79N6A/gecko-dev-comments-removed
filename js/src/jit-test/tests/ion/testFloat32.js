@@ -52,7 +52,8 @@
 
 
 
-setJitCompilerOption("ion.usecount.trigger", 50);
+
+setJitCompilerOption("ion.warmup.trigger", 50);
 
 function test(f) {
     f32[0] = .5;

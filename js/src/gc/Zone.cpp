@@ -207,7 +207,7 @@ Zone::discardJitCode(FreeOp *fop)
 
 
 
-            script->resetUseCount();
+            script->resetWarmUpCounter();
         }
 
         jitZone()->optimizedStubSpace()->free();

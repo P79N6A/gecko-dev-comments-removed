@@ -172,7 +172,7 @@ class ForkJoinOperation
 
         
         
-        uint32_t useCount;
+        uint32_t warmUpCounter;
 
         
         
@@ -180,7 +180,7 @@ class ForkJoinOperation
 
         void reset() {
             calleesEnqueued = false;
-            useCount = 0;
+            warmUpCounter = 0;
             stallCount = 0;
         }
     };
@@ -652,18 +652,18 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
             
             
             if (!script->hasBaselineScript()) {
-                uint32_t previousUseCount = worklistData_[i].useCount;
-                uint32_t currentUseCount = script->getUseCount();
-                if (previousUseCount < currentUseCount) {
-                    worklistData_[i].useCount = currentUseCount;
+                uint32_t previousWarmUpCounter = worklistData_[i].warmUpCounter;
+                uint32_t currentWarmUpCounter = script->getWarmUpCounter();
+                if (previousWarmUpCounter < currentWarmUpCounter) {
+                    worklistData_[i].warmUpCounter = currentWarmUpCounter;
                     worklistData_[i].stallCount = 0;
                     gatheringTypeInformation = true;
 
                     Spew(SpewCompile,
                          "Script %p:%s:%d has no baseline script, "
-                         "but use count grew from %d to %d",
+                         "but warm-up counter grew from %d to %d",
                          script.get(), script->filename(), script->lineno(),
-                         previousUseCount, currentUseCount);
+                         previousWarmUpCounter, currentWarmUpCounter);
                 } else {
                     uint32_t stallCount = ++worklistData_[i].stallCount;
                     if (stallCount < stallThreshold) {
@@ -672,9 +672,9 @@ ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
 
                     Spew(SpewCompile,
                          "Script %p:%s:%d has no baseline script, "
-                         "and use count has %u stalls at %d",
+                         "and warm-up counter has %u stalls at %d",
                          script.get(), script->filename(), script->lineno(),
-                         stallCount, previousUseCount);
+                         stallCount, previousWarmUpCounter);
                 }
                 continue;
             }

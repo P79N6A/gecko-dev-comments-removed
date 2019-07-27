@@ -2781,7 +2781,7 @@ jit::Invalidate(types::TypeZone &types, FreeOp *fop,
         
         
         if (resetUses && executionMode != ParallelExecution)
-            script->resetUseCount();
+            script->resetWarmUpCounter();
     }
 
     
@@ -3213,7 +3213,7 @@ AutoDebugModeInvalidation::~AutoDebugModeInvalidation()
             FinishInvalidation<SequentialExecution>(fop, script);
             FinishInvalidation<ParallelExecution>(fop, script);
             FinishDiscardBaselineScript(fop, script);
-            script->resetUseCount();
+            script->resetWarmUpCounter();
         } else if (script->hasBaselineScript()) {
             script->baselineScript()->resetActive();
         }

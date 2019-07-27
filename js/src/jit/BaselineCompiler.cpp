@@ -379,7 +379,7 @@ BaselineCompiler::emitPrologue()
     if (!emitDebugPrologue())
         return false;
 
-    if (!emitUseCountIncrement())
+    if (!emitWarmUpCounterIncrement())
         return false;
 
     if (!emitArgumentTypeChecks())
@@ -647,7 +647,7 @@ BaselineCompiler::emitInterruptCheck()
 }
 
 bool
-BaselineCompiler::emitUseCountIncrement(bool allowOsr)
+BaselineCompiler::emitWarmUpCounterIncrement(bool allowOsr)
 {
     
     
@@ -657,12 +657,12 @@ BaselineCompiler::emitUseCountIncrement(bool allowOsr)
 
     Register scriptReg = R2.scratchReg();
     Register countReg = R0.scratchReg();
-    Address useCountAddr(scriptReg, JSScript::offsetOfUseCount());
+    Address warmUpCounterAddr(scriptReg, JSScript::offsetOfWarmUpCounter());
 
     masm.movePtr(ImmGCPtr(script), scriptReg);
-    masm.load32(useCountAddr, countReg);
+    masm.load32(warmUpCounterAddr, countReg);
     masm.add32(Imm32(1), countReg);
-    masm.store32(countReg, useCountAddr);
+    masm.store32(countReg, warmUpCounterAddr);
 
     
     
@@ -688,7 +688,7 @@ BaselineCompiler::emitUseCountIncrement(bool allowOsr)
                    ImmPtr(ION_COMPILING_SCRIPT), &skipCall);
 
     
-    ICUseCount_Fallback::Compiler stubCompiler(cx);
+    ICWarmUpCounter_Fallback::Compiler stubCompiler(cx);
     if (!emitNonOpIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
@@ -1105,7 +1105,7 @@ bool
 BaselineCompiler::emit_JSOP_LOOPENTRY()
 {
     frame.syncStack(0);
-    return emitUseCountIncrement(LoopEntryCanIonOsr(pc));
+    return emitWarmUpCounterIncrement(LoopEntryCanIonOsr(pc));
 }
 
 bool
