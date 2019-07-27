@@ -57,6 +57,7 @@ AllTheNonBasicVanillaNewAllocations()
     
     
     
+    
 
     intptr_t p =
         intptr_t(malloc(16)) +
@@ -69,7 +70,7 @@ AllTheNonBasicVanillaNewAllocations()
         intptr_t(memalign(16, 16)) +
         
         
-        intptr_t(valloc(4096)) +
+        
         intptr_t(strdup("dummy"));
 
     printf("%u\n", uint32_t(p));  
