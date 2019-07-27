@@ -86,23 +86,23 @@ public:
 
   
 
-  virtual nsresult Init(nsINode* aRoot);
+  virtual nsresult Init(nsINode* aRoot) MOZ_OVERRIDE;
 
-  virtual nsresult Init(nsIDOMRange* aRange);
+  virtual nsresult Init(nsIDOMRange* aRange) MOZ_OVERRIDE;
 
-  virtual void First();
+  virtual void First() MOZ_OVERRIDE;
 
-  virtual void Last();
+  virtual void Last() MOZ_OVERRIDE;
 
-  virtual void Next();
+  virtual void Next() MOZ_OVERRIDE;
 
-  virtual void Prev();
+  virtual void Prev() MOZ_OVERRIDE;
 
-  virtual nsINode* GetCurrentNode();
+  virtual nsINode* GetCurrentNode() MOZ_OVERRIDE;
 
-  virtual bool IsDone();
+  virtual bool IsDone() MOZ_OVERRIDE;
 
-  virtual nsresult PositionAt(nsINode* aCurNode);
+  virtual nsresult PositionAt(nsINode* aCurNode) MOZ_OVERRIDE;
 
 protected:
   virtual ~nsContentIterator();
@@ -1113,21 +1113,21 @@ public:
 
   
 
-  virtual nsresult Init(nsINode* aRoot);
+  virtual nsresult Init(nsINode* aRoot) MOZ_OVERRIDE;
 
-  virtual nsresult Init(nsIDOMRange* aRange);
+  virtual nsresult Init(nsIDOMRange* aRange) MOZ_OVERRIDE;
 
-  virtual void Next();
+  virtual void Next() MOZ_OVERRIDE;
 
-  virtual void Prev();
+  virtual void Prev() MOZ_OVERRIDE;
 
-  virtual nsresult PositionAt(nsINode* aCurNode);
-
-  
-  virtual void First();
+  virtual nsresult PositionAt(nsINode* aCurNode) MOZ_OVERRIDE;
 
   
-  virtual void Last();
+  virtual void First() MOZ_OVERRIDE;
+
+  
+  virtual void Last() MOZ_OVERRIDE;
 
 protected:
   virtual ~nsContentSubtreeIterator() {}

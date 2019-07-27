@@ -36,7 +36,7 @@ protected:
 
 public:
   
-  virtual mozilla::css::StyleRule* GetInlineStyleRule();
+  virtual mozilla::css::StyleRule* GetInlineStyleRule() MOZ_OVERRIDE;
   virtual nsresult SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
                                       const nsAString* aSerialized,
                                       bool aNotify) MOZ_OVERRIDE;
