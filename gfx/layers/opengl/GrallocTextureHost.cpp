@@ -136,6 +136,17 @@ GrallocTextureSourceOGL::BindTexture(GLenum aTextureUnit, gfx::Filter aFilter)
   gl()->fActiveTexture(aTextureUnit);
   gl()->fBindTexture(textureTarget, tex);
 
+  if (mTextureBackendSpecificData) {
+    
+    
+    
+    
+    if (!mEGLImage) {
+      mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
+    }
+    BindEGLImage();
+  }
+
   ApplyFilterToBoundTexture(gl(), aFilter, textureTarget);
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
@@ -148,6 +159,10 @@ GrallocTextureSourceOGL::BindTexture(GLenum aTextureUnit, gfx::Filter aFilter)
 
 bool GrallocTextureSourceOGL::Lock()
 {
+  if (mTextureBackendSpecificData) {
+    return true;
+  }
+
   MOZ_ASSERT(IsValid());
   if (!IsValid()) {
     return false;
@@ -173,7 +188,7 @@ bool GrallocTextureSourceOGL::Lock()
 bool
 GrallocTextureSourceOGL::IsValid() const
 {
-  return !!gl() && !!mGraphicBuffer.get() && !!mCompositor;
+  return !!gl() && !!mGraphicBuffer.get() && (!!mCompositor || !!mTextureBackendSpecificData);
 }
 
 gl::GLContext*
@@ -215,6 +230,62 @@ GrallocTextureSourceOGL::GetTextureTarget() const
   return TextureTargetForAndroidPixelFormat(mGraphicBuffer->getPixelFormat());
 }
 
+void
+GrallocTextureSourceOGL::SetTextureBackendSpecificData(TextureSharedDataGonkOGL* aBackendData)
+{
+  if (!aBackendData) {
+    DeallocateDeviceData();
+    
+    mTextureBackendSpecificData = nullptr;
+    return;
+  }
+
+  if (mTextureBackendSpecificData != aBackendData) {
+    mNeedsReset = true;
+  }
+
+  if (!gl() || !gl()->MakeCurrent()) {
+    NS_WARNING("Failed to make the context current");
+    return;
+  }
+
+  if (!mNeedsReset) {
+    
+    GLuint tex = GetGLTexture();
+    GLuint textureTarget = GetTextureTarget();
+    gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+    gl()->fBindTexture(textureTarget, tex);
+    BindEGLImage();
+    return;
+  }
+
+  if (!mCompositor) {
+    mTextureBackendSpecificData = aBackendData;
+    return;
+  }
+
+  
+  DeallocateDeviceData();
+
+  
+  mTextureBackendSpecificData = aBackendData;
+
+  GLuint tex = GetGLTexture();
+  GLuint textureTarget = GetTextureTarget();
+
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+  gl()->fBindTexture(textureTarget, tex);
+
+  
+  gl()->fTexParameteri(textureTarget, LOCAL_GL_TEXTURE_WRAP_T, GetWrapMode());
+  gl()->fTexParameteri(textureTarget, LOCAL_GL_TEXTURE_WRAP_S, GetWrapMode());
+
+  
+  mEGLImage = EGLImageCreateFromNativeBuffer(gl(), mGraphicBuffer->getNativeBuffer());
+  BindEGLImage();
+  mNeedsReset = false;
+}
+
 gfx::IntSize
 GrallocTextureSourceOGL::GetSize() const
 {
@@ -233,6 +304,9 @@ GrallocTextureSourceOGL::DeallocateDeviceData()
     if (!gl() || !gl()->MakeCurrent()) {
       return;
     }
+    if (mTextureBackendSpecificData) {
+      mTextureBackendSpecificData->ClearBoundEGLImage(mEGLImage);
+    }
     EGLImageDestroy(gl(), mEGLImage);
     mEGLImage = EGL_NO_IMAGE;
   }
@@ -241,48 +315,49 @@ GrallocTextureSourceOGL::DeallocateDeviceData()
 GrallocTextureHostOGL::GrallocTextureHostOGL(TextureFlags aFlags,
                                              const NewSurfaceDescriptorGralloc& aDescriptor)
   : TextureHost(aFlags)
-  , mGrallocHandle(aDescriptor)
-  , mSize(0, 0)
-  , mDescriptorSize(aDescriptor.size())
-  , mFormat(gfx::SurfaceFormat::UNKNOWN)
-  , mEGLImage(EGL_NO_IMAGE)
 {
+  gfx::SurfaceFormat format = gfx::SurfaceFormat::UNKNOWN;
+  mGrallocHandle = aDescriptor;
+
   android::GraphicBuffer* graphicBuffer = GetGraphicBufferFromDesc(mGrallocHandle).get();
   MOZ_ASSERT(graphicBuffer);
 
+  mSize = aDescriptor.size();
   if (graphicBuffer) {
-    mFormat =
+    format =
       SurfaceFormatForAndroidPixelFormat(graphicBuffer->getPixelFormat(),
                                          aFlags & TextureFlags::RB_SWAPPED);
-    mSize = gfx::IntSize(graphicBuffer->getWidth(), graphicBuffer->getHeight());
+    mTextureSource = new GrallocTextureSourceOGL(nullptr,
+                                                 this,
+                                                 graphicBuffer,
+                                                 format);
   } else {
     printf_stderr("gralloc buffer is nullptr");
   }
 }
 
 GrallocTextureHostOGL::~GrallocTextureHostOGL()
-{}
+{
+  MOZ_ASSERT(!mTextureSource || (mFlags & TextureFlags::DEALLOCATE_CLIENT),
+             "Leaking our buffer");
+}
 
 void
 GrallocTextureHostOGL::SetCompositor(Compositor* aCompositor)
 {
-  mCompositor = static_cast<CompositorOGL*>(aCompositor);
-  if (mTilingTextureSource) {
-    mTilingTextureSource->SetCompositor(mCompositor);
-  }
-  if (mGLTextureSource) {
-    mGLTextureSource->SetCompositor(mCompositor);
-  }
-
-  if (mCompositor && aCompositor != mCompositor) {
-    DestroyEGLImage();
+  if (mTextureSource) {
+    mTextureSource->SetCompositor(static_cast<CompositorOGL*>(aCompositor));
   }
 }
 
 bool
 GrallocTextureHostOGL::Lock()
 {
-  return IsValid();
+  if (IsValid()) {
+    mTextureSource->Lock();
+    return true;
+  }
+  return false;
 }
 
 void
@@ -294,29 +369,28 @@ GrallocTextureHostOGL::Unlock()
 bool
 GrallocTextureHostOGL::IsValid() const
 {
-  android::GraphicBuffer* graphicBuffer = GetGraphicBufferFromDesc(mGrallocHandle).get();
-  return graphicBuffer != nullptr;
+  if (!mTextureSource) {
+    return false;
+  }
+  return mTextureSource->IsValid();
 }
 
 gfx::SurfaceFormat
 GrallocTextureHostOGL::GetFormat() const
 {
-  return mFormat;
+  if (!mTextureSource) {
+    return gfx::SurfaceFormat::UNKNOWN;
+  }
+  return mTextureSource->GetFormat();
 }
 
 void
 GrallocTextureHostOGL::DeallocateSharedData()
 {
-  if (mTilingTextureSource) {
-    mTilingTextureSource->ForgetBuffer();
-    mTilingTextureSource = nullptr;
+  if (mTextureSource) {
+    mTextureSource->ForgetBuffer();
+    mTextureSource = nullptr;
   }
-  if (mGLTextureSource) {
-    mGLTextureSource = nullptr;
-  }
-
-  DestroyEGLImage();
-
   if (mGrallocHandle.buffer().type() != SurfaceDescriptor::Tnull_t) {
     MaybeMagicGrallocBufferHandle handle = mGrallocHandle.buffer();
     base::ProcessId owner;
@@ -334,33 +408,24 @@ GrallocTextureHostOGL::DeallocateSharedData()
 void
 GrallocTextureHostOGL::ForgetSharedData()
 {
-  if (mTilingTextureSource) {
-    mTilingTextureSource->ForgetBuffer();
-    mTilingTextureSource = nullptr;
-  }
-  if (mGLTextureSource) {
-    mGLTextureSource = nullptr;
+  if (mTextureSource) {
+    mTextureSource->ForgetBuffer();
+    mTextureSource = nullptr;
   }
 }
 
 void
 GrallocTextureHostOGL::DeallocateDeviceData()
 {
-  if (mTilingTextureSource) {
-    mTilingTextureSource->DeallocateDeviceData();
+  if (mTextureSource) {
+    mTextureSource->DeallocateDeviceData();
   }
-  if (mGLTextureSource) {
-    mGLTextureSource = nullptr;
-  }
-  DestroyEGLImage();
 }
 
 LayerRenderState
 GrallocTextureHostOGL::GetRenderState()
 {
-  android::GraphicBuffer* graphicBuffer = GetGraphicBufferFromDesc(mGrallocHandle).get();
-
-  if (graphicBuffer) {
+  if (IsValid()) {
     LayerRenderStateFlags flags = LayerRenderStateFlags::LAYER_RENDER_STATE_DEFAULT;
     if (mFlags & TextureFlags::NEEDS_Y_FLIP) {
       flags |= LayerRenderStateFlags::Y_FLIPPED;
@@ -368,8 +433,8 @@ GrallocTextureHostOGL::GetRenderState()
     if (mFlags & TextureFlags::RB_SWAPPED) {
       flags |= LayerRenderStateFlags::FORMAT_RB_SWAP;
     }
-    return LayerRenderState(graphicBuffer,
-                            gfx::ThebesIntSize(mDescriptorSize),
+    return LayerRenderState(mTextureSource->mGraphicBuffer.get(),
+                            gfx::ThebesIntSize(mSize),
                             flags,
                             this);
   }
@@ -379,8 +444,8 @@ GrallocTextureHostOGL::GetRenderState()
 
 TemporaryRef<gfx::DataSourceSurface>
 GrallocTextureHostOGL::GetAsSurface() {
-  return mTilingTextureSource ? mTilingTextureSource->GetAsSurface()
-                              : nullptr;
+  return mTextureSource ? mTextureSource->GetAsSurface()
+                        : nullptr;
 }
 
 TemporaryRef<gfx::DataSourceSurface>
@@ -408,186 +473,103 @@ GrallocTextureSourceOGL::GetAsSurface() {
 GLuint
 GrallocTextureSourceOGL::GetGLTexture()
 {
+  if (mTextureBackendSpecificData) {
+    mTextureBackendSpecificData->SetCompositor(mCompositor);
+    return mTextureBackendSpecificData->GetTexture();
+  }
+
   return mTexture;
 }
 
 void
 GrallocTextureSourceOGL::BindEGLImage()
 {
-  gl()->fEGLImageTargetTexture2D(GetTextureTarget(), mEGLImage);
+  if (mTextureBackendSpecificData) {
+    mTextureBackendSpecificData->BindEGLImage(GetTextureTarget(), mEGLImage);
+  } else {
+    gl()->fEGLImageTargetTexture2D(GetTextureTarget(), mEGLImage);
+  }
 }
 
-TextureSource*
-GrallocTextureHostOGL::GetTextureSources()
+void
+GrallocTextureHostOGL::SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
 {
+  if(!aBackendData) {
+    return;
+  }
+
+  
+  if (!mTextureBackendSpecificData) {
+    MOZ_ASSERT(!mCompositableBackendData);
+    mCompositableBackendData = aBackendData;
+    CompositableDataGonkOGL* backend = static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get());
+    mTextureBackendSpecificData = backend->GetTextureBackendSpecificData();
+  }
+
   
   
-  MOZ_ASSERT(!mGLTextureSource);
-  if (!mTilingTextureSource) {
-    android::GraphicBuffer* graphicBuffer = GetGraphicBufferFromDesc(mGrallocHandle).get();
-    MOZ_ASSERT(graphicBuffer);
-    if (!graphicBuffer) {
-      return nullptr;
+  if (!mBackendDatas &&
+      mCompositableBackendData &&
+      mCompositableBackendData != aBackendData &&
+      mTextureBackendSpecificData->IsAllowingSharingTextureHost())
+  {
+    mBackendDatas = MakeUnique<std::map<uint64_t, RefPtr<CompositableBackendSpecificData> > >();
+    (*mBackendDatas)[mCompositableBackendData->GetId()] = mCompositableBackendData;
+    mCompositableBackendData = nullptr;
+
+    
+    mTextureBackendSpecificData =
+      mTextureBackendSpecificData->GetNewTextureBackendSpecificData(mTextureSource->GetEGLImage());
+    mTextureBackendSpecificData->SetOwnedByTextureHost();
+  }
+
+  
+  if (mBackendDatas)
+  {
+    
+    MOZ_ASSERT(aBackendData->IsAllowingSharingTextureHost());
+    (*mBackendDatas)[aBackendData->GetId()] = aBackendData;
+    if (mBackendDatas->size() > 200) {
+      NS_WARNING("Too many CompositableBackends");
     }
-    mTilingTextureSource = new GrallocTextureSourceOGL(mCompositor, this,
-                                                 graphicBuffer, mFormat);
-  }
-  mTilingTextureSource->Lock();
-  return mTilingTextureSource;
-}
-
-void
-GrallocTextureHostOGL::UnbindTextureSource()
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mGLTextureSource = nullptr;
-}
-
-GLenum GetTextureTarget(gl::GLContext* aGL, android::PixelFormat aFormat) {
-  MOZ_ASSERT(aGL);
-  if (aGL->Renderer() == gl::GLRenderer::SGX530 ||
-      aGL->Renderer() == gl::GLRenderer::SGX540) {
-    
-    
-    
-    
-    
-    return LOCAL_GL_TEXTURE_EXTERNAL;
   } else {
-    return TextureTargetForAndroidPixelFormat(aFormat);
+    
+    mCompositableBackendData = aBackendData;
+    CompositableDataGonkOGL* backend = static_cast<CompositableDataGonkOGL*>(mCompositableBackendData.get());
+    mTextureBackendSpecificData = backend->GetTextureBackendSpecificData();
   }
+
+  if (mTextureSource) {
+    mTextureSource->SetTextureBackendSpecificData(mTextureBackendSpecificData);
+  }
+
 }
 
 void
-GrallocTextureHostOGL::DestroyEGLImage()
+GrallocTextureHostOGL::UnsetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData)
 {
-  
-  
-  if (mEGLImage != EGL_NO_IMAGE && GetGLContext()) {
-    EGLImageDestroy(GetGLContext(), mEGLImage);
-    mEGLImage = EGL_NO_IMAGE;
-  }
-}
-
-void
-GrallocTextureHostOGL::PrepareTextureSource(CompositableTextureSourceRef& aTextureSource)
-{
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-
-  
-  
-  
-  
-
-  MOZ_ASSERT(!mTilingTextureSource);
-
-  android::GraphicBuffer* graphicBuffer = GetGraphicBufferFromDesc(mGrallocHandle).get();
-
-  MOZ_ASSERT(graphicBuffer);
-  if (!graphicBuffer) {
-    mGLTextureSource = nullptr;
+  if(!aBackendData ||
+     !mTextureBackendSpecificData) {
     return;
   }
 
-  if (mGLTextureSource && !mGLTextureSource->IsValid()) {
-    mGLTextureSource = nullptr;
-  }
-
-  if (mGLTextureSource) {
+  if (mBackendDatas)
+  {
     
-    
-    aTextureSource = mGLTextureSource.get();
-    return;
-  }
-
-  gl::GLContext* gl = GetGLContext();
-  if (!gl || !gl->MakeCurrent()) {
-    mGLTextureSource = nullptr;
-    return;
-  }
-
-  if (mEGLImage == EGL_NO_IMAGE) {
-    
-    mEGLImage = EGLImageCreateFromNativeBuffer(gl, graphicBuffer->getNativeBuffer());
-  }
-
-  GLenum textureTarget = GetTextureTarget(gl, graphicBuffer->getPixelFormat());
-
-  GLTextureSource* glSource = aTextureSource.get() ?
-    aTextureSource->AsSourceOGL()->AsGLTextureSource() : nullptr;
-
-  bool shouldCreateTextureSource = !glSource  || !glSource->IsValid()
-                                 || glSource->NumCompositableRefs() > 1
-                                 || glSource->GetTextureTarget() != textureTarget;
-
-  if (shouldCreateTextureSource) {
-    GLuint textureHandle;
-    gl->fGenTextures(1, &textureHandle);
-    gl->fBindTexture(textureTarget, textureHandle);
-    gl->fTexParameteri(textureTarget, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-    gl->fTexParameteri(textureTarget, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-    gl->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
-
-    mGLTextureSource = new GLTextureSource(mCompositor, textureHandle, textureTarget,
-                                           mSize, mFormat);
-    aTextureSource = mGLTextureSource.get();
+    mBackendDatas->erase(aBackendData->GetId());
+    if (mBackendDatas->size() == 0) {
+      mCompositableBackendData = nullptr;
+      mTextureBackendSpecificData = nullptr;
+    }
   } else {
-    gl->fBindTexture(textureTarget, glSource->GetTextureHandle());
-
-    gl->fEGLImageTargetTexture2D(textureTarget, mEGLImage);
-    glSource->SetSize(mSize);
-    glSource->SetFormat(mFormat);
-    mGLTextureSource = glSource;
-  }
-}
-
-bool
-GrallocTextureHostOGL::BindTextureSource(CompositableTextureSourceRef& aTextureSource)
-{
-  
-
-  
-  if (!mGLTextureSource) {
-    return false;
+    
+    mCompositableBackendData = nullptr;
+    mTextureBackendSpecificData = nullptr;
   }
 
-  
-  
-  
-  MOZ_ASSERT(mGLTextureSource == aTextureSource);
-  aTextureSource = mGLTextureSource.get();
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  
-  WaitAcquireFenceSyncComplete();
-#endif
-  return true;
+  if (mTextureSource) {
+    mTextureSource->SetTextureBackendSpecificData(mTextureBackendSpecificData);
+  }
 }
 
 } 

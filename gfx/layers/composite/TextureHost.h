@@ -46,6 +46,7 @@ namespace layers {
 
 class Compositor;
 class CompositableHost;
+class CompositableBackendSpecificData;
 class CompositableParentManager;
 class SurfaceDescriptor;
 class SharedSurfaceDescriptor;
@@ -149,69 +150,10 @@ public:
     return nullptr;
   }
 
-  void AddCompositableRef() { ++mCompositableCount; }
-
-  void ReleaseCompositableRef() {
-    --mCompositableCount;
-    MOZ_ASSERT(mCompositableCount >= 0);
-  }
-
-  int NumCompositableRefs() const { return mCompositableCount; }
-
 protected:
   virtual ~TextureSource();
 
   RefPtr<TextureSource> mNextSibling;
-  int mCompositableCount;
-};
-
-
-
-
-
-class CompositableTextureSourceRef {
-public:
-  CompositableTextureSourceRef() {}
-
-  ~CompositableTextureSourceRef()
-  {
-    if (mRef) {
-      mRef->ReleaseCompositableRef();
-    }
-  }
-
-  CompositableTextureSourceRef& operator=(const TemporaryRef<TextureSource>& aOther)
-  {
-    RefPtr<TextureSource> temp = aOther;
-    if (temp) {
-      temp->AddCompositableRef();
-    }
-    if (mRef) {
-      mRef->ReleaseCompositableRef();
-    }
-    mRef = temp;
-    return *this;
-  }
-
-  CompositableTextureSourceRef& operator=(TextureSource* aOther)
-  {
-    if (aOther) {
-      aOther->AddCompositableRef();
-    }
-    if (mRef) {
-      mRef->ReleaseCompositableRef();
-    }
-    mRef = aOther;
-    return *this;
-  }
-
-  TextureSource* get() const { return mRef; }
-  operator TextureSource*() const { return mRef; }
-  TextureSource* operator->() const { return mRef; }
-  TextureSource& operator*() const { return *mRef; }
-
-private:
-  RefPtr<TextureSource> mRef;
 };
 
 
@@ -365,25 +307,6 @@ public:
 
 
 
-  virtual void PrepareTextureSource(CompositableTextureSourceRef& aTexture) {}
-
-  
-
-
-
-
-  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture);
-
-  
-
-
-  virtual void UnbindTextureSource() {}
-
-  
-
-
-
-
 
 
 
@@ -483,6 +406,10 @@ public:
     return LayerRenderState();
   }
 
+  virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData);
+
+  virtual void UnsetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData);
+
   
   
   virtual void OnShutdown() {}
@@ -508,6 +435,7 @@ public:
 protected:
   PTextureParent* mActor;
   TextureFlags mFlags;
+  RefPtr<CompositableBackendSpecificData> mCompositableBackendData;
 
   friend class TextureParent;
 };
