@@ -9,13 +9,16 @@
 #include "EditTxn.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsGenericDOMDataNode.h"
 #include "nsID.h"
-#include "nsIDOMCharacterData.h"
 #include "nsString.h"
 #include "nscore.h"
 
 class nsEditor;
 class nsRangeUpdater;
+
+namespace mozilla {
+namespace dom {
 
 
 
@@ -29,13 +32,13 @@ public:
 
 
 
-  NS_IMETHOD Init(nsEditor* aEditor,
-                  nsIDOMCharacterData* aCharData,
-                  uint32_t aOffset,
-                  uint32_t aNumCharsToDelete,
-                  nsRangeUpdater* aRangeUpdater);
+  DeleteTextTxn(nsEditor& aEditor,
+                nsGenericDOMDataNode& aCharData,
+                uint32_t aOffset,
+                uint32_t aNumCharsToDelete,
+                nsRangeUpdater* aRangeUpdater);
 
-  DeleteTextTxn();
+  nsresult Init();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DeleteTextTxn, EditTxn)
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
@@ -49,10 +52,10 @@ public:
 protected:
 
   
-  nsEditor* mEditor;
+  nsEditor& mEditor;
 
   
-  nsCOMPtr<nsIDOMCharacterData> mCharData;
+  nsRefPtr<nsGenericDOMDataNode> mCharData;
 
   
   uint32_t mOffset;
@@ -66,5 +69,8 @@ protected:
   
   nsRangeUpdater* mRangeUpdater;
 };
+
+}
+}
 
 #endif
