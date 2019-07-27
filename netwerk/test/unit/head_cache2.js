@@ -46,6 +46,8 @@ const COMPLETE =        1 << 12;
 
 const DONTFILL =        1 << 13;
 
+const DONTSETVALID =    1 << 14;
+
 var log_c2 = true;
 function LOG_C2(o, m)
 {
@@ -192,8 +194,13 @@ OpenCallback.prototype =
         entry.metaDataReady();
         if (self.behavior & METAONLY) {
           
-          entry.setValid();
+          if (!(self.behavior & DONTSETVALID))
+            entry.setValid();
+
           entry.close();
+          if (self.behavior & WAITFORWRITE)
+            self.goon(entry);
+
           return;
         }
         do_execute_soon(function() { 

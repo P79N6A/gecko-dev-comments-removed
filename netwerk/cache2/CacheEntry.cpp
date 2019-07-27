@@ -849,6 +849,21 @@ void CacheEntry::OnHandleClosed(CacheEntryHandle const* aHandle)
       mState = READY;
     }
 
+    if (mState == READY && !mHasData) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      LOG(("  we are in READY state, pretend we have data regardless it"
+            " has actully been never touched"));
+      mHasData = true;
+    }
+
     InvokeCallbacks();
   }
 
