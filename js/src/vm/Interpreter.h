@@ -149,7 +149,7 @@ InvokeConstructor(JSContext *cx, CallArgs args);
 
 
 extern bool
-InvokeConstructor(JSContext *cx, Value fval, unsigned argc, Value *argv, Value *rval);
+InvokeConstructor(JSContext *cx, Value fval, unsigned argc, const Value *argv, Value *rval);
 
 
 
