@@ -12,8 +12,6 @@ from datetime import datetime
 
 mozilla_dir = os.environ['MOZILLA_DIR']
 
-import mdn_theme
-
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.graphviz',
@@ -45,7 +43,12 @@ exclude_patterns = ['_build']
 pygments_style = 'sphinx'
 
 
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
+if not on_rtd:
+    import sphinx_rtd_theme
+    html_theme = 'sphinx_rtd_theme'
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 
 html_static_path = ['_static']
