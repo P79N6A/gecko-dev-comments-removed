@@ -136,7 +136,7 @@ abstract class BaseTest extends BaseRobocopTest {
 
         
         
-        profile.enqueueInitialization();
+        profile.enqueueInitialization(profile.getDir());
     }
 
     @Override
