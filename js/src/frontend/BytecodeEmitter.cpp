@@ -2424,7 +2424,8 @@ EmitPropIncDec(ExclusiveContext *cx, ParseNode *pn, BytecodeEmitter *bce)
             return false;
     }
 
-    if (!EmitAtomOp(cx, pn->pn_kid, JSOP_SETPROP, bce))     
+    JSOp setOp = bce->sc->strict ? JSOP_STRICTSETPROP : JSOP_SETPROP;
+    if (!EmitAtomOp(cx, pn->pn_kid, setOp, bce))     
         return false;
     if (post && Emit1(cx, bce, JSOP_POP) < 0)       
         return false;
@@ -3368,6 +3369,7 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
             break;
 
           case PNK_DOT:
+          {
             
             
             
@@ -3380,9 +3382,11 @@ EmitDestructuringLHS(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, 
                 return false;
             if (Emit1(cx, bce, JSOP_SWAP) < 0)
                 return false;
-            if (!EmitAtomOp(cx, pn, JSOP_SETPROP, bce))
+            JSOp setOp = bce->sc->strict ? JSOP_STRICTSETPROP : JSOP_SETPROP;
+            if (!EmitAtomOp(cx, pn, setOp, bce))
                 return false;
             break;
+          }
 
           case PNK_ELEM:
             
@@ -4098,9 +4102,12 @@ EmitAssignment(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *lhs, JSOp 
         }
         break;
       case PNK_DOT:
-        if (!EmitIndexOp(cx, JSOP_SETPROP, atomIndex, bce))
+      {
+        JSOp setOp = bce->sc->strict ? JSOP_STRICTSETPROP : JSOP_SETPROP;
+        if (!EmitIndexOp(cx, setOp, atomIndex, bce))
             return false;
         break;
+      }
       case PNK_CALL:
         
         MOZ_ASSERT(lhs->pn_xflags & PNX_SETCALL);

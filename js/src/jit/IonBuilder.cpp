@@ -1762,6 +1762,7 @@ IonBuilder::inspectOpcode(JSOp op)
       }
 
       case JSOP_SETPROP:
+      case JSOP_STRICTSETPROP:
       case JSOP_SETNAME:
       {
         PropertyName *name = info().getAtom(pc)->asPropertyName();
@@ -10064,7 +10065,9 @@ IonBuilder::jsop_setprop(PropertyName *name)
     
     
     if (info().executionModeIsAnalysis()) {
-        MInstruction *ins = MCallSetProperty::New(alloc(), obj, value, name, script()->strict());
+        
+        bool strict = IsStrictSetPC(pc) || script()->strict();
+        MInstruction *ins = MCallSetProperty::New(alloc(), obj, value, name, strict);
         current->add(ins);
         current->push(value);
         return resumeAfter(ins);
@@ -10446,7 +10449,9 @@ IonBuilder::setPropTryCache(bool *emitted, MDefinition *obj,
     MOZ_ASSERT(*emitted == false);
 
     
-    MSetPropertyCache *ins = MSetPropertyCache::New(alloc(), obj, value, name, script()->strict(), barrier);
+    bool strict = IsStrictSetPC(pc) || script()->strict();
+    
+    MSetPropertyCache *ins = MSetPropertyCache::New(alloc(), obj, value, name, strict, barrier);
 
     if (!objTypes || objTypes->propertyNeedsBarrier(constraints(), NameToId(name)))
         ins->setNeedsBarrier();
