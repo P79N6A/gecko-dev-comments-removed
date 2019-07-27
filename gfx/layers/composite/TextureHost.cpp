@@ -348,7 +348,7 @@ BufferTextureHost::BufferTextureHost(gfx::SurfaceFormat aFormat,
 , mFormat(aFormat)
 , mUpdateSerial(1)
 , mLocked(false)
-, mPartialUpdate(false)
+, mNeedsFullUpdate(false)
 {}
 
 BufferTextureHost::~BufferTextureHost()
@@ -360,15 +360,13 @@ BufferTextureHost::Updated(const nsIntRegion* aRegion)
   ++mUpdateSerial;
   
   
-  
-  if (aRegion && ((mFirstSource && mFirstSource->GetUpdateSerial() == mUpdateSerial) || mPartialUpdate)) {
-    mPartialUpdate = true;
+  if (aRegion && !mNeedsFullUpdate) {
     mMaybeUpdatedRegion = mMaybeUpdatedRegion.Or(mMaybeUpdatedRegion, *aRegion);
   } else {
-    mPartialUpdate = false;
+    mNeedsFullUpdate = true;
   }
   if (GetFlags() & TextureFlags::IMMEDIATE_UPLOAD) {
-    DebugOnly<bool> result = MaybeUpload(mPartialUpdate ? &mMaybeUpdatedRegion : nullptr);
+    DebugOnly<bool> result = MaybeUpload(!mNeedsFullUpdate ? &mMaybeUpdatedRegion : nullptr);
     NS_WARN_IF_FALSE(result, "Failed to upload a texture");
   }
 }
@@ -401,7 +399,7 @@ bool
 BufferTextureHost::Lock()
 {
   MOZ_ASSERT(!mLocked);
-  if (!MaybeUpload(mPartialUpdate ? &mMaybeUpdatedRegion : nullptr)) {
+  if (!MaybeUpload(!mNeedsFullUpdate ? &mMaybeUpdatedRegion : nullptr)) {
       return false;
   }
   mLocked = !!mFirstSource;
@@ -450,7 +448,7 @@ BufferTextureHost::MaybeUpload(nsIntRegion *aRegion)
   }
 
   
-  mPartialUpdate = false;
+  mNeedsFullUpdate = false;
   mMaybeUpdatedRegion.SetEmpty();
 
   
