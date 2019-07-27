@@ -40,6 +40,16 @@ add_task(function* test_revive_windows() {
   }
 
   
+  
+  {
+    let win = yield promiseNewWindow({private: true});
+    windows.push(win);
+
+    let tab = win.gBrowser.addTab("about:mozilla");
+    yield promiseBrowserLoaded(tab.linkedBrowser);
+  }
+
+  
   for (let win of windows) {
     yield promiseWindowClosed(win);
   }
@@ -139,8 +149,8 @@ add_task(function* test_revive_windows_order() {
   }
 });
 
-function promiseNewWindow() {
-  return new Promise(resolve => whenNewWindowLoaded({private: false}, resolve));
+function promiseNewWindow(opts = {private: false}) {
+  return new Promise(resolve => whenNewWindowLoaded(opts, resolve));
 }
 
 function forgetClosedWindows() {
