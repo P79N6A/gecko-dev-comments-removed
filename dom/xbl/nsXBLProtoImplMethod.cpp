@@ -292,6 +292,8 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement, JSAddonId* aAd
     return NS_OK;
   }
 
+  nsAutoMicroTask mt;
+
   
   
   dom::AutoEntryScript aes(global);

@@ -57,6 +57,10 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   , mExceptionHandling(aExceptionHandling)
   , mIsMainThread(NS_IsMainThread())
 {
+  if (mIsMainThread) {
+    nsContentUtils::EnterMicroTask();
+  }
+
   
   
   nsIPrincipal* webIDLCallerPrincipal = nullptr;
@@ -270,6 +274,12 @@ CallbackObject::CallSetup::~CallSetup()
 
   mAutoIncumbentScript.reset();
   mAutoEntryScript.reset();
+
+  
+  
+  if (mIsMainThread) {
+    nsContentUtils::LeaveMicroTask();
+  }
 }
 
 already_AddRefed<nsISupports>
