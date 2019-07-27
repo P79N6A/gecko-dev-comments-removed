@@ -2122,7 +2122,7 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
             }
         }
 
-        if (pobj == obj) {
+        if (pobj == receiver) {
             attrs = shape->attributes();
         } else {
             
