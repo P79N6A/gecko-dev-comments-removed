@@ -31,6 +31,51 @@ AnimationPlayer::WrapObject(JSContext* aCx)
   return dom::AnimationPlayerBinding::Wrap(aCx, this);
 }
 
+void
+AnimationPlayer::SetStartTime(const Nullable<TimeDuration>& aNewStartTime)
+{
+#if 1
+  
+  
+  MOZ_ASSERT(mTimeline && !mTimeline->GetCurrentTime().IsNull(),
+             "We don't support inactive/missing timelines yet");
+#else
+  Nullable<TimeDuration> timelineTime = mTimeline->GetCurrentTime();
+  if (mTimeline) {
+    
+    
+    
+    timelineTime = mTimeline->GetCurrentTime();
+  }
+  if (timelineTime.IsNull() && !aNewStartTime.IsNull()) {
+    mHoldTime.SetNull();
+  }
+#endif
+  Nullable<TimeDuration> previousCurrentTime = GetCurrentTime();
+  mStartTime = aNewStartTime;
+  if (!aNewStartTime.IsNull()) {
+    
+    
+    
+    mHoldTime.SetNull();
+  } else {
+    mHoldTime = previousCurrentTime;
+  }
+
+  CancelPendingPlay();
+  if (mReady) {
+    
+    
+    mReady->MaybeResolve(this);
+  }
+
+  UpdateSourceContent();
+
+  
+  
+  
+}
+
 Nullable<TimeDuration>
 AnimationPlayer::GetCurrentTime() const
 {
@@ -112,6 +157,12 @@ AnimationPlayer::GetStartTimeAsDouble() const
   return AnimationUtils::TimeDurationToDouble(mStartTime);
 }
 
+void
+AnimationPlayer::SetStartTimeAsDouble(const Nullable<double>& aStartTime)
+{
+  return SetStartTime(AnimationUtils::DoubleToTimeDuration(aStartTime));
+}
+  
 Nullable<double>
 AnimationPlayer::GetCurrentTimeAsDouble() const
 {
