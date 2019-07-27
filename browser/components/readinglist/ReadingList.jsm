@@ -21,8 +21,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SQLiteStore",
 
 
 
-XPCOMUtils.defineLazyGetter(this, 'SyncUtils', function() {
-  const {Utils} = Cu.import('resource://services-sync/util.js"', {});
+XPCOMUtils.defineLazyGetter(this, "SyncUtils", function() {
+  const {Utils} = Cu.import("resource://services-sync/util.js", {});
   return Utils;
 });
 
