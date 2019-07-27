@@ -19,7 +19,6 @@ class SourceMediaStream;
 class ProcessedMediaStream;
 class DecodedStream;
 class DecodedStreamGraphListener;
-class OutputStreamData;
 class OutputStreamListener;
 class ReentrantMonitor;
 
@@ -82,11 +81,6 @@ public:
 
 class OutputStreamData {
 public:
-  
-  
-  
-  
-  OutputStreamData();
   ~OutputStreamData();
   void Init(DecodedStream* aDecodedStream, ProcessedMediaStream* aStream);
   nsRefPtr<ProcessedMediaStream> mStream;
