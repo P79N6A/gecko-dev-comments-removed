@@ -480,69 +480,6 @@ public:
 
 
 
-
-class UnregisterRunnable : public nsRunnable
-{
-  nsCOMPtr<nsIServiceWorkerUnregisterCallback> mCallback;
-  nsCOMPtr<nsIURI> mScopeURI;
-
-public:
-  UnregisterRunnable(nsIServiceWorkerUnregisterCallback* aCallback,
-                     nsIURI* aScopeURI)
-    : mCallback(aCallback), mScopeURI(aScopeURI)
-  {
-    AssertIsOnMainThread();
-  }
-
-  NS_IMETHODIMP
-  Run()
-  {
-    AssertIsOnMainThread();
-
-    nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-
-    nsRefPtr<ServiceWorkerManager::ServiceWorkerDomainInfo> domainInfo =
-      swm->GetDomainInfo(mScopeURI);
-    MOZ_ASSERT(domainInfo);
-
-    nsCString spec;
-    nsresult rv = mScopeURI->GetSpecIgnoringRef(spec);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return mCallback->UnregisterFailed();
-    }
-
-    nsRefPtr<ServiceWorkerRegistrationInfo> registration;
-    if (!domainInfo->mServiceWorkerRegistrationInfos.Get(spec,
-                                                         getter_AddRefs(registration))) {
-      return mCallback->UnregisterSucceeded(false);
-    }
-
-    MOZ_ASSERT(registration);
-
-    registration->mPendingUninstall = true;
-    rv = mCallback->UnregisterSucceeded(true);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    
-    
-    
-    if (!registration->IsControllingDocuments()) {
-      if (!registration->mPendingUninstall) {
-        return NS_OK;
-      }
-
-      registration->Clear();
-      domainInfo->RemoveRegistration(registration);
-    }
-
-    return NS_OK;
-  }
-};
-
-
-
 NS_IMETHODIMP
 ServiceWorkerManager::Register(const nsAString& aScope,
                                const nsAString& aScriptURL,
@@ -1056,6 +993,69 @@ ServiceWorkerManager::Unregister(nsIServiceWorkerUnregisterCallback* aCallback,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
+
+  
+
+
+  class UnregisterRunnable : public nsRunnable
+  {
+    nsCOMPtr<nsIServiceWorkerUnregisterCallback> mCallback;
+    nsCOMPtr<nsIURI> mScopeURI;
+
+  public:
+    UnregisterRunnable(nsIServiceWorkerUnregisterCallback* aCallback,
+                       nsIURI* aScopeURI)
+      : mCallback(aCallback), mScopeURI(aScopeURI)
+    {
+      AssertIsOnMainThread();
+    }
+
+    NS_IMETHODIMP
+    Run()
+    {
+      AssertIsOnMainThread();
+
+      nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+
+      nsRefPtr<ServiceWorkerManager::ServiceWorkerDomainInfo> domainInfo =
+        swm->GetDomainInfo(mScopeURI);
+      MOZ_ASSERT(domainInfo);
+
+      nsCString spec;
+      nsresult rv = mScopeURI->GetSpecIgnoringRef(spec);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return mCallback->UnregisterFailed();
+      }
+
+      nsRefPtr<ServiceWorkerRegistrationInfo> registration;
+      if (!domainInfo->mServiceWorkerRegistrationInfos.Get(spec,
+                                                           getter_AddRefs(registration))) {
+        return mCallback->UnregisterSucceeded(false);
+      }
+
+      MOZ_ASSERT(registration);
+
+      registration->mPendingUninstall = true;
+      rv = mCallback->UnregisterSucceeded(true);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+
+      
+      
+      
+      if (!registration->IsControllingDocuments()) {
+        if (!registration->mPendingUninstall) {
+          return NS_OK;
+        }
+
+        registration->Clear();
+        domainInfo->RemoveRegistration(registration);
+      }
+
+      return NS_OK;
+    }
+  };
 
   nsRefPtr<nsIRunnable> unregisterRunnable =
     new UnregisterRunnable(aCallback, scopeURI);
