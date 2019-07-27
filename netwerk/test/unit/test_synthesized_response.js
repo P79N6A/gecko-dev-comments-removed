@@ -188,7 +188,7 @@ add_test(function() {
 
 add_test(function() {
   var chan = make_channel(URL + '/body', null, function(intercepted) {
-    intercepted.cancel();
+    intercepted.cancel(Cr.NS_BINDING_ABORTED);
   });
   chan.asyncOpen(new ChannelListener(run_next_test, null,
 				     CL_EXPECT_FAILURE), null);
