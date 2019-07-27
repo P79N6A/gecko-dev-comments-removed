@@ -171,12 +171,6 @@ enum WorkerPreference
 
 
 
-
-
-bool
-ResolveWorkerClasses(JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
-                     JS::MutableHandle<JSObject*> aObjp);
-
 void
 CancelWorkersForWindow(nsPIDOMWindow* aWindow);
 
