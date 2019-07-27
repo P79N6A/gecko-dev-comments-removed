@@ -182,7 +182,7 @@ def kill_undead(tasks, timeout):
         if timed_out(task, timeout):
             os.kill(task.pid, 9)
 
-def run_all_tests_gen(tests, prefix, results, options):
+def run_all_tests(tests, prefix, results, options):
     
     tests = tests[:]
     tests.reverse()
@@ -203,12 +203,3 @@ def run_all_tests_gen(tests, prefix, results, options):
         
         for out in finished:
             yield out
-
-    return True
-
-def run_all_tests(tests, prefix, results, options):
-    for out in run_all_tests_gen(tests, prefix, results, options):
-        results.push(out)
-    results.pb.poke()
-
-
