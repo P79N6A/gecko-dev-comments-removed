@@ -98,9 +98,9 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
     
     
     
-    if (recording.getLabel()) {
-      recordingItem = this.getItemForAttachment(e =>
-        e.getLabel() === recording.getLabel());
+    let profileLabel = recording.getLabel();
+    if (profileLabel) {
+      recordingItem = this.getItemForAttachment(e => e.getLabel() == profileLabel);
     }
     
     if (!recordingItem) {
@@ -123,15 +123,14 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
 
 
   _onRecordingStopped: function (_, recording) {
-    let profileLabel = recording.getLabel();
     let recordingItem;
 
     
     
     
+    let profileLabel = recording.getLabel();
     if (profileLabel) {
-      recordingItem = this.getItemForAttachment(e =>
-        e.profilerData.profileLabel == profileLabel);
+      recordingItem = this.getItemForAttachment(e => e.getLabel() == profileLabel);
     }
     
     if (!recordingItem) {
