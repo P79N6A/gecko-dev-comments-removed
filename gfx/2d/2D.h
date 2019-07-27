@@ -155,7 +155,7 @@ struct DrawSurfaceOptions {
 
 
 
-class GradientStops : public RefCounted<GradientStops>
+class GradientStops : public external::AtomicRefCounted<GradientStops>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GradientStops)
@@ -318,7 +318,7 @@ class DrawTargetCaptureImpl;
 
 
 
-class SourceSurface : public RefCounted<SourceSurface>
+class SourceSurface : public external::AtomicRefCounted<SourceSurface>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SourceSurface)
@@ -476,7 +476,7 @@ class FlattenedPath;
 
 
 
-class Path : public RefCounted<Path>
+class Path : public external::AtomicRefCounted<Path>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(Path)
@@ -577,7 +577,7 @@ struct GlyphBuffer
 
 
 
-class ScaledFont : public RefCounted<ScaledFont>
+class ScaledFont : public external::AtomicRefCounted<ScaledFont>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(ScaledFont)
@@ -622,7 +622,7 @@ protected:
 
 
 
-class GlyphRenderingOptions : public RefCounted<GlyphRenderingOptions>
+class GlyphRenderingOptions : public external::AtomicRefCounted<GlyphRenderingOptions>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GlyphRenderingOptions)
@@ -641,7 +641,7 @@ class DrawTargetCapture;
 
 
 
-class DrawTarget : public RefCounted<DrawTarget>
+class DrawTarget : public external::AtomicRefCounted<DrawTarget>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawTarget)
