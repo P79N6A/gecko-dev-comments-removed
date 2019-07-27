@@ -1125,10 +1125,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
   
   PR_INIT_CLIST(this);
 
-  if (Preferences::GetBool("dom.window_experimental_bindings") ||
-      !aOuterWindow) {
-    SetIsDOMBinding();
-  }
+  SetIsDOMBinding();
 
   if (aOuterWindow) {
     
