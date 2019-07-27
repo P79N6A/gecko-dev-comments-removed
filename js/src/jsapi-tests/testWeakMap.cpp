@@ -129,6 +129,9 @@ BEGIN_TEST(testWeakMap_keyDelegates)
 
 static void DelegateObjectMoved(JSObject *obj, const JSObject *old)
 {
+    if (!keyDelegate)
+        return;  
+
     MOZ_RELEASE_ASSERT(keyDelegate == old);
     keyDelegate = obj;
 }
@@ -233,12 +236,6 @@ JSObject *newDelegate()
     global = JS_NewGlobalObject(cx, Jsvalify(&delegateClass), nullptr, JS::FireOnNewGlobalHook,
                                 options);
     JS_SetReservedSlot(global, 0, JS::Int32Value(42));
-
-    
-
-
-
-    JS_GC(rt);
 
     return global;
 }
