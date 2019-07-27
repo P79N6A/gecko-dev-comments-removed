@@ -2856,6 +2856,7 @@ GetPreviousRawFrame(FrameType *frame)
 
 JitProfilingFrameIterator::JitProfilingFrameIterator(void *exitFrame)
 {
+    
     ExitFrameLayout *frame = (ExitFrameLayout *) exitFrame;
     FrameType prevType = frame->prevType();
 
