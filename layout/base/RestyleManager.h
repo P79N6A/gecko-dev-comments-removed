@@ -453,9 +453,26 @@ public:
 
 private:
   
+  
+  
+  
+  
+  enum RestyleResult {
+
+    
+    eRestyleResult_Stop = 1,
+
+    
+    eRestyleResult_Continue,
+
+    
+    eRestyleResult_ContinueAndForceDescendants
+  };
+
+  
 
 
-  void RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint);
+  RestyleResult RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint);
 
   
 
@@ -528,4 +545,4 @@ private:
 
 } 
 
-#endif 
+#endif

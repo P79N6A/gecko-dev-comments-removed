@@ -2434,11 +2434,34 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
 
+    
+    
+    
+    
+    RestyleResult result = RestyleResult(0);
+
     bool haveMoreContinuations = false;
     for (nsIFrame* f = mFrame; f;
          f = GetNextContinuationWithSameStyle(f, oldContext,
                                               &haveMoreContinuations)) {
-      RestyleSelf(f, aRestyleHint);
+
+      RestyleResult thisResult = RestyleSelf(f, aRestyleHint);
+
+      
+      NS_ASSERTION(thisResult != eRestyleResult_Stop,
+                   "cannot handle eRestyleResult_Stop yet");
+
+      if (thisResult > result) {
+        
+        
+        
+        result = thisResult;
+      }
+    }
+
+    if (result == eRestyleResult_ContinueAndForceDescendants) {
+      childRestyleHint =
+        nsRestyleHint(childRestyleHint | eRestyle_ForceDescendants);
     }
 
     if (haveMoreContinuations && hintToRestore) {
@@ -2453,7 +2476,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   RestyleChildren(childRestyleHint);
 }
 
-void
+ElementRestyler::RestyleResult
 ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
 {
   MOZ_ASSERT(!(aRestyleHint & eRestyle_LaterSiblings),
@@ -2717,6 +2740,8 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       }
     }
   }
+
+  return eRestyleResult_Continue;
 }
 
 void
