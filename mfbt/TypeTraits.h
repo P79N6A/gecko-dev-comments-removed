@@ -162,6 +162,21 @@ template<typename T>
 struct IsArray : detail::IsArrayHelper<typename RemoveCV<T>::Type>
 {};
 
+namespace detail {
+
+template<typename T>
+struct IsPointerHelper : FalseType {};
+
+template<typename T>
+struct IsPointerHelper<T*> : TrueType {};
+
+} 
+
+
+
+
+
+
 
 
 
@@ -173,10 +188,8 @@ struct IsArray : detail::IsArrayHelper<typename RemoveCV<T>::Type>
 
 
 template<typename T>
-struct IsPointer : FalseType {};
-
-template<typename T>
-struct IsPointer<T*> : TrueType {};
+struct IsPointer : detail::IsPointerHelper<typename RemoveCV<T>::Type>
+{};
 
 
 
