@@ -4690,4 +4690,280 @@ MacroAssemblerARMCompat::branchValueIsNurseryObject(Condition cond, ValueOperand
     bind(&done);
 }
 
+namespace js {
+namespace jit {
+
+template<>
+Register
+MacroAssemblerARMCompat::computePointer<BaseIndex>(const BaseIndex &src, Register r)
+{
+    Register base = src.base;
+    Register index = src.index;
+    uint32_t scale = Imm32::ShiftOf(src.scale).value;
+    int32_t offset = src.offset;
+    as_add(r, base, lsl(index, scale));
+    if (offset != 0)
+        ma_add(r, Imm32(offset), r);
+    return r;
+}
+
+template<>
+Register
+MacroAssemblerARMCompat::computePointer<Address>(const Address &src, Register r)
+{
+    if (src.offset == 0)
+        return src.base;
+    ma_add(src.base, Imm32(src.offset), r);
+    return r;
+}
+
+} 
+} 
+
+template<typename T>
+void
+MacroAssemblerARMCompat::compareExchange(int nbytes, bool signExtend, const T &mem,
+                                         Register oldval, Register newval, Register output)
+{
+    
+    
+    
+    
+    
+    if (nbytes < 4 && !HasLDSTREXBHD())
+        compareExchangeARMv6(nbytes, signExtend, mem, oldval, newval, output);
+    else
+        compareExchangeARMv7(nbytes, signExtend, mem, oldval, newval, output);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+void
+MacroAssemblerARMCompat::compareExchangeARMv7(int nbytes, bool signExtend, const T &mem,
+                                              Register oldval, Register newval, Register output)
+{
+    Label Lagain;
+    Label Ldone;
+    ma_dmb(BarrierST);
+    Register ptr = computePointer(mem, secondScratchReg_);
+    bind(&Lagain);
+    switch (nbytes) {
+      case 1:
+        as_ldrexb(output, ptr);
+        if (signExtend) {
+            as_sxtb(output, output, 0);
+            as_sxtb(ScratchRegister, oldval, 0);
+        } else {
+            as_uxtb(ScratchRegister, oldval, 0);
+        }
+        break;
+      case 2:
+        as_ldrexh(output, ptr);
+        if (signExtend) {
+            as_sxth(output, output, 0);
+            as_sxth(ScratchRegister, oldval, 0);
+        } else {
+            as_uxth(ScratchRegister, oldval, 0);
+        }
+        break;
+      case 4:
+        MOZ_ASSERT(!signExtend);
+        as_ldrex(output, ptr);
+        break;
+    }
+    if (nbytes < 4)
+        as_cmp(output, O2Reg(ScratchRegister));
+    else
+        as_cmp(output, O2Reg(oldval));
+    as_b(&Ldone, NotEqual);
+    switch (nbytes) {
+      case 1:
+        as_strexb(ScratchRegister, newval, ptr);
+        break;
+      case 2:
+        as_strexh(ScratchRegister, newval, ptr);
+        break;
+      case 4:
+        as_strex(ScratchRegister, newval, ptr);
+        break;
+    }
+    as_cmp(ScratchRegister, Imm8(1));
+    as_b(&Lagain, Equal);
+    bind(&Ldone);
+    ma_dmb();
+}
+
+template<typename T>
+void
+MacroAssemblerARMCompat::compareExchangeARMv6(int nbytes, bool signExtend, const T &mem,
+                                              Register oldval, Register newval, Register output)
+{
+    
+    MOZ_ASSERT(nbytes == 1 || nbytes == 2);
+    MOZ_CRASH("NYI");
+}
+
+template void
+js::jit::MacroAssemblerARMCompat::compareExchange(int nbytes, bool signExtend,
+                                                  const Address &address, Register oldval,
+                                                  Register newval, Register output);
+template void
+js::jit::MacroAssemblerARMCompat::compareExchange(int nbytes, bool signExtend,
+                                                  const BaseIndex &address, Register oldval,
+                                                  Register newval, Register output);
+
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op, const Imm32 &value,
+                                       const T &mem, Register temp, Register output)
+{
+    
+    
+    
+    
+    MOZ_CRASH("Feature NYI");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
+                                       const Register &value, const T &mem, Register temp,
+                                       Register output)
+{
+    
+    
+    
+    if (nbytes < 4 && !HasLDSTREXBHD())
+        atomicFetchOpARMv6(nbytes, signExtend, op, value, mem, temp, output);
+    else {
+        MOZ_ASSERT(temp == InvalidReg);
+        atomicFetchOpARMv7(nbytes, signExtend, op, value, mem, output);
+    }
+}
+
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicFetchOpARMv7(int nbytes, bool signExtend, AtomicOp op,
+                                            const Register &value, const T &mem, Register output)
+{
+    Label Lagain;
+    Register ptr = computePointer(mem, secondScratchReg_);
+    ma_dmb();
+    bind(&Lagain);
+    switch (nbytes) {
+      case 1:
+        as_ldrexb(output, ptr);
+        if (signExtend)
+            as_sxtb(output, output, 0);
+        break;
+      case 2:
+        as_ldrexh(output, ptr);
+        if (signExtend)
+            as_sxth(output, output, 0);
+        break;
+      case 4:
+        MOZ_ASSERT(!signExtend);
+        as_ldrex(output, ptr);
+        break;
+    }
+    switch (op) {
+      case AtomicFetchAddOp:
+        as_add(ScratchRegister, output, O2Reg(value));
+        break;
+      case AtomicFetchSubOp:
+        as_sub(ScratchRegister, output, O2Reg(value));
+        break;
+      case AtomicFetchAndOp:
+        as_and(ScratchRegister, output, O2Reg(value));
+        break;
+      case AtomicFetchOrOp:
+        as_orr(ScratchRegister, output, O2Reg(value));
+        break;
+      case AtomicFetchXorOp:
+        as_eor(ScratchRegister, output, O2Reg(value));
+        break;
+    }
+    switch (nbytes) {
+      case 1:
+        as_strexb(ScratchRegister, ScratchRegister, ptr);
+        break;
+      case 2:
+        as_strexh(ScratchRegister, ScratchRegister, ptr);
+        break;
+      case 4:
+        as_strex(ScratchRegister, ScratchRegister, ptr);
+        break;
+    }
+    as_cmp(ScratchRegister, Imm8(1));
+    as_b(&Lagain, Equal);
+    ma_dmb();
+}
+
+template<typename T>
+void
+MacroAssemblerARMCompat::atomicFetchOpARMv6(int nbytes, bool signExtend, AtomicOp op,
+                                            const Register &value, const T &mem, Register temp,
+                                            Register output)
+{
+    
+    MOZ_ASSERT(nbytes == 1 || nbytes == 2);
+    MOZ_CRASH("NYI");
+}
+
+template void
+js::jit::MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
+                                                const Imm32 &value, const Address &mem,
+                                                Register temp, Register output);
+template void
+js::jit::MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
+                                                const Imm32 &value, const BaseIndex &mem,
+                                                Register temp, Register output);
+template void
+js::jit::MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
+                                                const Register &value, const Address &mem,
+                                                Register temp, Register output);
+template void
+js::jit::MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
+                                                const Register &value, const BaseIndex &mem,
+                                                Register temp, Register output);
+
 #endif

@@ -570,4 +570,69 @@ LIRGeneratorARM::visitSimdValueX4(MSimdValueX4 *ins)
     MOZ_CRASH("NYI");
 }
 
+bool
+LIRGeneratorARM::visitAtomicTypedArrayElementBinop(MAtomicTypedArrayElementBinop *ins)
+{
+    MOZ_ASSERT(ins->arrayType() != Scalar::Uint8Clamped);
+    MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
+    MOZ_ASSERT(ins->arrayType() != Scalar::Float64);
 
+    MOZ_ASSERT(ins->elements()->type() == MIRType_Elements);
+    MOZ_ASSERT(ins->index()->type() == MIRType_Int32);
+
+    const LUse elements = useRegister(ins->elements());
+    const LAllocation index = useRegisterOrConstant(ins->index());
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    LDefinition tempDef1 = LDefinition::BogusTemp();
+    LDefinition tempDef2 = LDefinition::BogusTemp();
+
+    const LAllocation value = useRegister(ins->value());
+    if (ins->arrayType() == Scalar::Uint32 && IsFloatingPointType(ins->type()))
+        tempDef1 = temp();
+
+    LAtomicTypedArrayElementBinop *lir =
+        new(alloc()) LAtomicTypedArrayElementBinop(elements, index, value, tempDef1, tempDef2);
+
+    return define(lir, ins);
+}
+
+bool
+LIRGeneratorARM::visitCompareExchangeTypedArrayElement(MCompareExchangeTypedArrayElement *ins)
+{
+    MOZ_ASSERT(ins->arrayType() != Scalar::Float32);
+    MOZ_ASSERT(ins->arrayType() != Scalar::Float64);
+
+    MOZ_ASSERT(ins->elements()->type() == MIRType_Elements);
+    MOZ_ASSERT(ins->index()->type() == MIRType_Int32);
+
+    const LUse elements = useRegister(ins->elements());
+    const LAllocation index = useRegisterOrConstant(ins->index());
+
+    
+    
+    
+    
+    
+    
+
+    const LAllocation newval = useRegister(ins->newval());
+    const LAllocation oldval = useRegister(ins->oldval());
+    LDefinition tempDef = LDefinition::BogusTemp();
+    if (ins->arrayType() == Scalar::Uint32 && IsFloatingPointType(ins->type()))
+        tempDef = temp();
+
+    LCompareExchangeTypedArrayElement *lir =
+        new(alloc()) LCompareExchangeTypedArrayElement(elements, index, oldval, newval, tempDef);
+
+    return define(lir, ins);
+}
