@@ -1331,8 +1331,6 @@ pref("network.http.spdy.default-concurrent", 100);
 
 
 
-pref("network.http.atsvc.enabled", false);
-pref("network.http.atsvc.oe", false);
 pref("network.http.altsvc.enabled", false);
 pref("network.http.altsvc.oe", false);
 
@@ -3980,9 +3978,6 @@ pref("layers.bench.enabled", false);
 
 
 #ifdef ANDROID
-
-
-
 
 
 pref("layers.acceleration.force-enabled", true);
