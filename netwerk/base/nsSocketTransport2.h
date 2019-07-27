@@ -127,6 +127,7 @@ public:
     
     nsresult Init(const char **socketTypes, uint32_t typeCount,
                   const nsACString &host, uint16_t port,
+                  const nsACString &hostRoute, uint16_t portRoute,
                   nsIProxyInfo *proxyInfo);
 
     
@@ -275,8 +276,10 @@ private:
     uint32_t     mTypeCount;
     nsCString    mHost;
     nsCString    mProxyHost;
+    nsCString    mOriginHost;
     uint16_t     mPort;
     uint16_t     mProxyPort;
+    uint16_t     mOriginPort;
     bool mProxyTransparent;
     bool mProxyTransparentResolvesHost;
     bool mHttpsProxy;

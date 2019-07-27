@@ -352,7 +352,7 @@ nsHttpChannel::Connect()
     }
 
     
-    if (!net_IsValidHostName(nsDependentCString(mConnectionInfo->Host())))
+    if (!net_IsValidHostName(nsDependentCString(mConnectionInfo->Origin())))
         return NS_ERROR_UNKNOWN_HOST;
 
     
@@ -923,7 +923,7 @@ nsHttpChannel::CallOnStartRequest()
         if (!mContentTypeHint.IsEmpty())
             mResponseHead->SetContentType(mContentTypeHint);
         else if (mResponseHead->Version() == NS_HTTP_VERSION_0_9 &&
-                 mConnectionInfo->Port() != mConnectionInfo->DefaultPort())
+                 mConnectionInfo->OriginPort() != mConnectionInfo->DefaultPort())
             mResponseHead->SetContentType(NS_LITERAL_CSTRING(TEXT_PLAIN));
         else {
             
