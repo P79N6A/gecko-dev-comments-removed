@@ -84,7 +84,8 @@ public:
 
 private:
   virtual ~TrackBuffersManager();
-  void InitSegmentParserLoop();
+  
+  nsRefPtr<AppendPromise> InitSegmentParserLoop();
   void ScheduleSegmentParserLoop();
   void SegmentParserLoop();
   void AppendIncomingBuffers();
@@ -95,12 +96,13 @@ private:
   
   
   nsRefPtr<CodedFrameProcessingPromise> CodedFrameProcessing();
+  void CompleteCodedFrameProcessing();
   
   
   void FinishCodedFrameProcessing();
-  void CompleteCodedFrameProcessing();
   void CompleteResetParserState();
-  void CodedFrameRemoval(TimeInterval aInterval);
+  nsRefPtr<RangeRemovalPromise> CodedFrameRemovalWithPromise(TimeInterval aInterval);
+  bool CodedFrameRemoval(TimeInterval aInterval);
   void SetAppendState(AppendState aAppendState);
 
   bool HasVideo() const
@@ -111,6 +113,10 @@ private:
   {
     return mAudioTracks.mNumTracks > 0;
   }
+
+  typedef Pair<nsRefPtr<MediaLargeByteBuffer>, TimeUnit> IncomingBuffer;
+  void AppendIncomingBuffer(IncomingBuffer aData);
+  nsTArray<IncomingBuffer> mIncomingBuffers;
 
   
   nsRefPtr<MediaLargeByteBuffer> mInputBuffer;
@@ -215,9 +221,7 @@ private:
   MediaPromiseRequestHolder<CodedFrameProcessingPromise> mProcessingRequest;
   MediaPromiseHolder<CodedFrameProcessingPromise> mProcessingPromise;
 
-  
   MediaPromiseHolder<AppendPromise> mAppendPromise;
-  MediaPromiseHolder<RangeRemovalPromise> mRangeRemovalPromise;
 
   
   nsTArray<TrackData*> GetTracksList();
@@ -262,8 +266,6 @@ private:
 
   
   mutable Monitor mMonitor;
-  typedef Pair<nsRefPtr<MediaLargeByteBuffer>, TimeUnit> IncomingBuffer;
-  nsTArray<IncomingBuffer> mIncomingBuffers;
   
   TimeIntervals mVideoBufferedRanges;
   TimeIntervals mAudioBufferedRanges;
