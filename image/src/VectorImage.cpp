@@ -325,6 +325,7 @@ NS_IMPL_ISUPPORTS(VectorImage,
 VectorImage::VectorImage(ProgressTracker* aProgressTracker,
                          ImageURL* aURI ) :
   ImageResource(aURI), 
+  mLockCount(0),
   mIsInitialized(false),
   mIsFullyLoaded(false),
   mIsDrawing(false),
@@ -354,6 +355,14 @@ VectorImage::Init(const char* aMimeType,
   MOZ_ASSERT(!mIsFullyLoaded && !mHaveAnimations && !mError,
              "Flags unexpectedly set before initialization");
   MOZ_ASSERT(!strcmp(aMimeType, IMAGE_SVG_XML), "Unexpected mimetype");
+
+  mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
+
+  
+  if (!mDiscardable) {
+    mLockCount++;
+    SurfaceCache::LockImage(ImageKey(this));
+  }
 
   mIsInitialized = true;
   return NS_OK;
@@ -838,6 +847,14 @@ VectorImage::CreateSurfaceAndShow(const SVGDrawingParameters& aParams)
 
   
   
+  
+  
+  
+  
+  SurfaceCache::UnlockSurfaces(ImageKey(this));
+
+  
+  
   nsRefPtr<imgFrame> frame = new imgFrame;
   nsresult rv =
     frame->InitWithDrawable(svgDrawable, ThebesIntSize(aParams.size),
@@ -861,12 +878,17 @@ VectorImage::CreateSurfaceAndShow(const SVGDrawingParameters& aParams)
                        VectorSurfaceKey(aParams.size,
                                         aParams.svgContext,
                                         aParams.animationTime),
-                       Lifetime::Transient);
+                       Lifetime::Persistent);
 
   
   nsRefPtr<gfxDrawable> drawable =
     new gfxSurfaceDrawable(surface, ThebesIntSize(aParams.size));
   Show(drawable, aParams);
+
+  
+  
+  mProgressTracker->SyncNotifyProgress(FLAG_FRAME_COMPLETE,
+                                       nsIntRect::GetMaxSizedIntRect());
 }
 
 
@@ -923,7 +945,19 @@ VectorImage::RequestDecodeForSize(const nsIntSize& aSize, uint32_t aFlags)
 NS_IMETHODIMP
 VectorImage::LockImage()
 {
-  
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mError) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mLockCount++;
+
+  if (mLockCount == 1) {
+    
+    SurfaceCache::LockImage(ImageKey(this));
+  }
+
   return NS_OK;
 }
 
@@ -932,7 +966,24 @@ VectorImage::LockImage()
 NS_IMETHODIMP
 VectorImage::UnlockImage()
 {
-  
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mError) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (mLockCount == 0) {
+    MOZ_ASSERT_UNREACHABLE("Calling UnlockImage with a zero lock count");
+    return NS_ERROR_ABORT;
+  }
+
+  mLockCount--;
+
+  if (mLockCount == 0) {
+    
+    SurfaceCache::UnlockImage(ImageKey(this));
+  }
+
   return NS_OK;
 }
 
@@ -941,8 +992,24 @@ VectorImage::UnlockImage()
 NS_IMETHODIMP
 VectorImage::RequestDiscard()
 {
-  SurfaceCache::RemoveImage(ImageKey(this));
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mDiscardable && mLockCount == 0) {
+    SurfaceCache::RemoveImage(ImageKey(this));
+    mProgressTracker->OnDiscard();
+  }
+
   return NS_OK;
+}
+
+void
+VectorImage::OnSurfaceDiscarded()
+{
+  MOZ_ASSERT(mProgressTracker);
+
+  nsCOMPtr<nsIRunnable> runnable =
+    NS_NewRunnableMethod(mProgressTracker, &ProgressTracker::OnDiscard);
+  NS_DispatchToMainThread(runnable);
 }
 
 

@@ -55,6 +55,8 @@ public:
                                        nsresult aResult,
                                        bool aLastPart) override;
 
+  void OnSurfaceDiscarded() override;
+
   
 
 
@@ -100,7 +102,11 @@ private:
   nsRefPtr<SVGLoadEventListener>     mLoadEventListener;
   nsRefPtr<SVGParseCompleteListener> mParseCompleteListener;
 
+  
+  uint32_t mLockCount;
+
   bool           mIsInitialized;          
+  bool           mDiscardable;            
   bool           mIsFullyLoaded;          
   bool           mIsDrawing;              
   bool           mHaveAnimations;         
