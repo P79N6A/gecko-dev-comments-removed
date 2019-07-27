@@ -23,7 +23,7 @@
 #include "mozilla/gfx/Logging.h"        
 #include "UnitTransforms.h"             
 #include "gfxPrefs.h"                   
-#include "OverscrollHandoffChain.h"     
+#include "OverscrollHandoffState.h"     
 #include "LayersLogging.h"              
 
 #define APZCTM_LOG(...)
@@ -896,18 +896,19 @@ bool
 APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev,
                                 ScreenPoint aStartPoint,
                                 ScreenPoint aEndPoint,
-                                const OverscrollHandoffChain& aOverscrollHandoffChain,
-                                uint32_t aOverscrollHandoffChainIndex)
+                                OverscrollHandoffState& aOverscrollHandoffState)
 {
+  const OverscrollHandoffChain& overscrollHandoffChain = aOverscrollHandoffState.mChain;
+  uint32_t overscrollHandoffChainIndex = aOverscrollHandoffState.mChainIndex;
   nsRefPtr<AsyncPanZoomController> next;
   
   
-  if (aOverscrollHandoffChainIndex >= aOverscrollHandoffChain.Length()) {
+  if (overscrollHandoffChainIndex >= overscrollHandoffChain.Length()) {
     
     return false;
   }
 
-  next = aOverscrollHandoffChain.GetApzcAtIndex(aOverscrollHandoffChainIndex);
+  next = overscrollHandoffChain.GetApzcAtIndex(overscrollHandoffChainIndex);
 
   if (next == nullptr || next->IsDestroyed()) {
     return false;
@@ -924,8 +925,7 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev,
 
   
   
-  return next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChain,
-      aOverscrollHandoffChainIndex);
+  return next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffState);
 }
 
 bool

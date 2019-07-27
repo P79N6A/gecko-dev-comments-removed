@@ -4,7 +4,7 @@
 
 
 
-#include "OverscrollHandoffChain.h"
+#include "OverscrollHandoffState.h"
 
 #include <algorithm>              
 #include "mozilla/Assertions.h"
@@ -90,13 +90,25 @@ OverscrollHandoffChain::ClearOverscroll() const
 void
 OverscrollHandoffChain::SnapBackOverscrolledApzc() const
 {
-  for (uint32_t i = 0; i < Length(); ++i) {
+  uint32_t i = 0;
+  for (i = 0; i < Length(); ++i) {
     AsyncPanZoomController* apzc = mChain[i];
     if (!apzc->IsDestroyed() && apzc->SnapBackIfOverscrolled()) {
       
       break;
     }
   }
+
+  
+#ifdef DEBUG
+  ++i;
+  for (; i < Length(); ++i) {
+    AsyncPanZoomController* apzc = mChain[i];
+    if (!apzc->IsDestroyed()) {
+      MOZ_ASSERT(!apzc->IsOverscrolled());
+    }
+  }
+#endif
 }
 
 bool

@@ -7,7 +7,7 @@
 #include "InputBlockState.h"
 #include "mozilla/layers/APZCTreeManager.h" 
 #include "gfxPrefs.h"                       
-#include "OverscrollHandoffChain.h"
+#include "OverscrollHandoffState.h"
 
 #define TBS_LOG(...)
 

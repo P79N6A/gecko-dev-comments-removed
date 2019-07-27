@@ -111,6 +111,28 @@ private:
 };
 
 
+
+
+struct OverscrollHandoffState {
+  OverscrollHandoffState(const OverscrollHandoffChain& aChain,
+                         const ScreenPoint& aPanDistance)
+      : mChain(aChain), mChainIndex(0), mPanDistance(aPanDistance) {}
+
+  
+  
+  
+  const OverscrollHandoffChain& mChain;
+
+  
+  
+  uint32_t mChainIndex;
+
+  
+  
+  
+  const ScreenPoint mPanDistance;
+};
+
 #undef NS_INLINE_DECL_THREADSAFE_MUTABLE_REFCOUNTING
 
 }

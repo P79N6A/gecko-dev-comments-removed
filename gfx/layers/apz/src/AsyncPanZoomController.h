@@ -1010,8 +1010,7 @@ public:
 
 
   bool AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
-                     const OverscrollHandoffChain& aOverscrollHandoffChain,
-                     uint32_t aOverscrollHandoffChainIndex = 0);
+                     OverscrollHandoffState& aOverscrollHandoffState);
 
   void FlushRepaintForOverscrollHandoff();
 
@@ -1029,8 +1028,15 @@ private:
 
   bool CallDispatchScroll(const ScreenPoint& aStartPoint,
                           const ScreenPoint& aEndPoint,
-                          const OverscrollHandoffChain& aOverscrollHandoffChain,
-                          uint32_t aOverscrollHandoffChainIndex);
+                          OverscrollHandoffState& aOverscrollHandoffState);
+
+  
+
+
+
+
+  bool OverscrollForPanning(ScreenPoint aOverscroll,
+                            const ScreenPoint& aPanDistance);
 
   
 

@@ -15,7 +15,7 @@
 #include "GestureEventListener.h"       
 #include "InputData.h"                  
 #include "InputBlockState.h"            
-#include "OverscrollHandoffChain.h"     
+#include "OverscrollHandoffState.h"     
 #include "Units.h"                      
 #include "UnitTransforms.h"             
 #include "base/message_loop.h"          
@@ -134,6 +134,11 @@ typedef mozilla::layers::AllowedTouchBehavior AllowedTouchBehavior;
 typedef GeckoContentController::APZStateChange APZStateChange;
 typedef mozilla::gfx::Point Point;
 typedef mozilla::gfx::Matrix4x4 Matrix4x4;
+
+
+
+
+
 
 
 
@@ -1573,8 +1578,10 @@ nsEventStatus AsyncPanZoomController::OnPan(const PanGestureInput& aEvent, bool 
 
   
   if (mPanGestureState) {
+    OverscrollHandoffState handoffState(
+        *mPanGestureState->GetOverscrollHandoffChain(), panDisplacement);
     CallDispatchScroll(aEvent.mPanStartPoint, aEvent.mPanStartPoint + aEvent.mPanDisplacement,
-                       *mPanGestureState->GetOverscrollHandoffChain(), 0);
+                       handoffState);
   }
 
   return nsEventStatus_eConsumeNoDefault;
@@ -1837,16 +1844,16 @@ void AsyncPanZoomController::HandlePanning(double aAngle) {
   }
 }
 
-void AsyncPanZoomController::HandlePanningUpdate(const ScreenPoint& aDelta) {
+void AsyncPanZoomController::HandlePanningUpdate(const ScreenPoint& aPanDistance) {
   
   if (GetAxisLockMode() == STICKY && !mPanDirRestricted) {
 
-    double angle = atan2(aDelta.y, aDelta.x); 
+    double angle = atan2(aPanDistance.y, aPanDistance.x); 
     angle = fabs(angle); 
 
     float breakThreshold = gfxPrefs::APZAxisBreakoutThreshold() * APZCTreeManager::GetDPI();
 
-    if (fabs(aDelta.x) > breakThreshold || fabs(aDelta.y) > breakThreshold) {
+    if (fabs(aPanDistance.x) > breakThreshold || fabs(aPanDistance.y) > breakThreshold) {
       if (mState == PANNING_LOCKED_X || mState == CROSS_SLIDING_X) {
         if (!IsCloseToHorizontal(angle, gfxPrefs::APZAxisBreakoutAngle())) {
           mY.SetAxisLocked(false);
@@ -1905,8 +1912,7 @@ void AsyncPanZoomController::UpdateWithTouchAtDevicePoint(const MultiTouchInput&
 
 bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
                                            const ScreenPoint& aEndPoint,
-                                           const OverscrollHandoffChain& aOverscrollHandoffChain,
-                                           uint32_t aOverscrollHandoffChainIndex) {
+                                           OverscrollHandoffState& aOverscrollHandoffState) {
 
   
   
@@ -1941,8 +1947,9 @@ bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   
   
   
+  ++aOverscrollHandoffState.mChainIndex;
   if (CallDispatchScroll(aEndPoint + overscroll, aEndPoint,
-                         aOverscrollHandoffChain, aOverscrollHandoffChainIndex + 1)) {
+                         aOverscrollHandoffState)) {
     return true;
   }
 
@@ -1950,7 +1957,24 @@ bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   
   
   APZC_LOG("%p taking overscroll during panning\n", this);
-  return OverscrollBy(overscroll);
+  return OverscrollForPanning(overscroll, aOverscrollHandoffState.mPanDistance);
+}
+
+bool AsyncPanZoomController::OverscrollForPanning(ScreenPoint aOverscroll,
+                                                  const ScreenPoint& aPanDistance) {
+  
+  
+  
+  if (!IsOverscrolled()) {
+    if (aPanDistance.x < gfxPrefs::APZMinPanDistanceRatio() * aPanDistance.y) {
+      aOverscroll.x = 0;
+    }
+    if (aPanDistance.y < gfxPrefs::APZMinPanDistanceRatio() * aPanDistance.x) {
+      aOverscroll.y = 0;
+    }
+  }
+
+  return OverscrollBy(aOverscroll);
 }
 
 bool AsyncPanZoomController::OverscrollBy(const ScreenPoint& aOverscroll) {
@@ -2066,33 +2090,32 @@ void AsyncPanZoomController::StartSnapBack() {
 
 bool AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint,
                                                 const ScreenPoint& aEndPoint,
-                                                const OverscrollHandoffChain& aOverscrollHandoffChain,
-                                                uint32_t aOverscrollHandoffChainIndex) {
+                                                OverscrollHandoffState& aOverscrollHandoffState) {
   
   
   
   APZCTreeManager* treeManagerLocal = GetApzcTreeManager();
   return treeManagerLocal
       && treeManagerLocal->DispatchScroll(this, aStartPoint, aEndPoint,
-                                          aOverscrollHandoffChain,
-                                          aOverscrollHandoffChainIndex);
+                                          aOverscrollHandoffState);
 }
 
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
   ScreenPoint prevTouchPoint(mX.GetPos(), mY.GetPos());
   ScreenPoint touchPoint = GetFirstTouchScreenPoint(aEvent);
 
-  ScreenPoint delta(mX.PanDistance(touchPoint.x),
-                    mY.PanDistance(touchPoint.y));
+  ScreenPoint panDistance(mX.PanDistance(touchPoint.x),
+                          mY.PanDistance(touchPoint.y));
   const ScreenPoint panStart = PanStart();
-  ToGlobalScreenCoordinates(&delta, panStart);
-  HandlePanningUpdate(delta);
+  ToGlobalScreenCoordinates(&panDistance, panStart);
+  HandlePanningUpdate(panDistance);
 
   UpdateWithTouchAtDevicePoint(aEvent);
 
   if (prevTouchPoint != touchPoint) {
-    CallDispatchScroll(prevTouchPoint, touchPoint,
-        *CurrentTouchBlock()->GetOverscrollHandoffChain(), 0);
+    OverscrollHandoffState handoffState(
+        *CurrentTouchBlock()->GetOverscrollHandoffChain(), panDistance);
+    CallDispatchScroll(prevTouchPoint, touchPoint, handoffState);
   }
 }
 
