@@ -65,6 +65,16 @@ TextInputProcessor::TextInputProcessor()
 
 TextInputProcessor::~TextInputProcessor()
 {
+  if (mDispatcher && mDispatcher->IsComposing()) {
+    
+    
+    
+    if (NS_SUCCEEDED(IsValidStateForComposition())) {
+      nsRefPtr<TextEventDispatcher> kungFuDeathGrip(mDispatcher);
+      nsEventStatus status = nsEventStatus_eIgnore;
+      mDispatcher->CommitComposition(status, &EmptyString());
+    }
+  }
 }
 
 NS_IMETHODIMP
