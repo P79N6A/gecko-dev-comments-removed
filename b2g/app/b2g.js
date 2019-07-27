@@ -941,10 +941,6 @@ pref("toolkit.storage.pageSize", 2048);
 #endif
 
 
-pref("captivedetect.canonicalURL", "http://detectportal.firefox.com/success.txt");
-pref("captivedetect.canonicalContent", "success\n");
-
-
 pref("ping.manifestURL", "https://marketplace.firefox.com/packaged.webapp");
 
 
