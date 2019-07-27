@@ -90,13 +90,13 @@ struct nsMyTrustedEVInfo
 
 
 
+static const size_t NUM_TEST_EV_ROOTS = 2;
 static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   
   
   
   
 #ifdef DEBUG
-  
   
   
   
@@ -116,6 +116,20 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "VQQLDBRTZWN1cml0eSBFbmdpbmVlcmluZzEvMC0GA1UEAwwmWFBDU2hlbGwgRVYg"
     "VGVzdGluZyAodW50cnVzdHdvcnRoeSkgQ0E=",
     "At+3zdo=",
+    nullptr
+  },
+  {
+    
+    
+    "1.3.6.1.4.1.13769.666.666.666.1.500.9.1",
+    "DEBUGtesting EV OID",
+    SEC_OID_UNKNOWN,
+    { 0x0E, 0xE2, 0x7A, 0x44, 0xD3, 0xAB, 0x66, 0x1A, 0x31, 0xBF, 0x0C,
+      0x1C, 0xFC, 0xAA, 0xD9, 0xD6, 0x27, 0x75, 0xC2, 0xDB, 0xC5, 0x69,
+      0xD7, 0x1C, 0xDE, 0x9C, 0x7E, 0xD5, 0x86, 0x88, 0x6C, 0xB7 },
+    "ME0xNDAyBgNVBAMMK1hQQ1NoZWxsIEtleSBTaXplIFRlc3RpbmcgcnNhIDIwNDAt"
+    "Yml0IChFVikxFTATBgNVBAoMDGV2LXJzYS1jYUJhZA==",
+    "PCQ3",
     nullptr
   },
 #endif
@@ -1083,7 +1097,8 @@ IdentityInfoInit()
     if (!entry.cert) {
 #ifdef DEBUG
       
-      if (iEV == 0) {
+      
+      if (iEV < NUM_TEST_EV_ROOTS) {
         continue;
       }
 #endif
