@@ -685,7 +685,7 @@ ContentCache::GetTextRect(uint32_t aOffset,
     return !aTextRect.IsEmpty();
   }
 
-  if (NS_WARN_IF(!mTextRectArray.InRange(aOffset))) {
+  if (!mTextRectArray.InRange(aOffset)) {
     aTextRect.SetEmpty();
     return false;
   }
@@ -719,7 +719,7 @@ ContentCache::GetUnionTextRects(uint32_t aOffset,
     }
   }
 
-  if (NS_WARN_IF(!mTextRectArray.InRange(aOffset, aLength))) {
+  if (!mTextRectArray.InRange(aOffset, aLength)) {
     aUnionTextRect.SetEmpty();
     return false;
   }
@@ -751,8 +751,19 @@ ContentCache::GetCaretRect(uint32_t aOffset,
 
   
   if (!GetTextRect(aOffset, aCaretRect)) {
-    aCaretRect.SetEmpty();
-    return false;
+    
+    
+    if (!aOffset || !GetTextRect(aOffset - 1, aCaretRect)) {
+      aCaretRect.SetEmpty();
+      return false;
+    }
+
+    if (mSelection.mWritingMode.IsVertical()) {
+      aCaretRect.y = aCaretRect.YMost();
+    } else {
+      
+      aCaretRect.x = aCaretRect.XMost();
+    }
   }
 
   
