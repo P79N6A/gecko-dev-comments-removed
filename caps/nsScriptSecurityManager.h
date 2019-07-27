@@ -22,6 +22,10 @@ class nsIIOService;
 class nsIStringBundle;
 class nsSystemPrincipal;
 
+namespace mozilla {
+class OriginAttributes;
+}
+
 
 
 
@@ -98,15 +102,6 @@ private:
     
     
     static nsIPrincipal* doGetObjectPrincipal(JSObject* obj);
-
-    nsresult
-    GetCodebasePrincipalInternal(nsIURI* aURI, uint32_t aAppId,
-                                 bool aInMozBrowser,
-                                 nsIPrincipal** result);
-
-    nsresult
-    CreateCodebasePrincipal(nsIURI* aURI, uint32_t aAppId, bool aInMozBrowser,
-                            nsIPrincipal** result);
 
     nsresult
     Init();

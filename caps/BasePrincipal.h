@@ -18,6 +18,35 @@ class nsIObjectInputStream;
 
 namespace mozilla {
 
+class OriginAttributes : public dom::OriginAttributesDictionary
+{
+public:
+  OriginAttributes() {}
+  OriginAttributes(uint32_t aAppId, bool aInBrowser)
+  {
+    mAppId = aAppId;
+    mInBrowser = aInBrowser;
+  }
+
+  bool operator==(const OriginAttributes& aOther) const
+  {
+    return mAppId == aOther.mAppId &&
+           mInBrowser == aOther.mInBrowser;
+  }
+  bool operator!=(const OriginAttributes& aOther) const
+  {
+    return !(*this == aOther);
+  }
+
+  
+  
+  
+  void CreateSuffix(nsACString& aStr);
+
+  void Serialize(nsIObjectOutputStream* aStream) const;
+  nsresult Deserialize(nsIObjectInputStream* aStream);
+};
+
 
 
 
@@ -51,33 +80,7 @@ public:
   virtual bool IsOnCSSUnprefixingWhitelist() override { return false; }
 
   static BasePrincipal* Cast(nsIPrincipal* aPrin) { return static_cast<BasePrincipal*>(aPrin); }
-
-  struct OriginAttributes : public dom::OriginAttributesDictionary {
-    OriginAttributes() {}
-    OriginAttributes(uint32_t aAppId, bool aInBrowser)
-    {
-      mAppId = aAppId;
-      mInBrowser = aInBrowser;
-    }
-
-    bool operator==(const OriginAttributes& aOther) const
-    {
-      return mAppId == aOther.mAppId &&
-             mInBrowser == aOther.mInBrowser;
-    }
-    bool operator!=(const OriginAttributes& aOther) const
-    {
-      return !(*this == aOther);
-    }
-
-    
-    
-    
-    void CreateSuffix(nsACString& aStr);
-
-    void Serialize(nsIObjectOutputStream* aStream) const;
-    nsresult Deserialize(nsIObjectInputStream* aStream);
-  };
+  static already_AddRefed<BasePrincipal> CreateCodebasePrincipal(nsIURI* aURI, OriginAttributes& aAttrs);
 
   const OriginAttributes& OriginAttributesRef() { return mOriginAttributes; }
   uint32_t AppId() const { return mOriginAttributes.mAppId; }
