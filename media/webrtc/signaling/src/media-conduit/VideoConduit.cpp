@@ -80,6 +80,7 @@ WebrtcVideoConduit::WebrtcVideoConduit():
   mReceivingWidth(640),
   mReceivingHeight(480),
   mSendingFramerate(DEFAULT_VIDEO_MAX_FRAMERATE),
+  mLastFramerateTenths(DEFAULT_VIDEO_MAX_FRAMERATE*10),
   mNumReceivingStreams(1),
   mVideoLatencyTestEnable(false),
   mVideoLatencyAvg(0),
@@ -221,6 +222,23 @@ bool WebrtcVideoConduit::GetVideoEncoderStats(double* framerateMean,
   mVideoCodecStat->GetEncoderStats(framerateMean, framerateStdDev,
                                    bitrateMean, bitrateStdDev,
                                    droppedFrames);
+
+  
+  
+
+  
+  
+  
+  
+  double framerate = mLastFramerateTenths/10.0; 
+  if (std::abs(*framerateMean - framerate)/framerate > 0.1 &&
+      *framerateMean >= 0.5) {
+    
+    CSFLogDebug(logTag, "Encoder frame rate changed from %f to %f",
+                (mLastFramerateTenths/10.0), *framerateMean);
+    mLastFramerateTenths = *framerateMean * 10;
+    SelectSendResolution(mSendingWidth, mSendingHeight, true);
+  }
   return true;
 }
 
@@ -911,11 +929,78 @@ WebrtcVideoConduit::ConfigureRecvMediaCodecs(
   return kMediaConduitNoError;
 }
 
+void
+WebrtcVideoConduit::SelectBandwidth(webrtc::VideoCodec& vie_codec,
+                                    unsigned short width,
+                                    unsigned short height)
+{
+  
+  
+  unsigned int fs, mb_width, mb_height;
+
+  mb_width = (width + 15) >> 4;
+  mb_height = (height + 15) >> 4;
+  fs = mb_width * mb_height;
+
+  
+  
+  
+  
+#define MB_OF(w,h) ((unsigned int)((((w)>>4))*((unsigned int)((h)>>4))))
+
+  
+  
+  
+  
+  if (fs > MB_OF(1920, 1200)) {
+    
+    vie_codec.minBitrate = 1500;
+    vie_codec.maxBitrate = 10000;
+  } else if (fs > MB_OF(1280, 720)) {
+    
+    vie_codec.minBitrate = 1200;
+    vie_codec.maxBitrate = 5000;
+  } else if (fs > MB_OF(800, 480)) {
+    
+    vie_codec.minBitrate = 600;
+    vie_codec.maxBitrate = 2500;
+  } else if (fs > std::max(MB_OF(400, 240), MB_OF(352, 288))) {
+    
+    
+    vie_codec.minBitrate = 200;
+    vie_codec.maxBitrate = 1300;
+  } else if (fs > MB_OF(176, 144)) {
+    
+    
+    vie_codec.minBitrate = 100;
+    vie_codec.maxBitrate = 500;
+  } else {
+    
+    vie_codec.minBitrate = 40;
+    vie_codec.maxBitrate = 250;
+  }
+
+  
+  double framerate = std::min((mLastFramerateTenths/10.),60.0);
+  MOZ_ASSERT(framerate > 0);
+  
+  if (framerate >= 10) {
+    vie_codec.minBitrate = vie_codec.minBitrate * (framerate/30);
+    vie_codec.maxBitrate = vie_codec.maxBitrate * (framerate/30);
+  } else {
+    
+    
+    vie_codec.minBitrate = vie_codec.minBitrate * ((10-(framerate/2))/30);
+    vie_codec.maxBitrate = vie_codec.maxBitrate * ((10-(framerate/2))/30);
+  }
+}
+
 
 
 bool
 WebrtcVideoConduit::SelectSendResolution(unsigned short width,
-                                         unsigned short height)
+                                         unsigned short height,
+                                         bool force)
 {
   
 
@@ -986,7 +1071,8 @@ WebrtcVideoConduit::SelectSendResolution(unsigned short width,
 
   
   
-  if (mSendingWidth != width || mSendingHeight != height)
+  
+  if (mSendingWidth != width || mSendingHeight != height || force)
   {
     
     
@@ -1003,10 +1089,11 @@ WebrtcVideoConduit::SelectSendResolution(unsigned short width,
       CSFLogError(logTag, "%s: GetSendCodec failed, err %d", __FUNCTION__, err);
       return false;
     }
-    if (vie_codec.width != width || vie_codec.height != height)
+    if (vie_codec.width != width || vie_codec.height != height || force)
     {
       vie_codec.width = width;
       vie_codec.height = height;
+      SelectBandwidth(vie_codec, width, height);
 
       if ((err = mPtrViECodec->SetSendCodec(mChannel, vie_codec)) != 0)
       {
@@ -1014,8 +1101,9 @@ WebrtcVideoConduit::SelectSendResolution(unsigned short width,
                     __FUNCTION__, width, height, err);
         return false;
       }
-      CSFLogDebug(logTag, "%s: Encoder resolution changed to %ux%u",
-                  __FUNCTION__, width, height);
+      CSFLogDebug(logTag, "%s: Encoder resolution changed to %ux%u, bitrate %u:%u",
+                  __FUNCTION__, width, height,
+                  vie_codec.minBitrate, vie_codec.maxBitrate);
     } 
   }
   return true;
@@ -1133,7 +1221,7 @@ WebrtcVideoConduit::SendVideoFrame(unsigned char* video_frame,
     return kMediaConduitSessionNotInited;
   }
 
-  if (!SelectSendResolution(width, height))
+  if (!SelectSendResolution(width, height, false))
   {
     return kMediaConduitCaptureError;
   }
