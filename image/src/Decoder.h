@@ -139,24 +139,6 @@ public:
 
 
 
-
-  virtual nsresult SetTargetSize(const nsIntSize& aSize)
-  {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
   void SetSendPartialInvalidations(bool aSend)
   {
     MOZ_ASSERT(!mInitialized, "Shouldn't be initialized yet");
