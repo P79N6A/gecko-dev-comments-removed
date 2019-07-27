@@ -14,6 +14,7 @@
 #include "mozilla/TimeStamp.h"
 
 template<class E> struct already_AddRefed;
+class nsIWidget;
 
 namespace mozilla {
 
@@ -124,7 +125,7 @@ public:
   {
   }
 
-  already_AddRefed<dom::Touch> ToNewDOMTouch();
+  already_AddRefed<dom::Touch> ToNewDOMTouch() const;
 
   
   
@@ -188,6 +189,7 @@ public:
   }
 
   MultiTouchInput(const WidgetTouchEvent& aTouchEvent);
+  WidgetTouchEvent ToWidgetTouchEvent(nsIWidget* aWidget) const;
 
   
   
