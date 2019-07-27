@@ -16,6 +16,12 @@ loop.Client = (function($) {
   var expectedCallProperties = ["calls"];
 
   
+  var expectedPostCallProperties = [
+    "apiKey", "callId", "progressURL",
+    "sessionId", "sessionToken", "websocketToken"
+  ];
+
+  
 
 
 
@@ -207,6 +213,44 @@ loop.Client = (function($) {
 
         this._requestCallUrlInternal(nickname, cb);
       }.bind(this));
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+    setupOutgoingCall: function(calleeIds, callType, cb) {
+      this.mozLoop.hawkRequest(this.mozLoop.LOOP_SESSION_TYPE.FXA,
+        "/calls", "POST", {
+          calleeId: calleeIds,
+          callType: callType
+        },
+        function (err, responseText) {
+          if (err) {
+            this._failureHandler(cb, err);
+            return;
+          }
+
+          try {
+            var postData = JSON.parse(responseText);
+
+            var outgoingCallData = this._validate(postData,
+              expectedPostCallProperties);
+
+            cb(null, outgoingCallData);
+          } catch (err) {
+            console.log("Error requesting call info", err);
+            cb(err);
+          }
+        }.bind(this)
+      );
     },
 
     

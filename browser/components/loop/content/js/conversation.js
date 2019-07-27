@@ -502,14 +502,25 @@ loop.conversation = (function(mozL10n) {
       sdk: React.PropTypes.object.isRequired,
 
       
-      store: React.PropTypes.instanceOf(loop.ConversationStore).isRequired
+      store: React.PropTypes.instanceOf(loop.store.ConversationStore).isRequired
     },
 
     getInitialState: function() {
       return this.props.store.attributes;
     },
 
+    componentWillMount: function() {
+      this.props.store.on("change:outgoing", function() {
+        this.setState(this.props.store.attributes);
+      }, this);
+    },
+
     render: function() {
+      
+      if (this.state.outgoing === undefined) {
+        return null;
+      }
+
       if (this.state.outgoing) {
         return (OutgoingConversationView({
           store: this.props.store}
@@ -545,19 +556,19 @@ loop.conversation = (function(mozL10n) {
       }
     });
 
-    var conversationStore = new loop.ConversationStore();
+    var dispatcher = new loop.Dispatcher();
+    var client = new loop.Client();
+    var conversationStore = new loop.store.ConversationStore({}, {
+      client: client,
+      dispatcher: dispatcher
+    });
 
     
     
     var outgoingEmail = navigator.mozLoop.getLoopCharPref("outgoingemail");
-    if (outgoingEmail) {
-      conversationStore.set("outgoing", true);
-      conversationStore.set("calleeId", outgoingEmail);
-    }
 
     
     
-    var client = new loop.Client();
     var conversation = new sharedModels.ConversationModel(
       {},                
       {sdk: window.OT}   
@@ -567,8 +578,10 @@ loop.conversation = (function(mozL10n) {
     
     var helper = new loop.shared.utils.Helper();
     var locationHash = helper.locationHash();
+    var callId;
     if (locationHash) {
-      conversation.set("callId", locationHash.match(/\#incoming\/(.*)/)[1]);
+      callId = locationHash.match(/\#incoming\/(.*)/)[1]
+      conversation.set("callId", callId);
     }
 
     window.addEventListener("unload", function(event) {
@@ -585,6 +598,11 @@ loop.conversation = (function(mozL10n) {
       notifications: notifications, 
       sdk: window.OT}
     ), document.querySelector('#main'));
+
+    dispatcher.dispatch(new loop.shared.actions.GatherCallData({
+      callId: callId,
+      calleeId: outgoingEmail
+    }));
   }
 
   return {

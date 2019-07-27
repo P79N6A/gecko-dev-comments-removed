@@ -12,6 +12,14 @@ loop.shared.utils = (function() {
   
 
 
+  var CALL_TYPES = {
+    AUDIO_VIDEO: "audio-video",
+    AUDIO_ONLY: "audio"
+  };
+
+  
+
+
 
   function getTargetPlatform() {
     var platform="unknown_platform";
@@ -77,6 +85,7 @@ loop.shared.utils = (function() {
   };
 
   return {
+    CALL_TYPES: CALL_TYPES,
     Helper: Helper,
     getTargetPlatform: getTargetPlatform,
     getBoolPreference: getBoolPreference
