@@ -1474,6 +1474,30 @@ public:
   
 
 
+  nscoord LineLeft(WritingMode aWritingMode, nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      return IStart(); 
+    } else {
+      return aWritingMode.IsBidiLTR() ? IStart()
+                                      : aContainerWidth - IEnd();
+    }
+  }
+  nscoord LineRight(WritingMode aWritingMode, nscoord aContainerWidth) const
+  {
+    CHECK_WRITING_MODE(aWritingMode);
+    if (aWritingMode.IsVertical()) {
+      return IEnd(); 
+    } else {
+      return aWritingMode.IsBidiLTR() ? IEnd()
+                                      : aContainerWidth - IStart();
+    }
+  }
+
+  
+
+
   nscoord X(WritingMode aWritingMode, nscoord aContainerWidth) const
   {
     CHECK_WRITING_MODE(aWritingMode);
@@ -1602,19 +1626,6 @@ public:
     CHECK_WRITING_MODE(aOther.GetWritingMode());
     return mRect.IsEqualEdges(aOther.mRect);
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   LogicalPoint Origin(WritingMode aWritingMode) const
   {
