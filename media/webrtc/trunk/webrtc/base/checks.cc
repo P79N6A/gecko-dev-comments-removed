@@ -16,7 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#if defined(__GLIBCXX__) && !defined(__UCLIBC__)
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
 #include <cxxabi.h>
 #include <execinfo.h>
 #endif
@@ -55,7 +55,7 @@ void PrintError(const char* format, ...) {
 
 
 void DumpBacktrace() {
-#if defined(__GLIBCXX__) && !defined(__UCLIBC__)
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
   void* trace[100];
   int size = backtrace(trace, sizeof(trace) / sizeof(*trace));
   char** symbols = backtrace_symbols(trace, size);
