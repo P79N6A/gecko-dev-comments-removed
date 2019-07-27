@@ -166,6 +166,10 @@ AppleMP3Reader::PassthroughInputDataCallback(AudioConverterRef aAudioConverter,
                                              AudioStreamPacketDescription **aPacketDesc,
                                              void *aUserData)
 {
+  if (!aPacketDesc) {
+    return kAudioFileStreamError_UnspecifiedError;
+  }
+
   PassthroughUserData *userData = (PassthroughUserData *)aUserData;
   if (userData->mDone) {
     
