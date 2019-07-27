@@ -168,7 +168,7 @@ GMPLoaderImpl::Load(const char* aLibPath,
   
   
   if (mSandboxStarter) {
-    mSandboxStarter->Start();
+    mSandboxStarter->Start(aLibPath);
   }
 #endif
 

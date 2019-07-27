@@ -35,6 +35,11 @@
 #endif
 #endif
 
+#if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
+#include "mozilla/Sandbox.h"
+#include "mozilla/SandboxInfo.h"
+#endif
+
 #ifdef MOZ_WIDGET_GONK
 # include <sys/time.h>
 # include <sys/resource.h> 
@@ -88,8 +93,27 @@ void StartSandboxCallback()
 
 class WinSandboxStarter : public mozilla::gmp::SandboxStarter {
 public:
-    virtual void Start() MOZ_OVERRIDE {
+    virtual void Start(const char *aLibPath) MOZ_OVERRIDE {
         StartSandboxCallback();
+    }
+};
+#endif
+
+#if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
+class LinuxSandboxStarter : public mozilla::gmp::SandboxStarter {
+    LinuxSandboxStarter() { }
+public:
+    static SandboxStarter* Make() {
+        if (mozilla::SandboxInfo::Get().CanSandboxMedia()) {
+            return new LinuxSandboxStarter();
+        } else {
+            
+            
+            return nullptr;
+        }
+    }
+    virtual void Start(const char *aLibPath) MOZ_OVERRIDE {
+        mozilla::SetMediaPluginSandbox(aLibPath);
     }
 };
 #endif
@@ -103,6 +127,8 @@ MakeSandboxStarter()
     
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
     return new WinSandboxStarter();
+#elif defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
+    return LinuxSandboxStarter::Make();
 #else
     return nullptr;
 #endif
