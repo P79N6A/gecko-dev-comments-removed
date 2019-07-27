@@ -756,6 +756,14 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
             nsIWindowCreator2::PARENT_IS_LOADING_OR_RUNNING_TIMEOUT;
         }
 
+        
+        
+#ifdef MOZ_WIDGET_GONK
+        int retval = WinHasOption(features.get(), "mozDisplayId", 0, nullptr);
+        windowCreator2->SetScreenId(retval);
+#endif
+
+
         bool cancel = false;
         rv = windowCreator2->CreateChromeWindow2(parentChrome, chromeFlags,
                                                  contextFlags, uriToLoad,
