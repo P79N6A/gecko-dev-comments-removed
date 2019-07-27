@@ -1426,7 +1426,15 @@ nsScriptSecurityManager::AddSitesToFileURIWhitelist(const nsCString& aSiteList)
     {
         
         bound = SkipUntil<IsWhitespace>(aSiteList, base);
-        auto site = Substring(aSiteList, base, bound - base);
+        nsAutoCString site(Substring(aSiteList, base, bound - base));
+
+        
+        nsAutoCString unused;
+        if (NS_FAILED(sIOService->ExtractScheme(site, unused))) {
+            AddSitesToFileURIWhitelist(NS_LITERAL_CSTRING("http://") + site);
+            AddSitesToFileURIWhitelist(NS_LITERAL_CSTRING("https://") + site);
+            return;
+        }
 
         
         nsCOMPtr<nsIURI> uri;
