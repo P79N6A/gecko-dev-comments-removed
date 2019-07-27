@@ -1,6 +1,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
+
 const RELATIVE_DIR = "browser/extensions/pdfjs/test/";
 const TESTROOT = "http://example.com/browser/" + RELATIVE_DIR;
 
