@@ -3429,6 +3429,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     if ((flags & Layer::CONTENT_COMPONENT_ALPHA) &&
         mRetainingManager &&
         !mRetainingManager->AreComponentAlphaLayersEnabled() &&
+        containerLayer->HasMultipleChildren() &&
         !stateFlags) {
       
       
