@@ -3290,6 +3290,9 @@ DebuggerScript_getChildScripts(JSContext *cx, unsigned argc, Value *vp)
             obj = objects->vector[i];
             if (obj->is<JSFunction>()) {
                 fun = &obj->as<JSFunction>();
+                
+                if (fun->isNative())
+                    continue;
                 funScript = GetOrCreateFunctionScript(cx, fun);
                 if (!funScript)
                     return false;
