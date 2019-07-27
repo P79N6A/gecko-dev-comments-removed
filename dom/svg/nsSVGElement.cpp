@@ -1129,7 +1129,7 @@ public:
   MappedAttrParser(css::Loader* aLoader,
                    nsIURI* aDocURI,
                    already_AddRefed<nsIURI> aBaseURI,
-                   nsIPrincipal* aNodePrincipal);
+                   nsSVGElement* aElement);
   ~MappedAttrParser();
 
   
@@ -1149,18 +1149,20 @@ private:
   
   nsIURI*           mDocURI;
   nsCOMPtr<nsIURI>  mBaseURI;
-  nsIPrincipal*     mNodePrincipal;
 
   
   css::Declaration* mDecl;
+
+  
+  nsSVGElement*     mElement;
 };
 
 MappedAttrParser::MappedAttrParser(css::Loader* aLoader,
                                    nsIURI* aDocURI,
                                    already_AddRefed<nsIURI> aBaseURI,
-                                   nsIPrincipal* aNodePrincipal)
+                                   nsSVGElement* aElement)
   : mParser(aLoader), mDocURI(aDocURI), mBaseURI(aBaseURI),
-    mNodePrincipal(aNodePrincipal), mDecl(nullptr)
+    mDecl(nullptr), mElement(aElement)
 {
 }
 
@@ -1187,7 +1189,7 @@ MappedAttrParser::ParseMappedAttrValue(nsIAtom* aMappedAttrName,
   if (propertyID != eCSSProperty_UNKNOWN) {
     bool changed; 
     mParser.ParseProperty(propertyID, aMappedAttrValue, mDocURI, mBaseURI,
-                          mNodePrincipal, mDecl, &changed, false, true);
+                          mElement->NodePrincipal(), mDecl, &changed, false, true);
     return;
   }
   MOZ_ASSERT(aMappedAttrName == nsGkAtoms::lang,
@@ -1234,7 +1236,7 @@ nsSVGElement::UpdateContentStyleRule()
 
   nsIDocument* doc = OwnerDoc();
   MappedAttrParser mappedAttrParser(doc->CSSLoader(), doc->GetDocumentURI(),
-                                    GetBaseURI(), NodePrincipal());
+                                    GetBaseURI(), this);
 
   for (uint32_t i = 0; i < attrCount; ++i) {
     const nsAttrName* attrName = mAttrsAndChildren.AttrNameAt(i);
@@ -1325,7 +1327,7 @@ nsSVGElement::UpdateAnimatedContentStyleRule()
   }
 
   MappedAttrParser mappedAttrParser(doc->CSSLoader(), doc->GetDocumentURI(),
-                                    GetBaseURI(), NodePrincipal());
+                                    GetBaseURI(), this);
   doc->PropertyTable(SMIL_MAPPED_ATTR_ANIMVAL)->
     Enumerate(this, ParseMappedAttrAnimValueCallback, &mappedAttrParser);
  
