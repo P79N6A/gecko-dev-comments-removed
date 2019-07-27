@@ -78,6 +78,7 @@ function becomeWebapp(manifestURL, parameters, onBecome) {
     
     
     Services.obs.notifyObservers(this, "webapps-registry-start", null);
+    Services.obs.notifyObservers(this, "webapps-registry-ready", null);
 
     yield scope.startup(win);
     onBecome();
