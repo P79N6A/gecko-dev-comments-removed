@@ -9,6 +9,7 @@
 #include <stdio.h> 
 #include "nsDebug.h"
 #include "nsTArrayForwardDeclare.h"
+#include "mozilla/ReverseIterator.h"
 
 #if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
 
@@ -447,6 +448,56 @@ public:
     nsIFrame* mPrev;
   };
 
+  class Iterator
+  {
+  public:
+    typedef nsIFrame* const ValueType;
+    
+    
+    typedef ptrdiff_t DifferenceType;
+
+    Iterator(const nsFrameList& aList, nsIFrame* aCurrent)
+      : mList(aList)
+      , mCurrent(aCurrent)
+    {}
+
+    Iterator(const Iterator& aOther)
+      : mList(aOther.mList)
+      , mCurrent(aOther.mCurrent)
+    {}
+
+    ValueType& operator*() const { return mCurrent; }
+
+    
+    
+    Iterator& operator++();
+    Iterator& operator--();
+
+    Iterator operator++(int) { auto ret = *this; ++*this; return ret; }
+    Iterator operator--(int) { auto ret = *this; --*this; return ret; }
+
+    friend bool operator==(const Iterator& aIter1, const Iterator& aIter2);
+    friend bool operator!=(const Iterator& aIter1, const Iterator& aIter2);
+
+  private:
+    const nsFrameList& mList;
+    nsIFrame* mCurrent;
+  };
+
+  typedef Iterator iterator;
+  typedef Iterator const_iterator;
+  typedef mozilla::ReverseIterator<Iterator> reverse_iterator;
+  typedef mozilla::ReverseIterator<Iterator> const_reverse_iterator;
+
+  iterator begin() const { return iterator(*this, mFirstChild); }
+  const_iterator cbegin() const { return begin(); }
+  iterator end() const { return iterator(*this, nullptr); }
+  const_iterator cend() const { return end(); }
+  reverse_iterator rbegin() const { return reverse_iterator(end()); }
+  const_reverse_iterator crbegin() const { return rbegin(); }
+  reverse_iterator rend() const { return reverse_iterator(begin()); }
+  const_reverse_iterator crend() const { return rend(); }
+
 private:
   void operator delete(void*) = delete;
 
@@ -468,6 +519,24 @@ protected:
   nsIFrame* mFirstChild;
   nsIFrame* mLastChild;
 };
+
+inline bool
+operator==(const nsFrameList::Iterator& aIter1,
+           const nsFrameList::Iterator& aIter2)
+{
+  MOZ_ASSERT(&aIter1.mList == &aIter2.mList,
+             "must not compare iterator from different list");
+  return aIter1.mCurrent == aIter2.mCurrent;
+}
+
+inline bool
+operator!=(const nsFrameList::Iterator& aIter1,
+           const nsFrameList::Iterator& aIter2)
+{
+  MOZ_ASSERT(&aIter1.mList == &aIter2.mList,
+             "Must not compare iterator from different list");
+  return aIter1.mCurrent != aIter2.mCurrent;
+}
 
 namespace mozilla {
 namespace layout {
