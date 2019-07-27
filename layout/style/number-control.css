@@ -8,9 +8,12 @@
 
 
 input[type="number"] {
+  writing-mode: horizontal-tb !important; 
   -moz-appearance: number-input;
   
   -moz-binding: none;
-  width: 149px; 
+  inline-size: 20ch; 
+
+
 }
 
