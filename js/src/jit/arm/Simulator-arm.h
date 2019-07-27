@@ -265,6 +265,13 @@ class Simulator
     static int64_t StopSimAt;
 
     
+    
+    
+    
+    
+    bool skipCalleeSavedRegsCheck;
+
+    
     static void *RedirectNativeFunction(void *nativeFunction, ABIFunctionType type);
 
   private:

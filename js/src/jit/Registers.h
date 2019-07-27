@@ -28,8 +28,8 @@ namespace jit {
 struct Register {
     typedef Registers Codes;
     typedef Codes::Code Code;
+    typedef Codes::SetType SetType;
     Code code_;
-
     static Register FromCode(uint32_t i) {
         JS_ASSERT(i < Registers::Total);
         Register r = { (Registers::Code)i };
@@ -62,6 +62,10 @@ struct Register {
     uint32_t numAliased() const {
         return 1;
     }
+
+    
+    
+    
     void aliased(uint32_t aliasIdx, Register *ret) const {
         JS_ASSERT(aliasIdx == 0);
         *ret = *this;

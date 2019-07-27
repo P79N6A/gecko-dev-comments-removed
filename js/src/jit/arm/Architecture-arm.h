@@ -364,6 +364,9 @@ class VFPRegister
         return 2;
 #endif
     }
+
+    
+    
     void aliased(uint32_t aliasIdx, VFPRegister *ret) {
         if (aliasIdx == 0) {
             *ret = *this;

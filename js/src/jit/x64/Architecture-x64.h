@@ -210,6 +210,9 @@ struct FloatRegister {
     uint32_t numAliased() const {
         return 1;
     }
+
+    
+    
     void aliased(uint32_t aliasIdx, FloatRegister *ret) {
         JS_ASSERT(aliasIdx == 0);
         *ret = *this;

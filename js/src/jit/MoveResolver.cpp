@@ -5,19 +5,21 @@
 
 
 #include "jit/MoveResolver.h"
+#include "jit/RegisterSets.h"
 
 using namespace js;
 using namespace js::jit;
 
 MoveResolver::MoveResolver()
-  : hasCycles_(false)
+  : numCycles_(0), curCycles_(0)
 {
 }
 
 void
 MoveResolver::resetState()
 {
-    hasCycles_ = false;
+    numCycles_ = 0;
+    curCycles_ = 0;
 }
 
 bool
@@ -48,6 +50,27 @@ MoveResolver::findBlockingMove(const PendingMove *last)
         }
     }
 
+    
+    return nullptr;
+}
+
+
+
+
+
+
+MoveResolver::PendingMove *
+MoveResolver::findCycledMove(PendingMoveIterator *iter, PendingMoveIterator end, const PendingMove *last)
+{
+    for (; *iter != end; (*iter)++) {
+        PendingMove *other = **iter;
+        if (other->from().aliases(last->to())) {
+            
+            
+            (*iter)++;
+            return other;
+        }
+    }
     
     return nullptr;
 }
@@ -108,14 +131,22 @@ MoveResolver::resolve()
             PendingMove *blocking = findBlockingMove(stack.peekBack());
 
             if (blocking) {
-                if (blocking->to() == pm->from()) {
+                PendingMoveIterator stackiter = stack.begin();
+                PendingMove *cycled = findCycledMove(&stackiter, stack.end(), blocking);
+                if (cycled) {
                     
                     
                     
                     
-                    pm->setCycleEnd();
-                    blocking->setCycleBegin(pm->type());
-                    hasCycles_ = true;
+                    
+                    
+                    do {
+                        cycled->setCycleEnd(curCycles_);
+                        cycled = findCycledMove(&stackiter, stack.end(), blocking);
+                    } while (cycled);
+
+                    blocking->setCycleBegin(pm->type(), curCycles_);
+                    curCycles_++;
                     pending_.remove(blocking);
                     stack.pushBack(blocking);
                 } else {
@@ -134,6 +165,12 @@ MoveResolver::resolve()
                 movePool_.free(done);
             }
         }
+        
+        
+        
+        if (numCycles_ < curCycles_)
+            numCycles_ = curCycles_;
+        curCycles_ = 0;
     }
 
     return true;
