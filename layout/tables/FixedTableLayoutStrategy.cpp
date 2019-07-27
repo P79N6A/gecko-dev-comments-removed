@@ -91,7 +91,7 @@ FixedTableLayoutStrategy::GetMinISize(nsRenderingContext* aRenderingContext)
                      (styleWidth->GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
                       styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_CONTENT))) {
                     nscoord cellWidth = nsLayoutUtils::IntrinsicForContainer(
-                        aRenderingContext, cellFrame, nsLayoutUtils::MIN_WIDTH);
+                        aRenderingContext, cellFrame, nsLayoutUtils::MIN_ISIZE);
                     if (colSpan > 1) {
                         
                         
@@ -244,7 +244,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
                     
                     colWidth = nsLayoutUtils::IntrinsicForContainer(
                                  aReflowState.rendContext,
-                                 cellFrame, nsLayoutUtils::MIN_WIDTH);
+                                 cellFrame, nsLayoutUtils::MIN_ISIZE);
                 } else if (styleWidth->GetUnit() == eStyleUnit_Percent) {
                     
                     nsIFrame::IntrinsicISizeOffsetData offsets =

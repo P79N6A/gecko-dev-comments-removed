@@ -112,7 +112,7 @@ nsFirstLetterFrame::GetChildFrameContainingOffset(int32_t inContentOffset,
 nsFirstLetterFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
                                       nsIFrame::InlineMinISizeData *aData)
 {
-  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::MIN_WIDTH);
+  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::MIN_ISIZE);
 }
 
 
@@ -121,7 +121,7 @@ nsFirstLetterFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
 nsFirstLetterFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
                                        nsIFrame::InlinePrefISizeData *aData)
 {
-  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::PREF_WIDTH);
+  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::PREF_ISIZE);
 }
 
 

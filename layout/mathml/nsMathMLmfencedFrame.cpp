@@ -578,7 +578,7 @@ nsMathMLmfencedFrame::GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingCon
     
     
     width += nsLayoutUtils::IntrinsicForContainer(aRenderingContext, childFrame,
-                                                  nsLayoutUtils::PREF_WIDTH);
+                                                  nsLayoutUtils::PREF_ISIZE);
 
     if (i < mSeparatorsCount) {
       width +=

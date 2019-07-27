@@ -3791,7 +3791,7 @@ nsFlexContainerFrame::GetMinISize(nsRenderingContext* aRenderingContext)
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
     nscoord childMinWidth =
       nsLayoutUtils::IntrinsicForContainer(aRenderingContext, e.get(),
-                                           nsLayoutUtils::MIN_WIDTH);
+                                           nsLayoutUtils::MIN_ISIZE);
     
     
     
@@ -3822,7 +3822,7 @@ nsFlexContainerFrame::GetPrefISize(nsRenderingContext* aRenderingContext)
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
     nscoord childPrefWidth =
       nsLayoutUtils::IntrinsicForContainer(aRenderingContext, e.get(),
-                                           nsLayoutUtils::PREF_WIDTH);
+                                           nsLayoutUtils::PREF_ISIZE);
     if (IsAxisHorizontal(axisTracker.GetMainAxis())) {
       prefWidth += childPrefWidth;
     } else {

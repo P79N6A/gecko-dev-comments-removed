@@ -1170,7 +1170,7 @@ public:
 
 
 
-  enum IntrinsicISizeType { MIN_WIDTH, PREF_WIDTH };
+  enum IntrinsicISizeType { MIN_ISIZE, PREF_ISIZE };
   enum {
     IGNORE_PADDING = 0x01
   };
