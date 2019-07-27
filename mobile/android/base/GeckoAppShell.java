@@ -131,6 +131,7 @@ public class GeckoAppShell
     
     private GeckoAppShell() { }
 
+    private static Thread.UncaughtExceptionHandler systemUncaughtHandler;
     private static boolean restartScheduled;
     private static GeckoEditableListener editableListener;
 
@@ -210,6 +211,8 @@ public class GeckoAppShell
     public static native void dispatchMemoryPressure();
 
     public static void registerGlobalExceptionHandler() {
+        systemUncaughtHandler = Thread.getDefaultUncaughtExceptionHandler();
+
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread thread, Throwable e) {
@@ -484,8 +487,19 @@ public class GeckoAppShell
                 
                 editor.commit();
             }
-        } finally {
+        } catch (final Throwable exc) {
+            
+        }
+
+        try {
             reportJavaCrash(getStackTraceString(e));
+        } finally {
+            
+            
+            
+            if (systemUncaughtHandler != null) {
+                systemUncaughtHandler.uncaughtException(thread, e);
+            }
         }
     }
 
