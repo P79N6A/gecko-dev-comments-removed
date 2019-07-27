@@ -320,6 +320,9 @@ KEY_MAP_GTK     (Paste, GDK_Paste)
 KEY_MAP_QT      (Paste, Qt::Key_Paste)
 
 
+KEY_MAP_GTK     (Redo, GDK_Redo)
+
+
 KEY_MAP_GTK     (Undo, GDK_Undo)
 
 
