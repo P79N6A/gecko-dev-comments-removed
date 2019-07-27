@@ -450,6 +450,8 @@ public:
   
   
   bool mShouldBuildScrollableLayer:1;
+  
+  bool mAddClipRectToLayer:1;
 
   
   bool mHasBeenScrolled:1;

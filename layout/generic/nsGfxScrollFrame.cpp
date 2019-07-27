@@ -2800,6 +2800,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     mOuter->PresContext()->IsRootContentDocument();
 
   if (aBuilder->GetIgnoreScrollFrame() == mOuter || IsIgnoringViewportClipping()) {
+    mAddClipRectToLayer = false;
 
     
     
@@ -2828,6 +2829,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     return;
   }
+
+  mAddClipRectToLayer =
+    !(mIsRoot && mOuter->PresContext()->PresShell()->GetIsViewportOverridden());
 
   
   
@@ -3049,7 +3053,9 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
 {
   nsRect scrollport = mScrollPort +
     mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
-  if (!(mIsRoot && mOuter->PresContext()->PresShell()->GetIsViewportOverridden())) {
+  
+  
+  if (mAddClipRectToLayer) {
     *aClipRect = scrollport;
   }
 
