@@ -112,8 +112,9 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
     
     
     
+    
 
-    mHashKey.AssignLiteral(".....");
+    mHashKey.AssignLiteral("......");
     mHashKey.Append(keyHost);
     mHashKey.Append(':');
     mHashKey.AppendInt(keyPort);
@@ -185,6 +186,7 @@ nsHttpConnectionInfo::Clone() const
     clone->SetAnonymous(GetAnonymous());
     clone->SetPrivate(GetPrivate());
     clone->SetRelaxed(GetRelaxed());
+    clone->SetNoSpdy(GetNoSpdy());
     MOZ_ASSERT(clone->Equals(this));
 
     return clone;
@@ -205,6 +207,7 @@ nsHttpConnectionInfo::CloneAsDirectRoute(nsHttpConnectionInfo **outCI)
     clone->SetAnonymous(GetAnonymous());
     clone->SetPrivate(GetPrivate());
     clone->SetRelaxed(GetRelaxed());
+    clone->SetNoSpdy(GetNoSpdy());
     clone.forget(outCI);
 }
 
