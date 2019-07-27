@@ -1002,6 +1002,7 @@ nsNTLMAuthModule::Init(const char      *serviceName,
   mDomain = domain;
   mUsername = username;
   mPassword = password;
+  mNTLMNegotiateSent = false;
 
   static bool sTelemetrySent = false;
   if (!sTelemetrySent) {
@@ -1030,16 +1031,29 @@ nsNTLMAuthModule::GetNextToken(const void *inToken,
   if (PK11_IsFIPS())
     return NS_ERROR_NOT_AVAILABLE;
 
-  
-  if (inToken)
-  {
-    LogToken("in-token", inToken, inTokenLen);
-    rv = GenerateType3Msg(mDomain, mUsername, mPassword, inToken,
-                          inTokenLen, outToken, outTokenLen);
-  }
-  else
-  {
-    rv = GenerateType1Msg(outToken, outTokenLen);
+  if (mNTLMNegotiateSent) {
+    
+    
+    if (inToken) {
+      LogToken("in-token", inToken, inTokenLen);
+      
+      rv = GenerateType3Msg(mDomain, mUsername, mPassword, inToken,
+			    inTokenLen, outToken, outTokenLen);
+    } else {
+      LOG(("NTLMSSP_NEGOTIATE already sent and presumably "
+	   "rejected by the server, refusing to send another"));
+      rv = NS_ERROR_UNEXPECTED;
+    }
+  } else {
+    if (inToken) {
+      LOG(("NTLMSSP_NEGOTIATE not sent but NTLM reply already received?!?"));
+      rv = NS_ERROR_UNEXPECTED;
+    } else {
+      rv = GenerateType1Msg(outToken, outTokenLen);
+      if (NS_SUCCEEDED(rv)) {
+	mNTLMNegotiateSent = true;
+      }
+    }
   }
 
 #ifdef PR_LOGGING
