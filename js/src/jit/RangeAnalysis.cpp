@@ -407,11 +407,6 @@ Range::intersect(TempAllocator &alloc, const Range *lhs, const Range *rhs, bool 
     
     
     
-    
-    
-    
-    
-    
     if (newUpper < newLower) {
         
         if (!lhs->canBeNaN() || !rhs->canBeNaN())
