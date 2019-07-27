@@ -40,7 +40,14 @@
 #  elif MOZ_USING_LIBCXX
 #    define MOZ_HAVE_CXX11_ATOMICS
 #  endif
-#elif defined(_MSC_VER) && _MSC_VER >= 1700
+
+
+
+
+
+
+
+#elif defined(_MSC_VER) && _MSC_VER >= 1800
 #  if defined(DEBUG)
      
 
