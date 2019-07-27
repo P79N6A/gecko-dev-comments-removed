@@ -351,6 +351,14 @@ public:
 
 
 
+
+
+  static Layer* GetDebugSingleOldLayerForFrame(nsIFrame* aFrame);
+
+  
+
+
+
   static void DestroyDisplayItemDataFor(nsIFrame* aFrame);
 
   LayerManager* GetRetainingLayerManager() { return mRetainingManager; }
