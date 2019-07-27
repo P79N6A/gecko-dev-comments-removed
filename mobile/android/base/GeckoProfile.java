@@ -694,8 +694,10 @@ public final class GeckoProfile {
         }
 
         
-        final SharedPreferences prefs = GeckoSharedPrefs.forProfile(mApplicationContext);
-        prefs.edit().putBoolean(BrowserApp.PREF_STARTPANE_ENABLED, true).apply();
+        if (!mIsWebAppProfile) {
+            final SharedPreferences prefs = GeckoSharedPrefs.forProfile(mApplicationContext);
+            prefs.edit().putBoolean(BrowserApp.PREF_STARTPANE_ENABLED, true).apply();
+        }
 
         return profileDir;
     }
