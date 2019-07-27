@@ -3081,9 +3081,7 @@ ContainerState::Finish(uint32_t* aTextContentFlags, LayerManagerData* aData)
     layer = mNewChildLayers[i];
 
     if (!layer->GetVisibleRegion().IsEmpty()) {
-      textContentFlags |=
-        layer->GetContentFlags() & (Layer::CONTENT_COMPONENT_ALPHA |
-                                    Layer::CONTENT_COMPONENT_ALPHA_DESCENDANT);
+      textContentFlags |= layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA;
     }
 
     if (!layer->GetParent()) {
@@ -3456,24 +3454,13 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   } else {
     containerLayer->SetVisibleRegion(pixBounds);
   }
-
-  
-  
-  
-  
-  
-  if (flags & Layer::CONTENT_COMPONENT_ALPHA) {
-    flags |= Layer::CONTENT_COMPONENT_ALPHA_DESCENDANT;
-  }
-
   
   
   if (aChildren.IsOpaque() && !aChildren.NeedsTransparentSurface()) {
     bounds.ScaleRoundIn(scaleParameters.mXScale, scaleParameters.mYScale);
     if (bounds.Contains(pixBounds.ToAppUnits(appUnitsPerDevPixel))) {
       
-      flags &= ~Layer::CONTENT_COMPONENT_ALPHA;
-      flags |= Layer::CONTENT_OPAQUE;
+      flags = Layer::CONTENT_OPAQUE;
     }
   }
   containerLayer->SetContentFlags(flags);
