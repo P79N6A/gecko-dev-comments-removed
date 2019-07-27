@@ -12,8 +12,8 @@
 #define INLINE      __forceinline
 #define ARCH_ARM 0
 #define ARCH_MIPS 0
-#define ARCH_X86 1
-#define ARCH_X86_64 0
+#define ARCH_X86 0
+#define ARCH_X86_64 1
 #define ARCH_PPC32 0
 #define ARCH_PPC64 0
 #define HAVE_EDSP 0
@@ -29,8 +29,8 @@
 #define HAVE_SSE3 1
 #define HAVE_SSSE3 1
 #define HAVE_SSE4_1 1
-#define HAVE_AVX 0
-#define HAVE_AVX2 0
+#define HAVE_AVX 1
+#define HAVE_AVX2 1
 #define HAVE_ALTIVEC 0
 #define HAVE_VPX_PORTS 1
 #define HAVE_STDINT_H 0
