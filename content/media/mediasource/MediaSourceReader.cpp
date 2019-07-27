@@ -139,11 +139,6 @@ MediaSourceReader::OnVideoEOS()
     MSE_DEBUG("MediaSourceReader(%p)::OnVideoEOS reader=%p EOS (readers=%u)",
               this, mVideoReader.get(), mDecoders.Length());
     GetCallback()->OnVideoEOS();
-  } else {
-    
-    
-    
-    RequestVideoData(false, mTimeThreshold);
   }
 }
 
