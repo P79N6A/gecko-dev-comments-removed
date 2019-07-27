@@ -493,15 +493,10 @@ nsGridContainerFrame::ResolveLineRangeHelper(
     auto end = ResolveLine(aEnd, aEnd.mInteger, 0, aLineNameList, aAreaStart,
                            aAreaEnd, aExplicitGridEnd, eLineRangeSideEnd,
                            aStyle);
-    if (end == kAutoLine) {
-      
-      return LinePair(kAutoLine, aStart.mInteger);
-    }
     int32_t span = aStart.mInteger == 0 ? 1 : aStart.mInteger;
     auto start = ResolveLine(aStart, -span, end, aLineNameList, aAreaStart,
                              aAreaEnd, aExplicitGridEnd, eLineRangeSideStart,
                              aStyle);
-    MOZ_ASSERT(start != kAutoLine, "A start span can never resolve to 'auto'");
     return LinePair(start, end);
   }
 
@@ -529,10 +524,7 @@ nsGridContainerFrame::ResolveLineRangeHelper(
   uint32_t from = aEnd.mHasSpan ? start : 0;
   auto end = ResolveLine(aEnd, aEnd.mInteger, from, aLineNameList, aAreaStart,
                          aAreaEnd, aExplicitGridEnd, eLineRangeSideEnd, aStyle);
-  if (end == kAutoLine) {
-    
-    end = 1; 
-  } else if (start == kAutoLine) {
+  if (start == kAutoLine) {
     
     start = std::max(1, end - 1);
   }
@@ -602,7 +594,6 @@ nsGridContainerFrame::ResolveAbsPosLineRange(
     int32_t end = ResolveLine(aEnd, aEnd.mInteger, 0, aLineNameList, aAreaStart,
                               aAreaEnd, aExplicitGridEnd, eLineRangeSideEnd,
                               aStyle);
-    MOZ_ASSERT(end != kAutoLine, "resolving non-auto line shouldn't result in auto");
     if (aEnd.mHasSpan) {
       ++end;
     }
@@ -613,7 +604,6 @@ nsGridContainerFrame::ResolveAbsPosLineRange(
     int32_t start =
       ResolveLine(aStart, aStart.mInteger, 0, aLineNameList, aAreaStart,
                   aAreaEnd, aExplicitGridEnd, eLineRangeSideStart, aStyle);
-    MOZ_ASSERT(start != kAutoLine, "resolving non-auto line shouldn't result in auto");
     if (aStart.mHasSpan) {
       start = std::max(int32_t(aGridEnd) - start, 1);
     }
