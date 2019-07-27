@@ -49,7 +49,7 @@ var SimpleServiceDiscovery = {
   get EVENT_SERVICE_FOUND() { return EVENT_SERVICE_FOUND; },
   get EVENT_SERVICE_LOST() { return EVENT_SERVICE_LOST; },
 
-  _targets: new Map(),
+  _devices: new Map(),
   _services: new Map(),
   _searchSocket: null,
   _searchInterval: 0,
@@ -82,7 +82,7 @@ var SimpleServiceDiscovery = {
       }
     }.bind(this));
 
-    if (service.location && this._targets.has(service.target)) {
+    if (service.location && this._devices.has(service.target)) {
       service.location = this._forceTrailingSlash(service.location);
 
       
@@ -143,7 +143,7 @@ var SimpleServiceDiscovery = {
 
     
     
-    this._searchFixedTargets();
+    this._searchFixedDevices();
 
     
     let socket = Cc["@mozilla.org/network/udp-socket;1"].createInstance(Ci.nsIUDPSocket);
@@ -161,8 +161,8 @@ var SimpleServiceDiscovery = {
     this._searchTimeout.initWithCallback(this._searchShutdown.bind(this), SSDP_DISCOVER_TIMEOUT, Ci.nsITimer.TYPE_ONE_SHOT);
 
     let data = SSDP_DISCOVER_PACKET;
-    for (let [key, target] of this._targets) {
-      let msgData = data.replace("%SEARCH_TARGET%", target.target);
+    for (let [key, device] of this._devices) {
+      let msgData = data.replace("%SEARCH_TARGET%", device.target);
       try {
         let msgRaw = converter.convertToByteArray(msgData);
         socket.send(SSDP_ADDRESS, SSDP_PORT, msgRaw, msgRaw.length);
@@ -196,28 +196,28 @@ var SimpleServiceDiscovery = {
     });
   },
 
-  _searchFixedTargets: function _searchFixedTargets() {
-    let fixedTargets = null;
+  _searchFixedDevices: function _searchFixedDevices() {
+    let fixedDevices = null;
     try {
-      fixedTargets = Services.prefs.getCharPref("browser.casting.fixedTargets");
+      fixedDevices = Services.prefs.getCharPref("browser.casting.fixedDevices");
     } catch (e) {}
 
-    if (!fixedTargets) {
+    if (!fixedDevices) {
       return;
     }
 
-    fixedTargets = JSON.parse(fixedTargets);
-    for (let fixedTarget of fixedTargets) {
+    fixedDevices = JSON.parse(fixedDevices);
+    for (let fixedDevice of fixedDevices) {
       
-      if (!"location" in fixedTarget || !"target" in fixedTarget) {
+      if (!"location" in fixedDevice || !"target" in fixedDevice) {
         continue;
       }
 
-      fixedTarget.location = this._forceTrailingSlash(fixedTarget.location);
+      fixedDevice.location = this._forceTrailingSlash(fixedDevice.location);
 
       let service = {
-        location: fixedTarget.location,
-        target: fixedTarget.target
+        location: fixedDevice.location,
+        target: fixedDevice.target
       };
 
       
@@ -264,28 +264,28 @@ var SimpleServiceDiscovery = {
     });
   },
 
-  registerTarget: function registerTarget(aTarget) {
+  registerDevice: function registerDevice(aDevice) {
     
-    if (!("target" in aTarget) || !("factory" in aTarget)) {
+    if (!("target" in aDevice) || !("factory" in aDevice)) {
       
       throw "Registration requires a target and a location";
     }
 
     
-    if (!this._targets.has(aTarget.target)) {
-      this._targets.set(aTarget.target, aTarget);
+    if (!this._devices.has(aDevice.target)) {
+      this._devices.set(aDevice.target, aDevice);
     }
   },
 
-  unregisterTarget: function unregisterTarget(aTarget) {
+  unregisterDevice: function unregisterDevice(aDevice) {
     
-    if (!("target" in aTarget) || !("factory" in aTarget)) {
+    if (!("target" in aDevice) || !("factory" in aDevice)) {
       return;
     }
 
     
-    if (this._targets.has(aTarget.target)) {
-      this._targets.delete(aTarget.target);
+    if (this._devices.has(aDevice.target)) {
+      this._devices.delete(aDevice.target);
     }
   },
 
@@ -295,8 +295,8 @@ var SimpleServiceDiscovery = {
     }
 
     
-    if (this._targets.has(aService.target)) {
-      return this._targets.get(aService.target).factory(aService);
+    if (this._devices.has(aService.target)) {
+      return this._devices.get(aService.target).factory(aService);
     }
     return null;
   },
@@ -312,7 +312,7 @@ var SimpleServiceDiscovery = {
   get services() {
     let array = [];
     for (let [key, service] of this._services) {
-      let target = this._targets.get(service.target);
+      let target = this._devices.get(service.target);
       service.extensions = target.extensions;
       service.types = target.types;
       array.push(service);
@@ -322,18 +322,18 @@ var SimpleServiceDiscovery = {
 
   
   _filterService: function _filterService(aService) {
-    let target = this._targets.get(aService.target);
-    if (!target) {
+    let device = this._devices.get(aService.target);
+    if (!device) {
       return false;
     }
 
     
-    if (!("filters" in target)) {
+    if (!("filters" in device)) {
       return true;
     }
 
     
-    let filters = target.filters;
+    let filters = device.filters;
     for (let filter in filters) {
       if (filter in aService && aService[filter] != filters[filter]) {
         return false;

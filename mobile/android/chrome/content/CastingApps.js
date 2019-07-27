@@ -9,7 +9,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PageActions",
 
 
 
-var rokuTarget = {
+var rokuDevice = {
   target: "roku:ecp",
   factory: function(aService) {
     Cu.import("resource://gre/modules/RokuApp.jsm");
@@ -19,7 +19,7 @@ var rokuTarget = {
   extensions: ["mp4"]
 };
 
-var fireflyTarget = {
+var fireflyDevice = {
   target: "urn:dial-multiscreen-org:service:dial:1",
   filters: {
     server: null,
@@ -33,7 +33,7 @@ var fireflyTarget = {
   extensions: ["mp4", "webm"]
 };
 
-var mediaPlayerTarget = {
+var mediaPlayerDevice = {
   target: "media:router",
   factory: function(aService) {
     Cu.import("resource://gre/modules/MediaPlayerApp.jsm");
@@ -54,9 +54,9 @@ var CastingApps = {
     }
 
     
-    SimpleServiceDiscovery.registerTarget(rokuTarget);
-    SimpleServiceDiscovery.registerTarget(fireflyTarget);
-    SimpleServiceDiscovery.registerTarget(mediaPlayerTarget);
+    SimpleServiceDiscovery.registerDevice(rokuDevice);
+    SimpleServiceDiscovery.registerDevice(fireflyDevice);
+    SimpleServiceDiscovery.registerDevice(mediaPlayerDevice);
 
     
     SimpleServiceDiscovery.search(120 * 1000);
