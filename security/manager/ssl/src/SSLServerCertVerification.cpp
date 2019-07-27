@@ -121,6 +121,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "PSMRunnable.h"
+#include "RootCertificateTelemetryUtils.h"
 #include "SharedSSLState.h"
 #include "nsContentUtils.h"
 #include "nsURLHelper.h"
@@ -959,6 +960,34 @@ GatherBaselineRequirementsTelemetry(const ScopedCERTCertList& certList)
                                        commonNameInSubjectAltNames);
 }
 
+
+
+
+void
+GatherRootCATelemetry(const ScopedCERTCertList& certList)
+{
+  CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
+  PR_ASSERT(rootNode);
+  if (!rootNode) {
+    return;
+  }
+
+  
+  if (!CERT_LIST_END(rootNode, certList)) {
+    AccumulateTelemetryForRootCA(Telemetry::CERT_VALIDATION_SUCCESS_BY_CA,
+                                 rootNode->cert);
+  }
+}
+
+
+
+void
+GatherSuccessfulValidationTelemetry(const ScopedCERTCertList& certList)
+{
+  GatherBaselineRequirementsTelemetry(certList);
+  GatherRootCATelemetry(certList);
+}
+
 SECStatus
 AuthCertificate(CertVerifier& certVerifier,
                 TransportSecurityInfo* infoObject,
@@ -1003,7 +1032,8 @@ AuthCertificate(CertVerifier& certVerifier,
   }
 
   if (rv == SECSuccess) {
-    GatherBaselineRequirementsTelemetry(certList);
+    GatherSuccessfulValidationTelemetry(certList);
+
     
     
     
