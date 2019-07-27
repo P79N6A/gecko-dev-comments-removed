@@ -4,16 +4,14 @@
 
 "use strict";
 
-const {results: Cr, utils: Cu} = Components;
+const {utils: Cu} = Components;
 
 const errors = [
-  "ElementNotAccessibleError",
   "ElementNotVisibleError",
   "FrameSendFailureError",
   "FrameSendNotInitializedError",
   "IllegalArgumentError",
   "InvalidElementStateError",
-  "InvalidSelectorError",
   "JavaScriptError",
   "NoAlertOpenError",
   "NoSuchElementError",
@@ -21,7 +19,6 @@ const errors = [
   "NoSuchWindowError",
   "ScriptTimeoutError",
   "SessionNotCreatedError",
-  "StaleElementReferenceError",
   "TimeoutError",
   "UnknownCommandError",
   "UnknownError",
@@ -30,26 +27,6 @@ const errors = [
 ];
 
 this.EXPORTED_SYMBOLS = ["error"].concat(errors);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const XPCOM_EXCEPTIONS = [];
-{
-  for (let prop in Cr) {
-    XPCOM_EXCEPTIONS.push(Cr[prop]);
-  }
-}
 
 this.error = {};
 
@@ -60,6 +37,11 @@ error.toJSON = function(err) {
     status: err.code
   };
 };
+
+
+
+
+error.byCode = n => lookup.get(n);
 
 
 
@@ -84,18 +66,17 @@ let isOldStyleError = function(obj) {
 
 
 
-
-
-
-
-
-error.isError = function(val) {
-  if (val === null || typeof val != "object") {
+error.isError = function(obj) {
+  if (obj === null || typeof obj != "object") {
     return false;
-  } else if ("result" in val && val.result in XPCOM_EXCEPTIONS) {
+  
+  
+  
+  
+  } else if ("result" in obj) {
     return true;
   } else {
-    return Object.getPrototypeOf(val) == "Error" || isOldStyleError(val);
+    return Object.getPrototypeOf(obj) == "Error" || isOldStyleError(obj);
   }
 };
 
@@ -149,14 +130,6 @@ this.WebDriverError = function(msg) {
 };
 WebDriverError.prototype = Object.create(Error.prototype);
 
-this.ElementNotAccessibleError = function(msg) {
-  WebDriverError.call(this, msg);
-  this.name = "ElementNotAccessibleError";
-  this.status = "element not accessible";
-  this.code = 56;
-};
-ElementNotAccessibleError.prototype = Object.create(WebDriverError.prototype);
-
 this.ElementNotVisibleError = function(msg) {
   WebDriverError.call(this, msg);
   this.name = "ElementNotVisibleError";
@@ -202,14 +175,6 @@ this.InvalidElementStateError = function(msg) {
   this.code = 12;
 };
 InvalidElementStateError.prototype = Object.create(WebDriverError.prototype);
-
-this.InvalidSelectorError = function(msg) {
-  WebDriverError.call(this, msg);
-  this.name = "InvalidSelectorError";
-  this.status = "invalid selector";
-  this.code = 32;
-};
-InvalidSelectorError.prototype = Object.create(WebDriverError.prototype);
 
 
 
@@ -305,16 +270,8 @@ this.SessionNotCreatedError = function(msg) {
   this.status = "session not created";
   
   this.code = 71;
-};
+}
 SessionNotCreatedError.prototype = Object.create(WebDriverError.prototype);
-
-this.StaleElementReferenceError = function(msg) {
-  WebDriverError.call(this, msg);
-  this.name = "StaleElementReferenceError";
-  this.status = "stale element reference";
-  this.code = 10;
-};
-StaleElementReferenceError.prototype = Object.create(WebDriverError.prototype);
 
 this.TimeoutError = function(msg) {
   WebDriverError.call(this, msg);
@@ -347,3 +304,24 @@ this.UnsupportedOperationError = function(msg) {
   this.code = 405;
 };
 UnsupportedOperationError.prototype = Object.create(WebDriverError.prototype);
+
+const errorObjs = [
+  this.ElementNotVisibleError,
+  this.FrameSendFailureError,
+  this.FrameSendNotInitializedError,
+  this.IllegalArgumentError,
+  this.InvalidElementStateError,
+  this.JavaScriptError,
+  this.NoAlertOpenError,
+  this.NoSuchElementError,
+  this.NoSuchFrameError,
+  this.NoSuchWindowError,
+  this.ScriptTimeoutError,
+  this.SessionNotCreatedError,
+  this.TimeoutError,
+  this.UnknownCommandError,
+  this.UnknownError,
+  this.UnsupportedOperationError,
+  this.WebDriverError,
+];
+const lookup = new Map(errorObjs.map(err => [new err().code, err]));
