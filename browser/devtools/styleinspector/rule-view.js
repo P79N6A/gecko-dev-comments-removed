@@ -593,12 +593,7 @@ Rule.prototype = {
 
 
 
-
-
-
-
-
-  applyProperties: function(aModifications, aName) {
+  applyProperties: function(aModifications) {
     this.elementStyle.markOverriddenAll();
 
     if (!aModifications) {
@@ -718,8 +713,6 @@ Rule.prototype = {
 
 
   previewPropertyValue: function(aProperty, aValue, aPriority) {
-    aProperty.value = aValue;
-
     let modifications = this.style.startModifyingProperties();
     modifications.setProperty(aProperty.name, aValue, aPriority);
     modifications.apply();
@@ -3360,13 +3353,11 @@ TextPropertyEditor.prototype = {
     if (this.ruleEditor.isEditable) {
       for (let span of this._colorSwatchSpans) {
         
-        let originalValue = this.valueSpan.textContent;
-        
         
         this.ruleEditor.ruleView.tooltips.colorPicker.addSwatch(span, {
           onPreview: () => this._previewValue(this.valueSpan.textContent),
-          onCommit: () => this._applyNewValue(this.valueSpan.textContent),
-          onRevert: () => this._applyNewValue(originalValue, false)
+          onCommit: () => this._onValueDone(this.valueSpan.textContent, true),
+          onRevert: () => this._onValueDone(undefined, false)
         });
       }
     }
@@ -3377,13 +3368,11 @@ TextPropertyEditor.prototype = {
     if (this.ruleEditor.isEditable) {
       for (let span of this._bezierSwatchSpans) {
         
-        let originalValue = this.valueSpan.textContent;
-        
         
         this.ruleEditor.ruleView.tooltips.cubicBezier.addSwatch(span, {
           onPreview: () => this._previewValue(this.valueSpan.textContent),
-          onCommit: () => this._applyNewValue(this.valueSpan.textContent),
-          onRevert: () => this._applyNewValue(originalValue, false)
+          onCommit: () => this._onValueDone(this.valueSpan.textContent, true),
+          onRevert: () => this._onValueDone(undefined, false)
         });
       }
     }
@@ -3393,12 +3382,11 @@ TextPropertyEditor.prototype = {
     if (this.ruleEditor.isEditable) {
       if (span) {
         parserOptions.filterSwatch = true;
-        let originalValue = this.valueSpan.textContent;
 
         this.ruleEditor.ruleView.tooltips.filterEditor.addSwatch(span, {
           onPreview: () => this._previewValue(this.valueSpan.textContent),
-          onCommit: () => this._applyNewValue(this.valueSpan.textContent),
-          onRevert: () => this._applyNewValue(originalValue, false)
+          onCommit: () => this._onValueDone(this.valueSpan.textContent, true),
+          onRevert: () => this._onValueDone(undefined, false)
         }, outputParser, parserOptions);
       }
     }
@@ -3600,7 +3588,12 @@ TextPropertyEditor.prototype = {
       if (this.removeOnRevert) {
         this.remove();
       } else {
-        this.prop.setValue(this.committed.value, this.committed.priority);
+        
+        this.update();
+
+        
+        this.ruleEditor.rule.previewPropertyValue(this.prop,
+          this.prop.value, this.prop.priority);
       }
       return;
     }
@@ -3678,32 +3671,6 @@ TextPropertyEditor.prototype = {
       propertiesToAdd: propertiesToAdd,
       firstValue: firstValue
     };
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _applyNewValue: function(aValue, markChanged=true) {
-    let val = parseSingleValue(aValue);
-
-    if (!markChanged) {
-      let store = this.prop.rule.elementStyle.store;
-      this.prop.editor.committed.value = aValue;
-      store.userProperties.setProperty(this.prop.rule.style,
-                                       this.prop.rule.name, aValue);
-    }
-
-    this.prop.setValue(val.value, val.priority, markChanged);
-    this.removeOnRevert = false;
-    this.committed.value = this.prop.value;
-    this.committed.priority = this.prop.priority;
   },
 
   
