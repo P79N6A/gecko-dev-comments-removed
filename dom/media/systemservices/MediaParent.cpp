@@ -21,7 +21,7 @@
 
 #undef LOG
 PRLogModuleInfo *gMediaParentLog;
-#define LOG(args) PR_LOG(gMediaParentLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gMediaParentLog, PR_LOG_DEBUG, args)
 
 
 

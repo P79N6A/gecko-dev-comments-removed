@@ -26,7 +26,7 @@ using namespace mozilla;
 using namespace mozilla::net;
 
 #undef LOG
-#define LOG(args) PR_LOG(GetProxyLog(), PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(GetProxyLog(), PR_LOG_DEBUG, args)
 
 
 

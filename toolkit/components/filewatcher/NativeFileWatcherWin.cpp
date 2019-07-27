@@ -139,7 +139,7 @@ static PRLogModuleInfo* GetFileWatcherContextLog()
   return gNativeWatcherPRLog;
 }
 
-#define FILEWATCHERLOG(...) PR_LOG(GetFileWatcherContextLog(), PR_LOG_DEBUG, (__VA_ARGS__))
+#define FILEWATCHERLOG(...) MOZ_LOG(GetFileWatcherContextLog(), PR_LOG_DEBUG, (__VA_ARGS__))
 
 
 

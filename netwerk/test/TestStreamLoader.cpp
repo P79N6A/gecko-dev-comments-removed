@@ -10,7 +10,7 @@
 
 
 static PRLogModuleInfo *gTestLog = nullptr;
-#define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gTestLog, PR_LOG_DEBUG, args)
 
 class MyStreamLoaderObserver final : public nsIStreamLoaderObserver
 {

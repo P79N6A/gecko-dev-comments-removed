@@ -138,7 +138,7 @@ OCSPCache::FindInternal(const CertID& aCertID,  size_t& index,
 static inline void
 LogWithCertID(const char* aMessage, const CertID& aCertID)
 {
-  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG, (aMessage, &aCertID));
+  MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG, (aMessage, &aCertID));
 }
 
 void
@@ -261,7 +261,7 @@ void
 OCSPCache::Clear()
 {
   MutexAutoLock lock(mMutex);
-  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG, ("OCSPCache::Clear: clearing cache"));
+  MOZ_LOG(gCertVerifierLog, PR_LOG_DEBUG, ("OCSPCache::Clear: clearing cache"));
   
   
   for (Entry** entry = mEntries.begin(); entry < mEntries.end();

@@ -44,7 +44,7 @@ namespace mozilla {
 
 PRLogModuleInfo* gAudioOffloadPlayerLog;
 #define AUDIO_OFFLOAD_LOG(type, msg) \
-  PR_LOG(gAudioOffloadPlayerLog, type, msg)
+  MOZ_LOG(gAudioOffloadPlayerLog, type, msg)
 
 
 

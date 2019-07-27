@@ -372,7 +372,7 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
 #  undef PrintToBuffer
 
   
-  PR_LOG(gDebugLog, ll, ("%s", buf.buffer));
+  MOZ_LOG(gDebugLog, ll, ("%s", buf.buffer));
   PR_LogFlush();
 
   

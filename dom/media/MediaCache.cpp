@@ -25,7 +25,7 @@
 namespace mozilla {
 
 PRLogModuleInfo* gMediaCacheLog;
-#define CACHE_LOG(type, msg) PR_LOG(gMediaCacheLog, type, msg)
+#define CACHE_LOG(type, msg) MOZ_LOG(gMediaCacheLog, type, msg)
 
 
 

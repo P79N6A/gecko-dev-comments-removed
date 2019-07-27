@@ -41,7 +41,7 @@
 #include "nsVideoFrame.h"
 
 static PRLogModuleInfo* gTrackElementLog;
-#define LOG(type, msg) PR_LOG(gTrackElementLog, type, msg)
+#define LOG(type, msg) MOZ_LOG(gTrackElementLog, type, msg)
 
 
 

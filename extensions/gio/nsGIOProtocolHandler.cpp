@@ -29,7 +29,7 @@
 
 
 static PRLogModuleInfo *sGIOLog;
-#define LOG(args) PR_LOG(sGIOLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(sGIOLog, PR_LOG_DEBUG, args)
 
 
 

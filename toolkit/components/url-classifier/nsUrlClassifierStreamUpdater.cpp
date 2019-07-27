@@ -25,7 +25,7 @@ static const char* gQuitApplicationMessage = "quit-application";
 
 
 static const PRLogModuleInfo *gUrlClassifierStreamUpdaterLog = nullptr;
-#define LOG(args) PR_LOG(gUrlClassifierStreamUpdaterLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gUrlClassifierStreamUpdaterLog, PR_LOG_DEBUG, args)
 
 
 

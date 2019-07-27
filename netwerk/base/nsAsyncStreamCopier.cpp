@@ -17,7 +17,7 @@ using namespace mozilla;
 
 
 static PRLogModuleInfo *gStreamCopierLog = nullptr;
-#define LOG(args) PR_LOG(gStreamCopierLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gStreamCopierLog, PR_LOG_DEBUG, args)
 
 
 
