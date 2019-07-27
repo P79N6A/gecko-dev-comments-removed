@@ -1861,6 +1861,11 @@ ThreadActor.prototype = {
         let listenerDO = this.globalDebugObject.makeDebuggeeValue(listener);
         
         if (listenerDO.class == "Object" || listenerDO.class == "XULElement") {
+          
+          
+          if (!listenerDO.unwrap()) {
+            continue;
+          }
           let heDesc;
           while (!heDesc && listenerDO) {
             heDesc = listenerDO.getOwnPropertyDescriptor("handleEvent");
