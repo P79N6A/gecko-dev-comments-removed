@@ -28,7 +28,7 @@
   overflow: auto;
 }
 
-#headers-summary-url-value .textbox-input {
+.cropped-textbox .textbox-input {
   
   text-overflow: ellipsis;
 }

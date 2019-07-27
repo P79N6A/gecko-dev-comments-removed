@@ -2751,13 +2751,14 @@ NetworkDetailsView.prototype = {
 
 
 
-    function setLabel(selector, value) {
+
+    function setValue(selector, value) {
       let label = $(selector);
       if (!value) {
-        label.value = L10N.getStr("netmonitor.security.notAvailable");
-        label.setAttribute("tooltiptext", label.value);
+        label.setAttribute("value", L10N.getStr("netmonitor.security.notAvailable"));
+        label.setAttribute("tooltiptext", label.getAttribute("value"));
       } else {
-        label.value = value;
+        label.setAttribute("value", value);
         label.setAttribute("tooltiptext", value);
       }
     }
@@ -2785,43 +2786,43 @@ NetworkDetailsView.prototype = {
       let disabledLabel = L10N.getStr("netmonitor.security.disabled");
 
       
-      setLabel("#security-protocol-version-value", securityInfo.protocolVersion);
-      setLabel("#security-ciphersuite-value", securityInfo.cipherSuite);
+      setValue("#security-protocol-version-value", securityInfo.protocolVersion);
+      setValue("#security-ciphersuite-value", securityInfo.cipherSuite);
 
       
       let domain = NetMonitorView.RequestsMenu._getUriHostPort(url);
       let hostHeader = L10N.getFormatStr("netmonitor.security.hostHeader", domain);
-      setLabel("#security-info-host-header", hostHeader);
+      setValue("#security-info-host-header", hostHeader);
 
       
-      setLabel("#security-http-strict-transport-security-value",
+      setValue("#security-http-strict-transport-security-value",
                 securityInfo.hsts ? enabledLabel : disabledLabel);
 
-      setLabel("#security-public-key-pinning-value",
+      setValue("#security-public-key-pinning-value",
                 securityInfo.hpkp ? enabledLabel : disabledLabel);
 
       
       let cert = securityInfo.cert;
-      setLabel("#security-cert-subject-cn", cert.subject.commonName);
-      setLabel("#security-cert-subject-o", cert.subject.organization);
-      setLabel("#security-cert-subject-ou", cert.subject.organizationalUnit);
+      setValue("#security-cert-subject-cn", cert.subject.commonName);
+      setValue("#security-cert-subject-o", cert.subject.organization);
+      setValue("#security-cert-subject-ou", cert.subject.organizationalUnit);
 
-      setLabel("#security-cert-issuer-cn", cert.issuer.commonName);
-      setLabel("#security-cert-issuer-o", cert.issuer.organization);
-      setLabel("#security-cert-issuer-ou", cert.issuer.organizationalUnit);
+      setValue("#security-cert-issuer-cn", cert.issuer.commonName);
+      setValue("#security-cert-issuer-o", cert.issuer.organization);
+      setValue("#security-cert-issuer-ou", cert.issuer.organizationalUnit);
 
-      setLabel("#security-cert-validity-begins", cert.validity.start);
-      setLabel("#security-cert-validity-expires", cert.validity.end);
+      setValue("#security-cert-validity-begins", cert.validity.start);
+      setValue("#security-cert-validity-expires", cert.validity.end);
 
-      setLabel("#security-cert-sha1-fingerprint", cert.fingerprint.sha1);
-      setLabel("#security-cert-sha256-fingerprint", cert.fingerprint.sha256);
+      setValue("#security-cert-sha1-fingerprint", cert.fingerprint.sha1);
+      setValue("#security-cert-sha256-fingerprint", cert.fingerprint.sha256);
     } else {
       infobox.hidden = true;
       errorbox.hidden = false;
 
       
       let plain = DOMParser.parseFromString(securityInfo.errorMessage, "text/html");
-      $("#security-error-message").textContent = plain.body.textContent;
+      setValue("#security-error-message", plain.body.textContent);
     }
   }),
 
