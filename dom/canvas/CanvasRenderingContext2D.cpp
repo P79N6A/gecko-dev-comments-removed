@@ -3103,7 +3103,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
 
   virtual void SetText(const char16_t* text, int32_t length, nsBidiDirection direction)
   {
-    mFontgrp->UpdateFontList(); 
+    mFontgrp->UpdateUserFonts(); 
     mTextRun = mFontgrp->MakeTextRun(text,
                                      length,
                                      mThebes,
@@ -3455,7 +3455,7 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
   processor.mPt.x -= anchorX * totalWidth;
 
   
-  processor.mFontgrp->UpdateFontList(); 
+  processor.mFontgrp->UpdateUserFonts(); 
   NS_ASSERTION(processor.mFontgrp->FontListLength()>0, "font group contains no fonts");
   const gfxFont::Metrics& fontMetrics =
     processor.mFontgrp->GetFirstValidFont()->GetMetrics();

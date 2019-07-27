@@ -2643,7 +2643,7 @@ gfxFontGroup::SetUserFontSet(gfxUserFontSet *aUserFontSet)
     }
     mUserFontSet = aUserFontSet;
     mCurrGeneration = GetGeneration() - 1;
-    UpdateFontList();
+    UpdateUserFonts();
 }
 
 uint64_t
@@ -2657,7 +2657,7 @@ gfxFontGroup::GetGeneration()
 
 
 void
-gfxFontGroup::UpdateFontList()
+gfxFontGroup::UpdateUserFonts()
 {
     if (mCurrGeneration != GetGeneration()) {
         

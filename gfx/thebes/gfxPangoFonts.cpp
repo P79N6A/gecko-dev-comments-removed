@@ -1317,7 +1317,7 @@ gfxPangoFontGroup::GetFontAt(int32_t i)
     
     NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
                  "Whoever was caching this font group should have "
-                 "called UpdateFontList on it");
+                 "called UpdateUserFonts on it");
 
     NS_PRECONDITION(i == 0, "Only have one font");
 
@@ -1325,7 +1325,7 @@ gfxPangoFontGroup::GetFontAt(int32_t i)
 }
 
 void
-gfxPangoFontGroup::UpdateFontList()
+gfxPangoFontGroup::UpdateUserFonts()
 {
     uint64_t newGeneration = GetGeneration();
     if (newGeneration == mCurrGeneration)

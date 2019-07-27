@@ -742,7 +742,7 @@ public:
         
         NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
                      "Whoever was caching this font group should have "
-                     "called UpdateFontList on it");
+                     "called UpdateUserFonts on it");
         NS_ASSERTION(mFonts.Length() > uint32_t(i) &&
                      (mFonts[i].Font() || mFonts[i].FontEntry()),
                      "Requesting a font index that doesn't exist");
@@ -878,7 +878,7 @@ public:
 
     
     
-    virtual void UpdateFontList();
+    virtual void UpdateUserFonts();
 
     bool ShouldSkipDrawing() const {
         return mSkipDrawing;
