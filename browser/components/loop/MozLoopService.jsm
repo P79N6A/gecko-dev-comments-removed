@@ -6,6 +6,10 @@
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
+
+
+const INVALID_AUTH_TOKEN = 110;
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
@@ -245,7 +249,9 @@ let MozLoopServiceInternal = {
         
         
       }, (error) => {
-        if (error.errno == 401) {
+        
+        
+        if (error.code === 401 && error.errno === INVALID_AUTH_TOKEN) {
           if (this.urlExpiryTimeIsInFuture()) {
             
             Cu.reportError("Loop session token is invalid, all previously "
