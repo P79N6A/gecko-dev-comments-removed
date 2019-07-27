@@ -627,7 +627,7 @@ OnSharedPreferenceChangeListener
             
             
             if (!localeSwitchingIsEnabled &&
-                "preferences_locale".equals(pref.getExtras().getString("resource", null))) {
+                "preferences_locale".equals(pref.getExtras().getString("resource"))) {
                 preferences.removePreference(pref);
                 i--;
                 continue;
