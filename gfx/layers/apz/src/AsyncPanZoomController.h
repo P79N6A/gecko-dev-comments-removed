@@ -849,37 +849,13 @@ private:
 
 
 
-
 public:
-  void SetLastChild(AsyncPanZoomController* child) {
-    mLastChild = child;
-    if (child) {
-      child->mParent = this;
-    }
+  void SetParent(AsyncPanZoomController* aParent) {
+    mParent = aParent;
   }
 
-  void SetPrevSibling(AsyncPanZoomController* sibling) {
-    mPrevSibling = sibling;
-    if (sibling) {
-      sibling->mParent = mParent;
-    }
-  }
-
-  
-  void MakeRoot() {
-    mParent = nullptr;
-  }
-
-  AsyncPanZoomController* GetLastChild() const { return mLastChild; }
-  AsyncPanZoomController* GetPrevSibling() const { return mPrevSibling; }
-  AsyncPanZoomController* GetParent() const { return mParent; }
-
-  AsyncPanZoomController* GetFirstChild() const {
-    AsyncPanZoomController* child = GetLastChild();
-    while (child && child->GetPrevSibling()) {
-      child = child->GetPrevSibling();
-    }
-    return child;
+  AsyncPanZoomController* GetParent() const {
+    return mParent;
   }
 
   
@@ -897,8 +873,6 @@ private:
   
   Atomic<APZCTreeManager*> mTreeManager;
 
-  nsRefPtr<AsyncPanZoomController> mLastChild;
-  nsRefPtr<AsyncPanZoomController> mPrevSibling;
   nsRefPtr<AsyncPanZoomController> mParent;
 
 
