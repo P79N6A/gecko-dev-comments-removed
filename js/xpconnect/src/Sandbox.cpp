@@ -440,7 +440,7 @@ sandbox_addProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
     
     
     
-    if (pd.object() && pd.isPermanent()) {
+    if (pd.object() && !pd.configurable()) {
         if (!JS_SetPropertyById(cx, proto, id, vp))
             return false;
     } else {

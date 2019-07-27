@@ -24,17 +24,23 @@ Getter(JSContext *cx, unsigned argc, JS::Value *vp)
     return true;
 }
 
+enum PropertyDescriptorKind {
+    DataDescriptor, AccessorDescriptor
+};
+
 static bool
-CheckDescriptor(JS::Handle<JSPropertyDescriptor> desc, bool enumerable,
-                bool writable, bool configurable)
+CheckDescriptor(JS::Handle<JSPropertyDescriptor> desc, PropertyDescriptorKind kind,
+                bool enumerable, bool writable, bool configurable)
 {
     if (!desc.object())
         return false;
-    if (desc.isEnumerable() != enumerable)
+    if (!(kind == DataDescriptor ? desc.isDataDescriptor() : desc.isAccessorDescriptor()))
         return false;
-    if (desc.isReadonly() == writable)
+    if (desc.enumerable() != enumerable)
         return false;
-    if (desc.isPermanent() == configurable)
+    if (kind == DataDescriptor && desc.writable() != writable)
+        return false;
+    if (desc.configurable() != configurable)
         return false;
     return true;
 }
@@ -53,15 +59,14 @@ BEGIN_TEST(testDefinePropertyIgnoredAttributes)
     CHECK(JS_GetPropertyDescriptor(cx, obj, "foo", &desc));
 
     
-    
-    CHECK(CheckDescriptor(desc, false, true, false));
+    CHECK(CheckDescriptor(desc, AccessorDescriptor, false, true, false));
 
     
     CHECK(JS_DefineProperty(cx, obj, "bar", defineValue,
                             AllowConfigure | JSPROP_SHARED,
                             Getter));
     CHECK(JS_GetPropertyDescriptor(cx, obj, "bar", &desc));
-    CHECK(CheckDescriptor(desc, false, true, true));
+    CHECK(CheckDescriptor(desc, AccessorDescriptor, false, true, true));
 
     
     
@@ -71,24 +76,24 @@ BEGIN_TEST(testDefinePropertyIgnoredAttributes)
                             JSPROP_SHARED,
                             Getter));
     CHECK(JS_GetPropertyDescriptor(cx, obj, "bar", &desc));
-    CHECK(CheckDescriptor(desc, true, true, true));
+    CHECK(CheckDescriptor(desc, AccessorDescriptor, true, true, true));
 
     
     defineValue.setObject(*obj);
     CHECK(JS_DefineProperty(cx, obj, "baz", defineValue, IgnoreWithValue));
     CHECK(JS_GetPropertyDescriptor(cx, obj, "baz", &desc));
-    CHECK(CheckDescriptor(desc, false, false, false));
+    CHECK(CheckDescriptor(desc, DataDescriptor, false, false, false));
 
     
     CHECK(JS_DefineProperty(cx, obj, "quox", defineValue, ValueWithConfigurable));
     CHECK(JS_GetPropertyDescriptor(cx, obj, "quox", &desc));
-    CHECK(CheckDescriptor(desc, false, false, true));
+    CHECK(CheckDescriptor(desc, DataDescriptor, false, false, true));
 
     
     defineValue.setUndefined();
     CHECK(JS_DefineProperty(cx, obj, "quox", defineValue, AllowWritable));
     CHECK(JS_GetPropertyDescriptor(cx, obj, "quox", &desc));
-    CHECK(CheckDescriptor(desc, false, true, true));
+    CHECK(CheckDescriptor(desc, DataDescriptor, false, true, true));
     CHECK_SAME(JS::ObjectValue(*obj), desc.value());
 
     return true;
