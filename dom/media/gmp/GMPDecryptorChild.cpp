@@ -4,6 +4,7 @@
 
 
 #include "GMPDecryptorChild.h"
+#include "GMPContentChild.h"
 #include "GMPChild.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/unused.h"

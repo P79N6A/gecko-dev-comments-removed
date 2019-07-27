@@ -4,6 +4,11 @@
 
 
 #include "GMPContentChild.h"
+#include "GMPChild.h"
+#include "GMPAudioDecoderChild.h"
+#include "GMPDecryptorChild.h"
+#include "GMPVideoDecoderChild.h"
+#include "GMPVideoEncoderChild.h"
 
 namespace mozilla {
 namespace gmp {

@@ -3,8 +3,10 @@
 
 
 
+#include "GMPService.h"
 #include "GMPServiceParent.h"
 #include "GMPServiceChild.h"
+#include "GMPContentParent.h"
 #include "prio.h"
 #include "mozilla/Logging.h"
 #include "GMPParent.h"
