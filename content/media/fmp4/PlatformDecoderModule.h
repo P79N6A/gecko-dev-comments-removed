@@ -114,9 +114,14 @@ public:
   
   
   virtual already_AddRefed<MediaDataDecoder>
-  CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
-                   MediaTaskQueue* aAudioTaskQueue,
-                   MediaDataDecoderCallback* aCallback) = 0;
+  CreateAudioDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
+                     MediaTaskQueue* aAudioTaskQueue,
+                     MediaDataDecoderCallback* aCallback) = 0;
+
+  
+  
+  
+  virtual bool SupportsAudioMimeType(const char* aMimeType);
 
   virtual ~PlatformDecoderModule() {}
 
