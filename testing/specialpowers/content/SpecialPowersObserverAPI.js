@@ -515,7 +515,7 @@ SpecialPowersObserverAPI.prototype = {
         
         Cc["@mozilla.org/service-worker-periodic-updater;1"].
           getService(Ci.nsIObserver).
-          observe(null, "idle-daily", "");
+          observe(null, "idle-daily", "Caller:SpecialPowers");
 
         return undefined;	
       }

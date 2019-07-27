@@ -54,8 +54,13 @@ ServiceWorkerPeriodicUpdater::Observe(nsISupports* aSubject,
                                       const char* aTopic,
                                       const char16_t* aData)
 {
+  
+  
+  
+  
+  NS_NAMED_LITERAL_STRING(CallerSpecialPowers, "Caller:SpecialPowers");
   if (strcmp(aTopic, OBSERVER_TOPIC_IDLE_DAILY) == 0 &&
-      sPeriodicUpdatesEnabled) {
+      (sPeriodicUpdatesEnabled || CallerSpecialPowers.Equals(aData))) {
     
     nsCOMPtr<nsIServiceWorkerManager> swm =
       mozilla::services::GetServiceWorkerManager();
