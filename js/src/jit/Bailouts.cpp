@@ -40,6 +40,7 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     JitActivationIterator jitActivations(cx->runtime());
     BailoutFrameInfo bailoutData(jitActivations, sp);
     JitFrameIterator iter(jitActivations);
+    MOZ_ASSERT(!iter.ionScript()->invalidated());
 
     TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogTimestamp(logger, TraceLogger::Bailout);
@@ -77,6 +78,17 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
 
         EnsureExitFrame(iter.jsFrame());
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (iter.ionScript()->invalidated())
+        iter.ionScript()->decref(cx->runtime()->defaultFreeOp());
 
     return retval;
 }
