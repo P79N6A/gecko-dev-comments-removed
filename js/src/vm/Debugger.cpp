@@ -762,7 +762,7 @@ Debugger::wrapEnvironment(JSContext *cx, Handle<Env*> env, MutableHandleValue rv
 
 
 
-    MOZ_ASSERT(!env->is<ScopeObject>());
+    MOZ_ASSERT(IsValidTerminatingScope(env));
 
     NativeObject *envobj;
     DependentAddPtr<ObjectWeakMap> p(cx, environments, env);
@@ -6022,6 +6022,7 @@ EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFrameP
 
 
 
+
     Rooted<StaticEvalObject *> staticScope(cx, StaticEvalObject::create(cx, js::NullPtr()));
     if (!staticScope)
         return false;
@@ -6158,8 +6159,7 @@ DebuggerGenericEval(JSContext *cx, const char *fullMethodName, const Value &code
 
     
     if (evalWithBindings) {
-        
-        RootedPlainObject nenv(cx, NewObjectWithGivenProto<PlainObject>(cx, NullPtr(), env));
+        RootedPlainObject nenv(cx, NewObjectWithGivenProto<PlainObject>(cx, NullPtr(), NullPtr()));
         if (!nenv)
             return false;
         RootedId id(cx);
@@ -6172,7 +6172,22 @@ DebuggerGenericEval(JSContext *cx, const char *fullMethodName, const Value &code
                 return false;
             }
         }
-        env = nenv;
+
+        AutoObjectVector scopeChain(cx);
+        if (!scopeChain.append(nenv))
+            return false;
+
+        RootedObject dynamicScope(cx);
+        
+        
+        RootedObject unusedStaticScope(cx);
+        if (!CreateScopeObjectsForScopeChain(cx, scopeChain, env, &dynamicScope,
+                                             &unusedStaticScope))
+        {
+            return false;
+        }
+
+        env = dynamicScope;
     }
 
     
@@ -7234,7 +7249,7 @@ DebuggerEnv_checkThis(JSContext *cx, const CallArgs &args, const char *fnname,
         return false;                                                         \
     Rooted<Env*> env(cx, static_cast<Env *>(envobj->getPrivate()));           \
     MOZ_ASSERT(env);                                                          \
-    MOZ_ASSERT(!env->is<ScopeObject>())
+    MOZ_ASSERT(IsValidTerminatingScope(env));
  
  #define THIS_DEBUGENV_OWNER(cx, argc, vp, fnname, args, envobj, env, dbg)    \
      THIS_DEBUGENV(cx, argc, vp, fnname, args, envobj, env);                  \
