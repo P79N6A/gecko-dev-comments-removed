@@ -15,6 +15,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Proxy;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
@@ -1188,6 +1190,22 @@ public class GeckoAppShell
         }
 
         final String scheme = uri.getScheme();
+        if ("intent".equals(scheme)) {
+            final Intent intent;
+            try {
+                intent = Intent.parseUri(targetURI, Intent.URI_INTENT_SCHEME);
+            } catch (final URISyntaxException e) {
+                Log.e(LOGTAG, "Unable to parse URI - " + e);
+                return null;
+            }
+
+            
+            if (intent.getPackage() == null) {
+                return null;
+            }
+
+            return intent;
+        }
 
         
         
