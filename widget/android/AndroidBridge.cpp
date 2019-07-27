@@ -150,7 +150,7 @@ jfieldID AndroidBridge::GetStaticFieldID(JNIEnv* env, jclass jClass,
 }
 
 void
-AndroidBridge::ConstructBridge(JNIEnv *jEnv, Object::Param clsLoader)
+AndroidBridge::ConstructBridge(JNIEnv *jEnv, Object::Param clsLoader, Object::Param msgQueue)
 {
     
 
@@ -165,6 +165,16 @@ AndroidBridge::ConstructBridge(JNIEnv *jEnv, Object::Param clsLoader)
     MOZ_ASSERT(!sBridge);
     sBridge = new AndroidBridge;
     sBridge->Init(jEnv, clsLoader); 
+
+    auto msgQueueClass = ClassObject::LocalRef::Adopt(
+            jEnv, jEnv->GetObjectClass(msgQueue.Get()));
+    sBridge->mMessageQueue = msgQueue;
+    
+    sBridge->mMessageQueueNext = GetMethodID(
+            jEnv, msgQueueClass.Get(), "next", "()Landroid/os/Message;");
+    
+    sBridge->mMessageQueueMessages = jEnv->GetFieldID(
+            msgQueueClass.Get(), "mMessages", "Landroid/os/Message;");
 }
 
 void
@@ -1666,6 +1676,32 @@ AndroidBridge::GetProxyForURI(const nsACString & aSpec,
     return NS_OK;
 }
 
+bool
+AndroidBridge::PumpMessageLoop()
+{
+    JNIEnv* const env = GetJNIEnv();
+
+    if (mMessageQueueMessages) {
+        auto msg = Object::LocalRef::Adopt(env,
+                env->GetObjectField(mMessageQueue.Get(),
+                                    mMessageQueueMessages));
+        
+        
+        
+        
+        if (!msg) {
+            return false;
+        }
+    }
+
+    auto msg = Object::LocalRef::Adopt(
+            env, env->CallObjectMethod(mMessageQueue.Get(), mMessageQueueNext));
+    if (!msg) {
+        return false;
+    }
+
+    return GeckoAppShell::PumpMessageLoop(msg);
+}
 
 
 NS_IMETHODIMP nsAndroidBridge::GetBrowserApp(nsIAndroidBrowserApp * *aBrowserApp)
