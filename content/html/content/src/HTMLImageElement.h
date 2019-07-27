@@ -26,6 +26,8 @@ class HTMLImageElement MOZ_FINAL : public nsGenericHTMLElement,
                                    public nsIDOMHTMLImageElement
 {
   friend class HTMLSourceElement;
+  friend class HTMLPictureElement;
+  friend class ImageLoadTask;
 public:
   explicit HTMLImageElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
@@ -42,6 +44,8 @@ public:
 
   
   NS_DECL_NSIDOMHTMLIMAGEELEMENT
+
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLImageElement, img)
 
   
   CORSMode GetCORSMode();
@@ -198,6 +202,9 @@ protected:
   virtual ~HTMLImageElement();
 
   
+  void QueueImageLoadTask();
+
+  
   
   nsresult LoadSelectedImage(bool aForce, bool aNotify);
 
@@ -206,13 +213,25 @@ protected:
                                   const nsAString& aNewValue, bool aNotify);
   void PictureSourceSizesChanged(nsIContent *aSourceNode,
                                  const nsAString& aNewValue, bool aNotify);
+  void PictureSourceMediaChanged(nsIContent *aSourceNode,
+                                 const nsAString& aNewValue, bool aNotify);
 
   void PictureSourceAdded(nsIContent *aSourceNode);
   
   void PictureSourceRemoved(nsIContent *aSourceNode);
 
-  bool MaybeUpdateResponsiveSelector(nsIContent *aCurrentSource = nullptr,
-                                     bool aSourceRemoved = false);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void UpdateResponsiveSource();
 
   
   
@@ -247,6 +266,8 @@ protected:
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
                                     nsRuleData* aData);
+
+  nsCOMPtr<nsIRunnable> mPendingImageLoadTask;
 };
 
 } 
