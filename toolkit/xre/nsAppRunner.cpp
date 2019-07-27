@@ -1791,8 +1791,8 @@ RemoteCommandLine(const char* aDesktopStartupID)
 
   ar = CheckArg("p", false, &profile, false);
   if (ar == ARG_BAD) {
-    PR_fprintf(PR_STDERR, "Error: argument -p requires a profile name\n");
-    return REMOTE_ARG_BAD;
+    
+    return REMOTE_NOT_FOUND;
   }
 
   const char *temp = nullptr;
