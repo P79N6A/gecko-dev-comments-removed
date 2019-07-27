@@ -3552,7 +3552,7 @@ nscoord nsTableFrame::GetCellSpacingX()
   if (IsBorderCollapse())
     return 0;
 
-  return StyleTableBorder()->mBorderSpacingX;
+  return StyleTableBorder()->mBorderSpacingCol;
 }
 
 
@@ -3585,7 +3585,7 @@ nscoord nsTableFrame::GetCellSpacingY()
   if (IsBorderCollapse())
     return 0;
 
-  return StyleTableBorder()->mBorderSpacingY;
+  return StyleTableBorder()->mBorderSpacingRow;
 }
 
 
