@@ -5695,6 +5695,7 @@ class Parser(Tokenizer):
     
     _builtins = """
         typedef unsigned long long DOMTimeStamp;
+        typedef (ArrayBufferView or ArrayBuffer) BufferSource;
     """
 
 def main():
