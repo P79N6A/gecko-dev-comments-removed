@@ -21,8 +21,11 @@
 package org.mozilla.gecko.widget;
 
 
+import android.content.pm.PackageManager;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.GeckoProfile;
+import org.mozilla.gecko.overlays.ui.ShareDialog;
+import org.mozilla.gecko.R;
 import java.io.File;
 
 import android.content.BroadcastReceiver;
@@ -736,8 +739,29 @@ public class ActivityChooserModel extends DataSetObservable {
             List<ResolveInfo> resolveInfos = mContext.getPackageManager()
                     .queryIntentActivities(mIntent, 0);
             final int resolveInfoCount = resolveInfos.size();
+
+            
+
+
+            final PackageManager packageManager = mContext.getPackageManager();
+            final String channelToRemoveLabel = mContext.getResources().getString(R.string.overlay_share_label);
+
             for (int i = 0; i < resolveInfoCount; i++) {
                 ResolveInfo resolveInfo = resolveInfos.get(i);
+
+                
+
+
+
+
+
+
+                if (ShareDialog.class.getCanonicalName().equals(resolveInfo.activityInfo.name) &&
+                        channelToRemoveLabel.equals(resolveInfo.loadLabel(packageManager))) {
+                    resolveInfo.labelRes = R.string.overlay_share_send_other;
+                    resolveInfo.icon = R.drawable.share_plane;
+                }
+
                 mActivities.add(new ActivityResolveInfo(resolveInfo));
             }
             return true;
