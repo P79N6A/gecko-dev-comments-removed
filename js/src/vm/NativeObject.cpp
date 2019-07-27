@@ -1319,6 +1319,16 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             return false;
     }
 
+    
+    
+    
+
+    
+    if (!shape) {
+        if (!obj->nonProxyIsExtensible())
+            return result.fail(JSMSG_OBJECT_NOT_EXTENSIBLE);
+    }
+
     Rooted<PropertyDescriptor> desc(cx, desc_);
 
     
@@ -2003,17 +2013,6 @@ js::SetPropertyByDefining(JSContext* cx, HandleObject obj, HandleId id, HandleVa
     } else {
         if (!HasOwnProperty(cx, receiver, id, &existing))
             return false;
-    }
-
-    
-    
-    
-    if (!existing) {
-        bool extensible;
-        if (!IsExtensible(cx, receiver, &extensible))
-            return false;
-        if (!extensible)
-            return result.fail(JSMSG_OBJECT_NOT_EXTENSIBLE);
     }
 
     
