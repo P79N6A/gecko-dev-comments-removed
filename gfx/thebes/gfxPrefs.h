@@ -337,6 +337,7 @@ private:
   
   DECL_GFX_PREF(Once, "mousewheel.system_scroll_override_on_root_content.enabled",
                                                                MouseWheelHasScrollDeltaOverride, bool, false);
+  DECL_GFX_PREF(Live, "mousewheel.transaction.ignoremovedelay",MouseWheelIgnoreMoveDelayMs, int32_t, (int32_t)100);
   DECL_GFX_PREF(Live, "mousewheel.transaction.timeout",        MouseWheelTransactionTimeoutMs, int32_t, (int32_t)1500);
 
 

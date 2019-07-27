@@ -162,7 +162,10 @@ InputQueue::ReceiveScrollWheelInput(const nsRefPtr<AsyncPanZoomController>& aTar
 
     
     
-    if (block && !block->ShouldAcceptNewEvent(aEvent)) {
+    if (block &&
+        (!block->ShouldAcceptNewEvent() ||
+         block->MaybeTimeout(aEvent)))
+    {
       block = nullptr;
     }
   }
@@ -186,6 +189,8 @@ InputQueue::ReceiveScrollWheelInput(const nsRefPtr<AsyncPanZoomController>& aTar
   if (aOutInputBlockId) {
     *aOutInputBlockId = block->GetBlockId();
   }
+
+  block->Update(aEvent);
 
   
   

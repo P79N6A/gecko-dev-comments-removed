@@ -999,6 +999,10 @@ public:
     return mAncestorTransform;
   }
 
+  
+  
+  bool Contains(const ScreenIntPoint& aPoint) const;
+
   bool IsOverscrolled() const {
     return mX.IsOverscrolled() || mY.IsOverscrolled();
   }

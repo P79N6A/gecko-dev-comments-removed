@@ -30,7 +30,12 @@ enum class PixelCastJustification : uint8_t {
   
   
   
-  TransformNotAvailable
+  TransformNotAvailable,
+  
+  
+  
+  
+  LayoutDeviceToScreenForUntransformedEvent
 };
 
 template <class TargetUnits, class SourceUnits>
@@ -44,6 +49,10 @@ gfx::IntSizeTyped<TargetUnits> ViewAs(const gfx::IntSizeTyped<SourceUnits>& aSiz
 template <class TargetUnits, class SourceUnits>
 gfx::PointTyped<TargetUnits> ViewAs(const gfx::PointTyped<SourceUnits>& aPoint, PixelCastJustification) {
   return gfx::PointTyped<TargetUnits>(aPoint.x, aPoint.y);
+}
+template <class TargetUnits, class SourceUnits>
+gfx::IntPointTyped<TargetUnits> ViewAs(const gfx::IntPointTyped<SourceUnits>& aPoint, PixelCastJustification) {
+  return gfx::IntPointTyped<TargetUnits>(aPoint.x, aPoint.y);
 }
 template <class NewTargetUnits, class OldTargetUnits, class SourceUnits>
 gfx::ScaleFactor<SourceUnits, NewTargetUnits> ViewTargetAs(

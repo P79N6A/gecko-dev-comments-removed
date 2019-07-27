@@ -141,7 +141,7 @@ CancelableBlockState::IsReadyForHandling() const
 }
 
 void
-CancelableBlockState::DispatchImmediate(const InputData& aEvent)
+CancelableBlockState::DispatchImmediate(const InputData& aEvent) const
 {
   MOZ_ASSERT(!HasEvents());
   MOZ_ASSERT(GetTargetApzc());
@@ -158,7 +158,6 @@ WheelBlockState::WheelBlockState(const nsRefPtr<AsyncPanZoomController>& aTarget
   , mTransactionEnded(false)
 {
   sLastWheelBlockId = GetBlockId();
-  Update(aInitialEvent);
 
   if (aTargetConfirmed) {
     
@@ -167,7 +166,15 @@ WheelBlockState::WheelBlockState(const nsRefPtr<AsyncPanZoomController>& aTarget
     
     nsRefPtr<AsyncPanZoomController> apzc =
       mOverscrollHandoffChain->FindFirstScrollable(aInitialEvent);
-    if (apzc && apzc != GetTargetApzc()) {
+
+    
+    
+    if (!apzc) {
+      EndTransaction();
+      return;
+    }
+
+    if (apzc != GetTargetApzc()) {
       UpdateTargetApzc(apzc);
     }
   }
@@ -176,21 +183,34 @@ WheelBlockState::WheelBlockState(const nsRefPtr<AsyncPanZoomController>& aTarget
 void
 WheelBlockState::Update(const ScrollWheelInput& aEvent)
 {
+  
+  
+  if (!InTransaction()) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  nsRefPtr<AsyncPanZoomController> apzc = GetTargetApzc();
+  if (IsTargetConfirmed() && !apzc->CanScroll(aEvent)) {
+    return;
+  }
+
+  
+  
+  
   mLastEventTime = aEvent.mTimeStamp;
+  mLastMouseMove = TimeStamp();
 }
 
 void
 WheelBlockState::AddEvent(const ScrollWheelInput& aEvent)
 {
-  Update(aEvent);
   mEvents.AppendElement(aEvent);
-}
-
-void
-WheelBlockState::DispatchImmediate(const InputData& aEvent)
-{
-  Update(aEvent.AsScrollWheelInput());
-  CancelableBlockState::DispatchImmediate(aEvent);
 }
 
 bool
@@ -239,7 +259,7 @@ WheelBlockState::Type()
 }
 
 bool
-WheelBlockState::ShouldAcceptNewEvent(const ScrollWheelInput& aEvent) const
+WheelBlockState::ShouldAcceptNewEvent() const
 {
   if (!InTransaction()) {
     
@@ -250,15 +270,63 @@ WheelBlockState::ShouldAcceptNewEvent(const ScrollWheelInput& aEvent) const
     return false;
   }
 
+  return true;
+}
+
+bool
+WheelBlockState::MaybeTimeout(const ScrollWheelInput& aEvent)
+{
+  if (MaybeTimeout(aEvent.mTimeStamp)) {
+    return true;
+  }
+
+  if (!mLastMouseMove.IsNull()) {
+    
+    TimeDuration duration = TimeStamp::Now() - mLastMouseMove;
+    if (duration.ToMilliseconds() >= gfxPrefs::MouseWheelIgnoreMoveDelayMs()) {
+      TBS_LOG("%p wheel transaction timed out after mouse move\n", this);
+      EndTransaction();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
+WheelBlockState::MaybeTimeout(const TimeStamp& aTimeStamp)
+{
   
   
-  TimeDuration duration = aEvent.mTimeStamp - mLastEventTime;
-  if (duration.ToMilliseconds() >= gfxPrefs::MouseWheelTransactionTimeoutMs()) {
+  TimeDuration duration = aTimeStamp - mLastEventTime;
+  if (duration.ToMilliseconds() < gfxPrefs::MouseWheelTransactionTimeoutMs()) {
     return false;
   }
 
-  
+  TBS_LOG("%p wheel transaction timed out\n", this);
+
+  EndTransaction();
   return true;
+}
+
+void
+WheelBlockState::OnMouseMove(const ScreenIntPoint& aPoint)
+{
+  if (!GetTargetApzc()->Contains(aPoint)) {
+    EndTransaction();
+    return;
+  }
+
+  if (mLastMouseMove.IsNull()) {
+    
+    
+    
+    TimeStamp now = TimeStamp::Now();
+    TimeDuration duration = now - mLastEventTime;
+    if (duration.ToMilliseconds() >= gfxPrefs::MouseWheelIgnoreMoveDelayMs()) {
+      mLastMouseMove = now;
+    }
+  }
 }
 
 bool
@@ -283,6 +351,7 @@ WheelBlockState::AllowScrollHandoff() const
 void
 WheelBlockState::EndTransaction()
 {
+  TBS_LOG("%p ending wheel transaction\n", this);
   mTransactionEnded = true;
 }
 

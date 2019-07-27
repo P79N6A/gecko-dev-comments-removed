@@ -110,7 +110,7 @@ public:
 
 
 
-  virtual void DispatchImmediate(const InputData& aEvent);
+  void DispatchImmediate(const InputData& aEvent) const;
 
   
 
@@ -167,7 +167,6 @@ public:
   void HandleEvents() override;
   bool MustStayActive() override;
   const char* Type() override;
-  void DispatchImmediate(const InputData& aEvent) override;
 
   void AddEvent(const ScrollWheelInput& aEvent);
 
@@ -178,11 +177,19 @@ public:
   
 
 
+  bool ShouldAcceptNewEvent() const;
+
+  
 
 
 
+  bool MaybeTimeout(const ScrollWheelInput& aEvent);
 
-  bool ShouldAcceptNewEvent(const ScrollWheelInput& aEvent) const;
+  
+
+
+
+  void OnMouseMove(const ScreenIntPoint& aPoint);
 
   
 
@@ -205,7 +212,13 @@ public:
 
   bool AllowScrollHandoff() const;
 
-private:
+  
+
+
+
+
+  bool MaybeTimeout(const TimeStamp& aTimeStamp);
+
   
 
 
@@ -214,6 +227,7 @@ private:
 private:
   nsTArray<ScrollWheelInput> mEvents;
   TimeStamp mLastEventTime;
+  TimeStamp mLastMouseMove;
   bool mTransactionEnded;
 };
 
