@@ -358,27 +358,7 @@ nsSVGPathGeometryFrame::ReflowSVG()
    flags |= nsSVGUtils::eBBoxIncludeStrokeGeometry;
   }
  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  gfxSize scaleFactors = GetCanvasTM().ScaleFactors(true);
-  bool applyScaling = fabs(scaleFactors.width) >= 1e-6 &&
-                      fabs(scaleFactors.height) >= 1e-6;
-  gfx::Matrix scaling;
-  if (applyScaling) {
-    scaling.PreScale(scaleFactors.width, scaleFactors.height);
-  }
-  gfxRect extent = GetBBoxContribution(scaling, flags).ToThebesRect();
-  if (applyScaling) {
-    extent.Scale(1 / scaleFactors.width, 1 / scaleFactors.height);
-  }
+  gfxRect extent = GetBBoxContribution(Matrix(), flags).ToThebesRect();
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent,
             PresContext()->AppUnitsPerCSSPixel());
 
