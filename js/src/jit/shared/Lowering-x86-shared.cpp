@@ -102,7 +102,12 @@ LIRGeneratorX86Shared::lowerForFPU(LInstructionHelper<1, 2, Temps> *ins, MDefini
 {
     
     
-    if (!Assembler::HasAVX()) {
+    
+    
+    
+    
+    
+    if (!Assembler::HasAVX() && mir->type() == lhs->type()) {
         ins->setOperand(0, useRegisterAtStart(lhs));
         ins->setOperand(1, lhs != rhs ? use(rhs) : useAtStart(rhs));
         defineReuseInput(ins, mir, 0);
