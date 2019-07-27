@@ -22,25 +22,25 @@ const DEFAULT_BEHAVIOR = 0;
 const PREF_BRANCH = "browser.urlbar.";
 
 
-const PREF_ENABLED =            [ "autocomplete.enabled", true ];
-const PREF_AUTOFILL =           [ "autoFill",             true ];
-const PREF_AUTOFILL_TYPED =     [ "autoFill.typed",       true ];
-const PREF_AUTOFILL_PRIORITY =  [ "autoFill.priority",    true ];
-const PREF_DELAY =              [ "delay",                  50 ];
-const PREF_BEHAVIOR =           [ "matchBehavior", MATCH_BOUNDARY_ANYWHERE ];
-const PREF_DEFAULT_BEHAVIOR =   [ "default.behavior", DEFAULT_BEHAVIOR ];
-const PREF_EMPTY_BEHAVIOR =     [ "default.behavior.emptyRestriction",
-                                  Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
-                                  Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED ];
-const PREF_FILTER_JS =          [ "filter.javascript",    true ];
-const PREF_MAXRESULTS =         [ "maxRichResults",         25 ];
-const PREF_RESTRICT_HISTORY =   [ "restrict.history",      "^" ];
-const PREF_RESTRICT_BOOKMARKS = [ "restrict.bookmark",     "*" ];
-const PREF_RESTRICT_TYPED =     [ "restrict.typed",        "~" ];
-const PREF_RESTRICT_TAG =       [ "restrict.tag",          "+" ];
-const PREF_RESTRICT_SWITCHTAB = [ "restrict.openpage",     "%" ];
-const PREF_MATCH_TITLE =        [ "match.title",           "#" ];
-const PREF_MATCH_URL =          [ "match.url",             "@" ];
+const PREF_ENABLED =                [ "autocomplete.enabled",   true ];
+const PREF_AUTOFILL =               [ "autoFill",               true ];
+const PREF_AUTOFILL_TYPED =         [ "autoFill.typed",         true ];
+const PREF_AUTOFILL_SEARCHENGINES = [ "autoFill.searchEngines", true ];
+const PREF_DELAY =                  [ "delay",                  50 ];
+const PREF_BEHAVIOR =               [ "matchBehavior", MATCH_BOUNDARY_ANYWHERE ];
+const PREF_DEFAULT_BEHAVIOR =       [ "default.behavior", DEFAULT_BEHAVIOR ];
+const PREF_EMPTY_BEHAVIOR =         [ "default.behavior.emptyRestriction",
+                                      Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                                      Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED ];
+const PREF_FILTER_JS =              [ "filter.javascript",      true ];
+const PREF_MAXRESULTS =             [ "maxRichResults",         25 ];
+const PREF_RESTRICT_HISTORY =       [ "restrict.history",       "^" ];
+const PREF_RESTRICT_BOOKMARKS =     [ "restrict.bookmark",      "*" ];
+const PREF_RESTRICT_TYPED =         [ "restrict.typed",         "~" ];
+const PREF_RESTRICT_TAG =           [ "restrict.tag",           "+" ];
+const PREF_RESTRICT_SWITCHTAB =     [ "restrict.openpage",      "%" ];
+const PREF_MATCH_TITLE =            [ "match.title",            "#" ];
+const PREF_MATCH_URL =              [ "match.url",              "@" ];
 
 
 
@@ -63,10 +63,13 @@ const QUERYTYPE_AUTOFILL_URL  = 3;
 const TITLE_TAGS_SEPARATOR = " \u2013 ";
 
 
+const TITLE_SEARCH_ENGINE_SEPARATOR = " \u00B7\u2013\u00B7 ";
+
+
 const TELEMETRY_1ST_RESULT = "PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS";
 
 
-const FRECENCY_PRIORITY_DEFAULT = 1000;
+const FRECENCY_SEARCHENGINES_DEFAULT = 1000;
 
 
 const QUERYINDEX_QUERYTYPE     = 0;
@@ -359,7 +362,7 @@ XPCOMUtils.defineLazyGetter(this, "Prefs", () => {
     store.enabled = prefs.get(...PREF_ENABLED);
     store.autofill = prefs.get(...PREF_AUTOFILL);
     store.autofillTyped = prefs.get(...PREF_AUTOFILL_TYPED);
-    store.autofillPriority = prefs.get(...PREF_AUTOFILL_PRIORITY);
+    store.autofillSearchEngines = prefs.get(...PREF_AUTOFILL_SEARCHENGINES);
     store.delay = prefs.get(...PREF_DELAY);
     store.matchBehavior = prefs.get(...PREF_BEHAVIOR);
     store.filterJavaScript = prefs.get(...PREF_FILTER_JS);
@@ -631,6 +634,10 @@ Search.prototype = {
 
     
     
+    yield PlacesSearchAutocompleteProvider.ensureInitialized();
+
+    
+    
     
     
     
@@ -649,7 +656,7 @@ Search.prototype = {
         PlacesUtils.bookmarks.getURIForKeyword(this._searchTokens[0])) {
       queries.unshift(this._keywordQuery);
     } else if (this._searchTokens.length == 1) {
-      yield this._matchPriorityUrl();
+      yield this._matchSearchEngineUrl();
     }
 
     if (this._shouldAutofill) {
@@ -700,22 +707,21 @@ Search.prototype = {
     }
   }),
 
-  _matchPriorityUrl: function* () {
-    if (!Prefs.autofillPriority)
+  _matchSearchEngineUrl: function* () {
+    if (!Prefs.autofillSearchEngines)
       return;
 
-    
-    let priorityMatch =
-        yield PlacesSearchAutocompleteProvider.findMatchByToken(this._searchString);
-    if (priorityMatch) {
+    let match = yield PlacesSearchAutocompleteProvider.findMatchByToken(
+                                                           this._searchString);
+    if (match) {
       this._result.setDefaultIndex(0);
       this._addFrecencyMatch({
-        value: priorityMatch.token,
-        comment: priorityMatch.engineName,
-        icon: priorityMatch.iconUrl,
+        value: match.token,
+        comment: match.engineName,
+        icon: match.iconUrl,
         style: "priority-search",
-        finalCompleteValue: priorityMatch.url,
-        frecency: FRECENCY_PRIORITY_DEFAULT
+        finalCompleteValue: match.url,
+        frecency: FRECENCY_SEARCHENGINES_DEFAULT
       });
     }
   },
@@ -754,6 +760,30 @@ Search.prototype = {
     this._frecencyMatches.sort((a, b) => a.frecency - b.frecency);
   },
 
+  _maybeRestyleSearchMatch: function (match) {
+    
+    let parseResult =
+      PlacesSearchAutocompleteProvider.parseSubmissionURL(match.value);
+    if (!parseResult) {
+      return;
+    }
+
+    
+    
+    
+    
+    let terms = parseResult.terms.toLowerCase();
+    if (this._searchTokens.length > 0 &&
+        this._searchTokens.every(token => terms.indexOf(token) == -1)) {
+      return;
+    }
+
+    
+    match.style = "search " + match.style;
+    match.comment = parseResult.terms + TITLE_SEARCH_ENGINE_SEPARATOR +
+                    parseResult.engineName;
+  },
+
   _addMatch: function (match) {
     let notifyResults = false;
 
@@ -779,10 +809,19 @@ Search.prototype = {
         this._usedPlaceIds.add(match.placeId);
       this._usedURLs.add(urlMapKey);
 
+      if (!match.style) {
+        match.style = "favicon";
+      }
+
+      
+      if (match.style == "favicon") {
+        this._maybeRestyleSearchMatch(match);
+      }
+
       this._result.appendMatch(match.value,
                                match.comment,
                                match.icon || PlacesUtils.favicons.defaultFavicon.spec,
-                               match.style || "favicon",
+                               match.style,
                                match.finalCompleteValue);
       notifyResults = true;
     }
