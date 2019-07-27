@@ -3096,14 +3096,19 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
 
   
   
+  
   if ((aFlags & PAINT_WIDGET_LAYERS) &&
       !willFlushRetainedLayers &&
       !(aFlags & PAINT_DOCUMENT_RELATIVE)) {
     nsIWidget *widget = aFrame->GetNearestWidget();
     if (widget) {
-      nsRegion excludedRegion = builder.GetWindowOpaqueRegion();
-      nsIntRegion windowRegion(excludedRegion.ToNearestPixels(presContext->AppUnitsPerDevPixel()));
-      widget->UpdateOpaqueRegion(windowRegion);
+      nsRegion opaqueRegion = builder.GetWindowOpaqueRegion();
+      widget->UpdateOpaqueRegion(
+        opaqueRegion.ToNearestPixels(presContext->AppUnitsPerDevPixel()));
+
+      nsRegion draggingRegion = builder.GetWindowDraggingRegion();
+      widget->UpdateWindowDraggingRegion(
+        draggingRegion.ToNearestPixels(presContext->AppUnitsPerDevPixel()));
     }
   }
 

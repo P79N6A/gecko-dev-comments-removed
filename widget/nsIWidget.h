@@ -1521,6 +1521,11 @@ class nsIWidget : public nsISupports {
     
 
 
+    virtual void UpdateWindowDraggingRegion(const nsIntRegion& aRegion) {}
+
+    
+
+
 
     
     virtual void AddChild(nsIWidget* aChild) = 0;

@@ -1070,6 +1070,42 @@ nsDisplayListBuilder::FindReferenceFrameFor(const nsIFrame *aFrame,
   return mReferenceFrame;
 }
 
+void
+nsDisplayListBuilder::AdjustWindowDraggingRegion(nsIFrame* aFrame)
+{
+  if (!IsForPainting() || IsInSubdocument() || IsInTransform()) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRect borderBox = aFrame->GetRectRelativeToSelf().Intersect(mDirtyRect);
+  borderBox += ToReferenceFrame(aFrame);
+  const DisplayItemClip* clip = ClipState().GetCurrentCombinedClip(this);
+  if (clip) {
+    borderBox = clip->ApplyNonRoundedIntersection(borderBox);
+  }
+  if (!borderBox.IsEmpty()) {
+    const nsStyleUserInterface* styleUI = aFrame->StyleUserInterface();
+    if (styleUI->mWindowDragging == NS_STYLE_WINDOW_DRAGGING_DRAG) {
+      mWindowDraggingRegion.OrWith(borderBox);
+    } else {
+      mWindowDraggingRegion.SubOut(borderBox);
+    }
+  }
+}
+
 void nsDisplayListSet::MoveTo(const nsDisplayListSet& aDestination) const
 {
   aDestination.BorderBackground()->AppendToTop(BorderBackground());
@@ -1767,20 +1803,12 @@ nsDisplaySolidColor::WriteDebugInfo(nsACString& aTo)
 static void
 RegisterThemeGeometry(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
 {
-  nsIFrame* displayRoot = nsLayoutUtils::GetDisplayRootFrame(aFrame);
-
-  for (nsIFrame* f = aFrame; f; f = f->GetParent()) {
-    
-    if (f->IsTransformed())
-      return;
-    
-    if (!f->GetParent() && f != displayRoot)
-      return;
+  if (!aBuilder->IsInSubdocument() && !aBuilder->IsInTransform()) {
+    nsIFrame* displayRoot = nsLayoutUtils::GetDisplayRootFrame(aFrame);
+    nsRect borderBox(aFrame->GetOffsetTo(displayRoot), aFrame->GetSize());
+    aBuilder->RegisterThemeGeometry(aFrame->StyleDisplay()->mAppearance,
+        borderBox.ToNearestPixels(aFrame->PresContext()->AppUnitsPerDevPixel()));
   }
-
-  nsRect borderBox(aFrame->GetOffsetTo(displayRoot), aFrame->GetSize());
-  aBuilder->RegisterThemeGeometry(aFrame->StyleDisplay()->mAppearance,
-      borderBox.ToNearestPixels(aFrame->PresContext()->AppUnitsPerDevPixel()));
 }
 
 nsDisplayBackgroundImage::nsDisplayBackgroundImage(nsDisplayListBuilder* aBuilder,

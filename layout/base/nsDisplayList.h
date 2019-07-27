@@ -397,6 +397,12 @@ public:
   
 
 
+
+  bool IsInSubdocument() { return mPresShellStates.Length() > 1; }
+
+  
+
+
   bool ShouldSyncDecodeImages() { return mSyncDecodeImages; }
 
   
@@ -471,11 +477,20 @@ public:
 
   void RegisterThemeGeometry(uint8_t aWidgetType,
                              const nsIntRect& aRect) {
-    if (mIsPaintingToWindow && mPresShellStates.Length() == 1) {
-      ThemeGeometry geometry(aWidgetType, aRect);
-      mThemeGeometries.AppendElement(geometry);
+    if (mIsPaintingToWindow) {
+      mThemeGeometries.AppendElement(ThemeGeometry(aWidgetType, aRect));
     }
   }
+
+  
+
+
+
+
+
+  void AdjustWindowDraggingRegion(nsIFrame* aFrame);
+
+  const nsRegion& GetWindowDraggingRegion() { return mWindowDraggingRegion; }
 
   
 
@@ -738,6 +753,7 @@ private:
   
   nsRect                         mDirtyRect;
   nsRegion                       mWindowOpaqueRegion;
+  nsRegion                       mWindowDraggingRegion;
   
   nsDisplayItem*                 mGlassDisplayItem;
   nsTArray<DisplayItemClip*>     mDisplayItemClipsToDestroy;
