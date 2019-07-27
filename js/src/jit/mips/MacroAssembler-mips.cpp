@@ -3120,8 +3120,8 @@ MacroAssemblerMIPS::ma_callIonHalfPush(Label *label)
 {
     
     as_addiu(StackPointer, StackPointer, -sizeof(intptr_t));
-    
-    
+    ma_bal(label, DontFillDelaySlot);
+    as_sw(ra, StackPointer, 0);
 }
 
 void
