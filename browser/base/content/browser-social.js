@@ -68,7 +68,7 @@ SocialUI = {
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
 
     gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
-    PanelUI.panel.addEventListener("popupshown", SocialUI.updateState, true);
+    PanelUI.panel.addEventListener("popupshown", SocialUI.updatePanelState, true);
 
     
     
@@ -102,7 +102,7 @@ SocialUI = {
 
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
 
-    PanelUI.panel.removeEventListener("popupshown", SocialUI.updateState, true);
+    PanelUI.panel.removeEventListener("popupshown", SocialUI.updatePanelState, true);
     document.getElementById("viewSidebarMenu").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
     document.getElementById("social-statusarea-popup").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
 
@@ -285,6 +285,14 @@ SocialUI = {
     if (this._chromeless || PrivateBrowsingUtils.isWindowPrivate(window))
       return false;
     return Social.providers.length > 0;
+  },
+
+  updatePanelState :function(event) {
+    
+    
+    if (event.target != PanelUI.panel)
+      return;
+    SocialUI.updateState();
   },
 
   
@@ -1309,17 +1317,6 @@ SocialStatus = {
 SocialMarks = {
   update: function() {
     
-    let currentButtons = document.querySelectorAll('toolbarbutton[type="socialmark"]');
-    for (let elt of currentButtons) {
-      
-      
-      if (elt.update)
-        elt.update();
-    }
-  },
-
-  updatePanelButtons: function() {
-    
     
     let providers = SocialMarks.getProviders();
     for (let p of providers) {
@@ -1368,7 +1365,7 @@ SocialMarks = {
     for (let cfg of contextMenus) {
       this._populateContextPopup(cfg, providers);
     }
-    this.updatePanelButtons();
+    this.update();
   },
 
   MENU_LIMIT: 3, 
