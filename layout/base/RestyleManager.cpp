@@ -1651,7 +1651,13 @@ RestyleManager::ProcessPendingRestyles()
     
     
     ProcessPendingRestyles();
+
+    NS_ASSERTION(!mDoRebuildAllStyleData,
+                 "repeatedly setting mDoRebuildAllStyleData?");
   }
+
+  MOZ_ASSERT(!mInRebuildAllStyleData,
+             "should have called FinishRebuildAllStyleData");
 }
 
 void
