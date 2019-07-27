@@ -68,10 +68,6 @@ const MESSAGES = [
 
   
   
-  "SessionStore:reloadPendingTab",
-
-  
-  
   "SessionStore:crashedTabRevived",
 ];
 
@@ -768,11 +764,6 @@ let SessionStoreInternal = {
         SessionStoreInternal.restoreNextTab();
 
         this._sendTabRestoredNotification(tab);
-        break;
-      case "SessionStore:reloadPendingTab":
-        if (browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
-          this.restoreTabContent(tab);
-        }
         break;
       case "SessionStore:crashedTabRevived":
         this._crashedBrowsers.delete(browser.permanentKey);

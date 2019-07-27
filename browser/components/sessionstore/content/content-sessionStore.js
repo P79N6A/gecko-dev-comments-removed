@@ -149,12 +149,7 @@ let MessageListener = {
 
   restoreHistory({epoch, tabData, loadArguments}) {
     gContentRestore.restoreHistory(tabData, loadArguments, {
-      onReload() {
-        
-        
-        sendAsyncMessage("SessionStore:reloadPendingTab", {epoch});
-      },
-
+      
       
       
       
