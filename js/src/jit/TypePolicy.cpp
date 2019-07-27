@@ -1000,12 +1000,15 @@ StoreTypedArrayElementStaticPolicy::adjustInputs(TempAllocator& alloc, MInstruct
 bool
 StoreUnboxedObjectOrNullPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    SingleObjectPolicy::staticAdjustInputs(alloc, ins);
+    ObjectPolicy<0>::staticAdjustInputs(alloc, ins);
+    ObjectPolicy<3>::staticAdjustInputs(alloc, ins);
 
     
     
     
     MStoreUnboxedObjectOrNull* store = ins->toStoreUnboxedObjectOrNull();
+
+    MOZ_ASSERT(store->typedObj()->type() == MIRType_Object);
 
     MDefinition* value = store->value();
     if (value->type() == MIRType_Object ||
