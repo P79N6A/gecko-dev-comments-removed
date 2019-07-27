@@ -61,7 +61,7 @@ function test() {
       
       
       
-      executeSoon(function() aCallback(aWin));
+      executeSoon(function() { aCallback(aWin); });
     });
   };
 
