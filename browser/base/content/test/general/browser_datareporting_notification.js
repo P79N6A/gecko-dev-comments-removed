@@ -132,7 +132,7 @@ function test_multiple_windows() {
 
     let [policy, promise] = sendNotifyRequest("multiple_window_behavior");
     let displayCount = 0;
-    let prefWindowClosed = false;
+    let prefWindowOpened = false;
     let mutationObserversRemoved = false;
 
     function onAlertDisplayed() {
@@ -147,8 +147,8 @@ function test_multiple_windows() {
       
       
       function maybeFinish() {
-        if (!prefWindowClosed) {
-          dump("Not finishing test yet because pref pane isn't closed.\n");
+        if (!prefWindowOpened) {
+          dump("Not finishing test yet because pref pane hasn't yet appeared.\n");
           return;
         }
 
@@ -200,9 +200,7 @@ function test_multiple_windows() {
 
         ok(true, "Advanced preferences opened on info bar button press.");
         executeSoon(function soon() {
-          dump("Closing preferences.\n");
-          prefWin.close();
-          prefWindowClosed = true;
+          prefWindowOpened = true;
           maybeFinish();
         });
       }, "advanced-pane-loaded", false);
