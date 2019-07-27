@@ -76,7 +76,9 @@ enum InitialHeap {
 };
 
 
-enum class AllocKind : uint8_t {
+
+
+enum class AllocKind {
     FIRST,
     OBJECT0 = FIRST,
     OBJECT0_BACKGROUND,
