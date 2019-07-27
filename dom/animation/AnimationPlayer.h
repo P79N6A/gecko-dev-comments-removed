@@ -234,8 +234,11 @@ public:
 
   bool IsPlaying() const
   {
-    return HasInPlaySource() && 
-           PlayState() == AnimationPlayState::Running; 
+    
+    
+    return HasInPlaySource() &&
+           (PlayState() == AnimationPlayState::Running ||
+            mPendingState == PendingState::PlayPending);
   }
 
   bool IsRelevant() const { return mIsRelevant; }
