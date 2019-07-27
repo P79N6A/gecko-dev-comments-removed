@@ -4910,7 +4910,7 @@ SearchService.prototype = {
       
       
       let sendSubmissionURL =
-        /^(?:jar:|\[app\]|\[distribution\])/.test(result.loadPath);
+        /^(?:jar:)?(?:\[app\]|\[distribution\])/.test(result.loadPath);
 
       
       if (!sendSubmissionURL) {
