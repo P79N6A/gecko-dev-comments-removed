@@ -225,7 +225,6 @@ this.TelemetryEnvironment = {
   _changeListeners: new Map(),
   
   _collectTask: null,
-  _doNotify: false,
 
   
   RECORD_PREF_STATE: 1, 
@@ -238,6 +237,12 @@ this.TelemetryEnvironment = {
 
   
   _addonsListener: null,
+
+  
+  
+  
+  
+  _cachedAddons: null,
 
   
 
@@ -253,6 +258,10 @@ this.TelemetryEnvironment = {
     this._shutdown = false;
     this._startWatchingPrefs();
     this._startWatchingAddons();
+
+    AddonManager.shutdown.addBlocker("TelemetryEnvironment: caching addons",
+                                      () => this._blockAddonManagerShutdown(),
+                                      () => this._getState());
   },
 
   
@@ -275,6 +284,8 @@ this.TelemetryEnvironment = {
     this._stopWatchingAddons();
     this._changeListeners.clear();
     yield this._collectTask;
+
+    this._cachedAddons = null;
   }),
 
   _configureLog: function () {
@@ -672,7 +683,12 @@ this.TelemetryEnvironment = {
 
 
 
+
+
+
+
   _getActiveAddons: Task.async(function* () {
+
     
     let allAddons = yield promiseGetAddonsByTypes(["extension", "service"]);
 
@@ -703,6 +719,10 @@ this.TelemetryEnvironment = {
   }),
 
   
+
+
+
+
 
 
 
@@ -770,6 +790,10 @@ this.TelemetryEnvironment = {
 
 
 
+
+
+
+
   _getActiveGMPlugins: Task.async(function* () {
     
     let allPlugins = yield promiseGetAddonsByTypes(["plugin"]);
@@ -818,10 +842,20 @@ this.TelemetryEnvironment = {
 
 
 
+
+
+
+
   _getAddons: Task.async(function* () {
-    let activeAddons = yield this._getActiveAddons();
-    let activeTheme = yield this._getActiveTheme();
-    let activeGMPlugins = yield this._getActiveGMPlugins();
+    
+    
+    
+    let addons = this._cachedAddons || {};
+    if (!this._cachedAddons) {
+      addons.activeAddons = yield this._getActiveAddons();
+      addons.activeTheme = yield this._getActiveTheme();
+      addons.activeGMPlugins = yield this._getActiveGMPlugins();
+    }
 
     let personaId = null;
 #ifndef MOZ_WIDGET_GONK
@@ -832,10 +866,10 @@ this.TelemetryEnvironment = {
 #endif
 
     let addonData = {
-      activeAddons: activeAddons,
-      theme: activeTheme,
+      activeAddons: addons.activeAddons,
+      theme: addons.activeTheme,
       activePlugins: this._getActivePlugins(),
-      activeGMPlugins: activeGMPlugins,
+      activeGMPlugins: addons.activeGMPlugins,
       activeExperiment: this._getActiveExperiment(),
       persona: personaId,
     };
@@ -897,8 +931,10 @@ this.TelemetryEnvironment = {
 
 
   _stopWatchingAddons: function () {
-    AddonManager.removeAddonListener(this._addonsListener);
-    Services.obs.removeObserver(this, EXPERIMENTS_CHANGED_TOPIC);
+    if (this._addonsListener) {
+      AddonManager.removeAddonListener(this._addonsListener);
+      Services.obs.removeObserver(this, EXPERIMENTS_CHANGED_TOPIC);
+    }
     this._addonsListener = null;
   },
 
@@ -991,5 +1027,35 @@ this.TelemetryEnvironment = {
         this._log.warning("_onEnvironmentChange - listener " + name + " caught error", e);
       }
     }
+  },
+
+  
+
+
+
+  _blockAddonManagerShutdown: Task.async(function*() {
+    this._log.trace("_blockAddonManagerShutdown");
+
+    this._stopWatchingAddons();
+
+    this._cachedAddons = {
+      activeAddons: yield this._getActiveAddons(),
+      activeTheme: yield this._getActiveTheme(),
+      activeGMPlugins: yield this._getActiveGMPlugins(),
+    };
+
+    yield this._collectTask;
+  }),
+
+  
+
+
+  _getState: function() {
+    return {
+      shutdown: this._shutdown,
+      hasCollectTask: !!this._collectTask,
+      hasAddonsListener: !!this._addonsListener,
+      hasCachedAddons: !!this._cachedAddons,
+    };
   },
 };
