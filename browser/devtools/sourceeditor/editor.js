@@ -17,6 +17,7 @@ const DETECT_INDENT = "devtools.editor.detectindentation";
 const DETECT_INDENT_MAX_LINES = 500;
 const L10N_BUNDLE = "chrome://browser/locale/devtools/sourceeditor.properties";
 const XUL_NS      = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+const VALID_KEYMAPS = new Set(["emacs", "vim", "sublime"]);
 
 
 
@@ -29,6 +30,7 @@ const RE_JUMP_TO_LINE = /^(\d+):?(\d+)?/;
 
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events  = require("devtools/toolkit/event-emitter");
+const { PrefObserver } = require("devtools/styleeditor/utils");
 
 Cu.import("resource://gre/modules/Services.jsm");
 const L10N = Services.strings.createBundle(L10N_BUNDLE);
@@ -139,7 +141,6 @@ Editor.modes = {
 function Editor(config) {
   const tabSize = Services.prefs.getIntPref(TAB_SIZE);
   const useTabs = !Services.prefs.getBoolPref(EXPAND_TAB);
-  const keyMap = Services.prefs.getCharPref(KEYMAP);
   const useAutoClose = Services.prefs.getBoolPref(AUTO_CLOSE);
 
   this.version = null;
@@ -157,7 +158,8 @@ function Editor(config) {
     autoCloseEnabled:  useAutoClose,
     theme:             "mozilla",
     themeSwitching:    true,
-    autocomplete:      false
+    autocomplete:      false,
+    autocompleteOpts:  {}
   };
 
   
@@ -170,9 +172,6 @@ function Editor(config) {
   this.config.extraKeys[Editor.keyFor("indentLess")] = false;
   this.config.extraKeys[Editor.keyFor("indentMore")] = false;
 
-  
-  if (keyMap === "emacs" || keyMap === "vim" || keyMap === "sublime")
-    this.config.keyMap = keyMap;
 
   
   Object.keys(config).forEach((k) => {
@@ -200,8 +199,7 @@ function Editor(config) {
   }
 
   
-  if (!this.config.autoCloseEnabled)
-    this.config.autoCloseBrackets = false;
+  this.config.autoCloseBracketsSaved = this.config.autoCloseBrackets;
 
   
   
@@ -325,8 +323,16 @@ Editor.prototype = {
       this.container = env;
       editors.set(this, cm);
 
-      this.resetIndentUnit();
+      this.reloadPreferences = this.reloadPreferences.bind(this);
+      this._prefObserver = new PrefObserver("devtools.editor.");
+      this._prefObserver.on(TAB_SIZE, this.reloadPreferences);
+      this._prefObserver.on(EXPAND_TAB, this.reloadPreferences);
+      this._prefObserver.on(KEYMAP, this.reloadPreferences);
+      this._prefObserver.on(AUTO_CLOSE, this.reloadPreferences);
+      this._prefObserver.on(AUTOCOMPLETE, this.reloadPreferences);
+      this._prefObserver.on(DETECT_INDENT, this.reloadPreferences);
 
+      this.reloadPreferences();
       def.resolve();
     };
 
@@ -395,6 +401,28 @@ Editor.prototype = {
     cm.setValue(value);
 
     this.resetIndentUnit();
+  },
+
+  
+
+
+
+
+  reloadPreferences: function() {
+    
+    let useAutoClose = Services.prefs.getBoolPref(AUTO_CLOSE);
+    this.setOption("autoCloseBrackets",
+      useAutoClose ? this.config.autoCloseBracketsSaved : false);
+
+    
+    const keyMap = Services.prefs.getCharPref(KEYMAP);
+    if (VALID_KEYMAPS.has(keyMap))
+      this.setOption("keyMap", keyMap)
+    else
+      this.setOption("keyMap", "default");
+
+    this.resetIndentUnit();
+    this.setupAutoCompletion();
   },
 
   
@@ -878,6 +906,13 @@ Editor.prototype = {
 
   setOption: function(o, v) {
     let cm = editors.get(this);
+
+    
+    
+    if (o === "autoCloseBrackets" && v) {
+      this.config.autoCloseBracketsSaved = v;
+    }
+
     if (o === "autocomplete") {
       this.config.autocomplete = v;
       this.setupAutoCompletion();
@@ -908,7 +943,7 @@ Editor.prototype = {
 
 
 
-  setupAutoCompletion: function (options = {}) {
+  setupAutoCompletion: function () {
     
     
     if (!this.initializeAutoCompletion) {
@@ -916,7 +951,7 @@ Editor.prototype = {
     }
 
     if (this.config.autocomplete && Services.prefs.getBoolPref(AUTOCOMPLETE)) {
-      this.initializeAutoCompletion(options);
+      this.initializeAutoCompletion(this.config.autocompleteOpts);
     } else {
       this.destroyAutoCompletion();
     }
@@ -957,6 +992,17 @@ Editor.prototype = {
     this.container = null;
     this.config = null;
     this.version = null;
+
+    if (this._prefObserver) {
+      this._prefObserver.off(TAB_SIZE, this.reloadPreferences);
+      this._prefObserver.off(EXPAND_TAB, this.reloadPreferences);
+      this._prefObserver.off(KEYMAP, this.reloadPreferences);
+      this._prefObserver.off(AUTO_CLOSE, this.reloadPreferences);
+      this._prefObserver.off(AUTOCOMPLETE, this.reloadPreferences);
+      this._prefObserver.off(DETECT_INDENT, this.reloadPreferences);
+      this._prefObserver.destroy();
+    }
+
     this.emit("destroy");
   }
 };

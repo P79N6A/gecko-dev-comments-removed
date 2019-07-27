@@ -359,9 +359,14 @@ let ShadersEditorsView = {
   
 
 
-  destroy: function() {
+  destroy: Task.async(function*() {
+    this._destroyed = true;
     this._toggleListeners("off");
-  },
+    for (let p of this._editorPromises.values()) {
+      let editor = yield p;
+      editor.destroy();
+    }
+  }),
 
   
 
@@ -415,7 +420,12 @@ let ShadersEditorsView = {
     let parent = $("#" + type +"-editor");
     let editor = new Editor(DEFAULT_EDITOR_CONFIG);
     editor.config.mode = Editor.modes[type];
-    editor.appendTo(parent).then(() => deferred.resolve(editor));
+
+    if (this._destroyed) {
+      deferred.resolve(editor);
+    } else {
+      editor.appendTo(parent).then(() => deferred.resolve(editor));
+    }
 
     return deferred.promise;
   },
