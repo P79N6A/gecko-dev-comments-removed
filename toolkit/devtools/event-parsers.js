@@ -8,14 +8,13 @@
 "use strict";
 
 const {Cc, Ci, Cu} = require("chrome");
-const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 
 loader.lazyGetter(this, "eventListenerService", () => {
   return Cc["@mozilla.org/eventlistenerservice;1"]
            .getService(Ci.nsIEventListenerService);
 });
 
-let eventParsers = [
+let parsers = [
   {
     id: "jQuery events",
     getListeners: function(node) {
@@ -184,10 +183,6 @@ let eventParsers = [
   }
 ];
 
-for (let parserObj of eventParsers) {
-  gDevTools.registerEventParser(parserObj);
-}
-
 function jQueryLiveGetListeners(node, boolOnEventFound) {
   let global = node.ownerGlobal.wrappedJSObject;
   let hasJQuery = global.jQuery && global.jQuery.fn && global.jQuery.fn.jquery;
@@ -260,3 +255,109 @@ function jQueryLiveGetListeners(node, boolOnEventFound) {
   }
   return handlers;
 }
+
+this.EventParsers = function EventParsers() {
+  if (this._eventParsers.size === 0) {
+    for (let parserObj of parsers) {
+      this.registerEventParser(parserObj);
+    }
+  }
+};
+
+exports.EventParsers = EventParsers;
+
+EventParsers.prototype = {
+  _eventParsers: new Map(), 
+
+  get parsers() {
+    return this._eventParsers;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  registerEventParser: function(parserObj) {
+    let parserId = parserObj.id;
+
+    if (!parserId) {
+      throw new Error("Cannot register new event parser with id " + parserId);
+    }
+    if (this._eventParsers.has(parserId)) {
+      throw new Error("Duplicate event parser id " + parserId);
+    }
+
+    this._eventParsers.set(parserId, {
+      getListeners: parserObj.getListeners,
+      hasListeners: parserObj.hasListeners,
+      normalizeHandler: parserObj.normalizeHandler
+    });
+  },
+
+  
+
+
+
+
+
+  unregisterEventParser: function(parserId) {
+    this._eventParsers.delete(parserId);
+  },
+
+  
+
+
+  destroy: function() {
+    for (let [id] of this._eventParsers) {
+      this.unregisterEventParser(id, true);
+    }
+  }
+};

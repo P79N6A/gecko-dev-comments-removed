@@ -69,6 +69,8 @@ const {
 const {getLayoutChangesObserver, releaseLayoutChangesObserver} =
   require("devtools/server/actors/layout");
 
+const {EventParsers} = require("devtools/toolkit/event-parsers");
+
 const FONT_FAMILY_PREVIEW_TEXT = "The quick brown fox jumps over the lazy dog";
 const FONT_FAMILY_PREVIEW_TEXT_SIZE = 20;
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
@@ -188,6 +190,7 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, null);
     this.walker = walker;
     this.rawNode = node;
+    this._eventParsers = new EventParsers().parsers;
 
     
     
@@ -295,7 +298,7 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
 
 
   get _hasEventListeners() {
-    let parsers = gDevTools.eventParsers;
+    let parsers = this._eventParsers;
     for (let [,{hasListeners}] of parsers) {
       if (hasListeners && hasListeners(this.rawNode)) {
         return true;
@@ -333,7 +336,7 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
 
 
   getEventListeners: function(node) {
-    let parsers = gDevTools.eventParsers;
+    let parsers = this._eventParsers;
     let dbg = this.parent().tabActor.makeDebugger();
     let events = [];
 

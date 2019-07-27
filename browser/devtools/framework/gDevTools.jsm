@@ -29,7 +29,6 @@ const MAX_ORDINAL = 99;
 this.DevTools = function DevTools() {
   this._tools = new Map();     
   this._themes = new Map();    
-  this._eventParsers = new Map(); 
   this._toolboxes = new Map(); 
 
   
@@ -42,7 +41,7 @@ this.DevTools = function DevTools() {
 
   Services.obs.addObserver(this._teardown, "devtools-unloaded", false);
   Services.obs.addObserver(this.destroy, "quit-application", false);
-}
+};
 
 DevTools.prototype = {
   
@@ -64,10 +63,6 @@ DevTools.prototype = {
       
       Services.prefs.setBoolPref("dom.send_after_paint_to_content", false);
     }
-  },
-
-  get eventParsers() {
-    return this._eventParsers;
   },
 
   
@@ -143,85 +138,6 @@ DevTools.prototype = {
     if (!isQuitApplication) {
       this.emit("tool-unregistered", tool);
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  registerEventParser: function(parserObj) {
-    let parserId = parserObj.id;
-
-    if (!parserId) {
-      throw new Error("Cannot register new event parser with id " + parserId);
-    }
-    if (this._eventParsers.has(parserId)) {
-      throw new Error("Duplicate event parser id " + parserId);
-    }
-
-    this._eventParsers.set(parserId, {
-      getListeners: parserObj.getListeners,
-      hasListeners: parserObj.hasListeners,
-      normalizeHandler: parserObj.normalizeHandler
-    });
-  },
-
-  
-
-
-
-
-
-  unregisterEventParser: function(parserId) {
-    this._eventParsers.delete(parserId);
   },
 
   
@@ -553,10 +469,6 @@ DevTools.prototype = {
 
     for (let [key, tool] of this.getToolDefinitionMap()) {
       this.unregisterTool(key, true);
-    }
-
-    for (let [id] of this._eventParsers) {
-      this.unregisterEventParser(id, true);
     }
 
     
