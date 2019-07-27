@@ -13,6 +13,7 @@
 #include "nsIPrincipal.h"
 #include "mozilla/PeerIdentity.h"
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/CORSMode.h"
 
 class nsXPCClassInfo;
 
@@ -125,6 +126,8 @@ public:
 
 
   nsIPrincipal* GetPrincipal() { return mPrincipal; }
+  mozilla::CORSMode GetCORSMode();
+  void SetCORSMode(mozilla::CORSMode aCORSMode);
 
   
 
@@ -313,6 +316,7 @@ private:
   
   
   nsAutoPtr<PeerIdentity> mPeerIdentity;
+  CORSMode mCORSMode;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DOMMediaStream,
