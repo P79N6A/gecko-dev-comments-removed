@@ -2047,7 +2047,7 @@ ThreadActor.prototype = {
       
       if (bpActor.location.line >= aScript.startLine
           && bpActor.location.line <= endLine) {
-        source.setBreakpoint(bpActor.location);
+        source.setBreakpoint(bpActor.location, bpActor.condition);
       }
     }
 
@@ -2740,8 +2740,7 @@ SourceActor.prototype = {
       return this.setBreakpoint({
         line: loc.line,
         column: loc.column,
-        condition: condition
-      });
+      }, condition);
     }).then(response => {
       var actual = response.actualLocation;
       if (actual) {
@@ -2810,21 +2809,20 @@ SourceActor.prototype = {
 
 
 
-  _getOrCreateBreakpointActor: function (location) {
+  _getOrCreateBreakpointActor: function (location, condition) {
     let actor = this.breakpointActorMap.getActor(location);
     if (!actor) {
       actor = new BreakpointActor(this.threadActor, {
         sourceActor: this,
         line: location.line,
         column: location.column,
-        condition: location.condition
-      });
+      }, condition);
       this.threadActor.threadLifetimePool.addActor(actor);
       this.breakpointActorMap.setActor(location, actor);
       return actor;
     }
 
-    actor.condition = location.condition;
+    actor.condition = condition;
     return actor;
   },
 
@@ -2941,14 +2939,13 @@ SourceActor.prototype = {
 
 
 
-  setBreakpoint: function (aLocation) {
+  setBreakpoint: function (aLocation, aCondition) {
     const location = {
       sourceActor: this,
       line: aLocation.line,
-      column: aLocation.column,
-      condition: aLocation.condition
+      column: aLocation.column
     };
-    const actor = location.actor = this._getOrCreateBreakpointActor(location);
+    const actor = location.actor = this._getOrCreateBreakpointActor(location, aCondition);
 
     
     
@@ -4718,15 +4715,15 @@ FrameActor.prototype.requestTypes = {
 
 
 
-function BreakpointActor(aThreadActor, { sourceActor, line, column, condition })
+function BreakpointActor(aThreadActor, aLocation, aCondition)
 {
   
   
   this.scripts = new Set();
 
   this.threadActor = aThreadActor;
-  this.location = { sourceActor, line, column };
-  this.condition = condition;
+  this.location = aLocation;
+  this.condition = aCondition;
 }
 
 BreakpointActor.prototype = {
