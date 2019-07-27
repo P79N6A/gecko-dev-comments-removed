@@ -103,9 +103,9 @@ namespace layerscope {
 class LayersPacket;
 }
 
-#define MOZ_LAYER_DECL_NAME(n, e)                           \
-  virtual const char* Name() const { return n; }            \
-  virtual LayerType GetType() const { return e; }
+#define MOZ_LAYER_DECL_NAME(n, e)                              \
+  virtual const char* Name() const MOZ_OVERRIDE { return n; }  \
+  virtual LayerType GetType() const MOZ_OVERRIDE { return e; }
 
 
 
@@ -1723,11 +1723,11 @@ public:
 
   const nsIntRegion& GetValidRegion() const { return mValidRegion; }
 
-  virtual PaintedLayer* AsPaintedLayer() { return this; }
+  virtual PaintedLayer* AsPaintedLayer() MOZ_OVERRIDE { return this; }
 
   MOZ_LAYER_DECL_NAME("PaintedLayer", TYPE_PAINTED)
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) MOZ_OVERRIDE
   {
     gfx::Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
     gfx::Matrix residual;
@@ -1773,9 +1773,9 @@ protected:
     mContentFlags = 0; 
   }
 
-  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) MOZ_OVERRIDE;
 
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent) MOZ_OVERRIDE;
 
   
 
@@ -1855,17 +1855,17 @@ public:
     Mutated();
   }
 
-  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
+  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs) MOZ_OVERRIDE;
 
   void SortChildrenBy3DZOrder(nsTArray<Layer*>& aArray);
 
   
 
-  virtual ContainerLayer* AsContainerLayer() { return this; }
-  virtual const ContainerLayer* AsContainerLayer() const { return this; }
+  virtual ContainerLayer* AsContainerLayer() MOZ_OVERRIDE { return this; }
+  virtual const ContainerLayer* AsContainerLayer() const MOZ_OVERRIDE { return this; }
 
-  virtual Layer* GetFirstChild() const { return mFirstChild; }
-  virtual Layer* GetLastChild() const { return mLastChild; }
+  virtual Layer* GetFirstChild() const MOZ_OVERRIDE { return mFirstChild; }
+  virtual Layer* GetLastChild() const MOZ_OVERRIDE { return mLastChild; }
   float GetPreXScale() const { return mPreXScale; }
   float GetPreYScale() const { return mPreYScale; }
   float GetInheritedXScale() const { return mInheritedXScale; }
@@ -1879,7 +1879,7 @@ public:
 
 
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) = 0;
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) MOZ_OVERRIDE = 0;
 
   
 
@@ -1956,9 +1956,9 @@ protected:
 
   void ComputeEffectiveTransformsForChildren(const gfx::Matrix4x4& aTransformToSurface);
 
-  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) MOZ_OVERRIDE;
 
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent) MOZ_OVERRIDE;
 
   Layer* mFirstChild;
   Layer* mLastChild;
@@ -1984,7 +1984,7 @@ protected:
 
 class ColorLayer : public Layer {
 public:
-  virtual ColorLayer* AsColorLayer() { return this; }
+  virtual ColorLayer* AsColorLayer() MOZ_OVERRIDE { return this; }
 
   
 
@@ -2017,7 +2017,7 @@ public:
 
   MOZ_LAYER_DECL_NAME("ColorLayer", TYPE_COLOR)
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) MOZ_OVERRIDE
   {
     gfx::Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
     mEffectiveTransform = SnapTransformTranslation(idealTransform, nullptr);
@@ -2030,9 +2030,9 @@ protected:
       mColor(0.0, 0.0, 0.0, 0.0)
   {}
 
-  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) MOZ_OVERRIDE;
 
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent) MOZ_OVERRIDE;
 
   nsIntRect mBounds;
   gfxRGBA mColor;
@@ -2163,7 +2163,7 @@ public:
 
   MOZ_LAYER_DECL_NAME("CanvasLayer", TYPE_CANVAS)
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) MOZ_OVERRIDE
   {
     
     
@@ -2187,9 +2187,9 @@ protected:
     , mDirty(false)
   {}
 
-  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) MOZ_OVERRIDE;
 
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent) MOZ_OVERRIDE;
 
   void FireDidTransactionCallback()
   {
@@ -2239,10 +2239,10 @@ private:
   virtual bool InsertAfter(Layer* aChild, Layer* aAfter) MOZ_OVERRIDE
   { MOZ_CRASH(); return false; }
 
-  virtual bool RemoveChild(Layer* aChild)
+  virtual bool RemoveChild(Layer* aChild) MOZ_OVERRIDE
   { MOZ_CRASH(); return false; }
 
-  virtual bool RepositionChild(Layer* aChild, Layer* aAfter)
+  virtual bool RepositionChild(Layer* aChild, Layer* aAfter) MOZ_OVERRIDE
   { MOZ_CRASH(); return false; }
 
   using Layer::SetFrameMetrics;
@@ -2295,14 +2295,14 @@ public:
   }
 
   
-  virtual RefLayer* AsRefLayer() { return this; }
+  virtual RefLayer* AsRefLayer() MOZ_OVERRIDE { return this; }
 
   virtual int64_t GetReferentId() { return mId; }
 
   
 
 
-  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
+  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs) MOZ_OVERRIDE;
 
   MOZ_LAYER_DECL_NAME("RefLayer", TYPE_REF)
 
@@ -2311,9 +2311,9 @@ protected:
     : ContainerLayer(aManager, aImplData) , mId(0)
   {}
 
-  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+  virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) MOZ_OVERRIDE;
 
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent) MOZ_OVERRIDE;
 
   Layer* mTempReferent;
   

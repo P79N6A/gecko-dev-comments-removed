@@ -142,7 +142,7 @@ public:
 
 
 
-  void Connect(CompositableClient* aCompositable);
+  void Connect(CompositableClient* aCompositable) MOZ_OVERRIDE;
 
   virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData,
                                        TextureFlags aFlags) MOZ_OVERRIDE;
@@ -269,7 +269,7 @@ public:
 
 
   void UpdatePictureRect(CompositableClient* aCompositable,
-                         const nsIntRect& aRect);
+                         const nsIntRect& aRect) MOZ_OVERRIDE;
 
   
 
@@ -319,7 +319,7 @@ public:
 
   void Composite();
 
-  virtual void SendPendingAsyncMessges();
+  virtual void SendPendingAsyncMessges() MOZ_OVERRIDE;
 
   
 
