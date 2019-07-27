@@ -192,7 +192,6 @@ nsPrefetchNode::OpenChannel()
                                 nsContentUtils::GetSystemPrincipal(),
                                 nsILoadInfo::SEC_NORMAL,
                                 nsIContentPolicy::TYPE_OTHER,
-                                nullptr,  
                                 loadGroup, 
                                 this,      
                                 nsIRequest::LOAD_BACKGROUND |

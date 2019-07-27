@@ -134,7 +134,6 @@ FTPChannelParent::DoAsyncOpen(const URIParams& aURI,
                      aContentPolicyType,
                      nullptr, 
                      nullptr, 
-                     nullptr, 
                      nsIRequest::LOAD_NORMAL,
                      ios);
 
