@@ -66,17 +66,18 @@ nsresult nsVolumeMountLock::Init()
   obs->AddObserver(this, NS_VOLUME_STATE_CHANGED, true );
 
   
-  
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    ContentChild::GetSingleton()->SendBroadcastVolume(mVolumeName);
-    return NS_OK;
-  }
   nsCOMPtr<nsIVolumeService> vs = do_GetService(NS_VOLUMESERVICE_CONTRACTID);
   NS_ENSURE_TRUE(vs, NS_ERROR_FAILURE);
 
-  vs->BroadcastVolume(mVolumeName);
+  nsCOMPtr<nsIVolume> vol;
+  nsresult rv = vs->GetVolumeByName(mVolumeName, getter_AddRefs(vol));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  rv = vol->GetMountGeneration(&mVolumeGeneration);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  return NS_OK;
+  return Lock(vol);
 }
 
 
@@ -142,12 +143,18 @@ NS_IMETHODIMP nsVolumeMountLock::Observe(nsISupports* aSubject, const char* aTop
   mWakeLock = nullptr;
   mVolumeGeneration = mountGeneration;
 
+  return Lock(vol);
+}
+
+nsresult
+nsVolumeMountLock::Lock(nsIVolume* aVolume)
+{
   nsRefPtr<power::PowerManagerService> pmService =
     power::PowerManagerService::GetInstance();
   NS_ENSURE_TRUE(pmService, NS_ERROR_FAILURE);
 
   nsString mountLockName;
-  vol->GetMountLockName(mountLockName);
+  aVolume->GetMountLockName(mountLockName);
 
   ErrorResult err;
   mWakeLock = pmService->NewWakeLock(mountLockName, nullptr, err);
