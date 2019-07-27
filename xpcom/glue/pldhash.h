@@ -159,8 +159,6 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 
 
-
-
 class PLDHashTable
 {
 private:
@@ -341,6 +339,47 @@ private:
 
 
 
+
+
+
+
+
+
+
+class PLDHashTable2 : public PLDHashTable
+{
+public:
+  PLDHashTable2(const PLDHashTableOps* aOps, uint32_t aEntrySize,
+                uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+
+  PLDHashTable2(PLDHashTable2&& aOther)
+    : PLDHashTable(mozilla::Move(aOther))
+  {}
+
+  PLDHashTable2& operator=(PLDHashTable2&& aOther)
+  {
+    return static_cast<PLDHashTable2&>(
+      PLDHashTable::operator=(mozilla::Move(aOther)));
+  }
+
+  ~PLDHashTable2();
+
+  void Init(const PLDHashTableOps* aOps, uint32_t aEntrySize, uint32_t aLength)
+  {
+    MOZ_CRASH("PLDHashTable2::Init()");
+  }
+
+  void Finish() { MOZ_CRASH("PLDHashTable2::Finish()"); }
+
+private:
+  PLDHashTable2(const PLDHashTable2& aOther) = delete;
+  PLDHashTable2& operator=(const PLDHashTable2& aOther) = delete;
+};
+
+
+
+
+
 typedef PLDHashNumber (*PLDHashHashKey)(PLDHashTable* aTable,
                                         const void* aKey);
 
@@ -478,6 +517,9 @@ void PL_DHashTableDestroy(PLDHashTable* aTable);
 void PL_DHashTableInit(
   PLDHashTable* aTable, const PLDHashTableOps* aOps,
   uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
+void PL_DHashTableInit(
+  PLDHashTable2* aTable, const PLDHashTableOps* aOps,
+  uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
 
 
@@ -485,6 +527,7 @@ void PL_DHashTableInit(
 
 
 void PL_DHashTableFinish(PLDHashTable* aTable);
+void PL_DHashTableFinish(PLDHashTable2* aTable);
 
 
 
