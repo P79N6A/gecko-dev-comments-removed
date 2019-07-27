@@ -1936,6 +1936,13 @@ ContentParent::ContentParent(mozIApplication* aApp,
     
     nsDebugImpl::SetMultiprocessMode("Parent");
 
+#if defined(XP_WIN) && !defined(MOZ_B2G)
+    
+    
+    
+    GetIPCChannel()->SetChannelFlags(MessageChannel::REQUIRE_DEFERRED_MESSAGE_PROTECTION);
+#endif
+
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
     ChildPrivileges privs = aIsNuwaProcess
         ? base::PRIVILEGES_INHERIT
