@@ -33,7 +33,7 @@ loader.lazyGetter(this, "DOMParser", function() {
  return Cc["@mozilla.org/xmlextras/domparser;1"].createInstance(Ci.nsIDOMParser);
 });
 loader.lazyGetter(this, "AutocompletePopup", () => {
-  return require("devtools/shared/autocomplete-popup").AutocompletePopup
+  return require("devtools/shared/autocomplete-popup").AutocompletePopup;
 });
 
 
@@ -703,15 +703,18 @@ MarkupView.prototype = {
           }
 
           
+          
           added.forEach(added => {
             let addedContainer = this.getContainer(added);
-            addedOrEditedContainers.add(addedContainer);
+            if (addedContainer) {
+              addedOrEditedContainers.add(addedContainer);
 
-            
-            
-            
-            
-            removedContainers.delete(container);
+              
+              
+              
+              
+              removedContainers.delete(container);
+            }
           });
         }
       }
@@ -805,15 +808,41 @@ MarkupView.prototype = {
 
 
 
-  getNodeOuterHTML: function(aNode) {
-    let def = promise.defer();
-    this.walker.outerHTML(aNode).then(longstr => {
-      longstr.string().then(outerHTML => {
+
+
+  _getNodeHTML: function(aNode, isOuter) {
+    let walkerPromise = null;
+
+    if (isOuter) {
+      walkerPromise = this.walker.outerHTML(aNode);
+    } else {
+      walkerPromise = this.walker.innerHTML(aNode);
+    }
+
+    return walkerPromise.then(longstr => {
+      return longstr.string().then(html => {
         longstr.release().then(null, console.error);
-        def.resolve(outerHTML);
+        return html;
       });
     });
-    return def.promise;
+  },
+
+  
+
+
+
+
+  getNodeOuterHTML: function(aNode) {
+    return this._getNodeHTML(aNode, true);
+  },
+
+  
+
+
+
+
+  getNodeInnerHTML: function(aNode) {
+    return this._getNodeHTML(aNode);
   },
 
   
@@ -891,16 +920,17 @@ MarkupView.prototype = {
 
 
 
-  updateNodeOuterHTML: function(aNode, newValue, oldValue) {
-    let container = this._containers.get(aNode);
+
+  updateNodeOuterHTML: function(node, newValue, oldValue) {
+    let container = this.getContainer(node);
     if (!container) {
       return promise.reject();
     }
 
     
     
-    this.reselectOnRemoved(aNode, "outerhtml");
-    return this.walker.setOuterHTML(aNode, newValue).then(null, () => {
+    this.reselectOnRemoved(node, "outerhtml");
+    return this.walker.setOuterHTML(node, newValue).then(null, () => {
       this.cancelReselectOnRemoved();
     });
   },
@@ -909,8 +939,65 @@ MarkupView.prototype = {
 
 
 
+
+
+
+
+
+  updateNodeInnerHTML: function(node, newValue, oldValue) {
+    let container = this.getContainer(node);
+    if (!container) {
+      return promise.reject();
+    }
+
+    let def = promise.defer();
+
+    container.undo.do(() => {
+      this.walker.setInnerHTML(node, newValue).then(def.resolve, def.reject);
+    }, () => {
+      this.walker.setInnerHTML(node, oldValue);
+    });
+
+    return def.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  insertAdjacentHTMLToNode: function(node, position, value) {
+    let container = this.getContainer(node);
+    if (!container) {
+      return promise.reject();
+    }
+
+    let def = promise.defer();
+
+    let injectedNodes = [];
+    container.undo.do(() => {
+      this.walker.insertAdjacentHTML(node, position, value).then(nodeArray => {
+        injectedNodes = nodeArray.nodes;
+        return nodeArray;
+      }).then(def.resolve, def.reject);
+    }, () => {
+      this.walker.removeNodes(injectedNodes);
+    });
+
+    return def.promise;
+  },
+
+  
+
+
+
   beginEditingOuterHTML: function(aNode) {
-    this.getNodeOuterHTML(aNode).then((oldValue)=> {
+    this.getNodeOuterHTML(aNode).then(oldValue => {
       let container = this.getContainer(aNode);
       if (!container) {
         return;
@@ -1217,7 +1304,7 @@ MarkupView.prototype = {
     this._inspector.selection.off("new-node-front", this._boundOnNewSelection);
     this._boundOnNewSelection = null;
 
-    this.walker.off("mutations", this._boundMutationObserver)
+    this.walker.off("mutations", this._boundMutationObserver);
     this._boundMutationObserver = null;
 
     this.walker.off("display-change", this._boundOnDisplayChange);
@@ -1924,7 +2011,7 @@ function TextEditor(aContainer, aNode, aTemplate) {
           }, () => {
             this.node.setNodeValue(oldValue).then(() => {
               this.markup.nodeChanged(this.node);
-            })
+            });
           });
         });
       });
@@ -2155,7 +2242,7 @@ ElementEditor.prototype = {
             doMods.apply();
           }, () => {
             undoMods.apply();
-          })
+          });
         } catch(ex) {
           console.error(ex);
         }

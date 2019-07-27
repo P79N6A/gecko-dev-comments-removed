@@ -664,3 +664,43 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
     return promise.resolve();
   }
 }
+
+
+
+
+
+
+
+
+
+function undoChange(inspector) {
+  let canUndo = inspector.markup.undo.canUndo();
+  ok(canUndo, "The last change in the markup-view can be undone");
+  if (!canUndo) {
+    return promise.reject();
+  }
+
+  let mutated = inspector.once("markupmutation");
+  inspector.markup.undo.undo();
+  return mutated;
+}
+
+
+
+
+
+
+
+
+
+function redoChange(inspector) {
+  let canRedo = inspector.markup.undo.canRedo();
+  ok(canRedo, "The last change in the markup-view can be redone");
+  if (!canRedo) {
+    return promise.reject();
+  }
+
+  let mutated = inspector.once("markupmutation");
+  inspector.markup.undo.redo();
+  return mutated;
+}

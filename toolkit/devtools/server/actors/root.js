@@ -119,7 +119,11 @@ RootActor.prototype = {
 
   traits: {
     sources: true,
+    
     editOuterHTML: true,
+    
+    
+    pasteHTML: true,
     
     
     highlightable: true,

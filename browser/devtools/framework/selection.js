@@ -251,7 +251,7 @@ Selection.prototype = {
 
   isHTMLNode: function() {
     let xhtml_ns = "http://www.w3.org/1999/xhtml";
-    return this.isNode() && this.node.namespaceURI == xhtml_ns;
+    return this.isNode() && this.nodeFront.namespaceURI == xhtml_ns;
   },
 
   
@@ -298,6 +298,24 @@ Selection.prototype = {
 
   isDocumentNode: function() {
     return this.isNode() && this.nodeFront.nodeType == Ci.nsIDOMNode.DOCUMENT_NODE;
+  },
+
+  
+
+
+  isBodyNode: function() {
+    return this.isHTMLNode() &&
+           this.isConnected() &&
+           this.nodeFront.nodeName === "BODY";
+  },
+
+  
+
+
+  isHeadNode: function() {
+    return this.isHTMLNode() &&
+           this.isConnected() &&
+           this.nodeFront.nodeName === "HEAD";
   },
 
   isDocumentTypeNode: function() {

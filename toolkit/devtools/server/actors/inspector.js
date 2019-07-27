@@ -1042,14 +1042,7 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
 
   items: method(function(start=0, end=this.nodeList.length) {
     let items = [this.walker._ref(item) for (item of Array.prototype.slice.call(this.nodeList, start, end))];
-    let newParents = new Set();
-    for (let item of items) {
-      this.walker.ensurePathToRoot(item, newParents);
-    }
-    return {
-      nodes: items,
-      newParents: [node for (node of newParents)]
-    }
+    return this.walker.attachElements(items);
   }, {
     request: {
       start: Arg(0, "nullable:number"),
@@ -1299,12 +1292,43 @@ var WalkerActor = protocol.ActorClass({
   cancelPick: method(function() {}),
   highlight: method(function(node) {}, {request: {node: Arg(0, "nullable:domnode")}}),
 
+  
+
+
+
+
+
   attachElement: function(node) {
-    node = this._ref(node);
-    let newParents = this.ensurePathToRoot(node);
+    let { nodes, newParents } = this.attachElements([node]);
     return {
-      node: node,
-      newParents: [parent for (parent of newParents)]
+      node: nodes[0],
+      newParents: newParents
+    };
+  },
+
+  
+
+
+
+
+
+  attachElements: function(nodes) {
+    let nodeActors = [];
+    let newParents = new Set();
+    for (let node of nodes) {
+      
+      if (!(node instanceof NodeActor))
+        node = this._ref(node);
+
+      this.ensurePathToRoot(node, newParents);
+      
+      
+      nodeActors.push(node);
+    }
+
+    return {
+      nodes: nodeActors,
+      newParents: [...newParents]
     };
   },
 
@@ -2056,6 +2080,27 @@ var WalkerActor = protocol.ActorClass({
   
 
 
+
+
+
+  setInnerHTML: method(function(node, value) {
+    let rawNode = node.rawNode;
+    if (rawNode.nodeType !== rawNode.ownerDocument.ELEMENT_NODE)
+      throw new Error("Can only change innerHTML to element nodes");
+    rawNode.innerHTML = value;
+  }, {
+    request: {
+      node: Arg(0, "domnode"),
+      value: Arg(1, "string"),
+    },
+    response: {}
+  }),
+
+  
+
+
+
+
   outerHTML: method(function(node) {
     return LongStringActor(this.conn, node.rawNode.outerHTML);
   }, {
@@ -2068,6 +2113,9 @@ var WalkerActor = protocol.ActorClass({
   }),
 
   
+
+
+
 
 
   setOuterHTML: method(function(node, value) {
@@ -2117,7 +2165,7 @@ var WalkerActor = protocol.ActorClass({
   }, {
     request: {
       node: Arg(0, "domnode"),
-      value: Arg(1),
+      value: Arg(1, "string"),
     },
     response: {}
   }),
@@ -2127,17 +2175,94 @@ var WalkerActor = protocol.ActorClass({
 
 
 
+
+
+
+  insertAdjacentHTML: method(function(node, position, value) {
+    let rawNode = node.rawNode;
+    
+    
+    if (node.isDocumentElement()) {
+      throw new Error("Can't insert adjacent element to the root.");
+    }
+
+    let isInsertAsSibling = position === "beforeBegin" ||
+      position === "afterEnd";
+    if ((rawNode.tagName === "BODY" || rawNode.tagName === "HEAD") &&
+      isInsertAsSibling) {
+      throw new Error("Can't insert element before or after the body " +
+        "or the head.");
+    }
+
+    let rawParentNode = rawNode.parentNode;
+    if (!rawParentNode && isInsertAsSibling) {
+      throw new Error("Can't insert as sibling without parent node.");
+    }
+
+    
+    
+    
+    let range = rawNode.ownerDocument.createRange();
+    if (position === "beforeBegin" || position === "afterEnd") {
+      range.selectNode(rawNode);
+    } else {
+      range.selectNodeContents(rawNode);
+    }
+    let docFrag = range.createContextualFragment(value);
+    let newRawNodes = Array.from(docFrag.childNodes);
+    switch (position) {
+      case "beforeBegin":
+        rawParentNode.insertBefore(docFrag, rawNode);
+        break;
+      case "afterEnd":
+        
+        
+        rawParentNode.insertBefore(docFrag, rawNode.nextSibling);
+      case "afterBegin":
+        rawNode.insertBefore(docFrag, rawNode.firstChild);
+        break;
+      case "beforeEnd":
+        rawNode.appendChild(docFrag);
+        break;
+      default:
+        throw new Error('Invalid position value. Must be either ' +
+          '"beforeBegin", "beforeEnd", "afterBegin" or "afterEnd".');
+    }
+
+    return this.attachElements(newRawNodes);
+  }, {
+    request: {
+      node: Arg(0, "domnode"),
+      position: Arg(1, "string"),
+      value: Arg(2, "string")
+    },
+    response: RetVal("disconnectedNodeArray")
+  }),
+
+  
+
+
+
+
+
+  isDocumentOrDocumentElementNode: function(node) {
+      return ((node.rawNode.ownerDocument &&
+        node.rawNode.ownerDocument.documentElement === this.rawNode) ||
+        node.rawNode.nodeType === Ci.nsIDOMNode.DOCUMENT_NODE);
+  },
+
+  
+
+
+
+
+
   removeNode: method(function(node) {
-    if ((node.rawNode.ownerDocument &&
-         node.rawNode.ownerDocument.documentElement === this.rawNode) ||
-         node.rawNode.nodeType === Ci.nsIDOMNode.DOCUMENT_NODE) {
+    if (this.isDocumentOrDocumentElementNode(node))
       throw Error("Cannot remove document or document elements.");
-    }
     let nextSibling = this.nextSibling(node);
-    if (node.rawNode.parentNode) {
-      node.rawNode.parentNode.removeChild(node.rawNode);
-      
-    }
+    node.rawNode.remove();
+    
     return nextSibling;
   }, {
     request: {
@@ -2146,6 +2271,29 @@ var WalkerActor = protocol.ActorClass({
     response: {
       nextSibling: RetVal("nullable:domnode")
     }
+  }),
+
+  
+
+
+
+
+  removeNodes: method(function(nodes) {
+    
+    for (let node of nodes) {
+      if (this.isDocumentOrDocumentElementNode(node))
+        throw Error("Cannot remove document or document elements.");
+    }
+
+    for (let node of nodes) {
+      node.rawNode.remove();
+      
+    }
+  }, {
+    request: {
+      node: Arg(0, "array:domnode")
+    },
+    response: {}
   }),
 
   

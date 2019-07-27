@@ -57,7 +57,6 @@ function InspectorPanel(iframeWindow, toolbox) {
   this.panelDoc = iframeWindow.document;
   this.panelWin = iframeWindow;
   this.panelWin.inspector = this;
-  this._inspector = null;
 
   this._onBeforeNavigate = this._onBeforeNavigate.bind(this);
   this._target.on("will-navigate", this._onBeforeNavigate);
@@ -107,6 +106,10 @@ InspectorPanel.prototype = {
 
   get canGetUniqueSelector() {
     return this._target.client.traits.getUniqueSelector;
+  },
+
+  get canPasteInnerOrAdjacentHTML() {
+    return this._target.client.traits.pasteHTML;
   },
 
   _deferredOpen: function(defaultSelection) {
@@ -573,7 +576,7 @@ InspectorPanel.prototype = {
 
 
 
-  _getClipboardContentForOuterHTML: function Inspector_getClipboardContentForOuterHTML() {
+  _getClipboardContentForPaste: function Inspector_getClipboardContentForPaste() {
     let flavors = clipboard.currentFlavors;
     if (flavors.indexOf("text") != -1 ||
         (flavors.indexOf("html") != -1 && flavors.indexOf("image") == -1)) {
@@ -642,15 +645,34 @@ InspectorPanel.prototype = {
       editHTML.setAttribute("disabled", "true");
     }
 
-    
-    
-    
     let pasteOuterHTML = this.panelDoc.getElementById("node-menu-pasteouterhtml");
-    if (isEditableElement && this.isOuterHTMLEditable &&
-        this._getClipboardContentForOuterHTML()) {
-      pasteOuterHTML.removeAttribute("disabled");
+    let pasteInnerHTML = this.panelDoc.getElementById("node-menu-pasteinnerhtml");
+    let pasteBefore = this.panelDoc.getElementById("node-menu-pastebefore");
+    let pasteAfter = this.panelDoc.getElementById("node-menu-pasteafter");
+    let pasteFirstChild = this.panelDoc.getElementById("node-menu-pastefirstchild");
+    let pasteLastChild = this.panelDoc.getElementById("node-menu-pastelastchild");
+
+    
+    if (isEditableElement && this._getClipboardContentForPaste()) {
+      pasteInnerHTML.disabled = !this.canPasteInnerOrAdjacentHTML;
+      
+      
+      pasteOuterHTML.disabled = !this.isOuterHTMLEditable;
+      
+      pasteBefore.disabled = pasteAfter.disabled =
+        !this.canPasteInnerOrAdjacentHTML || this.selection.isRoot() ||
+        this.selection.isBodyNode() || this.selection.isHeadNode();
+      
+      pasteFirstChild.disabled = pasteLastChild.disabled =
+        !this.canPasteInnerOrAdjacentHTML || (this.selection.isHTMLNode() &&
+        this.selection.isRoot());
     } else {
-      pasteOuterHTML.setAttribute("disabled", "true");
+      pasteOuterHTML.disabled = true;
+      pasteInnerHTML.disabled = true;
+      pasteBefore.disabled = true;
+      pasteAfter.disabled = true;
+      pasteFirstChild.disabled = true;
+      pasteLastChild.disabled = true;
     }
 
     
@@ -690,7 +712,7 @@ InspectorPanel.prototype = {
     this._markupBox.setAttribute("collapsed", true);
     this._markupBox.appendChild(this._markupFrame);
     this._markupFrame.setAttribute("src", "chrome://browser/content/devtools/markup-view.xhtml");
-    this._markupFrame.setAttribute("aria-label", this.strings.GetStringFromName("inspector.panelLabel.markupView"))
+    this._markupFrame.setAttribute("aria-label", this.strings.GetStringFromName("inspector.panelLabel.markupView"));
   },
 
   _onMarkupFrameLoad: function InspectorPanel__onMarkupFrameLoad() {
@@ -773,8 +795,7 @@ InspectorPanel.prototype = {
   
 
 
-  editHTML: function InspectorPanel_editHTML()
-  {
+  editHTML: function InspectorPanel_editHTML() {
     if (!this.selection.isNode()) {
       return;
     }
@@ -786,22 +807,49 @@ InspectorPanel.prototype = {
   
 
 
-  pasteOuterHTML: function InspectorPanel_pasteOuterHTML()
-  {
-    let content = this._getClipboardContentForOuterHTML();
-    if (content) {
-      let node = this.selection.nodeFront;
-      this.markup.getNodeOuterHTML(node).then((oldContent) => {
-        this.markup.updateNodeOuterHTML(node, content, oldContent);
-      });
-    }
+  pasteOuterHTML: function InspectorPanel_pasteOuterHTML() {
+    let content = this._getClipboardContentForPaste();
+    if (!content)
+      return promise.reject("No clipboard content for paste");
+
+    let node = this.selection.nodeFront;
+    return this.markup.getNodeOuterHTML(node).then(oldContent => {
+      this.markup.updateNodeOuterHTML(node, content, oldContent);
+    });
   },
 
   
 
 
-  copyInnerHTML: function InspectorPanel_copyInnerHTML()
-  {
+  pasteInnerHTML: function InspectorPanel_pasteInnerHTML() {
+    let content = this._getClipboardContentForPaste();
+    if (!content)
+      return promise.reject("No clipboard content for paste");
+
+    let node = this.selection.nodeFront;
+    return this.markup.getNodeInnerHTML(node).then(oldContent => {
+      this.markup.updateNodeInnerHTML(node, content, oldContent);
+    });
+  },
+
+  
+
+
+
+
+  pasteAdjacentHTML: function InspectorPanel_pasteAdjacent(position) {
+    let content = this._getClipboardContentForPaste();
+    if (!content)
+      return promise.reject("No clipboard content for paste");
+
+    let node = this.selection.nodeFront;
+    return this.markup.insertAdjacentHTMLToNode(node, position, content);
+  },
+
+  
+
+
+  copyInnerHTML: function InspectorPanel_copyInnerHTML() {
     if (!this.selection.isNode()) {
       return;
     }
