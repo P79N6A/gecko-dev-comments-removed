@@ -60,3 +60,37 @@ nsRubyTextFrame::IsFrameOfType(uint32_t aFlags) const
   }
   return nsRubyTextFrameSuper::IsFrameOfType(aFlags);
 }
+
+
+ void
+nsRubyTextFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                                  const nsRect&           aDirtyRect,
+                                  const nsDisplayListSet& aLists)
+{
+  if (GetStateBits() & NS_RUBY_TEXT_FRAME_AUTOHIDE) {
+    return;
+  }
+
+  nsRubyTextFrameSuper::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+}
+
+ void
+nsRubyTextFrame::Reflow(nsPresContext* aPresContext,
+                        nsHTMLReflowMetrics& aDesiredSize,
+                        const nsHTMLReflowState& aReflowState,
+                        nsReflowStatus& aStatus)
+{
+  
+  
+  
+  
+  
+  
+  nsRubyTextFrameSuper::Reflow(aPresContext, aDesiredSize,
+                               aReflowState, aStatus);
+
+  if (GetStateBits() & NS_RUBY_TEXT_FRAME_AUTOHIDE) {
+    aDesiredSize.ClearSize();
+    aDesiredSize.SetOverflowAreasToDesiredBounds();
+  }
+}
