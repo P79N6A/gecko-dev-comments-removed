@@ -1755,8 +1755,7 @@ class Mochitest(MochitestUtilsMixin):
     self.setTestRoot(options)
 
     
-    if options.browserChrome or options.chrome or options.subsuite or \
-       options.a11y:
+    if options.browserChrome:
       options.runByDir = True
 
     if not options.runByDir:
