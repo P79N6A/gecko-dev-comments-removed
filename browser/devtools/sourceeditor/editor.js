@@ -618,6 +618,32 @@ Editor.prototype = {
     cm.lineInfo(line).gutterMarkers[gutterName].classList.remove(markerClass);
   },
 
+  
+
+
+
+
+  addContentMarker: function (line, gutterName, markerClass, content) {
+    let cm = editors.get(this);
+    let info = cm.lineInfo(line);
+    if (!info)
+      return;
+
+    let marker = cm.getWrapperElement().ownerDocument.createElement("div");
+    marker.className = markerClass;
+    marker.innerHTML = content;
+    cm.setGutterMarker(info.line, gutterName, marker);
+  },
+
+  
+
+
+
+  removeContentMarker: function (line, gutterName) {
+    let cm = editors.get(this);
+    cm.setGutterMarker(info.line, gutterName, null);
+  },
+
   getMarker: function(line, gutterName) {
     let cm = editors.get(this);
     let info = cm.lineInfo(line);

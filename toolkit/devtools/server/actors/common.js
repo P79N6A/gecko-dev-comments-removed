@@ -166,3 +166,27 @@ ActorPool.prototype = {
 
 exports.ActorPool = ActorPool;
 
+
+
+exports.getOffsetColumn = function getOffsetColumn(aOffset, aScript) {
+  let bestOffsetMapping = null;
+  for (let offsetMapping of aScript.getAllColumnOffsets()) {
+    if (!bestOffsetMapping ||
+        (offsetMapping.offset <= aOffset &&
+         offsetMapping.offset > bestOffsetMapping.offset)) {
+      bestOffsetMapping = offsetMapping;
+    }
+  }
+
+  if (!bestOffsetMapping) {
+    
+    
+    
+    
+    reportError(new Error("Could not find a column for offset " + aOffset
+                          + " in the script " + aScript));
+    return 0;
+  }
+
+  return bestOffsetMapping.columnNumber;
+}

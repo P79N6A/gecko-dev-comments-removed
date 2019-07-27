@@ -1171,6 +1171,7 @@ SourceScripts.prototype = {
     
     DebuggerController.Breakpoints.updatePaneBreakpoints();
     DebuggerController.Breakpoints.updateEditorBreakpoints();
+    DebuggerController.HitCounts.updateEditorHitCounts();
 
     
     if (DebuggerView.instrumentsPaneTab == "events-tab") {
@@ -1223,6 +1224,7 @@ SourceScripts.prototype = {
     
     DebuggerController.Breakpoints.updatePaneBreakpoints();
     DebuggerController.Breakpoints.updateEditorBreakpoints();
+    DebuggerController.HitCounts.updateEditorHitCounts();
 
     
     window.emit(EVENTS.SOURCES_ADDED);
@@ -1488,6 +1490,7 @@ Tracer.prototype = {
     let fields = [
       "name",
       "location",
+      "hitCount",
       "parameterNames",
       "depth",
       "arguments",
@@ -1521,6 +1524,7 @@ Tracer.prototype = {
       }
 
       this._trace = null;
+      DebuggerController.HitCounts.clear();
       aCallback(aResponse);
     });
   },
@@ -1529,6 +1533,15 @@ Tracer.prototype = {
     const tracesLength = traces.length;
     let tracesToShow;
 
+    
+    for (let t of traces) {
+      if (t.type == "enteredFrame") {
+        DebuggerController.HitCounts.set(t.location, t.hitCount);
+      }
+    }
+    DebuggerController.HitCounts.updateEditorHitCounts();
+
+    
     if (tracesLength > TracerView.MAX_TRACES) {
       tracesToShow = traces.slice(tracesLength - TracerView.MAX_TRACES, tracesLength);
       this._stack.splice(0, this._stack.length);
@@ -1537,6 +1550,7 @@ Tracer.prototype = {
       tracesToShow = traces;
     }
 
+    
     for (let t of tracesToShow) {
       if (t.type == "enteredFrame") {
         this._onCall(t);
@@ -1544,7 +1558,6 @@ Tracer.prototype = {
         this._onReturn(t);
       }
     }
-
     DebuggerView.Tracer.commit();
   },
 
@@ -2227,6 +2240,84 @@ Object.defineProperty(Breakpoints.prototype, "_addedOrDisabled", {
 
 
 
+function HitCounts() {
+  
+
+
+
+  this._hitCounts = Object.create(null);
+}
+
+HitCounts.prototype = {
+  set: function({url, line, column}, aHitCount) {
+    if (!this._hitCounts[url]) {
+      this._hitCounts[url] = Object.create(null);
+    }
+    if (!this._hitCounts[url][line]) {
+      this._hitCounts[url][line] = Object.create(null);
+    }
+    this._hitCounts[url][line][column] = aHitCount;
+  },
+
+  
+
+
+
+
+  updateEditorHitCounts: function() {
+    
+    DebuggerView.editor.removeAllMarkers("hit-counts");
+
+    
+    for (let url in this._hitCounts) {
+      for (let line in this._hitCounts[url]) {
+        for (let column in this._hitCounts[url][line]) {
+          this._updateEditorHitCount({url, line, column});
+        }
+      }
+    }
+  },
+
+  
+
+
+  _updateEditorHitCount: function({url, line, column}) {
+    
+    if (!DebuggerView.editor) {
+      return;
+    }
+
+    
+    
+    if (DebuggerView.Sources.selectedValue != url) {
+      return;
+    }
+
+    
+    
+    let content = Object.keys(this._hitCounts[url][line])
+                    .sort() 
+                    .map(a => this._hitCounts[url][line][a]) 
+                    .map(a => a + "\u00D7") 
+                    .join("|");
+
+    
+    DebuggerView.editor.addContentMarker(line - 1, "hit-counts", "hit-count",
+                                         content);
+  },
+
+  
+
+
+  clear: function() {
+    DebuggerView.editor.removeAllMarkers("hit-counts");
+    this._hitCounts = Object.create(null);
+  }
+}
+
+
+
+
 let L10N = new ViewHelpers.L10N(DBG_STRINGS_URI);
 
 
@@ -2265,6 +2356,7 @@ DebuggerController.SourceScripts = new SourceScripts();
 DebuggerController.Breakpoints = new Breakpoints();
 DebuggerController.Breakpoints.DOM = new EventListeners();
 DebuggerController.Tracer = new Tracer();
+DebuggerController.HitCounts = new HitCounts();
 
 
 

@@ -8,7 +8,7 @@
 
 const Services = require("Services");
 const { Cc, Ci, Cu, components, ChromeWorker } = require("chrome");
-const { ActorPool } = require("devtools/server/actors/common");
+const { ActorPool, getOffsetColumn } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 const { dbg_assert, dumpn, update } = DevToolsUtils;
@@ -5225,31 +5225,6 @@ ThreadSources.prototype = {
 exports.ThreadSources = ThreadSources;
 
 
-
-
-
-function getOffsetColumn(aOffset, aScript) {
-  let bestOffsetMapping = null;
-  for (let offsetMapping of aScript.getAllColumnOffsets()) {
-    if (!bestOffsetMapping ||
-        (offsetMapping.offset <= aOffset &&
-         offsetMapping.offset > bestOffsetMapping.offset)) {
-      bestOffsetMapping = offsetMapping;
-    }
-  }
-
-  if (!bestOffsetMapping) {
-    
-    
-    
-    
-    reportError(new Error("Could not find a column for offset " + aOffset
-                          + " in the script " + aScript));
-    return 0;
-  }
-
-  return bestOffsetMapping.columnNumber;
-}
 
 
 
