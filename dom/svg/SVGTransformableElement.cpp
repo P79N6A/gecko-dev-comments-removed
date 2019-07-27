@@ -56,12 +56,11 @@ SVGTransformableElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
     nsSVGElement::GetAttributeChangeHint(aAttribute, aModType);
   if (aAttribute == nsGkAtoms::transform ||
       aAttribute == nsGkAtoms::mozAnimateMotionDummyAttr) {
-    
-    
     nsIFrame* frame =
       const_cast<SVGTransformableElement*>(this)->GetPrimaryFrame();
+    NS_UpdateHint(retval, nsChangeHint_InvalidateRenderingObservers);
     if (!frame || (frame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
-      return retval; 
+      return retval;
     }
     if (aModType == nsIDOMMutationEvent::ADDITION ||
         aModType == nsIDOMMutationEvent::REMOVAL ||
