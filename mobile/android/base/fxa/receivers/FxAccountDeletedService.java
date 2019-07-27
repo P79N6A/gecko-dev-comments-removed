@@ -9,6 +9,8 @@ import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.sync.FxAccountNotificationManager;
 import org.mozilla.gecko.fxa.sync.FxAccountSyncAdapter;
 import org.mozilla.gecko.sync.config.AccountPickler;
+import org.mozilla.gecko.sync.repositories.android.AndroidBrowserHistoryDataExtender;
+import org.mozilla.gecko.sync.repositories.android.ClientsDatabase;
 import org.mozilla.gecko.sync.repositories.android.FennecTabsRepository;
 
 import android.app.IntentService;
@@ -63,8 +65,42 @@ public class FxAccountDeletedService extends IntentService {
     deletePickle(context);
 
     
-    Logger.info(LOG_TAG, "Deleting the entire clients database and non-local tabs");
+    Logger.info(LOG_TAG, "Deleting the entire Fennec clients database and non-local tabs");
     FennecTabsRepository.deleteNonLocalClientsAndTabs(context);
+
+
+    
+    try {
+      Logger.info(LOG_TAG, "Deleting the Firefox Sync clients database.");
+      ClientsDatabase db = null;
+      try {
+        db = new ClientsDatabase(context);
+        db.wipeClientsTable();
+        db.wipeCommandsTable();
+      } finally {
+        if (db != null) {
+          db.close();
+        }
+      }
+    } catch (Exception e) {
+      Logger.warn(LOG_TAG, "Got exception deleting the Firefox Sync clients database; ignoring.", e);
+    }
+
+    
+    try {
+      Logger.info(LOG_TAG, "Deleting the Firefox Sync extended history database.");
+      AndroidBrowserHistoryDataExtender historyDataExtender = null;
+      try {
+        historyDataExtender = new AndroidBrowserHistoryDataExtender(context);
+        historyDataExtender.wipe();
+      } finally {
+        if (historyDataExtender != null) {
+          historyDataExtender.close();
+        }
+      }
+    } catch (Exception e) {
+      Logger.warn(LOG_TAG, "Got exception deleting the Firefox Sync extended history database; ignoring.", e);
+    }
 
     
     new FxAccountNotificationManager(FxAccountSyncAdapter.NOTIFICATION_ID).clear(context);
