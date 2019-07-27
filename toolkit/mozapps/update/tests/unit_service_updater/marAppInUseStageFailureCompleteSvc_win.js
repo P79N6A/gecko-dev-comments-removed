@@ -5,7 +5,7 @@
 
 
 const START_STATE = STATE_PENDING_SVC;
-const END_STATE = STATE_FAILED_WRITE_ERROR;
+const END_STATE = STATE_PENDING;
 
 function run_test() {
   if (!shouldRunServiceTest()) {
@@ -43,7 +43,6 @@ function checkUpdateFinished() {
   
   gStageUpdate = false;
   gSwitchApp = true;
-  gDisableReplaceFallback = true;
   runUpdate(1, END_STATE, checkUpdateApplied);
 }
 
@@ -52,8 +51,9 @@ function checkUpdateApplied() {
 }
 
 function checkUpdate() {
-  checkFilesAfterUpdateFailure(getApplyDirFile, true, false);
+  checkFilesAfterUpdateFailure(getApplyDirFile, false, false);
   checkUpdateLogContains(ERR_RENAME_FILE);
+  checkUpdateLogContains(ERR_MOVE_DESTDIR_7);
   standardInit();
   checkCallbackAppLog();
 }

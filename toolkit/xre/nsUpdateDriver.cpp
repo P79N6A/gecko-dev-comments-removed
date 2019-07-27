@@ -1012,7 +1012,7 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
     return rv;
  
   ProcessType dummyPID; 
-  const char *processingUpdates = PR_GetEnv("MOZ_PROCESS_UPDATES");
+  const char *processingUpdates = PR_GetEnv("MOZ_TEST_PROCESS_UPDATES");
   if (processingUpdates && *processingUpdates) {
     
     const char *stagingUpdate = PR_GetEnv("MOZ_UPDATE_STAGING");

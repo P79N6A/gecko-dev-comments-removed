@@ -3813,7 +3813,7 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
 
   
   
-  if (EnvHasValue("MOZ_PROCESS_UPDATES")) {
+  if (EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
     
     
     
@@ -3836,8 +3836,8 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   
   
   
-  if (CheckArg("process-updates")) {
-    SaveToEnv("MOZ_PROCESS_UPDATES=1");
+  if (CheckArg("test-process-updates")) {
+    SaveToEnv("MOZ_TEST_PROCESS_UPDATES=1");
   }
   nsCOMPtr<nsIFile> exeFile, exeDir;
   rv = mDirProvider.GetFile(XRE_EXECUTABLE_FILE, &persistent,
@@ -3851,8 +3851,8 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
                  gRestartArgc,
                  gRestartArgv,
                  mAppData->version);
-  if (EnvHasValue("MOZ_PROCESS_UPDATES")) {
-    SaveToEnv("MOZ_PROCESS_UPDATES=");
+  if (EnvHasValue("MOZ_TEST_PROCESS_UPDATES")) {
+    SaveToEnv("MOZ_TEST_PROCESS_UPDATES=");
     *aExitFlag = true;
     return 0;
   }

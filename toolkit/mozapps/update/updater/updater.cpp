@@ -345,6 +345,13 @@ mstrtok(const NS_tchar *delims, NS_tchar **str)
   return ret;
 }
 
+static bool
+EnvHasValue(const char *name)
+{
+  const char *val = getenv(name);
+  return (val && *val);
+}
+
 #ifdef XP_WIN
 
 
@@ -2266,7 +2273,7 @@ UpdateThreadFunc(void *param)
       
       
       
-      if (getenv("MOZ_TEST_SKIP_UPDATE_STAGE")) {
+      if (EnvHasValue("MOZ_TEST_SKIP_UPDATE_STAGE")) {
         rv = OK;
       } else {
         rv = CopyInstallDirToDestDir();
@@ -2286,12 +2293,7 @@ UpdateThreadFunc(void *param)
     }
   }
 
-  bool reportRealResults = true;
-  if (sReplaceRequest && rv && !getenv("MOZ_NO_REPLACE_FALLBACK")) {
-    
-    
-    
-    
+  if (sReplaceRequest && rv) {
     
     
     
@@ -2301,16 +2303,14 @@ UpdateThreadFunc(void *param)
     
     ensure_remove_recursive(gWorkingDirPath);
     WriteStatusFile(sUsingService ? "pending-service" : "pending");
+#ifdef TEST_UPDATER
     
-    putenv(const_cast<char*>("MOZ_PROCESS_UPDATES="));
-    reportRealResults = false; 
-  }
-
-  if (reportRealResults) {
+    putenv(const_cast<char*>("MOZ_TEST_PROCESS_UPDATES="));
+#endif
+  } else {
     if (rv) {
       LOG(("failed: %d", rv));
-    }
-    else {
+    } else {
 #ifdef XP_MACOSX
       
       
@@ -2332,7 +2332,7 @@ UpdateThreadFunc(void *param)
 int NS_main(int argc, NS_tchar **argv)
 {
 #if defined(MOZ_WIDGET_GONK)
-  if (getenv("LD_PRELOAD")) {
+  if (EnvHasValue("LD_PRELOAD")) {
     
     
     
@@ -2399,7 +2399,7 @@ int NS_main(int argc, NS_tchar **argv)
 #ifdef XP_WIN
   bool useService = false;
   bool testOnlyFallbackKeyExists = false;
-  bool noServiceFallback = getenv("MOZ_NO_SERVICE_FALLBACK") != nullptr;
+  bool noServiceFallback = EnvHasValue("MOZ_NO_SERVICE_FALLBACK");
   putenv(const_cast<char*>("MOZ_NO_SERVICE_FALLBACK="));
 
   
@@ -2465,7 +2465,7 @@ int NS_main(int argc, NS_tchar **argv)
     *slash = NS_T('\0');
   }
 
-  if (getenv("MOZ_OS_UPDATE")) {
+  if (EnvHasValue("MOZ_OS_UPDATE")) {
     sIsOSUpdate = true;
     putenv(const_cast<char*>("MOZ_OS_UPDATE="));
   }
@@ -2572,7 +2572,7 @@ int NS_main(int argc, NS_tchar **argv)
   const int callbackIndex = 6;
 
 #if defined(XP_WIN)
-  sUsingService = getenv("MOZ_USING_SERVICE") != nullptr;
+  sUsingService = EnvHasValue("MOZ_USING_SERVICE");
   putenv(const_cast<char*>("MOZ_USING_SERVICE="));
   
   
@@ -3217,13 +3217,10 @@ int NS_main(int argc, NS_tchar **argv)
       LaunchMacPostProcess(gInstallDirPath);
     }
 #endif 
-
-    if (getenv("MOZ_PROCESS_UPDATES") == nullptr) {
-      LaunchCallbackApp(argv[5],
-                        argc - callbackIndex,
-                        argv + callbackIndex,
-                        sUsingService);
-    }
+    LaunchCallbackApp(argv[5],
+                      argc - callbackIndex,
+                      argv + callbackIndex,
+                      sUsingService);
   }
 
   return gSucceeded ? 0 : 1;
