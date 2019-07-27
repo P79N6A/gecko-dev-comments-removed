@@ -152,7 +152,7 @@ protected:
   
   virtual void resourceReserved();
   
-  virtual void resourceCanceled() {}
+  virtual void resourceCanceled();
 
 private:
   

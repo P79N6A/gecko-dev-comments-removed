@@ -170,9 +170,6 @@ public:
   virtual nsRefPtr<MetadataPromise> AsyncReadMetadata();
 
   
-  virtual void PreReadMetadata() {};
-
-  
   
   
   

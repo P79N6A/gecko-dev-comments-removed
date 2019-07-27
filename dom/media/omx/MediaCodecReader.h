@@ -52,6 +52,7 @@ class MediaCodecReader : public MediaOmxCommonReader
 {
   typedef mozilla::layers::TextureClient TextureClient;
   typedef mozilla::layers::FenceHandle FenceHandle;
+  typedef MediaOmxCommonReader::MediaResourcePromise MediaResourcePromise;
 
 public:
   MediaCodecReader(AbstractMediaDecoder* aDecoder);
@@ -60,9 +61,6 @@ public:
   
   
   virtual nsresult Init(MediaDecoderReader* aCloneDonor);
-
-  
-  virtual bool IsWaitingMediaResources();
 
   
   virtual bool IsDormantNeeded() { return true;}
@@ -94,13 +92,7 @@ public:
   virtual bool HasAudio();
   virtual bool HasVideo();
 
-  virtual void PreReadMetadata() override;
-  
-  
-  
-  
-  virtual nsresult ReadMetadata(MediaInfo* aInfo,
-                                MetadataTags** aTags);
+  virtual nsRefPtr<MediaDecoderReader::MetadataPromise> AsyncReadMetadata() override;
 
   
   
@@ -184,14 +176,14 @@ protected:
 
   virtual bool CreateExtractor();
 
-  
-  
-  void UpdateIsWaitingMediaResources();
+  virtual void HandleResourceAllocated();
 
   android::sp<android::MediaExtractor> mExtractor;
+
+  MediaPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
   
-  
-  bool mIsWaitingResources;
+  MediaPromiseConsumerHolder<MediaResourcePromise> mMediaResourceRequest;
+  MediaPromiseHolder<MediaResourcePromise> mMediaResourcePromise;
 
 private:
 
@@ -339,7 +331,7 @@ private:
   MediaCodecReader() = delete;
   const MediaCodecReader& operator=(const MediaCodecReader& rhs) = delete;
 
-  bool ReallocateResources();
+  bool ReallocateExtractorResources();
   void ReleaseCriticalResources();
   void ReleaseResources();
 
@@ -351,10 +343,11 @@ private:
   bool CreateMediaSources();
   void DestroyMediaSources();
 
-  bool CreateMediaCodecs();
+  nsRefPtr<MediaResourcePromise> CreateMediaCodecs();
   static bool CreateMediaCodec(android::sp<android::ALooper>& aLooper,
                                Track& aTrack,
                                bool aAsync,
+                               bool& aIsWaiting,
                                android::wp<android::MediaCodecProxy::CodecResourceListener> aListener);
   static bool ConfigureMediaCodec(Track& aTrack);
   void DestroyMediaCodecs();

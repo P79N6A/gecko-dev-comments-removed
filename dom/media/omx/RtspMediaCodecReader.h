@@ -58,8 +58,10 @@ public:
   
   virtual nsRefPtr<AudioDataPromise> RequestAudioData() override;
 
-  virtual nsresult ReadMetadata(MediaInfo* aInfo,
-                                MetadataTags** aTags) override;
+  virtual nsRefPtr<MediaDecoderReader::MetadataPromise> AsyncReadMetadata()
+    override;
+
+  virtual void HandleResourceAllocated() override;
 
 private:
   
