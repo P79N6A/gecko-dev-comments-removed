@@ -15,7 +15,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "CubebUtils.h"
-#include "soundtouch/SoundTouch.h"
+#include "soundtouch/SoundTouchFactory.h"
 
 namespace mozilla {
 
@@ -329,7 +329,7 @@ private:
   
   int64_t mWritten;
   AudioClock mAudioClock;
-  nsAutoPtr<soundtouch::SoundTouch> mTimeStretcher;
+  soundtouch::SoundTouch* mTimeStretcher;
   nsRefPtr<AsyncLatencyLogger> mLatencyLog;
 
   
