@@ -2930,25 +2930,35 @@ GCRuntime::refillFreeListInGC(Zone *zone, AllocKind thingKind)
     return allocator.arenas.allocateFromArena(zone, thingKind);
 }
 
+ int64_t
+SliceBudget::TimeBudget(int64_t millis)
+{
+    return millis * PRMJ_USEC_PER_MSEC;
+}
+
+ int64_t
+SliceBudget::WorkBudget(int64_t work)
+{
+    
+    return -work - 1;
+}
+
 SliceBudget::SliceBudget()
 {
     reset();
 }
 
-SliceBudget::SliceBudget(TimeBudget time)
+SliceBudget::SliceBudget(int64_t budget)
 {
-    if (time.budget == Unlimited) {
+    if (budget == Unlimited) {
         reset();
-    } else {
-        deadline = PRMJ_Now() + time.budget * PRMJ_USEC_PER_MSEC;
+    } else if (budget > 0) {
+        deadline = PRMJ_Now() + budget;
         counter = CounterReset;
+    } else {
+        deadline = 0;
+        counter = -budget - 1;
     }
-}
-
-SliceBudget::SliceBudget(WorkBudget work)
-{
-    deadline = 0;
-    counter = work.budget;
 }
 
 bool
@@ -6107,13 +6117,13 @@ GCRuntime::gcSlice(JSGCInvocationKind gckind, JS::gcreason::Reason reason, int64
 {
     SliceBudget budget;
     if (millis)
-        budget = SliceBudget(TimeBudget(millis));
+        budget = SliceBudget(SliceBudget::TimeBudget(millis));
     else if (reason == JS::gcreason::ALLOC_TRIGGER)
-        budget = SliceBudget(TimeBudget(sliceBudget));
+        budget = SliceBudget(SliceBudget::TimeBudget(sliceBudget));
     else if (schedulingState.inHighFrequencyGCMode() && tunables.isDynamicMarkSliceEnabled())
-        budget = SliceBudget(TimeBudget(sliceBudget * IGC_MARK_SLICE_MULTIPLIER));
+        budget = SliceBudget(SliceBudget::TimeBudget(sliceBudget * IGC_MARK_SLICE_MULTIPLIER));
     else
-        budget = SliceBudget(TimeBudget(sliceBudget));
+        budget = SliceBudget(SliceBudget::TimeBudget(sliceBudget));
 
     collect(true, budget, gckind, reason);
 }
@@ -6444,10 +6454,10 @@ GCRuntime::runDebugGC()
                 incrementalLimit = zealFrequency / 2;
             else
                 incrementalLimit *= 2;
-            budget = SliceBudget(WorkBudget(incrementalLimit));
+            budget = SliceBudget(SliceBudget::WorkBudget(incrementalLimit));
         } else {
             
-            budget = SliceBudget(WorkBudget(1));
+            budget = SliceBudget(SliceBudget::WorkBudget(1));
         }
 
         collect(true, budget, GC_NORMAL, JS::gcreason::DEBUG_GC);

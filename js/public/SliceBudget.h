@@ -11,20 +11,6 @@
 
 namespace js {
 
-struct JS_PUBLIC_API(TimeBudget)
-{
-    int64_t budget;
-
-    explicit TimeBudget(int64_t milliseconds) { budget = milliseconds; }
-};
-
-struct JS_PUBLIC_API(WorkBudget)
-{
-    int64_t budget;
-
-    explicit WorkBudget(int64_t work) { budget = work; }
-};
-
 
 
 
@@ -39,15 +25,14 @@ struct JS_PUBLIC_API(SliceBudget)
     static const intptr_t CounterReset = 1000;
 
     static const int64_t Unlimited = 0;
+    static int64_t TimeBudget(int64_t millis);
+    static int64_t WorkBudget(int64_t work);
 
     
     SliceBudget();
 
     
-    explicit SliceBudget(TimeBudget time);
-
-    
-    explicit SliceBudget(WorkBudget work);
+    explicit SliceBudget(int64_t budget);
 
     void reset() {
         deadline = unlimitedDeadline;
@@ -57,6 +42,8 @@ struct JS_PUBLIC_API(SliceBudget)
     void step(intptr_t amt = 1) {
         counter -= amt;
     }
+
+    bool checkOverBudget();
 
     bool isOverBudget() {
         if (counter >= 0)
@@ -68,11 +55,10 @@ struct JS_PUBLIC_API(SliceBudget)
         return deadline == unlimitedDeadline;
     }
 
-  private:
-    bool checkOverBudget();
-
+private:
     static const int64_t unlimitedDeadline = INT64_MAX;
     static const intptr_t unlimitedStartCounter = INTPTR_MAX;
+
 };
 
 } 
