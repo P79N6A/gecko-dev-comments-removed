@@ -279,6 +279,17 @@ let ProcessHangMonitor = {
     }
 
     
+    
+    if (report.hangType == report.SLOW_SCRIPT) {
+      
+      Services.telemetry.getHistogramById("SLOW_SCRIPT_NOTICE_COUNT").add();
+    } else if (report.hangType == report.PLUGIN_HANG) {
+      
+      
+      Services.telemetry.getHistogramById("PLUGIN_HANG_NOTICE_COUNT").add();
+    }
+
+    
     let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     timer.initWithCallback(this, HANG_EXPIRATION_TIME, timer.TYPE_ONE_SHOT);
 
