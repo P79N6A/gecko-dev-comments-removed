@@ -490,6 +490,16 @@ class CompileInfo
     
     
     bool isRecoverableOperand(uint32_t slot) const {
+        
+        
+        
+        if (!funMaybeLazy())
+            return true;
+
+        
+        if (slot == thisSlot())
+            return true;
+
         if (isObservableFrameSlot(slot))
             return false;
 
