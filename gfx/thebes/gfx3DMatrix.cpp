@@ -573,9 +573,19 @@ gfx3DMatrix::Inverse() const
 gfxPoint
 gfx3DMatrix::Transform(const gfxPoint& point) const
 {
-  Point3D vec3d(point.x, point.y, 0);
-  vec3d = Transform3D(vec3d);
-  return gfxPoint(vec3d.x, vec3d.y);
+  
+  
+  gfxFloat px = point.x;
+  gfxFloat py = point.y;
+
+  gfxFloat x = px * _11 + py * _21 + _41;
+  gfxFloat y = px * _12 + py * _22 + _42;
+  gfxFloat w = px * _14 + py * _24 + _44;
+
+  x /= w;
+  y /= w;
+
+  return gfxPoint(x, y);
 }
 
 Point3D
