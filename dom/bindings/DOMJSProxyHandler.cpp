@@ -184,6 +184,16 @@ BaseDOMProxyHandler::getPropertyDescriptor(JSContext* cx,
 }
 
 bool
+BaseDOMProxyHandler::getOwnPropertyDescriptor(JSContext* cx,
+                                              JS::Handle<JSObject*> proxy,
+                                              JS::Handle<jsid> id,
+                                              MutableHandle<JSPropertyDescriptor> desc) const
+{
+  return getOwnPropDescriptor(cx, proxy, id,  false,
+                              desc);
+}
+
+bool
 DOMProxyHandler::defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                                 MutableHandle<JSPropertyDescriptor> desc, bool* defined) const
 {
@@ -221,7 +231,30 @@ DOMProxyHandler::set(JSContext *cx, Handle<JSObject*> proxy, Handle<JSObject*> r
   if (done) {
     return true;
   }
-  return mozilla::dom::BaseDOMProxyHandler::set(cx, proxy, receiver, id, strict, vp);
+
+  
+  
+  JS::Rooted<JSPropertyDescriptor> desc(cx);
+  if (!getOwnPropDescriptor(cx, proxy, id,  true,
+                            &desc)) {
+    return false;
+  }
+  bool descIsOwn = desc.object() != nullptr;
+  if (!desc.object()) {
+    
+    
+    
+    JS::Rooted<JSObject*> proto(cx);
+    if (!js::GetObjectProto(cx, proxy, &proto)) {
+      return false;
+    }
+    if (proto && !JS_GetPropertyDescriptorById(cx, proto, id, &desc)) {
+      return false;
+    }
+  }
+
+  return js::SetPropertyIgnoringNamedGetter(cx, this, proxy, receiver, id,
+                                            &desc, descIsOwn, strict, vp);
 }
 
 bool
