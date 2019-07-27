@@ -33,14 +33,8 @@ public:
   virtual nsPIDOMWindow*
   GetWindow() const override;
 
-  virtual already_AddRefed<nsIFile>
-  GetLocalFile(const nsAString& aRealPath) const override;
-
-  virtual bool
-  GetRealPath(BlobImpl* aFile, nsAString& aRealPath) const override;
-
-  virtual const nsAString&
-  GetRootName() const override;
+  virtual void
+  GetRootName(nsAString& aRetval) const override;
 
   virtual bool
   IsSafeFile(nsIFile* aFile) const override;
@@ -51,16 +45,9 @@ private:
   virtual
   ~DeviceStorageFileSystem();
 
-  bool
-  LocalPathToRealPath(const nsAString& aLocalPath, nsAString& aRealPath) const;
-
   nsString mStorageType;
   nsString mStorageName;
 
-  
-  
-  nsString mLocalRootPath;
-  nsString mNormalizedLocalRootPath;
   nsDOMDeviceStorage* mDeviceStorage;
 };
 

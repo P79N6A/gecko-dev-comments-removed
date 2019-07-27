@@ -45,15 +45,15 @@ public:
   
 
 
-  virtual already_AddRefed<nsIFile>
-  GetLocalFile(const nsAString& aRealPath) const = 0;
+  already_AddRefed<nsIFile>
+  GetLocalFile(const nsAString& aRealPath) const;
 
   
 
 
 
-  virtual const nsAString&
-  GetRootName() const = 0;
+  virtual void
+  GetRootName(nsAString& aRetval) const = 0;
 
   bool
   IsShutdown() const
@@ -72,8 +72,8 @@ public:
 
 
 
-  virtual bool
-  GetRealPath(BlobImpl* aFile, nsAString& aRealPath) const = 0;
+  bool
+  GetRealPath(BlobImpl* aFile, nsAString& aRealPath) const;
 
   
 
@@ -91,6 +91,18 @@ public:
   }
 protected:
   virtual ~FileSystemBase();
+
+  bool
+  LocalPathToRealPath(const nsAString& aLocalPath, nsAString& aRealPath) const;
+
+  
+  
+  
+  
+  nsString mLocalRootPath;
+
+  
+  nsString mNormalizedLocalRootPath;
 
   
   nsString mString;
