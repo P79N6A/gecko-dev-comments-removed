@@ -9,9 +9,13 @@ import org.mozilla.gecko.AppConstants.Versions;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.view.View;
 import android.widget.EdgeEffect;
 
+import java.lang.reflect.Field;
 
 public class OverscrollEdgeEffect implements Overscroll {
     
@@ -27,10 +31,31 @@ public class OverscrollEdgeEffect implements Overscroll {
     private final View mView;
 
     public OverscrollEdgeEffect(final View v) {
+        Field paintField = null;
+        if (Versions.feature21Plus) {
+            try {
+                paintField = EdgeEffect.class.getDeclaredField("mPaint");
+                paintField.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+            }
+        }
+
         mView = v;
         Context context = v.getContext();
         for (int i = 0; i < 4; i++) {
             mEdges[i] = new EdgeEffect(context);
+
+            try {
+                if (paintField != null) {
+                    final Paint p = (Paint) paintField.get(mEdges[i]);
+
+                    
+                    
+                    
+                    p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+                }
+            } catch (IllegalAccessException e) {
+            }
         }
     }
 
