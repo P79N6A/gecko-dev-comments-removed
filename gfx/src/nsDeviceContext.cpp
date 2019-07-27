@@ -31,7 +31,6 @@
 #include "nsISupportsUtils.h"           
 #include "nsIWidget.h"                  
 #include "nsRect.h"                     
-#include "nsRenderingContext.h"         
 #include "nsServiceManagerUtils.h"      
 #include "nsString.h"               
 #include "nsTArray.h"                   
