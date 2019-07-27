@@ -113,14 +113,14 @@ NfcContentHelper.prototype = {
   },
 
   
-  setSessionToken: function setSessionToken(sessionToken) {
+  checkSessionToken: function checkSessionToken(sessionToken) {
     if (sessionToken == null) {
       throw Components.Exception("No session token!",
                                   Cr.NS_ERROR_UNEXPECTED);
       return false;
     }
     
-    let val = cpmm.sendSyncMessage("NFC:SetSessionToken", {
+    let val = cpmm.sendSyncMessage("NFC:CheckSessionToken", {
       sessionToken: sessionToken
     });
     return (val[0] === NFC.NFC_SUCCESS);
