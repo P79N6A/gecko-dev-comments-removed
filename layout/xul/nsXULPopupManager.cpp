@@ -1407,20 +1407,28 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
       
       
 #ifndef MOZ_WIDGET_GTK
-      if (!aNextPopup && aPopup->HasAttr(kNameSpaceID_None, nsGkAtoms::animate) &&
-          popupFrame->StyleDisplay()->mTransitionPropertyCount > 0) {
+      if (!aNextPopup && aPopup->HasAttr(kNameSpaceID_None, nsGkAtoms::animate)) {
+        
+        
+        
         nsAutoString animate;
         aPopup->GetAttr(kNameSpaceID_None, nsGkAtoms::animate, animate);
 
-        
-        
-        
         if (!animate.EqualsLiteral("false") &&
             (!animate.EqualsLiteral("cancel") || aIsRollup)) {
-          nsRefPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aDeselectMenu);
-          aPopup->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
-                                         ender, false, false);
-          return;
+          presShell->FlushPendingNotifications(Flush_Layout);
+
+          
+          popupFrame = do_QueryFrame(aPopup->GetPrimaryFrame());
+          if (!popupFrame)
+            return;
+
+          if (nsLayoutUtils::HasCurrentAnimations(aPopup, nsGkAtoms::transitionsProperty, aPresContext)) {
+            nsRefPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aDeselectMenu);
+            aPopup->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
+                                           ender, false, false);
+            return;
+          }
         }
       }
 #endif
