@@ -445,6 +445,19 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_DISPLAY_CONTENTS               38
 
 
+
+
+#define NS_STYLE_CONTAIN_NONE                   0
+#define NS_STYLE_CONTAIN_STRICT                 0x1
+#define NS_STYLE_CONTAIN_LAYOUT                 0x2
+#define NS_STYLE_CONTAIN_STYLE                  0x4
+#define NS_STYLE_CONTAIN_PAINT                  0x8
+
+#define NS_STYLE_CONTAIN_ALL_BITS               (NS_STYLE_CONTAIN_LAYOUT | \
+                                                 NS_STYLE_CONTAIN_STYLE  | \
+                                                 NS_STYLE_CONTAIN_PAINT)
+
+
 #define NS_STYLE_ALIGN_CONTENT_FLEX_START       0
 #define NS_STYLE_ALIGN_CONTENT_FLEX_END         1
 #define NS_STYLE_ALIGN_CONTENT_CENTER           2

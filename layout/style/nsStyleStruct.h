@@ -2069,6 +2069,7 @@ struct nsStyleDisplay {
   uint8_t mOriginalDisplay;     
                                 
                                 
+  uint8_t mContain;             
   uint8_t mAppearance;          
   uint8_t mPosition;            
   uint8_t mFloats;              

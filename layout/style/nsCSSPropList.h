@@ -1487,6 +1487,18 @@ CSS_PROP_COLUMN(
     kBorderWidthKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_Custom)
+CSS_PROP_DISPLAY(
+    contain,
+    contain,
+    Contain,
+    CSS_PROPERTY_PARSE_VALUE |
+        CSS_PROPERTY_VALUE_PARSER_FUNCTION,
+    "layout.css.contain.enabled",
+    
+    VARIANT_HK | VARIANT_NONE,
+    kContainKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
 CSS_PROP_CONTENT(
     content,
     content,
