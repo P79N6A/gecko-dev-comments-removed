@@ -2790,8 +2790,13 @@ nsLineLayout::AdvanceAnnotationInlineBounds(PerFrameData* aPFD,
       
       (psd->mFirstFrame == psd->mLastFrame && psd->mFirstFrame &&
        !psd->mFirstFrame->mIsLinkedToBase)) {
-    nscoord reservedISize = RubyUtils::GetReservedISize(frame);
-    RubyUtils::SetReservedISize(frame, reservedISize + aDeltaISize);
+    
+    
+    if (frameType != nsGkAtoms::rubyTextFrame ||
+        !static_cast<nsRubyTextFrame*>(frame)->IsAutoHidden()) {
+      nscoord reservedISize = RubyUtils::GetReservedISize(frame);
+      RubyUtils::SetReservedISize(frame, reservedISize + aDeltaISize);
+    }
   } else {
     
     
