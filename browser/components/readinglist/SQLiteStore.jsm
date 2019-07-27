@@ -40,8 +40,11 @@ this.SQLiteStore.prototype = {
 
 
 
-  count: Task.async(function* (...optsList) {
-    let [sql, args] = sqlFromOptions(optsList);
+
+
+
+  count: Task.async(function* (userOptsList=[], controlOpts={}) {
+      let [sql, args] = sqlWhereFromOptions(userOptsList, controlOpts);
     let count = 0;
     let conn = yield this._connectionPromise;
     yield conn.executeCached(`
@@ -60,8 +63,11 @@ this.SQLiteStore.prototype = {
 
 
 
-  forEachItem: Task.async(function* (callback, ...optsList) {
-    let [sql, args] = sqlFromOptions(optsList);
+
+
+
+  forEachItem: Task.async(function* (callback, userOptsList=[], controlOpts={}) {
+    let [sql, args] = sqlWhereFromOptions(userOptsList, controlOpts);
     let colNames = ReadingList.ItemRecordProperties;
     let conn = yield this._connectionPromise;
     yield conn.executeCached(`
@@ -99,14 +105,19 @@ this.SQLiteStore.prototype = {
 
 
   updateItem: Task.async(function* (item) {
-    let assignments = [];
-    for (let propName in item) {
-      assignments.push(`${propName} = :${propName}`);
-    }
-    let conn = yield this._connectionPromise;
-    yield conn.executeCached(`
-      UPDATE items SET ${assignments} WHERE url = :url;
-    `, item);
+    yield this._updateItem(item, "url");
+  }),
+
+  
+
+
+
+
+
+
+
+  updateItemByGUID: Task.async(function* (item) {
+    yield this._updateItem(item, "guid");
   }),
 
   
@@ -121,6 +132,20 @@ this.SQLiteStore.prototype = {
     yield conn.executeCached(`
       DELETE FROM items WHERE url = :url;
     `, { url: url });
+  }),
+
+  
+
+
+
+
+
+
+  deleteItemByGUID: Task.async(function* (guid) {
+    let conn = yield this._connectionPromise;
+    yield conn.executeCached(`
+      DELETE FROM items WHERE guid = :guid;
+    `, { guid: guid });
   }),
 
   
@@ -162,6 +187,30 @@ this.SQLiteStore.prototype = {
   }),
 
   
+
+
+
+
+
+
+
+
+
+  _updateItem: Task.async(function* (item, keyProp) {
+    let assignments = [];
+    for (let propName in item) {
+      assignments.push(`${propName} = :${propName}`);
+    }
+    let conn = yield this._connectionPromise;
+    if (!item[keyProp]) {
+      throw new Error("Item must have " + keyProp);
+    }
+    yield conn.executeCached(`
+      UPDATE items SET ${assignments} WHERE ${keyProp} = :${keyProp};
+    `, item);
+  }),
+
+  
   _connectionPromise: null,
 
   
@@ -184,17 +233,23 @@ this.SQLiteStore.prototype = {
     yield conn.execute(`
       PRAGMA journal_size_limit = 524288;
     `);
+    
+    
+    
+    
     yield conn.execute(`
       CREATE TABLE items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         guid TEXT UNIQUE,
-        url TEXT NOT NULL UNIQUE,
-        resolvedURL TEXT UNIQUE,
-        lastModified INTEGER,
+        serverLastModified INTEGER,
+        url TEXT UNIQUE,
+        preview TEXT,
         title TEXT,
+        resolvedURL TEXT UNIQUE,
         resolvedTitle TEXT,
         excerpt TEXT,
-        status INTEGER,
+        archived BOOLEAN,
+        deleted BOOLEAN,
         favorite BOOLEAN,
         isArticle BOOLEAN,
         wordCount INTEGER,
@@ -205,7 +260,7 @@ this.SQLiteStore.prototype = {
         markedReadBy TEXT,
         markedReadOn INTEGER,
         readPosition INTEGER,
-        preview TEXT
+        syncStatus INTEGER
       );
     `);
     yield conn.execute(`
@@ -240,16 +295,20 @@ function itemFromRow(row) {
 
 
 
-function sqlFromOptions(optsList) {
+
+
+
+
+function sqlWhereFromOptions(userOptsList, controlOpts) {
   
   
-  optsList = Cu.cloneInto(optsList, {}, { cloneFunctions: false });
+  userOptsList = Cu.cloneInto(userOptsList, {}, { cloneFunctions: false });
 
   let sort;
   let sortDir;
   let limit;
   let offset;
-  for (let opts of optsList) {
+  for (let opts of userOptsList) {
     if ("sort" in opts) {
       sort = opts.sort;
       delete opts.sort;
@@ -284,21 +343,44 @@ function sqlFromOptions(optsList) {
   }
 
   let args = {};
+  let mainExprs = [];
 
-  function uniqueParamName(name) {
-    if (name in args) {
-      for (let i = 1; ; i++) {
-        let newName = `${name}_${i}`;
-        if (!(newName in args)) {
-          return newName;
-        }
-      }
-    }
-    return name;
+  let controlSQLExpr = sqlExpressionFromOptions([controlOpts], args);
+  if (controlSQLExpr) {
+    mainExprs.push(`(${controlSQLExpr})`);
   }
 
-  
-  
+  let userSQLExpr = sqlExpressionFromOptions(userOptsList, args);
+  if (userSQLExpr) {
+    mainExprs.push(`(${userSQLExpr})`);
+  }
+
+  if (mainExprs.length) {
+    let conjunction = mainExprs.join(" AND ");
+    fragments.unshift(`WHERE ${conjunction}`);
+  }
+
+  let sql = fragments.join(" ");
+  return [sql, args];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function sqlExpressionFromOptions(optsList, args) {
   let disjunctions = [];
   for (let opts of optsList) {
     let conjunctions = [];
@@ -310,14 +392,14 @@ function sqlFromOptions(optsList) {
         let array = opts[key];
         let params = [];
         for (let i = 0; i < array.length; i++) {
-          let paramName = uniqueParamName(key);
+          let paramName = uniqueParamName(args, key);
           params.push(`:${paramName}`);
           args[paramName] = array[i];
         }
         conjunctions.push(`${key} IN (${params})`);
       }
       else {
-        let paramName = uniqueParamName(key);
+        let paramName = uniqueParamName(args, key);
         conjunctions.push(`${key} = :${paramName}`);
         args[paramName] = opts[key];
       }
@@ -328,11 +410,26 @@ function sqlFromOptions(optsList) {
     }
   }
   let disjunction = disjunctions.join(" OR ");
-  if (disjunction) {
-    let where = `WHERE ${disjunction}`;
-    fragments = [where].concat(fragments);
-  }
+  return disjunction;
+}
 
-  let sql = fragments.join(" ");
-  return [sql, args];
+
+
+
+
+
+
+
+
+
+function uniqueParamName(args, name) {
+  if (name in args) {
+    for (let i = 1; ; i++) {
+      let newName = `${name}_${i}`;
+      if (!(newName in args)) {
+        return newName;
+      }
+    }
+  }
+  return name;
 }

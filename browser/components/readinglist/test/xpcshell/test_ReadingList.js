@@ -38,7 +38,6 @@ add_task(function* prepare() {
       title: `title ${i}`,
       excerpt: `excerpt ${i}`,
       unread: 0,
-      lastModified: Date.now(),
       favorite: 0,
       isArticle: 1,
       storedOn: Date.now(),
@@ -137,7 +136,26 @@ add_task(function* constraints() {
   catch (e) {
     err = e;
   }
-  checkError(err);
+  Assert.ok(err);
+  Assert.ok(err instanceof Cu.getGlobalForObject(ReadingList).Error, err);
+  Assert.equal(err.message, "The item must have a url");
+
+  
+  item = (yield gList.item({ guid: gItems[0].guid }));
+  Assert.ok(item);
+  let oldURL = item._record.url;
+  item._record.url = null;
+  err = null;
+  try {
+    yield gList.updateItem(item);
+  }
+  catch (e) {
+    err = e;
+  }
+  item._record.url = oldURL;
+  Assert.ok(err);
+  Assert.ok(err instanceof Cu.getGlobalForObject(ReadingList).Error, err);
+  Assert.equal(err.message, "The item must have a url");
 
   
   item = kindOfClone(gItems[0]);
@@ -267,6 +285,19 @@ add_task(function* forEachItem() {
     guid: gItems[0].guid,
   });
   checkItems(items, [gItems[0], gItems[1]]);
+});
+
+add_task(function* forEachSyncedDeletedItem() {
+  let deletedItem = yield gList.addItem({
+    guid: "forEachSyncedDeletedItem",
+    url: "http://example.com/forEachSyncedDeletedItem",
+  });
+  deletedItem._record.syncStatus = gList.SyncStatus.SYNCED;
+  yield gList.deleteItem(deletedItem);
+  let items = [];
+  yield gList.forEachSyncedDeletedItem(item => items.push(item));
+  Assert.equal(items.length, 1);
+  Assert.equal(items[0].guid, deletedItem.guid);
 });
 
 add_task(function* forEachItem_promises() {
@@ -542,34 +573,20 @@ add_task(function* item_setRecord() {
 
   
   
-  let oldTitle = item.title;
   let newTitle = "item_setRecord title 1";
-  Assert.notEqual(oldTitle, newTitle);
-  item._record.title = newTitle;
-  Assert.equal(item.title, newTitle);
-  iter = gList.iterator({
-    sort: "guid",
-  });
-  let sameItem = (yield iter.items(1))[0];
-  Assert.ok(item === sameItem);
-  Assert.equal(sameItem.title, oldTitle);
-
-  
-  
-  newTitle = "item_setRecord title 2";
   item._record.title = newTitle;
   yield gList.updateItem(item);
   Assert.equal(item.title, newTitle);
   iter = gList.iterator({
     sort: "guid",
   });
-  sameItem = (yield iter.items(1))[0];
+  let sameItem = (yield iter.items(1))[0];
   Assert.ok(item === sameItem);
   Assert.equal(sameItem.title, newTitle);
 
   
   
-  newTitle = "item_setRecord title 3";
+  newTitle = "item_setRecord title 2";
   item.title = newTitle;
   yield gList.updateItem(item);
   Assert.equal(item.title, newTitle);
@@ -678,11 +695,9 @@ add_task(function* deleteItem() {
 function checkItems(actualItems, expectedItems) {
   Assert.equal(actualItems.length, expectedItems.length);
   for (let i = 0; i < expectedItems.length; i++) {
-    for (let prop in expectedItems[i]) {
-      if (prop != "list") {
-        Assert.ok(prop in actualItems[i]._record, prop);
-        Assert.equal(actualItems[i]._record[prop], expectedItems[i][prop]);
-      }
+    for (let prop in expectedItems[i]._record) {
+      Assert.ok(prop in actualItems[i]._record, prop);
+      Assert.equal(actualItems[i]._record[prop], expectedItems[i][prop]);
     }
   }
 }

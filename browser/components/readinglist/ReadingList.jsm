@@ -36,16 +36,21 @@ let log = Log.repository.getLogger("readinglist.api");
 
 
 
+
+
+
+
 const ITEM_RECORD_PROPERTIES = `
   guid
-  lastModified
+  serverLastModified
   url
+  preview
   title
   resolvedURL
   resolvedTitle
   excerpt
-  preview
-  status
+  archived
+  deleted
   favorite
   isArticle
   wordCount
@@ -56,6 +61,7 @@ const ITEM_RECORD_PROPERTIES = `
   markedReadBy
   markedReadOn
   readPosition
+  syncStatus
 `.trim().split(/\s+/);
 
 
@@ -68,6 +74,37 @@ const ITEM_DISREGARDED_PROPERTIES = `
   content
   length
 `.trim().split(/\s+/);
+
+
+
+const SYNC_STATUS_SYNCED = 0;
+const SYNC_STATUS_NEW = 1;
+const SYNC_STATUS_CHANGED_STATUS = 2;
+const SYNC_STATUS_CHANGED_MATERIAL = 3;
+const SYNC_STATUS_DELETED = 4;
+
+
+
+const STORE_OPTIONS_IGNORE_DELETED = {
+  syncStatus: [
+    SYNC_STATUS_SYNCED,
+    SYNC_STATUS_NEW,
+    SYNC_STATUS_CHANGED_STATUS,
+    SYNC_STATUS_CHANGED_MATERIAL,
+  ],
+};
+
+
+
+
+const SYNC_STATUS_PROPERTIES_STATUS = `
+  favorite
+  markedReadBy
+  markedReadOn
+  readPosition
+  unread
+`.trim().split(/\s+/);
+
 
 
 
@@ -131,6 +168,18 @@ ReadingListImpl.prototype = {
 
   ItemRecordProperties: ITEM_RECORD_PROPERTIES,
 
+  SyncStatus: {
+    SYNCED: SYNC_STATUS_SYNCED,
+    NEW: SYNC_STATUS_NEW,
+    CHANGED_STATUS: SYNC_STATUS_CHANGED_STATUS,
+    CHANGED_MATERIAL: SYNC_STATUS_CHANGED_MATERIAL,
+    DELETED: SYNC_STATUS_DELETED,
+  },
+
+  SyncStatusProperties: {
+    STATUS: SYNC_STATUS_PROPERTIES_STATUS,
+  },
+
   
 
 
@@ -140,7 +189,7 @@ ReadingListImpl.prototype = {
 
 
   count: Task.async(function* (...optsList) {
-    return (yield this._store.count(...optsList));
+    return (yield this._store.count(optsList, STORE_OPTIONS_IGNORE_DELETED));
   }),
 
   
@@ -151,7 +200,7 @@ ReadingListImpl.prototype = {
 
 
   hasItemForURL: Task.async(function* (url) {
-    url = normalizeURI(url).spec;
+    url = normalizeURI(url);
 
     
     
@@ -189,6 +238,26 @@ ReadingListImpl.prototype = {
 
 
   forEachItem: Task.async(function* (callback, ...optsList) {
+    yield this._forEachItem(callback, optsList, STORE_OPTIONS_IGNORE_DELETED);
+  }),
+
+  
+
+
+
+  forEachSyncedDeletedItem: Task.async(function* (callback, ...optsList) {
+    yield this._forEachItem(callback, optsList, {
+      syncStatus: SYNC_STATUS_DELETED,
+    });
+  }),
+
+  
+
+
+
+
+
+  _forEachItem: Task.async(function* (callback, optsList, storeOptions) {
     let promiseChain = Promise.resolve();
     yield this._store.forEachItem(record => {
       promiseChain = promiseChain.then(() => {
@@ -201,7 +270,7 @@ ReadingListImpl.prototype = {
           return undefined;
         });
       });
-    }, ...optsList);
+    }, optsList, storeOptions);
     yield promiseChain;
   }),
 
@@ -236,10 +305,25 @@ ReadingListImpl.prototype = {
 
   addItem: Task.async(function* (record) {
     record = normalizeRecord(record);
-    record.addedOn = Date.now();
-    if (Services.prefs.prefHasUserValue("services.sync.client.name")) {
-      record.addedBy = Services.prefs.getCharPref("services.sync.client.name");
+    if (!record.url) {
+      throw new Error("The item must have a url");
     }
+    if (!("addedOn" in record)) {
+      record.addedOn = Date.now();
+    }
+    if (!("addedBy" in record)) {
+      let pref = "services.sync.client.name";
+      if (Services.prefs.prefHasUserValue(pref)) {
+        record.addedBy = Services.prefs.getCharPref(pref);
+      }
+      if (!record.addedBy) {
+        record.addedBy = "Firefox";
+      }
+    }
+    if (!("syncStatus" in record)) {
+      record.syncStatus = SYNC_STATUS_NEW;
+    }
+
     yield this._store.addItem(record);
     this._invalidateIterators();
     let item = this._itemFromRecord(record);
@@ -264,6 +348,9 @@ ReadingListImpl.prototype = {
 
 
   updateItem: Task.async(function* (item) {
+    if (!item._record.url) {
+      throw new Error("The item must have a url");
+    }
     this._ensureItemBelongsToList(item);
     yield this._store.updateItem(item._record);
     this._invalidateIterators();
@@ -282,7 +369,26 @@ ReadingListImpl.prototype = {
 
   deleteItem: Task.async(function* (item) {
     this._ensureItemBelongsToList(item);
-    yield this._store.deleteItemByURL(item.url);
+
+    
+    
+    
+    if (item._record.syncStatus == SYNC_STATUS_NEW) {
+      yield this._store.deleteItemByURL(item.url);
+    }
+    else {
+      
+      
+      let newRecord = {};
+      for (let prop of ITEM_RECORD_PROPERTIES) {
+        newRecord[prop] = null;
+      }
+      newRecord.guid = item._record.guid;
+      newRecord.syncStatus = SYNC_STATUS_DELETED;
+      item._record = newRecord;
+      yield this._store.updateItemByGUID(item._record);
+    }
+
     item.list = null;
     this._itemsByNormalizedURL.delete(item.url);
     this._invalidateIterators();
@@ -309,7 +415,7 @@ ReadingListImpl.prototype = {
 
 
   itemForURL: Task.async(function* (uri) {
-    let url = normalizeURI(uri).spec;
+    let url = normalizeURI(uri);
     return (yield this.item({ url: url }, { resolvedURL: url }));
   }),
 
@@ -508,7 +614,7 @@ ReadingListItem.prototype = {
 
 
   get url() {
-    return this._record.url;
+    return this._record.url || undefined;
   },
 
   
@@ -529,7 +635,7 @@ ReadingListItem.prototype = {
 
 
   get resolvedURL() {
-    return this._record.resolvedURL;
+    return this._record.resolvedURL || undefined;
   },
   set resolvedURL(val) {
     this._updateRecord({ resolvedURL: val });
@@ -554,7 +660,7 @@ ReadingListItem.prototype = {
 
 
   get title() {
-    return this._record.title;
+    return this._record.title || undefined;
   },
   set title(val) {
     this._updateRecord({ title: val });
@@ -565,7 +671,7 @@ ReadingListItem.prototype = {
 
 
   get resolvedTitle() {
-    return this._record.resolvedTitle;
+    return this._record.resolvedTitle || undefined;
   },
   set resolvedTitle(val) {
     this._updateRecord({ resolvedTitle: val });
@@ -576,7 +682,7 @@ ReadingListItem.prototype = {
 
 
   get excerpt() {
-    return this._record.excerpt;
+    return this._record.excerpt || undefined;
   },
   set excerpt(val) {
     this._updateRecord({ excerpt: val });
@@ -586,11 +692,11 @@ ReadingListItem.prototype = {
 
 
 
-  get status() {
-    return this._record.status;
+  get archived() {
+    return !!this._record.archived;
   },
-  set status(val) {
-    this._updateRecord({ status: val });
+  set archived(val) {
+    this._updateRecord({ archived: !!val });
   },
 
   
@@ -620,7 +726,7 @@ ReadingListItem.prototype = {
 
 
   get wordCount() {
-    return this._record.wordCount;
+    return this._record.wordCount || undefined;
   },
   set wordCount(val) {
     this._updateRecord({ wordCount: val });
@@ -668,7 +774,7 @@ ReadingListItem.prototype = {
 
 
   get markedReadBy() {
-    return this._record.markedReadBy;
+    return this._record.markedReadBy || undefined;
   },
   set markedReadBy(val) {
     this._updateRecord({ markedReadBy: val });
@@ -692,7 +798,7 @@ ReadingListItem.prototype = {
 
 
   get readPosition() {
-    return this._record.readPosition;
+    return this._record.readPosition || undefined;
   },
   set readPosition(val) {
     this._updateRecord({ readPosition: val });
@@ -703,7 +809,7 @@ ReadingListItem.prototype = {
 
 
    get preview() {
-     return this._record.preview;
+     return this._record.preview || undefined;
    },
 
   
@@ -731,6 +837,11 @@ ReadingListItem.prototype = {
 
 
 
+
+
+
+
+
   get _record() {
     return this.__record;
   },
@@ -746,6 +857,18 @@ ReadingListItem.prototype = {
 
   _updateRecord(partialRecord) {
     let record = this._record;
+
+    
+    
+    if (record.syncStatus == SYNC_STATUS_SYNCED ||
+        record.syncStatus == SYNC_STATUS_CHANGED_STATUS) {
+      let allStatusChanges = Object.keys(partialRecord).every(prop => {
+        return SYNC_STATUS_PROPERTIES_STATUS.indexOf(prop) >= 0;
+      });
+      record.syncStatus = allStatusChanges ? SYNC_STATUS_CHANGED_STATUS :
+                          SYNC_STATUS_CHANGED_MATERIAL;
+    }
+
     for (let prop in partialRecord) {
       record[prop] = partialRecord[prop];
     }
@@ -864,17 +987,20 @@ ReadingListItemIterator.prototype = {
 function normalizeRecord(nonNormalizedRecord) {
   let record = {};
   for (let prop in nonNormalizedRecord) {
-    if (ITEM_DISREGARDED_PROPERTIES.includes(prop)) {
+    if (ITEM_DISREGARDED_PROPERTIES.indexOf(prop) >= 0) {
       continue;
     }
-    if (!ITEM_RECORD_PROPERTIES.includes(prop)) {
+    if (ITEM_RECORD_PROPERTIES.indexOf(prop) < 0) {
       throw new Error("Unrecognized item property: " + prop);
     }
     switch (prop) {
     case "url":
     case "resolvedURL":
       if (nonNormalizedRecord[prop]) {
-        record[prop] = normalizeURI(nonNormalizedRecord[prop]).spec;
+        record[prop] = normalizeURI(nonNormalizedRecord[prop]);
+      }
+      else {
+        record[prop] = nonNormalizedRecord[prop];
       }
       break;
     default:
@@ -892,15 +1018,20 @@ function normalizeRecord(nonNormalizedRecord) {
 
 
 
+
 function normalizeURI(uri) {
   if (typeof uri == "string") {
-    uri = Services.io.newURI(uri, "", null);
+    try {
+      uri = Services.io.newURI(uri, "", null);
+    } catch (ex) {
+      return uri;
+    }
   }
   uri = uri.cloneIgnoringRef();
   try {
     uri.userPass = "";
   } catch (ex) {} 
-  return uri;
+  return uri.spec;
 };
 
 function hash(str) {
@@ -944,7 +1075,7 @@ function getMetadataFromBrowser(browser) {
 Object.defineProperty(this, "ReadingList", {
   get() {
     if (!this._singleton) {
-      let store = new SQLiteStore("reading-list-temp2.sqlite");
+      let store = new SQLiteStore("reading-list.sqlite");
       this._singleton = new ReadingListImpl(store);
     }
     return this._singleton;
