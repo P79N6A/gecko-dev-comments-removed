@@ -126,6 +126,18 @@ extern bool gBluetoothDebugFlag;
 
 
 
+#define BT_APPEND_ENUM_STRING_FALLIBLE(array, enumType, enumValue)   \
+  do {                                                               \
+    uint32_t index = uint32_t(enumValue);                            \
+    nsAutoString name;                                               \
+    name.AssignASCII(enumType##Values::strings[index].value,         \
+                     enumType##Values::strings[index].length);       \
+    array.AppendElement(name, mozilla::fallible);                    \
+  } while(0)                                                         \
+
+
+
+
 #define BT_ENSURE_TRUE_RESOLVE(x, promise, ret)                      \
   do {                                                               \
     if (MOZ_UNLIKELY(!(x))) {                                        \
