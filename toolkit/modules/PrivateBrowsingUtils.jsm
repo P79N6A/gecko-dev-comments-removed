@@ -16,8 +16,14 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 this.PrivateBrowsingUtils = {
+  
+  
   isWindowPrivate: function pbu_isWindowPrivate(aWindow) {
     return this.privacyContextFromWindow(aWindow).usePrivateBrowsing;
+  },
+
+  isBrowserPrivate: function(aBrowser) {
+    return this.isWindowPrivate(aBrowser.ownerDocument.defaultView);
   },
 
   privacyContextFromWindow: function pbu_privacyContextFromWindow(aWindow) {
