@@ -1585,27 +1585,24 @@ ScriptExecutorRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
     }
   }
 
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
-  NS_ASSERTION(global, "Must have a global by now!");
+  JS::Rooted<JSObject*> global(aCx);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  if (xpc::ShouldDiscardSystemSource()) {
-    bool discard = aWorkerPrivate->UsesSystemPrincipal() ||
-                   aWorkerPrivate->IsInPrivilegedApp();
-    JS::CompartmentOptionsRef(global).setDiscardSource(discard);
+  if (mIsWorkerScript) {
+    WorkerGlobalScope* globalScope =
+      aWorkerPrivate->GetOrCreateGlobalScope(aCx);
+    if (NS_WARN_IF(!globalScope)) {
+      NS_WARNING("Failed to make global!");
+      return false;
+    }
+
+    global.set(globalScope->GetWrapper());
+  } else {
+    global.set(JS::CurrentGlobalOrNull(aCx));
   }
 
-  
-  if (xpc::ExtraWarningsForSystemJS() && aWorkerPrivate->UsesSystemPrincipal()) {
-      JS::CompartmentOptionsRef(global).extraWarningsOverride().set(true);
-  }
+  MOZ_ASSERT(global);
+
+  JSAutoCompartment ac(aCx, global);
 
   for (uint32_t index = mFirstIndex; index <= mLastIndex; index++) {
     ScriptLoadInfo& loadInfo = loadInfos.ElementAt(index);

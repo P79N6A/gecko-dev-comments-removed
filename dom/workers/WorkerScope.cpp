@@ -395,6 +395,20 @@ DedicatedWorkerGlobalScope::WrapGlobalObject(JSContext* aCx,
   JS::CompartmentOptions options;
   mWorkerPrivate->CopyJSCompartmentOptions(options);
 
+  const bool usesSystemPrincipal = mWorkerPrivate->UsesSystemPrincipal();
+
+  
+  
+  
+  const bool discardSource = (usesSystemPrincipal ||
+                              mWorkerPrivate->IsInPrivilegedApp()) &&
+                             xpc::ShouldDiscardSystemSource();
+  const bool extraWarnings = usesSystemPrincipal &&
+                             xpc::ExtraWarningsForSystemJS();
+
+  options.setDiscardSource(discardSource)
+         .extraWarningsOverride().set(extraWarnings);
+
   return DedicatedWorkerGlobalScopeBinding_workers::Wrap(aCx, this, this,
                                                          options,
                                                          GetWorkerPrincipal(),
