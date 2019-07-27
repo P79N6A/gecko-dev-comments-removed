@@ -8,10 +8,8 @@
 
 'use strict';
 
-const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
-const Cr = Components.results;
 
 this.EXPORTED_SYMBOLS = ['TraversalRules']; 
 
@@ -103,7 +101,8 @@ var gSimpleTraversalRoles =
    Roles.GRID_CELL,
    Roles.COLUMNHEADER,
    Roles.ROWHEADER,
-   Roles.STATUSBAR];
+   Roles.STATUSBAR,
+   Roles.SWITCH];
 
 var gSimpleMatchFunc = function gSimpleMatchFunc(aAccessible) {
   
@@ -240,7 +239,8 @@ this.TraversalRules = {
      Roles.RADIO_MENU_ITEM,
      Roles.SLIDER,
      Roles.CHECKBUTTON,
-     Roles.CHECK_MENU_ITEM]),
+     Roles.CHECK_MENU_ITEM,
+     Roles.SWITCH]),
 
   Graphic: new BaseTraversalRule(
     [Roles.GRAPHIC],
@@ -302,7 +302,8 @@ this.TraversalRules = {
 
   Checkbox: new BaseTraversalRule(
     [Roles.CHECKBUTTON,
-     Roles.CHECK_MENU_ITEM]),
+     Roles.CHECK_MENU_ITEM,
+     Roles.SWITCH ]),
 
   _shouldSkipImage: function _shouldSkipImage(aAccessible) {
     if (gSkipEmptyImages.value && aAccessible.name === '') {

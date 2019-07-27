@@ -210,7 +210,7 @@ let OutputGenerator = {
     aOutput.push({string: 'textInputType_' + typeName});
   },
 
-  _addState: function _addState(aOutput, aState) {}, 
+  _addState: function _addState(aOutput, aState, aRoleStr) {}, 
 
   _addRole: function _addRole(aOutput, aRoleStr) {}, 
 
@@ -252,6 +252,7 @@ let OutputGenerator = {
     'outlineitem': INCLUDE_DESC | NAME_FROM_SUBTREE_RULE,
     'pagetab': INCLUDE_DESC | NAME_FROM_SUBTREE_RULE,
     'graphic': INCLUDE_DESC,
+    'switch': INCLUDE_DESC | NAME_FROM_SUBTREE_RULE,
     'pushbutton': INCLUDE_DESC | NAME_FROM_SUBTREE_RULE,
     'checkbutton': INCLUDE_DESC | NAME_FROM_SUBTREE_RULE,
     'radiobutton': INCLUDE_DESC | NAME_FROM_SUBTREE_RULE,
@@ -307,7 +308,7 @@ let OutputGenerator = {
         let output = [];
 
         if (aFlags & INCLUDE_DESC) {
-          this._addState(output, aState);
+          this._addState(output, aState, aRoleStr);
           this._addType(output, aAccessible, aRoleStr);
           this._addRole(output, aRoleStr);
         }
@@ -413,13 +414,15 @@ let OutputGenerator = {
 
 
 this.UtteranceGenerator = {  
-  __proto__: OutputGenerator,
+  __proto__: OutputGenerator, 
 
   gActionMap: {
     jump: 'jumpAction',
     press: 'pressAction',
     check: 'checkAction',
     uncheck: 'uncheckAction',
+    on: 'onAction',
+    off: 'offAction',
     select: 'selectAction',
     unselect: 'unselectAction',
     open: 'openAction',
@@ -475,7 +478,7 @@ this.UtteranceGenerator = {
 
   objectOutputFunctions: {
 
-    __proto__: OutputGenerator.objectOutputFunctions,
+    __proto__: OutputGenerator.objectOutputFunctions, 
 
     defaultFunc: function defaultFunc() {
       return this.objectOutputFunctions._generateBaseOutput.apply(
@@ -597,7 +600,7 @@ this.UtteranceGenerator = {
     aOutput.push({string: this._getOutputName(aRoleStr)});
   },
 
-  _addState: function _addState(aOutput, aState) {
+  _addState: function _addState(aOutput, aState, aRoleStr) {
 
     if (aState.contains(States.UNAVAILABLE)) {
       aOutput.push({string: 'stateUnavailable'});
@@ -613,8 +616,13 @@ this.UtteranceGenerator = {
     
     if ((Utils.AndroidSdkVersion < 16 || Utils.MozBuildApp === 'browser') &&
       aState.contains(States.CHECKABLE)) {
-      let statetr = aState.contains(States.CHECKED) ?
-        'stateChecked' : 'stateNotChecked';
+      let checked = aState.contains(States.CHECKED);
+      let statetr;
+      if (aRoleStr === 'switch') {
+        statetr = checked ? 'stateOn' : 'stateOff';
+      } else {
+        statetr = checked ? 'stateChecked' : 'stateNotChecked';
+      }
       aOutput.push({string: statetr});
     }
 
@@ -662,7 +670,7 @@ this.UtteranceGenerator = {
 };
 
 this.BrailleGenerator = {  
-  __proto__: OutputGenerator,
+  __proto__: OutputGenerator, 
 
   genForContext: function genForContext(aContext) {
     let output = OutputGenerator.genForContext.apply(this, arguments);
@@ -699,7 +707,7 @@ this.BrailleGenerator = {
 
   objectOutputFunctions: {
 
-    __proto__: OutputGenerator.objectOutputFunctions,
+    __proto__: OutputGenerator.objectOutputFunctions, 
 
     defaultFunc: function defaultFunc() {
       return this.objectOutputFunctions._generateBaseOutput.apply(
@@ -760,12 +768,16 @@ this.BrailleGenerator = {
     _useStateNotRole:
       function _useStateNotRole(aAccessible, aRoleStr, aState, aFlags) {
         let braille = [];
-        this._addState(braille, aState, aAccessible.role);
+        this._addState(braille, aState, aRoleStr);
         this._addName(braille, aAccessible, aFlags);
         this._addLandmark(braille, aAccessible);
 
         return braille;
       },
+
+    switch: function braille_generator_object_output_functions_switch() {
+      return this.objectOutputFunctions._useStateNotRole.apply(this, arguments);
+    },
 
     checkbutton: function checkbutton() {
       return this.objectOutputFunctions._useStateNotRole.apply(this, arguments);
@@ -796,7 +808,7 @@ this.BrailleGenerator = {
     aBraille.push({string: this._getOutputName(aRoleStr)});
   },
 
-  _addState: function _addState(aBraille, aState, aRole) {
+  _addState: function _addState(aBraille, aState, aRoleStr) {
     if (aState.contains(States.CHECKABLE)) {
       aBraille.push({
         string: aState.contains(States.CHECKED) ?
@@ -804,7 +816,7 @@ this.BrailleGenerator = {
           this._getOutputName('stateUnchecked')
       });
     }
-    if (aRole === Roles.TOGGLE_BUTTON) {
+    if (aRoleStr === 'toggle button') {
       aBraille.push({
         string: aState.contains(States.PRESSED) ?
           this._getOutputName('statePressed') :
