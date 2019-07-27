@@ -275,6 +275,8 @@ protected:
     apzc->UpdateZoomConstraints(ZoomConstraints(false, false, CSSToParentLayerScale(1.0f), CSSToParentLayerScale(1.0f)));
   }
 
+  void TestOverscroll();
+
   AsyncPanZoomController::GestureBehavior mGestureBehavior;
   TimeStamp testStartTime;
   nsRefPtr<MockContentControllerDelayed> mcc;
@@ -1133,9 +1135,8 @@ TEST_F(APZCBasicTester, PanningTransformNotifications) {
   check.Call("Done");
 }
 
-TEST_F(APZCBasicTester, OverScrollPanning) {
-  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
-
+void APZCBasicTester::TestOverscroll()
+{
   
   int time = 0;
   int touchStart = 500;
@@ -1152,6 +1153,10 @@ TEST_F(APZCBasicTester, OverScrollPanning) {
     
     EXPECT_EQ(ParentLayerPoint(0, 90), pointOut);
 
+    
+    
+    apzc->GetOverscrollTransform();
+
     if (!apzc->IsOverscrolled()) {
       recoveredFromOverscroll = true;
     }
@@ -1160,6 +1165,34 @@ TEST_F(APZCBasicTester, OverScrollPanning) {
   }
   EXPECT_TRUE(recoveredFromOverscroll);
   apzc->AssertStateIsReset();
+}
+
+
+TEST_F(APZCBasicTester, OverScrollPanning) {
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  TestOverscroll();
+}
+
+
+
+TEST_F(APZCBasicTester, OverScroll_Bug1152051) {
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  
+
+  
+  
+  
+  
+  SCOPED_GFX_PREF(APZFlingFriction, float, 0);
+
+  
+  
+  
+  SCOPED_GFX_PREF(APZOverscrollSpringStiffness, float, 0.01225f);
+
+  TestOverscroll();
 }
 
 TEST_F(APZCBasicTester, OverScrollAbort) {

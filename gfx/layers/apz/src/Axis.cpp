@@ -263,7 +263,9 @@ void Axis::StepOverscrollAnimation(double aStepDurationMilliseconds) {
   
   
   
-  bool velocitySignChange = (oldVelocity * mVelocity) < 0;
+  
+  
+  bool velocitySignChange = (oldVelocity * mVelocity) < 0 || mVelocity == 0;
   if (mFirstOverscrollAnimationSample == 0.0f) {
     mFirstOverscrollAnimationSample = mOverscroll;
 
