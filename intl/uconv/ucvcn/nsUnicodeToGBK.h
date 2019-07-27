@@ -28,7 +28,7 @@ public:
   
 
 
-  nsUnicodeToGBK(uint32_t aMaxLengthFactor = 2);
+  explicit nsUnicodeToGBK(uint32_t aMaxLengthFactor = 2);
   virtual ~nsUnicodeToGBK() {}
 
 protected:

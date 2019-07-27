@@ -131,7 +131,7 @@ public:
   
 
 
-  nsBufferDecoderSupport(uint32_t aMaxLengthFactor);
+  explicit nsBufferDecoderSupport(uint32_t aMaxLengthFactor);
 
   
 
@@ -242,7 +242,7 @@ public:
   
 
 
-  nsOneByteDecoderSupport(uMappingTable * aMappingTable);
+  explicit nsOneByteDecoderSupport(uMappingTable * aMappingTable);
 
   
 
@@ -353,7 +353,7 @@ public:
   
 
 
-  nsEncoderSupport(uint32_t aMaxLengthFactor);
+  explicit nsEncoderSupport(uint32_t aMaxLengthFactor);
 
   
 
