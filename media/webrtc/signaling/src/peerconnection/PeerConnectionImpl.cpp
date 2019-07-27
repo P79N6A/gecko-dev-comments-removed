@@ -1568,6 +1568,46 @@ PeerConnectionImpl::RemoveTrack(MediaStreamTrack& aTrack) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+PeerConnectionImpl::ReplaceTrack(MediaStreamTrack& aThisTrack,
+                                 MediaStreamTrack& aWithTrack,
+                                 DOMMediaStream& aStream) {
+  PC_AUTO_ENTER_API_CALL(true);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  bool success = true;
+
+  nsRefPtr<PeerConnectionObserver> pco = do_QueryObjectReferent(mPCObserver);
+  if (!pco) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  JSErrorResult rv;
+
+  if (success) {
+    pco->OnReplaceTrackSuccess(rv);
+  } else {
+    pco->OnReplaceTrackError(kInternalError,
+                             ObString("Failed to replace track"),
+                             rv);
+  }
+  if (rv.Failed()) {
+    CSFLogError(logTag, "Error firing replaceTrack callback");
+    return NS_ERROR_UNEXPECTED;
+  }
+  return NS_OK;
+}
+
 
 
 
