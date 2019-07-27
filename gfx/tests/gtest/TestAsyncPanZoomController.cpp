@@ -2650,6 +2650,31 @@ TEST_F(APZOverscrollHandoffTester, StuckInOverscroll_Bug1073250) {
 
 
 
+
+
+TEST_F(APZOverscrollHandoffTester, PartialFlingHandoff) {
+  CreateOverscrollHandoffLayerTree1();
+
+  
+  
+  
+  Pan(manager, mTime, ScreenPoint(90, 90), ScreenPoint(55, 55));
+
+  nsRefPtr<TestAsyncPanZoomController> parent = ApzcOf(root);
+  nsRefPtr<TestAsyncPanZoomController> child = ApzcOf(layers[1]);
+
+  
+  
+  mTime += TimeDuration::FromMilliseconds(10);
+  child->AdvanceAnimations(mTime);
+
+  
+  child->AssertStateIsFling();
+  parent->AssertStateIsFling();
+}
+
+
+
 TEST_F(APZOverscrollHandoffTester, SimultaneousFlings) {
   
   CreateOverscrollHandoffLayerTree3();
