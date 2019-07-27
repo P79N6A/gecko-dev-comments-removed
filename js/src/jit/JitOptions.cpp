@@ -55,6 +55,9 @@ JitOptions::JitOptions()
     disableRangeAnalysis = false;
 
     
+    disableLoopUnrolling = true;
+
+    
     disableUce = false;
 
     

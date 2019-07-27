@@ -74,6 +74,9 @@ class OptimizationInfo
     bool rangeAnalysis_;
 
     
+    bool loopUnrolling_;
+
+    
     bool autoTruncate_;
 
     
@@ -142,6 +145,10 @@ class OptimizationInfo
 
     bool rangeAnalysisEnabled() const {
         return rangeAnalysis_ && !js_JitOptions.disableRangeAnalysis;
+    }
+
+    bool loopUnrollingEnabled() const {
+        return loopUnrolling_ && !js_JitOptions.disableLoopUnrolling;
     }
 
     bool autoTruncateEnabled() const {

@@ -36,16 +36,25 @@ struct LoopIterationBound : public TempObject
     
     
     
+    
     MTest *test;
 
     
-    LinearSum sum;
+    
+    LinearSum boundSum;
 
-    LoopIterationBound(MBasicBlock *header, MTest *test, LinearSum sum)
-      : header(header), test(test), sum(sum)
+    
+    
+    LinearSum currentSum;
+
+    LoopIterationBound(MBasicBlock *header, MTest *test, LinearSum boundSum, LinearSum currentSum)
+      : header(header), test(test),
+        boundSum(boundSum), currentSum(currentSum)
     {
     }
 };
+
+typedef Vector<LoopIterationBound *, 0, SystemAllocPolicy> LoopIterationBoundVector;
 
 
 struct SymbolicBound : public TempObject
@@ -90,7 +99,7 @@ class RangeAnalysis
     TempAllocator &alloc() const;
 
   public:
-    MOZ_CONSTEXPR RangeAnalysis(MIRGenerator *mir, MIRGraph &graph) :
+    RangeAnalysis(MIRGenerator *mir, MIRGraph &graph) :
         mir(mir), graph_(graph) {}
     bool addBetaNodes();
     bool analyze();
@@ -98,6 +107,9 @@ class RangeAnalysis
     bool removeBetaNodes();
     bool prepareForUCE(bool *shouldRemoveDeadCode);
     bool truncate();
+
+    
+    LoopIterationBoundVector loopIterationBounds;
 
   private:
     bool analyzeLoop(MBasicBlock *header);

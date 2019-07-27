@@ -139,6 +139,13 @@ class MUse : public TempObject, public InlineListNode<MUse>
     { }
 
     
+    explicit MUse(const MUse &other)
+      : producer_(other.producer_), consumer_(other.consumer_)
+    {
+        JS_ASSERT(!other.next && !other.prev);
+    }
+
+    
     inline void init(MDefinition *producer, MNode *consumer);
     
     inline void initUnchecked(MDefinition *producer, MNode *consumer);
@@ -384,6 +391,17 @@ class MDefinition : public MNode
         resultTypeSet_(nullptr),
         dependency_(nullptr),
         trackedSite_()
+    { }
+
+    
+    explicit MDefinition(const MDefinition &other)
+      : id_(0),
+        flags_(other.flags_),
+        range_(other.range_),
+        resultType_(other.resultType_),
+        resultTypeSet_(other.resultTypeSet_),
+        dependency_(other.dependency_),
+        trackedSite_(other.trackedSite_)
     { }
 
     virtual Opcode op() const = 0;
@@ -766,6 +784,8 @@ class MUseDefIterator
     }
 };
 
+typedef Vector<MDefinition *, 8, IonAllocPolicy> MDefinitionVector;
+
 
 
 class MInstruction
@@ -777,6 +797,12 @@ class MInstruction
   public:
     MInstruction()
       : resumePoint_(nullptr)
+    { }
+
+    
+    explicit MInstruction(const MInstruction &other)
+      : MDefinition(other),
+        resumePoint_(nullptr)
     { }
 
     void setResumePoint(MResumePoint *resumePoint) {
@@ -791,6 +817,17 @@ class MInstruction
     MResumePoint *resumePoint() const {
         return resumePoint_;
     }
+
+    
+    
+    
+    
+    virtual bool canClone() const {
+        return false;
+    }
+    virtual MInstruction *clone(TempAllocator &alloc, const MDefinitionVector &inputs) const {
+        MOZ_CRASH();
+    }
 };
 
 #define INSTRUCTION_HEADER(opcode)                                          \
@@ -802,6 +839,18 @@ class MInstruction
     }                                                                       \
     bool accept(MDefinitionVisitor *visitor) {                              \
         return visitor->visit##opcode(this);                                \
+    }
+
+#define ALLOW_CLONE(typename)                                               \
+    bool canClone() const {                                                 \
+        return true;                                                        \
+    }                                                                       \
+    MInstruction *clone(TempAllocator &alloc,                               \
+                        const MDefinitionVector &inputs) const {            \
+        MInstruction *res = new(alloc) typename(*this);                     \
+        for (size_t i = 0; i < numOperands(); i++)                          \
+            res->replaceOperand(i, inputs[i]);                              \
+        return res;                                                         \
     }
 
 template <size_t Arity>
@@ -834,6 +883,15 @@ class MAryInstruction : public MInstruction
     }
     void replaceOperand(size_t index, MDefinition *operand) MOZ_FINAL MOZ_OVERRIDE {
         operands_[index].replaceProducer(operand);
+    }
+
+    MAryInstruction() { }
+
+    explicit MAryInstruction(const MAryInstruction<Arity> &other)
+      : MInstruction(other)
+    {
+        for (int i = 0; i < (int) Arity; i++) 
+            operands_[i].init(other.operands_[i].producer(), this);
     }
 };
 
@@ -1070,6 +1128,8 @@ class MNop : public MNullaryInstruction
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    ALLOW_CLONE(MNop)
 };
 
 
@@ -1169,6 +1229,8 @@ class MConstant : public MNullaryInstruction
     bool truncate(TruncateKind kind);
 
     bool canProduceFloat32() const;
+
+    ALLOW_CLONE(MConstant)
 };
 
 
@@ -2785,6 +2847,8 @@ class MCompare
     }
 # endif
 
+    ALLOW_CLONE(MCompare)
+
   protected:
     bool congruentTo(const MDefinition *ins) const {
         if (!binaryCongruentTo(ins))
@@ -2828,6 +2892,8 @@ class MBox : public MUnaryInstruction
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    ALLOW_CLONE(MBox)
 };
 
 
@@ -2945,6 +3011,8 @@ class MUnbox : public MUnaryInstruction, public BoxInputsPolicy
         JS_ASSERT(mode() != Fallible);
         mode_ = Infallible;
     }
+
+    ALLOW_CLONE(MUnbox)
 };
 
 class MGuardObject : public MUnaryInstruction, public SingleObjectPolicy
@@ -3388,6 +3456,8 @@ class MToDouble
     void setTruncateKind(TruncateKind kind) {
         implicitTruncate_ = Max(implicitTruncate_, kind);
     }
+
+    ALLOW_CLONE(MToDouble)
 };
 
 
@@ -3451,6 +3521,8 @@ class MToFloat32
 
     bool canConsumeFloat32(MUse *use) const { return true; }
     bool canProduceFloat32() const { return true; }
+
+    ALLOW_CLONE(MToFloat32)
 };
 
 
@@ -3572,6 +3644,8 @@ class MToInt32
 #ifdef DEBUG
     bool isConsistentFloat32Use(MUse *use) const { return true; }
 #endif
+
+    ALLOW_CLONE(MToInt32)
 };
 
 
@@ -3614,6 +3688,8 @@ class MTruncateToInt32 : public MUnaryInstruction
         return true;
     }
 #endif
+
+    ALLOW_CLONE(MTruncateToInt32)
 };
 
 
@@ -3652,6 +3728,8 @@ class MToString :
     bool fallible() const {
         return input()->mightBeType(MIRType_Object);
     }
+
+    ALLOW_CLONE(MToString)
 };
 
 class MBitNot
@@ -3692,6 +3770,8 @@ class MBitNot
     bool canRecoverOnBailout() const {
         return specialization_ != MIRType_None;
     }
+
+    ALLOW_CLONE(MBitNot)
 };
 
 class MTypeOf
@@ -3837,6 +3917,8 @@ class MBitAnd : public MBinaryBitwiseInstruction
     bool canRecoverOnBailout() const {
         return specialization_ != MIRType_None;
     }
+
+    ALLOW_CLONE(MBitAnd)
 };
 
 class MBitOr : public MBinaryBitwiseInstruction
@@ -3864,6 +3946,8 @@ class MBitOr : public MBinaryBitwiseInstruction
     bool canRecoverOnBailout() const {
         return specialization_ != MIRType_None;
     }
+
+    ALLOW_CLONE(MBitOr)
 };
 
 class MBitXor : public MBinaryBitwiseInstruction
@@ -3892,6 +3976,8 @@ class MBitXor : public MBinaryBitwiseInstruction
     bool canRecoverOnBailout() const {
         return specialization_ < MIRType_Object;
     }
+
+    ALLOW_CLONE(MBitXor)
 };
 
 class MShiftInstruction
@@ -3934,6 +4020,8 @@ class MLsh : public MShiftInstruction
     bool canRecoverOnBailout() const {
         return specialization_ != MIRType_None;
     }
+
+    ALLOW_CLONE(MLsh)
 };
 
 class MRsh : public MShiftInstruction
@@ -3958,6 +4046,8 @@ class MRsh : public MShiftInstruction
     bool canRecoverOnBailout() const {
         return specialization_ < MIRType_Object;
     }
+
+    ALLOW_CLONE(MRsh)
 };
 
 class MUrsh : public MShiftInstruction
@@ -3997,6 +4087,8 @@ class MUrsh : public MShiftInstruction
     bool canRecoverOnBailout() const {
         return specialization_ < MIRType_Object;
     }
+
+    ALLOW_CLONE(MUrsh)
 };
 
 class MBinaryArithInstruction
@@ -4114,6 +4206,8 @@ class MMinMax
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MMinMax)
 };
 
 class MAbs
@@ -4162,6 +4256,8 @@ class MAbs
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MAbs)
 };
 
 
@@ -4205,6 +4301,8 @@ class MSqrt
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MSqrt)
 };
 
 
@@ -4253,6 +4351,8 @@ class MAtan2
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MAtan2)
 };
 
 
@@ -4296,6 +4396,8 @@ class MHypot
     bool possiblyCalls() const {
         return true;
     }
+
+    ALLOW_CLONE(MHypot)
 };
 
 
@@ -4342,6 +4444,8 @@ class MPow
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MPow)
 };
 
 
@@ -4391,6 +4495,8 @@ class MPowHalf
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MPowHalf)
 };
 
 
@@ -4416,6 +4522,8 @@ class MRandom : public MNullaryInstruction
     }
 
     void computeRange(TempAllocator &alloc);
+
+    ALLOW_CLONE(MRandom)
 };
 
 class MMathFunction
@@ -4509,6 +4617,8 @@ class MMathFunction
     bool canRecoverOnBailout() const {
         return function_ == Round;
     }
+
+    ALLOW_CLONE(MMathFunction)
 };
 
 class MAdd : public MBinaryArithInstruction
@@ -4554,6 +4664,8 @@ class MAdd : public MBinaryArithInstruction
     bool canRecoverOnBailout() const {
         return specialization_ < MIRType_Object;
     }
+
+    ALLOW_CLONE(MAdd)
 };
 
 class MSub : public MBinaryArithInstruction
@@ -4595,6 +4707,8 @@ class MSub : public MBinaryArithInstruction
     bool canRecoverOnBailout() const {
         return specialization_ < MIRType_Object;
     }
+
+    ALLOW_CLONE(MSub)
 };
 
 class MMul : public MBinaryArithInstruction
@@ -4696,6 +4810,8 @@ class MMul : public MBinaryArithInstruction
     bool canRecoverOnBailout() const {
         return specialization_ < MIRType_Object;
     }
+
+    ALLOW_CLONE(MMul)
 };
 
 class MDiv : public MBinaryArithInstruction
@@ -4797,6 +4913,8 @@ class MDiv : public MBinaryArithInstruction
     bool canRecoverOnBailout() const {
         return specialization_ < MIRType_Object;
     }
+
+    ALLOW_CLONE(MDiv)
 };
 
 class MMod : public MBinaryArithInstruction
@@ -4871,6 +4989,8 @@ class MMod : public MBinaryArithInstruction
     bool truncate(TruncateKind kind);
     void collectRangeInfoPreTrunc();
     TruncateKind operandTruncateKind(size_t index) const;
+
+    ALLOW_CLONE(MMod)
 };
 
 class MConcat
@@ -4908,6 +5028,7 @@ class MConcat
         return true;
     }
 
+    ALLOW_CLONE(MConcat)
 };
 
 class MConcatPar
@@ -4986,6 +5107,8 @@ class MCharCodeAt
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MCharCodeAt)
 };
 
 class MFromCharCode
@@ -5020,6 +5143,8 @@ class MFromCharCode
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MFromCharCode)
 };
 
 class MStringSplit
@@ -5960,6 +6085,8 @@ class MSlots
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::ObjectFields);
     }
+
+    ALLOW_CLONE(MSlots)
 };
 
 
@@ -5993,6 +6120,8 @@ class MElements
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::ObjectFields);
     }
+
+    ALLOW_CLONE(MElements)
 };
 
 
@@ -6031,6 +6160,8 @@ class MConstantElements : public MNullaryInstruction
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    ALLOW_CLONE(MConstantElements)
 };
 
 
@@ -6140,6 +6271,8 @@ class MInitializedLength
     }
 
     void computeRange(TempAllocator &alloc);
+
+    ALLOW_CLONE(MInitializedLength)
 };
 
 
@@ -6168,6 +6301,8 @@ class MSetInitializedLength
     AliasSet getAliasSet() const {
         return AliasSet::Store(AliasSet::ObjectFields);
     }
+
+    ALLOW_CLONE(MSetInitializedLength)
 };
 
 
@@ -6199,6 +6334,8 @@ class MArrayLength
     }
 
     void computeRange(TempAllocator &alloc);
+
+    ALLOW_CLONE(MArrayLength)
 };
 
 
@@ -6295,6 +6432,8 @@ class MTypedArrayElements
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::ObjectFields);
     }
+
+    ALLOW_CLONE(MTypedArrayElements)
 };
 
 
@@ -6531,6 +6670,8 @@ class MBoundsCheck
         return AliasSet::None();
     }
     void computeRange(TempAllocator &alloc);
+
+    ALLOW_CLONE(MBoundsCheck)
 };
 
 
@@ -6639,6 +6780,8 @@ class MLoadElement
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::Element);
     }
+
+    ALLOW_CLONE(MLoadElement)
 };
 
 
@@ -6703,6 +6846,8 @@ class MLoadElementHole
         return AliasSet::Load(AliasSet::Element);
     }
     void collectRangeInfoPreTrunc();
+
+    ALLOW_CLONE(MLoadElementHole)
 };
 
 class MStoreElementCommon
@@ -6785,6 +6930,8 @@ class MStoreElement
     bool fallible() const {
         return needsHoleCheck();
     }
+
+    ALLOW_CLONE(MStoreElement)
 };
 
 
@@ -6834,6 +6981,8 @@ class MStoreElementHole
         
         return AliasSet::Store(AliasSet::Element | AliasSet::ObjectFields);
     }
+
+    ALLOW_CLONE(MStoreElementHole)
 };
 
 
@@ -6884,6 +7033,8 @@ class MArrayPopShift
     AliasSet getAliasSet() const {
         return AliasSet::Store(AliasSet::Element | AliasSet::ObjectFields);
     }
+
+    ALLOW_CLONE(MArrayPopShift)
 };
 
 
@@ -6917,6 +7068,8 @@ class MArrayPush
         return AliasSet::Store(AliasSet::Element | AliasSet::ObjectFields);
     }
     void computeRange(TempAllocator &alloc);
+
+    ALLOW_CLONE(MArrayPush)
 };
 
 
@@ -7022,6 +7175,8 @@ class MLoadTypedArrayElement
     void computeRange(TempAllocator &alloc);
 
     bool canProduceFloat32() const { return arrayType_ == Scalar::Float32; }
+
+    ALLOW_CLONE(MLoadTypedArrayElement)
 };
 
 
@@ -7082,6 +7237,8 @@ class MLoadTypedArrayElementHole
         return AliasSet::Load(AliasSet::TypedArrayElement);
     }
     bool canProduceFloat32() const { return arrayType_ == Scalar::Float32; }
+
+    ALLOW_CLONE(MLoadTypedArrayElementHole)
 };
 
 
@@ -7207,6 +7364,8 @@ class MStoreTypedArrayElement
     bool canConsumeFloat32(MUse *use) const {
         return use == getUseFor(2) && arrayType_ == Scalar::Float32;
     }
+
+    ALLOW_CLONE(MStoreTypedArrayElement)
 };
 
 class MStoreTypedArrayElementHole
@@ -7275,6 +7434,8 @@ class MStoreTypedArrayElementHole
     bool canConsumeFloat32(MUse *use) const {
         return use == getUseFor(3) && arrayType_ == Scalar::Float32;
     }
+
+    ALLOW_CLONE(MStoreTypedArrayElementHole)
 };
 
 
@@ -7360,6 +7521,8 @@ class MEffectiveAddress : public MBinaryInstruction
     int32_t displacement() const {
         return displacement_;
     }
+
+    ALLOW_CLONE(MEffectiveAddress)
 };
 
 
@@ -7393,6 +7556,8 @@ class MClampToUint8
         return AliasSet::None();
     }
     void computeRange(TempAllocator &alloc);
+
+    ALLOW_CLONE(MClampToUint8)
 };
 
 class MLoadFixedSlot
@@ -7441,6 +7606,8 @@ class MLoadFixedSlot
     }
 
     bool mightAlias(const MDefinition *store) const;
+
+    ALLOW_CLONE(MLoadFixedSlot)
 };
 
 class MStoreFixedSlot
@@ -7493,6 +7660,8 @@ class MStoreFixedSlot
     void setNeedsBarrier(bool needsBarrier = true) {
         needsBarrier_ = needsBarrier;
     }
+
+    ALLOW_CLONE(MStoreFixedSlot)
 };
 
 typedef Vector<JSObject *, 4, IonAllocPolicy> ObjectVector;
@@ -8284,6 +8453,8 @@ class MGuardClass
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::ObjectFields);
     }
+
+    ALLOW_CLONE(MGuardClass)
 };
 
 
@@ -8335,6 +8506,8 @@ class MLoadSlot
         return AliasSet::Load(AliasSet::DynamicSlot);
     }
     bool mightAlias(const MDefinition *store) const;
+
+    ALLOW_CLONE(MLoadSlot)
 };
 
 
@@ -8486,6 +8659,8 @@ class MStoreSlot
     AliasSet getAliasSet() const {
         return AliasSet::Store(AliasSet::DynamicSlot);
     }
+
+    ALLOW_CLONE(MStoreSlot)
 };
 
 class MGetNameCache
@@ -9159,6 +9334,8 @@ class MStringLength
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MStringLength)
 };
 
 
@@ -9204,6 +9381,8 @@ class MFloor
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MFloor)
 };
 
 
@@ -9245,6 +9424,8 @@ class MCeil
         return congruentIfOperandsEqual(ins);
     }
     void computeRange(TempAllocator &alloc);
+
+    ALLOW_CLONE(MCeil)
 };
 
 
@@ -9291,6 +9472,8 @@ class MRound
     bool canRecoverOnBailout() const {
         return true;
     }
+
+    ALLOW_CLONE(MRound)
 };
 
 class MIteratorStart
@@ -9893,6 +10076,8 @@ class MTypeBarrier
             return false;
         return input()->type() != type;
     }
+
+    ALLOW_CLONE(MTypeBarrier)
 };
 
 
@@ -9978,6 +10163,8 @@ class MPostWriteBarrier : public MBinaryInstruction, public ObjectPolicy<0>
         return use == getUseFor(1);
     }
 #endif
+
+    ALLOW_CLONE(MPostWriteBarrier)
 };
 
 class MNewDeclEnvObject : public MNullaryInstruction
@@ -10269,6 +10456,9 @@ class MResumePoint MOZ_FINAL : public MNode, public InlineForwardListNode<MResum
   public:
     static MResumePoint *New(TempAllocator &alloc, MBasicBlock *block, jsbytecode *pc,
                              MResumePoint *parent, Mode mode);
+    static MResumePoint *New(TempAllocator &alloc, MBasicBlock *block, jsbytecode *pc,
+                             MResumePoint *parent, Mode mode,
+                             const MDefinitionVector &operands);
 
     MNode::Kind kind() const {
         return MNode::ResumePoint;
@@ -10913,8 +11103,6 @@ MControlInstruction *MDefinition::toControlInstruction() {
     return (MControlInstruction *)this;
 }
 
-typedef Vector<MDefinition *, 8, IonAllocPolicy> MDefinitionVector;
-
 
 
 bool ElementAccessIsDenseNative(MDefinition *obj, MDefinition *id);
@@ -10947,4 +11135,4 @@ bool PropertyWriteNeedsTypeBarrier(TempAllocator &alloc, types::CompilerConstrai
 } 
 } 
 
-#endif 
+#endif
