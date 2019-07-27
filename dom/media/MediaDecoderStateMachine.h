@@ -208,13 +208,6 @@ public:
 
   
   
-  
-  
-  
-  void UpdateEstimatedDuration(int64_t aDuration);
-
-  
-  
   bool OnDecodeTaskQueue() const;
   bool OnTaskQueue() const;
 
@@ -905,6 +898,9 @@ public:
 
   
   Mirror<media::NullableTimeUnit> mNetworkDuration;
+
+  
+  Mirror<media::NullableTimeUnit> mEstimatedDuration;
 
   
   Mirror<Maybe<double>> mExplicitDuration;

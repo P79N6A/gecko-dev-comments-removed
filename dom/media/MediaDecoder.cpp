@@ -50,6 +50,12 @@ namespace mozilla {
 static const int64_t CAN_PLAY_THROUGH_MARGIN = 1;
 
 
+
+
+
+static const uint64_t ESTIMATED_DURATION_FUZZ_FACTOR_USECS = USECS_PER_S / 2;
+
+
 #undef DECODER_LOG
 
 PRLogModuleInfo* gMediaDecoderLog;
@@ -346,6 +352,8 @@ MediaDecoder::MediaDecoder() :
   mReentrantMonitor("media.decoder"),
   mNetworkDuration(AbstractThread::MainThread(), NullableTimeUnit(),
                    "MediaDecoder::mNetworkDuration (Canonical)"),
+  mEstimatedDuration(AbstractThread::MainThread(), NullableTimeUnit(),
+                     "MediaDecoder::mEstimatedDuration (Canonical)"),
   mExplicitDuration(AbstractThread::MainThread(), Maybe<double>(),
                    "MediaDecoder::mExplicitDuration (Canonical)"),
   mPlayState(AbstractThread::MainThread(), PLAY_STATE_LOADING,
@@ -1113,8 +1121,17 @@ void MediaDecoder::UpdateEstimatedMediaDuration(int64_t aDuration)
   if (mPlayState <= PLAY_STATE_LOADING) {
     return;
   }
-  NS_ENSURE_TRUE_VOID(GetStateMachine());
-  GetStateMachine()->UpdateEstimatedDuration(aDuration);
+
+  
+  
+  
+  
+  if (mEstimatedDuration.Ref().isSome() &&
+      mozilla::Abs(mEstimatedDuration.Ref().ref().ToMicroseconds() - aDuration) < ESTIMATED_DURATION_FUZZ_FACTOR_USECS) {
+    return;
+  }
+
+  mEstimatedDuration = Some(TimeUnit::FromMicroseconds(aDuration));
 }
 
 void MediaDecoder::SetMediaSeekable(bool aMediaSeekable) {

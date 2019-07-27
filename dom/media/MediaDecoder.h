@@ -997,6 +997,17 @@ protected:
 
   
   
+  
+  
+  
+  
+  Canonical<media::NullableTimeUnit> mEstimatedDuration;
+public:
+  AbstractCanonical<media::NullableTimeUnit>* CanonicalEstimatedDuration() { return &mEstimatedDuration; }
+protected:
+
+  
+  
   Canonical<Maybe<double>> mExplicitDuration;
   double ExplicitDuration() { return mExplicitDuration.Ref().ref(); }
   void SetExplicitDuration(double aValue) { mExplicitDuration.Set(Some(aValue)); }
