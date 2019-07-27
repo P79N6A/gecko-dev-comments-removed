@@ -14,6 +14,10 @@
 #include "mozilla/Types.h"
 #include "nscore.h"
 
+#ifdef PL_DHASHMETER
+#include <stdio.h>
+#endif
+
 #if defined(__GNUC__) && defined(__i386__)
 #define PL_DHASH_FASTCALL __attribute__ ((regparm (3),stdcall))
 #elif defined(XP_WIN)
@@ -241,41 +245,41 @@ struct PLDHashTable
   void*               data;           
 
 private:
-  int16_t             hashShift;      
+  int16_t             mHashShift;     
   
 
 
 
 
 
-  uint16_t            recursionLevel; 
-  uint32_t            entrySize;      
-  uint32_t            entryCount;     
-  uint32_t            removedCount;   
-  uint32_t            generation;     
-  char*               entryStore;     
+  uint16_t            mRecursionLevel;
+  uint32_t            mEntrySize;     
+  uint32_t            mEntryCount;    
+  uint32_t            mRemovedCount;  
+  uint32_t            mGeneration;    
+  char*               mEntryStore;    
 
 #ifdef PL_DHASHMETER
   struct PLDHashStats
   {
-    uint32_t        searches;       
-    uint32_t        steps;          
-    uint32_t        hits;           
-    uint32_t        misses;         
-    uint32_t        lookups;        
-    uint32_t        addMisses;      
-    uint32_t        addOverRemoved; 
-    uint32_t        addHits;        
-    uint32_t        addFailures;    
-    uint32_t        removeHits;     
-    uint32_t        removeMisses;   
-    uint32_t        removeFrees;    
-    uint32_t        removeEnums;    
-    uint32_t        grows;          
-    uint32_t        shrinks;        
-    uint32_t        compresses;     
-    uint32_t        enumShrinks;    
-  } stats;
+    uint32_t        mSearches;      
+    uint32_t        mSteps;         
+    uint32_t        mHits;          
+    uint32_t        mMisses;        
+    uint32_t        mLookups;       
+    uint32_t        mAddMisses;     
+    uint32_t        mAddOverRemoved;
+    uint32_t        mAddHits;       
+    uint32_t        mAddFailures;   
+    uint32_t        mRemoveHits;    
+    uint32_t        mRemoveMisses;  
+    uint32_t        mRemoveFrees;   
+    uint32_t        mRemoveEnums;   
+    uint32_t        mGrows;         
+    uint32_t        mShrinks;       
+    uint32_t        mCompresses;    
+    uint32_t        mEnumShrinks;   
+  } mStats;
 #endif
 
 public:
@@ -286,12 +290,12 @@ public:
 
   uint32_t Capacity() const
   {
-    return ((uint32_t)1 << (PL_DHASH_BITS - hashShift));
+    return ((uint32_t)1 << (PL_DHASH_BITS - mHashShift));
   }
 
-  uint32_t EntrySize()  const { return entrySize; }
-  uint32_t EntryCount() const { return entryCount; }
-  uint32_t Generation() const { return generation; }
+  uint32_t EntrySize()  const { return mEntrySize; }
+  uint32_t EntryCount() const { return mEntryCount; }
+  uint32_t Generation() const { return mGeneration; }
 
   bool Init(const PLDHashTableOps* aOps, void* aData, uint32_t aEntrySize,
             const mozilla::fallible_t&, uint32_t aLength);
@@ -618,8 +622,6 @@ NS_COM_GLUE void PL_DHashMarkTableImmutable(PLDHashTable* aTable);
 #endif
 
 #ifdef PL_DHASHMETER
-#include <stdio.h>
-
 NS_COM_GLUE void PL_DHashTableDumpMeter(PLDHashTable* aTable,
                                         PLDHashEnumerator aDump, FILE* aFp);
 #endif
