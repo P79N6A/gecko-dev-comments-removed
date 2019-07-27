@@ -634,6 +634,15 @@ FunctionBox::FunctionBox(ExclusiveContext* cx, ObjectBox* traceListHead, JSFunct
         FunctionBox* parent = outerpc->sc->asFunctionBox();
         if (parent && parent->inWith)
             inWith = true;
+    } else {
+        
+        
+        
+        
+        
+        
+        
+        inWith = outerpc->sc->asGlobalSharedContext()->inWith();
     }
 }
 
