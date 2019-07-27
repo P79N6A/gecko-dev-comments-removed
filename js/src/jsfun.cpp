@@ -1586,42 +1586,29 @@ js::fun_bind(JSContext* cx, unsigned argc, Value* vp)
         argslen = args.length() - 1;
     }
 
-    
     RootedValue thisArg(cx, args.length() >= 1 ? args[0] : UndefinedValue());
     RootedObject target(cx, &thisv.toObject());
-    JSObject* boundFunction = fun_bind(cx, target, thisArg, boundArgs, argslen);
-    if (!boundFunction)
-        return false;
 
-    
-    args.rval().setObject(*boundFunction);
-    return true;
-}
-
-JSObject*
-js::fun_bind(JSContext* cx, HandleObject target, HandleValue thisArg,
-             Value* boundArgs, unsigned argslen)
-{
     double length = 0.0;
     
     if (target->is<JSFunction>() && !target->as<JSFunction>().hasResolvedLength()) {
         uint16_t len;
         if (!target->as<JSFunction>().getLength(cx, &len))
-            return nullptr;
+            return false;
         length = Max(0.0, double(len) - argslen);
     } else {
         
         RootedId id(cx, NameToId(cx->names().length));
         bool hasLength;
         if (!HasOwnProperty(cx, target, id, &hasLength))
-            return nullptr;
+            return false;
 
         
         if (hasLength) {
             
             RootedValue targetLen(cx);
             if (!GetProperty(cx, target, target, id, &targetLen))
-                return nullptr;
+                return false;
             
             if (targetLen.isNumber())
                 length = Max(0.0, JS::ToInteger(targetLen.toNumber()) - argslen);
@@ -1636,7 +1623,7 @@ js::fun_bind(JSContext* cx, HandleObject target, HandleValue thisArg,
         
         RootedValue targetName(cx);
         if (!GetProperty(cx, target, target, cx->names().name, &targetName))
-            return nullptr;
+            return false;
 
         
         if (targetName.isString())
@@ -1649,21 +1636,21 @@ js::fun_bind(JSContext* cx, HandleObject target, HandleValue thisArg,
     
     
     if (!sb.append(name))
-        return nullptr;
+        return false;
 
     RootedAtom nameAtom(cx, sb.finishAtom());
     if (!nameAtom)
-        return nullptr;
+        return false;
 
     
     RootedFunction fun(cx, target->isConstructor() ?
       NewNativeConstructor(cx, CallOrConstructBoundFunction, length, nameAtom) :
       NewNativeFunction(cx, CallOrConstructBoundFunction, length, nameAtom));
     if (!fun)
-        return nullptr;
+        return false;
 
     if (!fun->initBoundFunction(cx, target, thisArg, boundArgs, argslen))
-        return nullptr;
+        return false;
 
     
     
@@ -1672,11 +1659,13 @@ js::fun_bind(JSContext* cx, HandleObject target, HandleValue thisArg,
         if (!DefineProperty(cx, fun, cx->names().length, lengthVal, nullptr, nullptr,
                             JSPROP_READONLY))
         {
-            return nullptr;
+            return false;
         }
     }
 
-    return fun;
+    
+    args.rval().setObject(*fun);
+    return true;
 }
 
 

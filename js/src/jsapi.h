@@ -3283,14 +3283,6 @@ JS_IsConstructor(JSFunction* fun);
 
 
 
-
-
-extern JS_PUBLIC_API(JSObject*)
-JS_BindCallable(JSContext* cx, JS::Handle<JSObject*> callable, JS::Handle<JSObject*> newThis);
-
-
-
-
 enum PropertyDefinitionBehavior {
     DefineAllProperties,
     OnlyDefineLateProperties,
