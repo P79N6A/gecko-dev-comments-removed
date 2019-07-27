@@ -82,6 +82,7 @@
 #include "mozilla/GuardObjects.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/TimeStamp.h"
 
 #include <math.h>
@@ -3640,6 +3641,7 @@ public:
         , writeToGlobalPrototype(false)
         , skipWriteToGlobalPrototype(false)
         , universalXPConnectEnabled(false)
+        , forcePermissiveCOWs(false)
         , adoptedNode(false)
         , donatedNode(false)
         , scriptability(c)
@@ -3681,7 +3683,17 @@ public:
     
     
     
+    
+    
     bool universalXPConnectEnabled;
+
+    
+    
+    
+    
+    
+    
+    bool forcePermissiveCOWs;
 
     
     bool adoptedNode;
@@ -3737,6 +3749,14 @@ private:
 bool IsUniversalXPConnectEnabled(JSCompartment *compartment);
 bool IsUniversalXPConnectEnabled(JSContext *cx);
 bool EnableUniversalXPConnect(JSContext *cx);
+
+inline void
+CrashIfNotInAutomation()
+{
+    const char *prefName =
+      "security.turn_off_all_security_so_that_viruses_can_take_over_this_computer";
+    MOZ_RELEASE_ASSERT(mozilla::Preferences::GetBool(prefName));
+}
 
 inline XPCWrappedNativeScope*
 ObjectScope(JSObject *obj)

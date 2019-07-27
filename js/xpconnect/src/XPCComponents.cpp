@@ -17,6 +17,7 @@
 #include "jsfriendapi.h"
 #include "js/StructuredClone.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Preferences.h"
 #include "nsJSEnvironment.h"
 #include "mozilla/XPTInterfaceInfoManager.h"
 #include "mozilla/dom/DOMException.h"
@@ -3154,11 +3155,21 @@ nsXPCComponents_Utils::SetWantXrays(HandleValue vscope, JSContext *cx)
 
 
 NS_IMETHODIMP
+nsXPCComponents_Utils::ForcePermissiveCOWs(JSContext *cx)
+{
+    CrashIfNotInAutomation();
+    CompartmentPrivate::Get(CurrentGlobalOrNull(cx))->forcePermissiveCOWs = true;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsXPCComponents_Utils::ForcePrivilegedComponentsForScope(HandleValue vscope,
                                                          JSContext *cx)
 {
     if (!vscope.isObject())
         return NS_ERROR_INVALID_ARG;
+    CrashIfNotInAutomation();
     JSObject *scopeObj = js::UncheckedUnwrap(&vscope.toObject());
     XPCWrappedNativeScope *scope = ObjectScope(scopeObj);
     scope->ForcePrivilegedComponents();
