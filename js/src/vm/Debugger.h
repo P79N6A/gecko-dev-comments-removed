@@ -22,13 +22,13 @@
 #include "vm/GlobalObject.h"
 #include "vm/SavedStacks.h"
 
-typedef enum JSTrapStatus {
+enum JSTrapStatus {
     JSTRAP_ERROR,
     JSTRAP_CONTINUE,
     JSTRAP_RETURN,
     JSTRAP_THROW,
     JSTRAP_LIMIT
-} JSTrapStatus;
+};
 
 namespace js {
 
@@ -234,10 +234,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     
     
-    bool isDebuggee(const JSCompartment *compartment) const {
-        MOZ_ASSERT(compartment);
-        return compartment->isDebuggee() && debuggees.has(compartment->maybeGlobal());
-    }
+    bool isDebuggee(const JSCompartment *compartment) const;
 
   private:
     HeapPtrNativeObject object;         
