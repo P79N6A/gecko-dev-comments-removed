@@ -8,6 +8,7 @@
 #include "base/basictypes.h"
 
 #include "BasicLayers.h"
+#include "gfxPrefs.h"
 #ifdef MOZ_ENABLE_D3D9_LAYER
 # include "LayerManagerD3D9.h"
 #endif 
@@ -328,7 +329,7 @@ RenderFrameParent::GetApzcTreeManager()
   
   
   
-  if (!mApzcTreeManager) {
+  if (!mApzcTreeManager && gfxPrefs::AsyncPanZoomEnabled()) {
     mApzcTreeManager = CompositorParent::GetAPZCTreeManager(mLayersId);
   }
   return mApzcTreeManager.get();
