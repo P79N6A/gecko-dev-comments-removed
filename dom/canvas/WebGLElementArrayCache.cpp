@@ -19,7 +19,10 @@ static void
 UpdateUpperBound(uint32_t* const out_upperBound, uint32_t newBound)
 {
     MOZ_ASSERT(out_upperBound);
-    *out_upperBound = std::max(*out_upperBound, newBound);
+    
+    
+    uint32_t upperBound = *out_upperBound;
+    *out_upperBound = std::max(upperBound, newBound);
 }
 
 
