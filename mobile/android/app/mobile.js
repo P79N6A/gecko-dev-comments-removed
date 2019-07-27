@@ -574,7 +574,6 @@ pref("media.fragmented-mp4.android-media-codec.preferred", true);
 
 
 pref("image.mem.decodeondraw", true);
-pref("image.mem.min_discard_timeout_ms", 10000);
 
 #ifdef NIGHTLY_BUILD
 

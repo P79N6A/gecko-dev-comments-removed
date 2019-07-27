@@ -3776,27 +3776,10 @@ pref("image.mem.decodeondraw", true);
 pref("image.mem.allow_locking_in_content_processes", true);
 
 
-
-
-
-
-
-
-pref("image.mem.min_discard_timeout_ms", 10000);
-
-
 pref("image.mem.decode_bytes_at_a_time", 16384);
 
 
 pref("image.mem.max_ms_before_yield", 5);
-
-
-
-pref("image.mem.max_decoded_image_kb", 51200);
-
-
-
-pref("image.mem.hard_limit_decoded_image_kb", 0);
 
 
 

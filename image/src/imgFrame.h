@@ -207,9 +207,6 @@ private:
   bool mNonPremult;
   bool mOptimizable;
 
-  
-  bool mInformedDiscardTracker;
-
   friend class DrawableFrameRef;
   friend class RawAccessFrameRef;
 };

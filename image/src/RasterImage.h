@@ -26,7 +26,6 @@
 #include "imgFrame.h"
 #include "nsThreadUtils.h"
 #include "DecodePool.h"
-#include "DiscardTracker.h"
 #include "Orientation.h"
 #include "nsIObserver.h"
 #include "mozilla/Maybe.h"
@@ -161,6 +160,7 @@ public:
   nsresult Init(const char* aMimeType,
                 uint32_t aFlags);
   virtual nsIntRect FrameRect(uint32_t aWhichFrame) MOZ_OVERRIDE;
+  virtual void OnSurfaceDiscarded() MOZ_OVERRIDE;
 
   
   static NS_METHOD WriteToRasterImage(nsIInputStream* aIn, void* aClosure,
@@ -176,8 +176,7 @@ public:
                                MallocSizeOf aMallocSizeOf) const;
 
   
-  void Discard(bool aForce = false, bool aNotify = true);
-  void ForceDiscard() { Discard( true); }
+  void Discard(bool aNotify = true);
 
   
   
@@ -366,12 +365,9 @@ private:
 
   
   uint32_t                   mLockCount;
-  DiscardTracker::Node       mDiscardTrackerNode;
 
   
   nsCString                  mSourceDataMimeType;
-
-  friend class DiscardTracker;
 
   
   
@@ -497,9 +493,6 @@ private:
 
   
   bool CanDiscard();
-  bool CanForciblyDiscard();
-  bool CanForciblyDiscardAndRedecode();
-  bool DiscardingActive();
   bool StoringSourceData() const;
 
 protected:
