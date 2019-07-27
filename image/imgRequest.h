@@ -21,6 +21,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/net/ReferrerPolicy.h"
+#include "ImageCacheKey.h"
 
 class imgCacheValidator;
 class imgLoader;
@@ -49,12 +50,13 @@ class imgRequest final : public nsIStreamListener,
                          public nsIAsyncVerifyRedirectCallback
 {
   typedef mozilla::image::Image Image;
+  typedef mozilla::image::ImageCacheKey ImageCacheKey;
   typedef mozilla::image::ImageURL ImageURL;
   typedef mozilla::image::ProgressTracker ProgressTracker;
   typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
 
 public:
-  explicit imgRequest(imgLoader* aLoader);
+  imgRequest(imgLoader* aLoader, const ImageCacheKey& aCacheKey);
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISTREAMLISTENER
@@ -142,6 +144,9 @@ public:
 
   
   inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); }
+
+  
+  const ImageCacheKey& CacheKey() const { return mCacheKey; }
 
   
   void ResetCacheEntry();
@@ -245,6 +250,9 @@ private:
 
   
   nsRefPtr<imgCacheEntry> mCacheEntry;
+
+  
+  ImageCacheKey mCacheKey;
 
   void* mLoadId;
 
