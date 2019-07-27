@@ -593,6 +593,12 @@ gfxUtils::DrawPixelSnapped(gfxContext*         aContext,
                                      imageRect.Width(), imageRect.Height(),
                                      region.Width(), region.Height());
 
+    if (aRegion.IsRestricted() &&
+        drawable->DrawWithSamplingRect(aContext, aRegion.Rect(), aRegion.Restriction(),
+                                       doTile, aFilter, aOpacity)) {
+      return;
+    }
+
     
     
     
