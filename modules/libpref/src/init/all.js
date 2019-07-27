@@ -3832,7 +3832,7 @@ pref("layers.max-active", -1);
 pref("layers.scroll-graph", false);
 
 
-pref("layers.offmainthreadcomposition.enabled", false);
+pref("layers.offmainthreadcomposition.enabled", true);
 
 
 
@@ -3845,30 +3845,13 @@ pref("layers.async-video.enabled", true);
 pref("layers.async-video-oop.enabled",true);
 
 #ifdef XP_WIN
-pref("layers.offmainthreadcomposition.enabled", true);
 
 pref("layers.async-video-oop.enabled", false);
-#endif
-
-#ifdef MOZ_WIDGET_QT
-pref("layers.offmainthreadcomposition.enabled", true);
-#endif
-
-#ifdef XP_MACOSX
-pref("layers.offmainthreadcomposition.enabled", true);
-#endif
-
-
-#ifdef ANDROID
-pref("layers.offmainthreadcomposition.enabled", true);
 #endif
 
 
 
 pref("layers.offmainthreadcomposition.testing.enabled", false);
-
-
-pref("layers.offmainthreadcomposition.force-basic", false);
 
 
 pref("layers.offmainthreadcomposition.async-animations", false);
