@@ -16,6 +16,16 @@
 #include "harfbuzz/hb.h"
 #include "harfbuzz/hb-ot.h"
 
+#if ENABLE_INTL_API 
+                    
+#include "unicode/unorm.h"
+#include "unicode/utext.h"
+#define MOZ_HB_SHAPER_USE_ICU_NORMALIZATION 1
+static const UNormalizer2 * sNormalizer = nullptr;
+#else
+#undef MOZ_HB_SHAPER_USE_ICU_NORMALIZATION
+#endif
+
 #include <algorithm>
 
 #define FloatToFixed(f) (65536 * (f))
@@ -992,89 +1002,107 @@ HBUnicodeCompose(hb_unicode_funcs_t *ufuncs,
                  hb_codepoint_t     *ab,
                  void               *user_data)
 {
-    hb_bool_t found = nsUnicodeNormalizer::Compose(a, b, ab);
+#if MOZ_HB_SHAPER_USE_ICU_NORMALIZATION
 
-    if (!found && (b & 0x1fff80) == 0x0580) {
+    if (sNormalizer) {
+        UChar32 ch = unorm2_composePair(sNormalizer, a, b);
+        if (ch >= 0) {
+            *ab = ch;
+            return true;
+        }
+    }
+
+#else 
+
+    if (nsUnicodeNormalizer::Compose(a, b, ab)) {
+        return true;
+    }
+
+#endif
+
+    if ((b & 0x1fff80) == 0x0580) {
         
         
         switch (b) {
         case 0x05B4: 
             if (a == 0x05D9) { 
                 *ab = 0xFB1D;
-                found = true;
+                return true;
             }
             break;
         case 0x05B7: 
             if (a == 0x05F2) { 
                 *ab = 0xFB1F;
-                found = true;
-            } else if (a == 0x05D0) { 
+                return true;
+            }
+            if (a == 0x05D0) { 
                 *ab = 0xFB2E;
-                found = true;
+                return true;
             }
             break;
         case 0x05B8: 
             if (a == 0x05D0) { 
                 *ab = 0xFB2F;
-                found = true;
+                return true;
             }
             break;
         case 0x05B9: 
             if (a == 0x05D5) { 
                 *ab = 0xFB4B;
-                found = true;
+                return true;
             }
             break;
         case 0x05BC: 
             if (a >= 0x05D0 && a <= 0x05EA) {
                 *ab = sDageshForms[a - 0x05D0];
-                found = (*ab != 0);
-            } else if (a == 0xFB2A) { 
+                return (*ab != 0);
+            }
+            if (a == 0xFB2A) { 
                 *ab = 0xFB2C;
-                found = true;
-            } else if (a == 0xFB2B) { 
+                return true;
+            }
+            if (a == 0xFB2B) { 
                 *ab = 0xFB2D;
-                found = true;
+                return true;
             }
             break;
         case 0x05BF: 
             switch (a) {
             case 0x05D1: 
                 *ab = 0xFB4C;
-                found = true;
-                break;
+                return true;
             case 0x05DB: 
                 *ab = 0xFB4D;
-                found = true;
-                break;
+                return true;
             case 0x05E4: 
                 *ab = 0xFB4E;
-                found = true;
-                break;
+                return true;
             }
             break;
         case 0x05C1: 
             if (a == 0x05E9) { 
                 *ab = 0xFB2A;
-                found = true;
-            } else if (a == 0xFB49) { 
+                return true;
+            }
+            if (a == 0xFB49) { 
                 *ab = 0xFB2C;
-                found = true;
+                return true;
             }
             break;
         case 0x05C2: 
             if (a == 0x05E9) { 
                 *ab = 0xFB2B;
-                found = true;
-            } else if (a == 0xFB49) { 
+                return true;
+            }
+            if (a == 0xFB49) { 
                 *ab = 0xFB2D;
-                found = true;
+                return true;
             }
             break;
         }
     }
 
-    return found;
+    return false;
 }
 
 static hb_bool_t
@@ -1093,7 +1121,46 @@ HBUnicodeDecompose(hb_unicode_funcs_t *ufuncs,
         return true;
     }
 #endif
+
+#if MOZ_HB_SHAPER_USE_ICU_NORMALIZATION
+
+    if (!sNormalizer) {
+        return false;
+    }
+
+    
+    
+    const unsigned MAX_DECOMP_LENGTH = 4;
+
+    UErrorCode error = U_ZERO_ERROR;
+    UChar decomp[MAX_DECOMP_LENGTH];
+    int32_t len = unorm2_getRawDecomposition(sNormalizer, ab, decomp,
+                                             MAX_DECOMP_LENGTH, &error);
+    if (U_FAILURE(error) || len < 0) {
+        return false;
+    }
+
+    UText text = UTEXT_INITIALIZER;
+    utext_openUChars(&text, decomp, len, &error);
+    NS_ASSERTION(U_SUCCESS(error), "UText failure?");
+
+    UChar32 ch = UTEXT_NEXT32(&text);
+    if (ch != U_SENTINEL) {
+        *a = ch;
+    }
+    ch = UTEXT_NEXT32(&text);
+    if (ch != U_SENTINEL) {
+        *b = ch;
+    }
+    utext_close(&text);
+
+    return *b != 0 || *a != ab;
+
+#else 
+
     return nsUnicodeNormalizer::DecomposeNonRecursively(ab, a, b);
+
+#endif
 }
 
 static PLDHashOperator
@@ -1178,6 +1245,12 @@ gfxHarfBuzzShaper::Initialize()
         hb_unicode_funcs_set_decompose_func(sHBUnicodeFuncs,
                                             HBUnicodeDecompose,
                                             nullptr, nullptr);
+
+#if MOZ_HB_SHAPER_USE_ICU_NORMALIZATION
+        UErrorCode error = U_ZERO_ERROR;
+        sNormalizer = unorm2_getNFCInstance(&error);
+        NS_ASSERTION(U_SUCCESS(error), "failed to get ICU normalizer");
+#endif
     }
 
     gfxFontEntry *entry = mFont->GetFontEntry();
