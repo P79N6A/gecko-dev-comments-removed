@@ -1154,12 +1154,6 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
       }
     }
 
-    if (backBuffer->HasInternalBuffer()) {
-      
-      
-      aTile.DiscardBackBuffer();
-    }
-
     
     gfx::Tile moz2DTile;
     RefPtr<DrawTarget> dt = backBuffer->BorrowDrawTarget();
@@ -1192,7 +1186,7 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
                             drawRect.height);
       gfx::IntPoint copyTarget(NS_roundf(drawRect.x), NS_roundf(drawRect.y));
       
-      aTile.mInvalidFront.Or(aTile.mInvalidFront, nsIntRect(copyTarget.x, copyTarget.y, copyRect.width, copyRect.height));
+      aTile.mInvalidBack.Or(aTile.mInvalidBack, nsIntRect(copyTarget.x, copyTarget.y, copyRect.width, copyRect.height));
 
       if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
         dt->FillRect(drawRect, ColorPattern(Color(0.0, 0.0, 0.0, 1.0)));
