@@ -242,11 +242,14 @@ ImportLoader::Open()
   nsCOMPtr<nsIChannel> channel;
   rv = NS_NewChannel(getter_AddRefs(channel),
                      mURI,
-                      nullptr,
+                     mImportParent,
+                     nsILoadInfo::SEC_NORMAL,
+                     nsIContentPolicy::TYPE_SUBDOCUMENT,
+                     channelPolicy,
                      loadGroup,
-                      nullptr,
-                     nsIRequest::LOAD_BACKGROUND,
-                     channelPolicy);
+                     nullptr,  
+                     nsIRequest::LOAD_BACKGROUND);
+
   NS_ENSURE_SUCCESS_VOID(rv);
 
   
