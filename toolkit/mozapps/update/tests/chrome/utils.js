@@ -129,6 +129,7 @@ Cu.import("resource://gre/modules/AddonManager.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 
 const IS_MACOSX = ("nsILocalFileMac" in Ci);
+const IS_WIN = ("@mozilla.org/windows-registry-key;1" in Cc);
 
 
 
@@ -182,6 +183,10 @@ const TEST_ADDONS = [ "appdisabled_1", "appdisabled_2",
                       "userdisabled_1", "userdisabled_2", "hotfix" ];
 
 const LOG_FUNCTION = info;
+
+const BIN_SUFFIX = (IS_WIN ? ".exe" : "");
+const FILE_UPDATER_BIN = "updater" + (IS_MACOSX ? ".app" : BIN_SUFFIX);
+const FILE_UPDATER_BIN_BAK = FILE_UPDATER_BIN + ".bak";
 
 var gURLData = URL_HOST + "/" + REL_PATH_DATA + "/";
 
@@ -875,6 +880,26 @@ function verifyTestsRan() {
 
 
 
+
+
+function resetUpdaterBackup() {
+  let baseAppDir = getAppBaseDir();
+  let updater = baseAppDir.clone();
+  let updaterBackup = baseAppDir.clone();
+  updater.append(FILE_UPDATER_BIN);
+  updaterBackup.append(FILE_UPDATER_BIN_BAK);
+  if (updaterBackup.exists()) {
+    if (updater.exists()) {
+      updater.remove(true);
+    }
+    updaterBackup.moveTo(baseAppDir, FILE_UPDATER_BIN);
+  }
+}
+
+
+
+
+
 function setupFiles() {
   
   let baseAppDir = getAppBaseDir();
@@ -886,6 +911,31 @@ function setupFiles() {
   updateSettingsIni = baseAppDir.clone();
   updateSettingsIni.append(FILE_UPDATE_SETTINGS_INI);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
+
+  
+  resetUpdaterBackup();
+
+  
+  let updater = baseAppDir.clone();
+  updater.append(FILE_UPDATER_BIN);
+  updater.moveTo(baseAppDir, FILE_UPDATER_BIN_BAK);
+
+  
+  let testUpdaterDir = Cc["@mozilla.org/file/directory_service;1"].
+    getService(Ci.nsIProperties).
+    get("CurWorkD", Ci.nsILocalFile);
+
+  let relPath = REL_PATH_DATA;
+  let pathParts = relPath.split("/");
+  for (let i = 0; i < pathParts.length; ++i) {
+    testUpdaterDir.append(pathParts[i]);
+  }
+
+  let testUpdater = testUpdaterDir.clone();
+  testUpdater.append(FILE_UPDATER_BIN);
+  if (testUpdater.exists()) {
+    testUpdater.copyToFollowingLinks(baseAppDir, FILE_UPDATER_BIN);
+  }
 }
 
 
@@ -978,6 +1028,7 @@ function resetFiles() {
                   ", Exception: " + e);
     }
   }
+  resetUpdaterBackup();
 }
 
 
