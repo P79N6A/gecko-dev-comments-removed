@@ -905,8 +905,8 @@ TEST_F(APZCBasicTester, ComplexTransform) {
   const char* layerTreeSyntax = "c(c)";
   
   nsIntRegion layerVisibleRegion[] = {
-    nsIntRegion(nsIntRect(0, 0, 300, 300)),
-    nsIntRegion(nsIntRect(0, 0, 150, 300)),
+    nsIntRegion(IntRect(0, 0, 300, 300)),
+    nsIntRegion(IntRect(0, 0, 150, 300)),
   };
   Matrix4x4 transforms[] = {
     Matrix4x4(),
@@ -1865,7 +1865,7 @@ protected:
                                         CSSRect aScrollableRect = CSSRect(-1, -1, -1, -1)) {
     FrameMetrics metrics;
     metrics.SetScrollId(aScrollId);
-    nsIntRect layerBound = aLayer->GetVisibleRegion().GetBounds();
+    IntRect layerBound = aLayer->GetVisibleRegion().GetBounds();
     metrics.mCompositionBounds = ParentLayerRect(layerBound.x, layerBound.y,
                                                  layerBound.width, layerBound.height);
     metrics.SetScrollableRect(aScrollableRect);
@@ -1877,8 +1877,8 @@ protected:
       
       
       EventRegions er = aLayer->GetEventRegions();
-      nsIntRect scrollRect = LayerIntRect::ToUntyped(RoundedToInt(aScrollableRect * metrics.LayersPixelsPerCSSPixel()));
-      er.mHitRegion = nsIntRegion(nsIntRect(layerBound.TopLeft(), scrollRect.Size()));
+      IntRect scrollRect = LayerIntRect::ToUntyped(RoundedToInt(aScrollableRect * metrics.LayersPixelsPerCSSPixel()));
+      er.mHitRegion = nsIntRegion(IntRect(layerBound.TopLeft(), scrollRect.Size()));
       aLayer->SetEventRegions(er);
     }
   }
@@ -1897,7 +1897,7 @@ protected:
   void CreateSimpleScrollingLayer() {
     const char* layerTreeSyntax = "t";
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0,0,200,200)),
+      nsIntRegion(IntRect(0,0,200,200)),
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 500, 500));
@@ -1907,9 +1907,9 @@ protected:
     const char* layerTreeSyntax = "c(tt)";
     
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0,0,100,100)),
-      nsIntRegion(nsIntRect(0,0,100,50)),
-      nsIntRegion(nsIntRect(0,50,100,50)),
+      nsIntRegion(IntRect(0,0,100,100)),
+      nsIntRegion(IntRect(0,0,100,50)),
+      nsIntRegion(IntRect(0,50,100,50)),
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
   }
@@ -1945,11 +1945,11 @@ protected:
     const char* layerTreeSyntax = "c(tttt)";
     
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0,0,100,100)),
-      nsIntRegion(nsIntRect(0,0,100,100)),
-      nsIntRegion(nsIntRect(10,10,20,20)),
-      nsIntRegion(nsIntRect(10,10,20,20)),
-      nsIntRegion(nsIntRect(5,5,20,20)),
+      nsIntRegion(IntRect(0,0,100,100)),
+      nsIntRegion(IntRect(0,0,100,100)),
+      nsIntRegion(IntRect(10,10,20,20)),
+      nsIntRegion(IntRect(10,10,20,20)),
+      nsIntRegion(IntRect(5,5,20,20)),
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
   }
@@ -1958,10 +1958,10 @@ protected:
     const char* layerTreeSyntax = "c(tc(t))";
     
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0,0,100,100)),
-      nsIntRegion(nsIntRect(10,10,40,40)),
-      nsIntRegion(nsIntRect(10,60,40,40)),
-      nsIntRegion(nsIntRect(10,60,40,40)),
+      nsIntRegion(IntRect(0,0,100,100)),
+      nsIntRegion(IntRect(10,10,40,40)),
+      nsIntRegion(IntRect(10,60,40,40)),
+      nsIntRegion(IntRect(10,60,40,40)),
     };
     Matrix4x4 transforms[] = {
       Matrix4x4(),
@@ -1980,16 +1980,16 @@ protected:
     const char* layerTreeSyntax = "c(tc(t)tc(c(t)tt))";
     
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0,0,300,400)),      
-      nsIntRegion(nsIntRect(0,0,100,100)),      
-      nsIntRegion(nsIntRect(50,50,200,300)),    
-      nsIntRegion(nsIntRect(50,50,200,300)),    
-      nsIntRegion(nsIntRect(0,200,100,100)),    
-      nsIntRegion(nsIntRect(200,0,100,400)),    
-      nsIntRegion(nsIntRect(200,0,100,200)),    
-      nsIntRegion(nsIntRect(200,0,100,200)),    
-      nsIntRegion(nsIntRect(200,200,100,100)),  
-      nsIntRegion(nsIntRect(200,300,100,100)),  
+      nsIntRegion(IntRect(0,0,300,400)),      
+      nsIntRegion(IntRect(0,0,100,100)),      
+      nsIntRegion(IntRect(50,50,200,300)),    
+      nsIntRegion(IntRect(50,50,200,300)),    
+      nsIntRegion(IntRect(0,200,100,100)),    
+      nsIntRegion(IntRect(200,0,100,400)),    
+      nsIntRegion(IntRect(200,0,100,200)),    
+      nsIntRegion(IntRect(200,0,100,200)),    
+      nsIntRegion(IntRect(200,200,100,100)),  
+      nsIntRegion(IntRect(200,300,100,100)),  
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID);
@@ -2005,8 +2005,8 @@ protected:
     const char* layerTreeSyntax = "c(t)";
     
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0,0,200,200)),
-      nsIntRegion(nsIntRect(0,0,200,200)),
+      nsIntRegion(IntRect(0,0,200,200)),
+      nsIntRegion(IntRect(0,0,200,200)),
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID);
@@ -2423,7 +2423,7 @@ TEST_F(APZHitTestingTester, Bug1148350) {
   }
   time += 100;
 
-  layers[0]->SetVisibleRegion(nsIntRegion(nsIntRect(0,50,200,150)));
+  layers[0]->SetVisibleRegion(nsIntRegion(IntRect(0,50,200,150)));
   layers[0]->SetBaseTransform(Matrix4x4::Translation(0, 50, 0));
   manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
 
@@ -2440,8 +2440,8 @@ protected:
   void CreateOverscrollHandoffLayerTree1() {
     const char* layerTreeSyntax = "c(t)";
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
-      nsIntRegion(nsIntRect(0, 50, 100, 50))
+      nsIntRegion(IntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 50, 100, 50))
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 200, 200));
@@ -2455,9 +2455,9 @@ protected:
   void CreateOverscrollHandoffLayerTree2() {
     const char* layerTreeSyntax = "c(c(t))";
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
-      nsIntRegion(nsIntRect(0, 50, 100, 50))
+      nsIntRegion(IntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 50, 100, 50))
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 200, 200));
@@ -2475,11 +2475,11 @@ protected:
   void CreateOverscrollHandoffLayerTree3() {
     const char* layerTreeSyntax = "c(c(t)c(t))";
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),  
-      nsIntRegion(nsIntRect(0, 0, 100, 50)),   
-      nsIntRegion(nsIntRect(0, 0, 100, 50)),   
-      nsIntRegion(nsIntRect(0, 50, 100, 50)),  
-      nsIntRegion(nsIntRect(0, 50, 100, 50))   
+      nsIntRegion(IntRect(0, 0, 100, 100)),  
+      nsIntRegion(IntRect(0, 0, 100, 50)),   
+      nsIntRegion(IntRect(0, 0, 100, 50)),   
+      nsIntRegion(IntRect(0, 50, 100, 50)),  
+      nsIntRegion(IntRect(0, 50, 100, 50))   
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 100, 100));
@@ -2495,8 +2495,8 @@ protected:
   void CreateScrollgrabLayerTree() {
     const char* layerTreeSyntax = "c(t)";
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),  
-      nsIntRegion(nsIntRect(0, 20, 100, 80))   
+      nsIntRegion(IntRect(0, 0, 100, 100)),  
+      nsIntRegion(IntRect(0, 20, 100, 80))   
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 100, 120));
@@ -2698,9 +2698,9 @@ protected:
   void CreateEventRegionsLayerTree1() {
     const char* layerTreeSyntax = "c(tt)";
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(nsIntRect(0, 0, 200, 200)),     
-      nsIntRegion(nsIntRect(0, 0, 100, 200)),     
-      nsIntRegion(nsIntRect(0, 100, 200, 100)),   
+      nsIntRegion(IntRect(0, 0, 200, 200)),     
+      nsIntRegion(IntRect(0, 0, 100, 200)),     
+      nsIntRegion(IntRect(0, 100, 200, 100)),   
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
@@ -2715,12 +2715,12 @@ protected:
     
     
     
-    EventRegions regions(nsIntRegion(nsIntRect(0, 0, 200, 200)));
+    EventRegions regions(nsIntRegion(IntRect(0, 0, 200, 200)));
     root->SetEventRegions(regions);
-    regions.mDispatchToContentHitRegion = nsIntRegion(nsIntRect(0, 100, 100, 100));
-    regions.mHitRegion = nsIntRegion(nsIntRect(0, 0, 100, 200));
+    regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 100, 100, 100));
+    regions.mHitRegion = nsIntRegion(IntRect(0, 0, 100, 200));
     layers[1]->SetEventRegions(regions);
-    regions.mHitRegion = nsIntRegion(nsIntRect(0, 100, 200, 100));
+    regions.mHitRegion = nsIntRegion(IntRect(0, 100, 200, 100));
     layers[2]->SetEventRegions(regions);
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
@@ -2731,17 +2731,17 @@ protected:
   void CreateEventRegionsLayerTree2() {
     const char* layerTreeSyntax = "c(t)";
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(nsIntRect(0, 0, 100, 500)),
-      nsIntRegion(nsIntRect(0, 150, 100, 100)),
+      nsIntRegion(IntRect(0, 0, 100, 500)),
+      nsIntRegion(IntRect(0, 150, 100, 100)),
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
 
     
     
-    EventRegions regions(nsIntRegion(nsIntRect(0, 0, 100, 100)));
+    EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
     root->SetEventRegions(regions);
-    regions.mHitRegion = nsIntRegion(nsIntRect(0, 150, 100, 100));
+    regions.mHitRegion = nsIntRegion(IntRect(0, 150, 100, 100));
     layers[1]->SetEventRegions(regions);
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
@@ -2758,10 +2758,10 @@ protected:
     
     nsIntRegion layerVisibleRegions[] = {
         
-        nsIntRegion(nsIntRect(0,   0, 200, 200)),  
-        nsIntRegion(nsIntRect(0,   0, 200, 200)),  
-        nsIntRegion(nsIntRect(0, 100, 200,  50)),  
-        nsIntRegion(nsIntRect(0, 100, 200, 100))   
+        nsIntRegion(IntRect(0,   0, 200, 200)),  
+        nsIntRegion(IntRect(0,   0, 200, 200)),  
+        nsIntRegion(IntRect(0, 100, 200,  50)),  
+        nsIntRegion(IntRect(0, 100, 200, 100))   
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
 
@@ -2771,11 +2771,11 @@ protected:
     SetScrollHandoff(layers[2], layers[1]);
     SetScrollHandoff(layers[1], root);
 
-    EventRegions regions(nsIntRegion(nsIntRect(0, 0, 200, 200)));
+    EventRegions regions(nsIntRegion(IntRect(0, 0, 200, 200)));
     root->SetEventRegions(regions);
-    regions.mHitRegion = nsIntRegion(nsIntRect(0, 0, 200, 300));
+    regions.mHitRegion = nsIntRegion(IntRect(0, 0, 200, 300));
     layers[1]->SetEventRegions(regions);
-    regions.mHitRegion = nsIntRegion(nsIntRect(0, 100, 200, 100));
+    regions.mHitRegion = nsIntRegion(IntRect(0, 100, 200, 100));
     layers[2]->SetEventRegions(regions);
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
@@ -2790,9 +2790,9 @@ protected:
     
     
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 0, 100, 100)),
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
 
@@ -2812,10 +2812,10 @@ protected:
     
     
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
-      nsIntRegion(nsIntRect(0, 0, 0, 0)),
-      nsIntRegion(nsIntRect(0, 0, 10, 10)),
-      nsIntRegion(nsIntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 0, 100, 100)),
+      nsIntRegion(IntRect(0, 0, 0, 0)),
+      nsIntRegion(IntRect(0, 0, 10, 10)),
+      nsIntRegion(IntRect(0, 0, 100, 100)),
     };
     Matrix4x4 layerTransforms[] = {
       Matrix4x4(),
@@ -2828,10 +2828,10 @@ protected:
     SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 10, 10));
     SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID + 2, CSSRect(0, 0, 100, 100));
 
-    EventRegions regions(nsIntRegion(nsIntRect(0, 0, 10, 10)));
+    EventRegions regions(nsIntRegion(IntRect(0, 0, 10, 10)));
     layers[2]->SetEventRegions(regions);
-    regions.mHitRegion = nsIntRegion(nsIntRect(0, 0, 100, 100));
-    regions.mDispatchToContentHitRegion = nsIntRegion(nsIntRect(0, 0, 100, 100));
+    regions.mHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
+    regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
     layers[3]->SetEventRegions(regions);
 
     registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
