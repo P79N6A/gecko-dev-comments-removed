@@ -127,9 +127,7 @@ public:
             Preferences::GetBool("media.navigator.permission.disabled", false)) {
           device->GetName(name);
         }
-        
-        nsRefPtr<MediaDeviceInfo> info = new MediaDeviceInfo(nsString(), kind,
-                                                             name);
+        nsRefPtr<MediaDeviceInfo> info = new MediaDeviceInfo(id, kind, name);
         infos.AppendElement(info);
       }
     }
