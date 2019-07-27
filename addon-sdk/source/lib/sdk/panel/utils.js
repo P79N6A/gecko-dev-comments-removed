@@ -95,6 +95,7 @@ function close(panel) {
   
   
   
+  
 
   return panel.hidePopup && panel.hidePopup();
 }
