@@ -51,6 +51,9 @@ function RuleViewTool(inspector, window, iframe) {
 
 RuleViewTool.prototype = {
   isSidebarActive: function() {
+    if (!this.view) {
+      return false;
+    }
     return this.inspector.sidebar.getCurrentTabID() == "ruleview";
   },
 
@@ -58,9 +61,12 @@ RuleViewTool.prototype = {
     
     
     
-    let isDestroyed = !this.view;
+    if (!this.view) {
+      return;
+    }
+
     let isInactive = !this.isSidebarActive() && this.inspector.selection.nodeFront;
-    if (isDestroyed || isInactive) {
+    if (isInactive) {
       return;
     }
 
@@ -178,6 +184,9 @@ function ComputedViewTool(inspector, window, iframe) {
 
 ComputedViewTool.prototype = {
   isSidebarActive: function() {
+    if (!this.view) {
+      return;
+    }
     return this.inspector.sidebar.getCurrentTabID() == "computedview";
   },
 
@@ -185,9 +194,12 @@ ComputedViewTool.prototype = {
     
     
     
-    let isDestroyed = !this.view;
+    if (!this.view) {
+      return;
+    }
+
     let isInactive = !this.isSidebarActive() && this.inspector.selection.nodeFront;
-    if (isDestroyed || isInactive) {
+    if (isInactive) {
       return;
     }
 
