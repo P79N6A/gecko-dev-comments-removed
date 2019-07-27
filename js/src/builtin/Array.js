@@ -581,56 +581,6 @@ function ArrayFill(value, start = 0, end = undefined) {
     return O;
 }
 
-
-
-function ArrayContains(searchElement, fromIndex = 0) {
-    
-    var O = ToObject(this);
-
-    
-    var len = ToLength(O.length);
-
-    
-    if (len === 0)
-        return false;
-
-    
-    var n = ToInteger(fromIndex);
-
-    
-    if (n >= len)
-        return false;
-
-    
-    var k;
-    if (n >= 0)
-        k = n;
-    
-    else {
-        
-        k = len + n;
-        
-        if (k < 0)
-            k = 0;
-    }
-
-    
-    while (k < len) {
-        
-        var elementK = O[k];
-
-        
-        if (SameValueZero(searchElement, elementK))
-            return true;
-
-        
-        k++;
-    }
-
-    
-    return false;
-}
-
 #define ARRAY_ITERATOR_SLOT_ITERATED_OBJECT 0
 #define ARRAY_ITERATOR_SLOT_NEXT_INDEX 1
 #define ARRAY_ITERATOR_SLOT_ITEM_KIND 2

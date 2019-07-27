@@ -157,11 +157,6 @@ function ToLength(v) {
 }
 
 
-function SameValueZero(x, y) {
-    return x !== x && y !== y || x === y
-}
-
-
 
 #ifdef ENABLE_PARALLEL_JS
 

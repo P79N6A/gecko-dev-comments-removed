@@ -1094,21 +1094,17 @@ obj_seal(JSContext *cx, unsigned argc, Value *vp)
     return JSObject::seal(cx, obj);
 }
 
-
 static bool
 obj_isSealed(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+    RootedObject obj(cx);
+    if (!GetFirstArgumentAsObject(cx, args, "Object.isSealed", &obj))
+        return false;
 
-    
-    bool sealed = true;
-
-    
-    if (args.get(0).isObject()) {
-        RootedObject obj(cx, &args.get(0).toObject());
-        if (!JSObject::isSealed(cx, obj, &sealed))
-            return false;
-    }
+    bool sealed;
+    if (!JSObject::isSealed(cx, obj, &sealed))
+        return false;
     args.rval().setBoolean(sealed);
     return true;
 }
