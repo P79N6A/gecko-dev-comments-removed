@@ -22,14 +22,15 @@ void InitLibrary();
 void ShutdownLibrary();
 
 
-int MaxNumberOfChannels();
+uint32_t MaxNumberOfChannels();
 
 
 
 
 void InitPreferredSampleRate();
 
-int PreferredSampleRate();
+
+uint32_t PreferredSampleRate();
 
 void PrefChanged(const char* aPref, void* aClosure);
 double GetVolumeScale();
