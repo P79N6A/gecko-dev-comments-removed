@@ -437,7 +437,10 @@ nsGridContainerFrame::PlaceGridItems(const nsStylePosition* aStyle)
   
   for (nsFrameList::Enumerator e(PrincipalChildList()); !e.AtEnd(); e.Next()) {
     nsIFrame* child = e.get();
-    PlaceDefinite(child, aStyle);
+    const GridArea& area = PlaceDefinite(child, aStyle);
+    if (area.IsDefinite()) {
+      InflateGridFor(area);
+    }
   }
 }
 

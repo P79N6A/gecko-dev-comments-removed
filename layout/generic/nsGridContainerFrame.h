@@ -58,6 +58,11 @@ protected:
     bool IsAuto() const { return mStart == 0; }
     bool IsDefinite() const { return mStart != 0; }
     uint32_t Extent() const { return mEnd - mStart; }
+    
+
+
+
+    uint32_t HypotheticalEnd() const { return IsAuto() ? mEnd + 1 : mEnd; }
 
     uint32_t mStart;  
     uint32_t mEnd;    
@@ -154,6 +159,16 @@ protected:
 
 
   void InitializeGridBounds(const nsStylePosition* aStyle);
+
+  
+
+
+
+  void InflateGridFor(const GridArea& aArea)
+  {
+    mGridColEnd = std::max(mGridColEnd, aArea.mCols.HypotheticalEnd());
+    mGridRowEnd = std::max(mGridRowEnd, aArea.mRows.HypotheticalEnd());
+  }
 
   
 
