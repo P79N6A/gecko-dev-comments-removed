@@ -87,10 +87,6 @@ let gSyncUtils = {
     this._openLink(Weave.Svc.Prefs.get(root + "privacyURL"));
   },
 
-  openFirstSyncProgressPage: function () {
-    this._openLink("about:sync-progress");
-  },
-
   
 
 
