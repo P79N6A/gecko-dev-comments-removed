@@ -4179,7 +4179,7 @@ GCRuntime::beginSweepingZoneGroup()
             if (oom) {
                 zone->setPreservingCode(false);
                 zone->discardJitCode(&fop);
-                zone->types.clearAllNewScriptAddendumsOnOOM();
+                zone->types.clearAllNewScriptsOnOOM();
             }
         }
     }

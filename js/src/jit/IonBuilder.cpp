@@ -4867,7 +4867,7 @@ IonBuilder::createThisScriptedSingleton(JSFunction *target, MDefinition *callee)
     
     
     types::TypeObject *templateType = templateObject->type();
-    if (templateType->hasNewScript()) {
+    if (templateType->newScript()) {
         templateObject = templateType->newScript()->templateObject;
         JS_ASSERT(templateObject->type() == templateType);
 

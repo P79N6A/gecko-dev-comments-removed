@@ -981,7 +981,7 @@ TypeObjectKey::singleton()
 TypeNewScript *
 TypeObjectKey::newScript()
 {
-    if (isTypeObject() && asTypeObject()->hasNewScript())
+    if (isTypeObject() && asTypeObject()->newScript())
         return asTypeObject()->newScript();
     return nullptr;
 }
@@ -1575,7 +1575,7 @@ class ConstraintDataFreezeObjectForNewScriptTemplate
     bool invalidateOnNewType(Type type) { return false; }
     bool invalidateOnNewPropertyState(TypeSet *property) { return false; }
     bool invalidateOnNewObjectState(TypeObject *object) {
-        return !object->hasNewScript() || object->newScript()->templateObject != templateObject;
+        return !object->newScript() || object->newScript()->templateObject != templateObject;
     }
 
     bool constraintHolds(JSContext *cx,
@@ -3004,11 +3004,9 @@ TypeObject::markUnknown(ExclusiveContext *cx)
     JS_ASSERT(cx->compartment()->activeAnalysis);
     JS_ASSERT(!unknownProperties());
 
-    if (!(flags() & OBJECT_FLAG_ADDENDUM_CLEARED))
-        clearAddendum(cx);
-
     InferSpew(ISpewOps, "UnknownProperties: %s", TypeObjectString(this));
 
+    clearNewScript(cx);
     ObjectStateChange(cx, this, true);
 
     
@@ -3031,12 +3029,12 @@ TypeObject::markUnknown(ExclusiveContext *cx)
 }
 
 void
-TypeObject::maybeClearNewScriptAddendumOnOOM()
+TypeObject::maybeClearNewScriptOnOOM()
 {
     if (!isMarked())
         return;
 
-    if (!addendum || addendum->kind != TypeObjectAddendum::NewScript)
+    if (!newScript_)
         return;
 
     for (unsigned i = 0; i < getPropertyCount(); i++) {
@@ -3049,47 +3047,19 @@ TypeObject::maybeClearNewScriptAddendumOnOOM()
 
     
     
-    js_free(addendum);
-    addendum.unsafeSet(nullptr);
+    js_free(newScript_);
+    newScript_.unsafeSet(nullptr);
 }
 
 void
-TypeObject::clearAddendum(ExclusiveContext *cx)
+TypeObject::clearNewScript(ExclusiveContext *cx)
 {
-    JS_ASSERT(!(flags() & OBJECT_FLAG_ADDENDUM_CLEARED));
-
-    addFlags(OBJECT_FLAG_ADDENDUM_CLEARED);
-
-    
-
-
-
-
-
-
-
-
-
-    if (!addendum)
+    if (!newScript_)
         return;
 
-    switch (addendum->kind) {
-      case TypeObjectAddendum::NewScript:
-        clearNewScriptAddendum(cx);
-        break;
-    }
+    TypeNewScript *newScript = newScript_;
+    newScript_ = nullptr;
 
-    
-    TypeObjectAddendum *savedAddendum = addendum;
-    addendum = nullptr;
-    js_free(savedAddendum);
-
-    markStateChange(cx);
-}
-
-void
-TypeObject::clearNewScriptAddendum(ExclusiveContext *cx)
-{
     AutoEnterAnalysis enter(cx);
 
     
@@ -3122,7 +3092,7 @@ TypeObject::clearNewScriptAddendum(ExclusiveContext *cx)
         for (ScriptFrameIter iter(cx->asJSContext()); !iter.done(); ++iter) {
             pcOffsets.append(iter.script()->pcToOffset(iter.pc()));
             if (!iter.isConstructing() ||
-                iter.callee() != newScript()->fun ||
+                iter.callee() != newScript->fun ||
                 !iter.thisv().isObject() ||
                 iter.thisv().toObject().hasLazyType() ||
                 iter.thisv().toObject().type() != this)
@@ -3149,7 +3119,7 @@ TypeObject::clearNewScriptAddendum(ExclusiveContext *cx)
             
             int setpropDepth = callDepth;
 
-            for (TypeNewScript::Initializer *init = newScript()->initializerList;; init++) {
+            for (TypeNewScript::Initializer *init = newScript->initializerList;; init++) {
                 if (init->kind == TypeNewScript::Initializer::SETPROP) {
                     if (!pastProperty && pcOffsets[setpropDepth] < init->offset) {
                         
@@ -3189,6 +3159,9 @@ TypeObject::clearNewScriptAddendum(ExclusiveContext *cx)
         
         JS_ASSERT(!cx->perThreadData->activation());
     }
+
+    js_free(newScript);
+    markStateChange(cx);
 }
 
 void
@@ -3254,20 +3227,14 @@ class TypeConstraintClearDefiniteGetterSetter : public TypeConstraint
 
     const char *kind() { return "clearDefiniteGetterSetter"; }
 
-    void newPropertyState(JSContext *cx, TypeSet *source)
-    {
-        if (!object->hasNewScript())
-            return;
+    void newPropertyState(JSContext *cx, TypeSet *source) {
         
 
 
 
 
-        if (!(object->flags() & OBJECT_FLAG_ADDENDUM_CLEARED) &&
-            (source->nonDataProperty() || source->nonWritableProperty()))
-        {
-            object->clearAddendum(cx);
-        }
+        if (source->nonDataProperty() || source->nonWritableProperty())
+            object->clearNewScript(cx);
     }
 
     void newType(JSContext *cx, TypeSet *source, Type type) {}
@@ -3319,11 +3286,8 @@ class TypeConstraintClearDefiniteSingle : public TypeConstraint
     const char *kind() { return "clearDefiniteSingle"; }
 
     void newType(JSContext *cx, TypeSet *source, Type type) {
-        if (object->flags() & OBJECT_FLAG_ADDENDUM_CLEARED)
-            return;
-
         if (source->baseFlags() || source->getObjectCount() > 1)
-            object->clearAddendum(cx);
+            object->clearNewScript(cx);
     }
 
     bool sweep(TypeZone &zone, TypeConstraint **res) {
@@ -3386,9 +3350,7 @@ static void
 CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun)
 {
     JS_ASSERT(cx->compartment()->activeAnalysis);
-
-    if (type->unknownProperties())
-        return;
+    JS_ASSERT(!type->newScript());
 
     
     RootedObject baseobj(cx, NewBuiltinClassInstance(cx, &JSObject::class_, gc::FINALIZE_OBJECT16));
@@ -3397,27 +3359,11 @@ CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun)
 
     Vector<TypeNewScript::Initializer> initializerList(cx);
 
-    if (!jit::AnalyzeNewScriptProperties(cx, fun, type, baseobj, &initializerList) ||
-        baseobj->slotSpan() == 0 ||
-        !!(type->flags() & OBJECT_FLAG_ADDENDUM_CLEARED))
-    {
-        if (type->hasNewScript())
-            type->clearAddendum(cx);
+    if (!jit::AnalyzeNewScriptProperties(cx, fun, type, baseobj, &initializerList))
         return;
-    }
 
-    
-
-
-
-
-    if (type->hasNewScript()) {
-        if (!type->matchDefiniteProperties(baseobj))
-            type->clearAddendum(cx);
+    if (baseobj->slotSpan() == 0 || type->unknownProperties())
         return;
-    }
-    JS_ASSERT(!type->hasNewScript());
-    JS_ASSERT(!(type->flags() & OBJECT_FLAG_ADDENDUM_CLEARED));
 
     gc::AllocKind kind = gc::GetGCObjectKind(baseobj->slotSpan());
 
@@ -3449,7 +3395,7 @@ CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun)
 
     new (newScript) TypeNewScript();
 
-    type->setAddendum(newScript);
+    type->setNewScript(newScript);
 
     newScript->fun = fun;
     newScript->templateObject = baseobj;
@@ -3868,7 +3814,7 @@ ExclusiveContext::getNewType(const Class *clasp, TaggedProto proto, JSFunction *
         TypeObject *type = p->object;
         JS_ASSERT(type->clasp() == clasp);
         JS_ASSERT(type->proto() == proto);
-        JS_ASSERT_IF(type->hasNewScript(), type->newScript()->fun == fun);
+        JS_ASSERT_IF(type->newScript(), type->newScript()->fun == fun);
         return type;
     }
 
@@ -4079,8 +4025,8 @@ inline void
 TypeObject::sweep(FreeOp *fop, bool *oom)
 {
     if (!isMarked()) {
-        if (addendum)
-            fop->free_(addendum);
+        if (newScript_)
+            fop->free_(newScript_);
         return;
     }
 
@@ -4337,7 +4283,7 @@ TypeCompartment::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
 size_t
 TypeObject::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
 {
-    return mallocSizeOf(addendum);
+    return mallocSizeOf(newScript_);
 }
 
 TypeZone::TypeZone(Zone *zone)
@@ -4452,13 +4398,13 @@ TypeZone::sweep(FreeOp *fop, bool releaseTypes, bool *oom)
 }
 
 void
-TypeZone::clearAllNewScriptAddendumsOnOOM()
+TypeZone::clearAllNewScriptsOnOOM()
 {
     for (gc::ZoneCellIterUnderGC iter(zone(), gc::FINALIZE_TYPE_OBJECT);
          !iter.done(); iter.next())
     {
         TypeObject *object = iter.get<TypeObject>();
-        object->maybeClearNewScriptAddendumOnOOM();
+        object->maybeClearNewScriptOnOOM();
     }
 }
 
@@ -4521,16 +4467,8 @@ TypeScript::printTypes(JSContext *cx, HandleScript script) const
 #endif 
 
 void
-TypeObject::setAddendum(TypeObjectAddendum *addendum)
+TypeObject::setNewScript(TypeNewScript *newScript)
 {
-    this->addendum = addendum;
+    JS_ASSERT(!newScript_);
+    newScript_ = newScript;
 }
-
-TypeObjectAddendum::TypeObjectAddendum(Kind kind)
-  : kind(kind)
-{}
-
-TypeNewScript::TypeNewScript()
-  : TypeObjectAddendum(NewScript)
-{}
-

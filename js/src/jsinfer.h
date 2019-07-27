@@ -437,23 +437,20 @@ enum MOZ_ENUM_TYPE(uint32_t) {
     OBJECT_FLAG_FROM_ALLOCATION_SITE  = 0x1,
 
     
-    OBJECT_FLAG_ADDENDUM_CLEARED      = 0x2,
+
+
+
+    OBJECT_FLAG_NURSERY_PROTO         = 0x2,
 
     
 
 
 
-    OBJECT_FLAG_NURSERY_PROTO         = 0x4,
+    OBJECT_FLAG_SETS_MARKED_UNKNOWN   = 0x4,
 
     
-
-
-
-    OBJECT_FLAG_SETS_MARKED_UNKNOWN   = 0x8,
-
-    
-    OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff0,
-    OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 4,
+    OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff8,
+    OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 3,
     OBJECT_FLAG_PROPERTY_COUNT_LIMIT  =
         OBJECT_FLAG_PROPERTY_COUNT_MASK >> OBJECT_FLAG_PROPERTY_COUNT_SHIFT,
 
@@ -824,46 +821,18 @@ struct Property
     static jsid getKey(Property *p) { return p->id; }
 };
 
-struct TypeNewScript;
 
-struct TypeObjectAddendum
+
+
+
+
+
+
+
+
+
+struct TypeNewScript
 {
-    enum Kind {
-        NewScript
-    };
-
-    explicit TypeObjectAddendum(Kind kind);
-
-    const Kind kind;
-
-    bool isNewScript() {
-        return kind == NewScript;
-    }
-
-    TypeNewScript *asNewScript() {
-        JS_ASSERT(isNewScript());
-        return (TypeNewScript*) this;
-    }
-
-    static inline void writeBarrierPre(TypeObjectAddendum *type);
-
-    static void writeBarrierPost(TypeObjectAddendum *newScript, void *addr) {}
-};
-
-
-
-
-
-
-
-
-
-
-
-struct TypeNewScript : public TypeObjectAddendum
-{
-    TypeNewScript();
-
     HeapPtrFunction fun;
 
     
@@ -899,6 +868,7 @@ struct TypeNewScript : public TypeObjectAddendum
     Initializer *initializerList;
 
     static inline void writeBarrierPre(TypeNewScript *newScript);
+    static void writeBarrierPost(TypeNewScript *newScript, void *addr) {}
 };
 
 
@@ -986,12 +956,8 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
 
+    HeapPtrTypeNewScript newScript_;
 
-
-
-
-
-    HeapPtrTypeObjectAddendum addendum;
   public:
 
     TypeObjectFlags flags() const {
@@ -1006,15 +972,11 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
         flags_ &= ~flags;
     }
 
-    bool hasNewScript() const {
-        return addendum && addendum->isNewScript();
-    }
-
     TypeNewScript *newScript() {
-        return addendum->asNewScript();
+        return newScript_;
     }
 
-    void setAddendum(TypeObjectAddendum *addendum);
+    void setNewScript(TypeNewScript *newScript);
 
   private:
     
@@ -1094,7 +1056,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
         
         if (unknownProperties())
             return false;
-        return (flags() & OBJECT_FLAG_FROM_ALLOCATION_SITE) || hasNewScript();
+        return (flags() & OBJECT_FLAG_FROM_ALLOCATION_SITE) || newScript();
     }
 
     void setShouldPreTenure(ExclusiveContext *cx) {
@@ -1127,9 +1089,8 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     void markStateChange(ExclusiveContext *cx);
     void setFlags(ExclusiveContext *cx, TypeObjectFlags flags);
     void markUnknown(ExclusiveContext *cx);
-    void maybeClearNewScriptAddendumOnOOM();
-    void clearAddendum(ExclusiveContext *cx);
-    void clearNewScriptAddendum(ExclusiveContext *cx);
+    void maybeClearNewScriptOnOOM();
+    void clearNewScript(ExclusiveContext *cx);
     bool isPropertyNonData(jsid id);
     bool isPropertyNonWritable(jsid id);
 
@@ -1604,7 +1565,7 @@ struct TypeZone
     JS::Zone *zone() const { return zone_; }
 
     void sweep(FreeOp *fop, bool releaseTypes, bool *oom);
-    void clearAllNewScriptAddendumsOnOOM();
+    void clearAllNewScriptsOnOOM();
 
     
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
