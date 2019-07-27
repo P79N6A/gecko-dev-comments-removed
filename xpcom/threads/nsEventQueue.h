@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include "mozilla/ReentrantMonitor.h"
 #include "nsIRunnable.h"
+#include "nsCOMPtr.h"
+#include "mozilla/AlreadyAddRefed.h"
 
 
 class nsEventQueue
@@ -24,6 +26,7 @@ public:
   
   
   void PutEvent(nsIRunnable* aEvent);
+  void PutEvent(already_AddRefed<nsIRunnable>&& aEvent);
 
   
   

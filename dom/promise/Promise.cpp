@@ -1218,7 +1218,11 @@ Promise::MaybeReportRejected()
   
   nsRefPtr<AsyncErrorReporter> r =
     new AsyncErrorReporter(CycleCollectedJSRuntime::Get()->Runtime(), xpcReport);
-  NS_DispatchToMainThread(r);
+  nsRefPtr<AsyncErrorReporter> sacrifice = r;
+  
+  if (NS_FAILED(NS_DispatchToMainThread(sacrifice.forget()))) {
+    r->Release();
+  }
 }
 #endif 
 
@@ -1635,7 +1639,7 @@ PromiseWorkerProxy::RunCallback(JSContext* aCx,
   if (!runnable->Dispatch(aCx)) {
     nsRefPtr<WorkerControlRunnable> runnable =
       new PromiseWorkerProxyControlRunnable(mWorkerPrivate, this);
-    mWorkerPrivate->DispatchControlRunnable(runnable);
+    mWorkerPrivate->DispatchControlRunnable(runnable.forget());
   }
 }
 

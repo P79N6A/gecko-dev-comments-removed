@@ -167,14 +167,25 @@ NS_DispatchToCurrentThread(nsIRunnable* aEvent)
 
 
 NS_METHOD
-NS_DispatchToMainThread(nsIRunnable* aEvent, uint32_t aDispatchFlags)
+NS_DispatchToMainThread(already_AddRefed<nsIRunnable>&& aEvent, uint32_t aDispatchFlags)
 {
+  nsCOMPtr<nsIRunnable> event(aEvent);
   nsCOMPtr<nsIThread> thread;
   nsresult rv = NS_GetMainThread(getter_AddRefs(thread));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+    
+    
+    nsIRunnable* temp = event.forget().take(); 
+    return temp ? rv : rv; 
   }
-  return thread->Dispatch(aEvent, aDispatchFlags);
+  return thread->Dispatch(event.forget(), aDispatchFlags);
+}
+
+NS_METHOD
+NS_DispatchToMainThread(nsIRunnable* aEvent, uint32_t aDispatchFlags)
+{
+  nsCOMPtr<nsIRunnable> event(aEvent);
+  return NS_DispatchToMainThread(event.forget(), aDispatchFlags);
 }
 
 #ifndef XPCOM_GLUE_AVOID_NSPR

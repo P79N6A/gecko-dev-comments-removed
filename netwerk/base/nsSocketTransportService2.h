@@ -81,6 +81,10 @@ public:
     NS_DECL_NSITHREADOBSERVER
     NS_DECL_NSIRUNNABLE
     NS_DECL_NSIOBSERVER 
+    
+    nsresult Dispatch(nsIRunnable* aEvent, uint32_t aFlags) {
+      return Dispatch(nsCOMPtr<nsIRunnable>(aEvent).forget(), aFlags);
+    }
 
     nsSocketTransportService();
 
