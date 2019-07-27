@@ -666,7 +666,7 @@ ContentPrefService2.prototype = {
 
 
 
-  _stmt: function CPS2__stmt(sql ) {
+  _stmt: function CPS2__stmt(sql1 ) {
     let sql = joinArgs(arguments);
     if (!this._statements)
       this._statements = {};
