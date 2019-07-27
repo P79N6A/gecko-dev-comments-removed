@@ -5526,7 +5526,7 @@ CodeGenerator::visitNotV(LNotV *lir)
     Label *ifFalsy;
 
     OutOfLineTestObjectWithLabels *ool = nullptr;
-    MDefinition *operand = lir->mir()->operand();
+    MDefinition *operand = lir->mir()->input();
     
     
     
