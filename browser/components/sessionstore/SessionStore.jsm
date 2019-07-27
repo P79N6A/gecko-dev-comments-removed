@@ -2202,15 +2202,23 @@ let SessionStoreInternal = {
     if (aWindow && (!aWindow.__SSi || !this._windows[aWindow.__SSi]))
       this.onLoad(aWindow);
 
+    let root;
     try {
-      var root = typeof aState == "string" ? JSON.parse(aState) : aState;
-      if (!root.windows[0]) {
-        this._sendRestoreCompletedNotifications();
-        return; 
-      }
+      root = (typeof aState == "string") ? JSON.parse(aState) : aState;
     }
     catch (ex) { 
       debug(ex);
+      this._sendRestoreCompletedNotifications();
+      return;
+    }
+
+    
+    if (root._closedWindows) {
+      this._closedWindows = root._closedWindows;
+    }
+
+    
+    if (!root.windows || !root.windows.length) {
       this._sendRestoreCompletedNotifications();
       return;
     }
@@ -2220,9 +2228,6 @@ let SessionStoreInternal = {
     
     
     this._setWindowStateBusy(aWindow);
-
-    if (root._closedWindows)
-      this._closedWindows = root._closedWindows;
 
     var winData;
     if (!root.selectedWindow || root.selectedWindow > root.windows.length) {
