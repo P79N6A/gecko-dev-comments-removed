@@ -128,10 +128,7 @@ function doKey(aKey, modifier) {
 }
 
 
-
-
-
-function commonInit(selfFilling) {
+function commonInit() {
     var pwmgr = SpecialPowers.Cc["@mozilla.org/login-manager;1"].
                 getService(SpecialPowers.Ci.nsILoginManager);
     ok(pwmgr != null, "Access LoginManager");
@@ -162,41 +159,6 @@ function commonInit(selfFilling) {
     is(logins.length, 1, "Checking for successful init login");
     disabledHosts = pwmgr.getAllDisabledHosts();
     is(disabledHosts.length, 0, "Checking for no disabled hosts");
-
-    if (selfFilling)
-        return;
-
-    
-    
-    
-    
-    window.addEventListener("DOMContentLoaded", (event) => {
-        var form = document.createElement('form');
-        form.id = 'observerforcer';
-        var username = document.createElement('input');
-        username.name = 'testuser';
-        form.appendChild(username);
-        var password = document.createElement('input');
-        password.name = 'testpass';
-        password.type = 'password';
-        form.appendChild(password);
-
-        var observer = SpecialPowers.wrapCallback(function(subject, topic, data) {
-            var bag = subject.QueryInterface(SpecialPowers.Ci.nsIPropertyBag2);
-            var username = bag.get("usernameField");
-            if (!username || username.form.id !== 'observerforcer')
-                return;
-            SpecialPowers.removeObserver(observer, "passwordmgr-found-logins");
-            form.parentNode.removeChild(form);
-            SimpleTest.executeSoon(() => {
-                var event = new Event("runTests");
-                window.dispatchEvent(event);
-            });
-        });
-        SpecialPowers.addObserver(observer, "passwordmgr-found-logins", false);
-
-        document.body.appendChild(form);
-    });
 }
 
 const masterPassword = "omgsecret!";
