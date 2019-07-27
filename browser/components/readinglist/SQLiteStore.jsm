@@ -126,11 +126,16 @@ this.SQLiteStore.prototype = {
   
 
 
-  destroy: Task.async(function* () {
-    let conn = yield this._connectionPromise;
-    yield conn.close();
-    this._connectionPromise = Promise.reject("Store destroyed");
-  }),
+  destroy() {
+    if (!this._destroyPromise) {
+      this._destroyPromise = Task.spawn(function* () {
+        let conn = yield this._connectionPromise;
+        yield conn.close();
+        this._connectionPromise = Promise.reject("Store destroyed");
+      }.bind(this));
+    }
+    return this._destroyPromise;
+  },
 
   
 
