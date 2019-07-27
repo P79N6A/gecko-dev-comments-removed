@@ -174,6 +174,7 @@ this.TelemetryController = Object.freeze({
 
   reset: function() {
     Impl._clientID = null;
+    TelemetryStorage.reset();
     return this.setup();
   },
   
@@ -1066,6 +1067,10 @@ let Impl = {
         
         this._clientID = yield ClientID.getClientID();
         Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
+
+        
+        
+        TelemetryStorage.runCleanPingArchiveTask();
 
         Telemetry.asyncFetchTelemetryData(function () {});
         this._delayedInitTaskDeferred.resolve();

@@ -17,6 +17,7 @@ Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
+Cu.import("resource://gre/modules/TelemetryUtils.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, 'Deprecated',
@@ -53,6 +54,9 @@ const OVERDUE_PING_FILE_AGE = 7 * 24 * 60 * 60 * 1000;
 const MAX_LRU_PINGS = 50;
 
 
+const MAX_ARCHIVED_PINGS_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;  
+
+
 
 let pingsLoaded = 0;
 
@@ -68,6 +72,13 @@ let pingsOverdue = 0;
 let pendingPings = [];
 
 let isPingDirectoryCreated = false;
+
+
+
+
+let Policy = {
+  now: () => new Date(),
+};
 
 this.TelemetryStorage = {
   get MAX_PING_FILE_AGE() {
@@ -111,10 +122,32 @@ this.TelemetryStorage = {
 
 
 
+  loadArchivedPing: function(id) {
+    return TelemetryStorageImpl.loadArchivedPing(id);
+  },
+
+  
 
 
-  loadArchivedPing: function(id, timestampCreated, type) {
-    return TelemetryStorageImpl.loadArchivedPing(id, timestampCreated, type);
+
+
+
+  runCleanPingArchiveTask: function() {
+    return TelemetryStorageImpl.runCleanPingArchiveTask();
+  },
+
+  
+
+
+  reset: function() {
+    return TelemetryStorageImpl.reset();
+  },
+
+  
+
+
+  testCleanupTaskPromise: function() {
+    return (TelemetryStorageImpl._archiveCleanTask || Promise.resolve());
   },
 
   
@@ -398,6 +431,19 @@ let TelemetryStorageImpl = {
   
   _abortedSessionSerializer: new SaveSerializer(),
 
+  
+  
+  _archivedPings: new Map(),
+  
+  _archiveCleanTaskArchiveLoadingTask: null,
+  
+  _archiveCleanTask: null,
+  
+  _scannedArchiveDirectory: false,
+
+  
+  _shutdown: false,
+
   get _log() {
     if (!this._logger) {
       this._logger = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
@@ -412,7 +458,11 @@ let TelemetryStorageImpl = {
 
 
   shutdown: Task.async(function*() {
+    this._shutdown = true;
     yield this._abortedSessionSerializer.flushTasks();
+    
+    
+    yield this._archiveCleanTask;
   }),
 
   
@@ -423,11 +473,26 @@ let TelemetryStorageImpl = {
 
   saveArchivedPing: Task.async(function*(ping) {
     const creationDate = new Date(ping.creationDate);
+    if (this._archivedPings.has(ping.id)) {
+      const data = this._archivedPings.get(ping.id);
+      if (data.timestampCreated > creationDate.getTime()) {
+        this._log.error("saveArchivedPing - trying to overwrite newer ping with the same id");
+        return Promise.reject(new Error("trying to overwrite newer ping with the same id"));
+      } else {
+        this._log.warn("saveArchivedPing - overwriting older ping with the same id");
+      }
+    }
+
     
     const filePath = getArchivedPingPath(ping.id, creationDate, ping.type) + "lz4";
     yield OS.File.makeDir(OS.Path.dirname(filePath), { ignoreExisting: true,
                                                        from: OS.Constants.Path.profileDir });
     yield this.savePingToFile(ping, filePath,  true,  true);
+
+    this._archivedPings.set(ping.id, {
+      timestampCreated: creationDate.getTime(),
+      type: ping.type,
+    });
   }),
 
   
@@ -436,11 +501,16 @@ let TelemetryStorageImpl = {
 
 
 
+  loadArchivedPing: Task.async(function*(id) {
+    this._log.trace("loadArchivedPing - id: " + id);
 
+    const data = this._archivedPings.get(id);
+    if (!data) {
+      this._log.trace("loadArchivedPing - no ping with id: " + id);
+      return Promise.reject(new Error("TelemetryStorage.loadArchivedPing - no ping with id " + id));
+    }
 
-  loadArchivedPing: Task.async(function*(id, timestampCreated, type) {
-    this._log.trace("loadArchivedPing - id: " + id + ", timestampCreated: " + timestampCreated + ", type: " + type);
-    const path = getArchivedPingPath(id, new Date(timestampCreated), type);
+    const path = getArchivedPingPath(id, new Date(data.timestampCreated), data.type);
     const pathCompressed = path + "lz4";
 
     try {
@@ -477,28 +547,136 @@ let TelemetryStorageImpl = {
 
 
 
+  runCleanPingArchiveTask: function() {
+    
+    if (this._archiveCleanTask) {
+      return this._archiveCleanTask;
+    }
+
+    
+    let clear = () => this._archiveCleanTask = null;
+    
+    this._archiveCleanTask = this.cleanArchiveTask().then(clear, clear);
+    return this._archiveCleanTask;
+  },
+
+  cleanArchiveTask: Task.async(function*() {
+    this._log.trace("cleanArchiveTask");
+
+    if (!(yield OS.File.exists(gPingsArchivePath))) {
+      return;
+    }
+
+    const now = Policy.now().getTime();
+    let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
+    let subdirs = (yield dirIterator.nextBatch()).filter(e => e.isDir);
+
+    
+    let newestRemovedMonth = null;
+
+    
+    for (let dir of subdirs) {
+      if (this._shutdown) {
+        this._log.trace("cleanArchiveTask - Terminating the clean up task due to shutdown");
+        return;
+      }
+
+      if (!isValidArchiveDir(dir.name)) {
+        this._log.warn("cleanArchiveTask - skipping invalidly named subdirectory " + dir.path);
+        continue;
+      }
+
+      const archiveDate = getDateFromArchiveDir(dir.name);
+      if (!archiveDate) {
+        this._log.warn("cleanArchiveTask - skipping invalid subdirectory date " + dir.path);
+        continue;
+      }
+
+      
+      if (!TelemetryUtils.areTimesClose(archiveDate.getTime(), now,
+                                        MAX_ARCHIVED_PINGS_RETENTION_MS)) {
+        try {
+          yield OS.File.removeDir(dir.path);
+
+          
+          if (archiveDate > newestRemovedMonth) {
+            newestRemovedMonth = archiveDate;
+          }
+        } catch (ex) {
+          this._log.error("cleanArchiveTask - Unable to remove " + dir.path, ex);
+        }
+      }
+    }
+
+    
+    if (this._scannedArchiveDirectory && newestRemovedMonth) {
+      
+      for (let [id, info] of this._archivedPings) {
+        const timestampCreated = new Date(info.timestampCreated);
+        if (timestampCreated.getTime() > newestRemovedMonth.getTime()) {
+          continue;
+        }
+        
+        this._archivedPings.delete(id);
+      }
+    }
+  }),
+
+  
 
 
-  loadArchivedPingList: Task.async(function*() {
-    this._log.trace("loadArchivedPingList");
+  reset: function() {
+    this._shutdown = false;
+    this._scannedArchiveDirectory = false;
+    this._archivedPings = new Map();
+  },
+
+  
+
+
+
+
+
+
+  loadArchivedPingList: function() {
+    
+    if (this._archiveScanningTask) {
+      return this._archiveScanningTask;
+    }
+
+    if (this._scannedArchiveDirectory) {
+      this._log.trace("loadArchivedPingList - Archive already scanned, hitting cache.");
+      return Promise.resolve(this._archivedPings);
+    }
+
+    
+    let clear = pingList => {
+      this._archiveScanningTask = null;
+      return pingList;
+    };
+    
+    this._archiveScanningTask = this._scanArchive().then(clear, clear);
+    return this._archiveScanningTask;
+  },
+
+  _scanArchive: Task.async(function*() {
+    this._log.trace("_scanArchive");
 
     if (!(yield OS.File.exists(gPingsArchivePath))) {
       return new Map();
     }
 
-    let archivedPings = new Map();
     let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
     let subdirs = (yield dirIterator.nextBatch()).filter(e => e.isDir);
 
     
     for (let dir of subdirs) {
-      const dirRegEx = /^[0-9]{4}-[0-9]{2}$/;
-      if (!dirRegEx.test(dir.name)) {
-        this._log.warn("loadArchivedPingList - skipping invalidly named subdirectory " + dir.path);
+      if (!isValidArchiveDir(dir.name)) {
+        this._log.warn("_scanArchive - skipping invalidly named subdirectory " + dir.path);
         continue;
       }
 
-      this._log.trace("loadArchivedPingList - checking in subdir: " + dir.path);
+      this._log.trace("_scanArchive - checking in subdir: " + dir.path);
       let pingIterator = new OS.File.DirectoryIterator(dir.path);
       let pings = (yield pingIterator.nextBatch()).filter(e => !e.isDir);
 
@@ -511,26 +689,28 @@ let TelemetryStorageImpl = {
         }
 
         
-        if (archivedPings.has(data.id)) {
-          const overwrite = data.timestamp > archivedPings.get(data.id).timestampCreated;
-          this._log.warn("loadArchivedPingList - have seen this id before: " + data.id +
+        if (this._archivedPings.has(data.id)) {
+          const overwrite = data.timestamp > this._archivedPings.get(data.id).timestampCreated;
+          this._log.warn("_scanArchive - have seen this id before: " + data.id +
                          ", overwrite: " + overwrite);
           if (!overwrite) {
             continue;
           }
 
           yield this._removeArchivedPing(data.id, data.timestampCreated, data.type)
-                    .catch((e) => this._log.warn("loadArchivedPingList - failed to remove ping", e));
+                    .catch((e) => this._log.warn("_scanArchive - failed to remove ping", e));
         }
 
-        archivedPings.set(data.id, {
+        this._archivedPings.set(data.id, {
           timestampCreated: data.timestamp,
           type: data.type,
         });
       }
     }
 
-    return archivedPings;
+    
+    this._scannedArchiveDirectory = true;
+    return this._archivedPings;
   }),
 
   
@@ -914,4 +1094,31 @@ function getArchivedPingPath(aPingId, aDate, aType) {
   
   let fileName = [aDate.getTime(), aPingId, aType, "json"].join(".");
   return OS.Path.join(archivedPingDir, fileName);
+}
+
+
+
+
+
+
+function isValidArchiveDir(aDirName) {
+  const dirRegEx = /^[0-9]{4}-[0-9]{2}$/;
+  return dirRegEx.test(aDirName);
+}
+
+
+
+
+
+
+
+function getDateFromArchiveDir(aDirName) {
+  let [year, month] = aDirName.split("-");
+  year = parseInt(year);
+  month = parseInt(month);
+  
+  if (!Number.isFinite(month) || !Number.isFinite(year) || month < 1 || month > 12) {
+    return null;
+  }
+  return new Date(year, month - 1, 1, 0, 0, 0);
 }
