@@ -2091,24 +2091,54 @@ CanRelocateZone(JSRuntime *rt, Zone *zone)
 }
 
 static bool
-CanRelocateArena(ArenaHeader *arena)
+CanRelocateAllocKind(AllocKind kind)
 {
-    return arena->getAllocKind() <= FINALIZE_OBJECT_LAST;
+    return kind <= FINALIZE_OBJECT_LAST;
 }
 
-static bool
-ShouldRelocateArena(ArenaHeader *arena)
+
+size_t ArenaHeader::countFreeCells()
 {
-#ifdef JS_GC_ZEAL
-    if (arena->zone->runtimeFromMainThread()->gc.zeal() == ZealCompactValue)
-        return true;
-#endif
+    size_t count = 0;
+    size_t thingSize = getThingSize();
+    FreeSpan firstSpan(getFirstFreeSpan());
+    for (const FreeSpan *span = &firstSpan; !span->isEmpty(); span = span->nextSpan())
+        count += span->length(thingSize);
+    return count;
+}
 
+size_t ArenaHeader::countUsedCells()
+{
+    return Arena::thingsPerArena(getThingSize()) - countFreeCells();
+}
+
+
+
+
+
+
+
+size_t ArenaList::countUsedCells()
+{
+    size_t count = 0;
+    for (ArenaHeader *arena = head_; arena; arena = arena->next)
+        count += arena->countUsedCells();
+    return count;
+}
+
+ArenaHeader *
+ArenaList::removeRemainingArenas(ArenaHeader **arenap)
+{
     
-
-
-
-    return arena->hasFreeThings();
+    
+#ifdef DEBUG
+    for (ArenaHeader *arena = *arenap; arena; arena = arena->next)
+        MOZ_ASSERT(cursorp_ != &arena->next);
+#endif
+    ArenaHeader *remainingArenas = *arenap;
+    *arenap = nullptr;
+    check();
+    return remainingArenas;
 }
 
 
@@ -2119,31 +2149,56 @@ ArenaHeader *
 ArenaList::pickArenasToRelocate()
 {
     check();
-    ArenaHeader *head = nullptr;
-    ArenaHeader **tailp = &head;
+    if (isEmpty())
+        return nullptr;
 
     
-    ArenaHeader **arenap = &head_;
+    
+    
+    bool relocateAll = head()->zone->runtimeFromMainThread()->gc.zeal() == ZealCompactValue;
+#if defined(DEBUG) && defined(JS_PUNBOX64)
+    relocateAll = true;
+#endif
+    if (relocateAll) {
+        ArenaHeader *allArenas = head();
+        clear();
+        return allArenas;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    ArenaHeader **arenap = cursorp_;               
+    size_t previousFreeCells = 0;                  
+    size_t followingUsedCells = countUsedCells();  
+    mozilla::DebugOnly<size_t> lastFreeCells(0);
+    size_t cellsPerArena = Arena::thingsPerArena((*arenap)->getThingSize());
+
     while (*arenap) {
         ArenaHeader *arena = *arenap;
-        MOZ_ASSERT(arena);
-        if (CanRelocateArena(arena) && ShouldRelocateArena(arena)) {
-            
-            if (cursorp_ == &arena->next)
-                cursorp_ = arenap;
-            *arenap = arena->next;
-            arena->next = nullptr;
-
-            
-            *tailp = arena;
-            tailp = &arena->next;
-        } else {
-            arenap = &arena->next;
-        }
+        if (followingUsedCells <= previousFreeCells)
+            return removeRemainingArenas(arenap);
+        size_t freeCells = arena->countFreeCells();
+        size_t usedCells = cellsPerArena - freeCells;
+        followingUsedCells -= usedCells;
+#ifdef DEBUG
+        MOZ_ASSERT(freeCells >= lastFreeCells);
+        lastFreeCells = freeCells;
+#endif
+        previousFreeCells += freeCells;
+        arenap = &arena->next;
     }
 
     check();
-    return head;
+    return nullptr;
 }
 
 #ifdef DEBUG
@@ -2196,7 +2251,7 @@ RelocateCell(Zone *zone, TenuredCell *src, AllocKind thingKind, size_t thingSize
     return true;
 }
 
-static bool
+static void
 RelocateArena(ArenaHeader *aheader)
 {
     MOZ_ASSERT(aheader->allocated());
@@ -2211,18 +2266,13 @@ RelocateArena(ArenaHeader *aheader)
 
     for (ArenaCellIterUnderFinalize i(aheader); !i.done(); i.next()) {
         if (!RelocateCell(zone, i.getCell(), thingKind, thingSize)) {
-            MOZ_CRASH(); 
-            return false;
+            
+            
+            
+            CrashAtUnhandlableOOM("Could not allocate new arena while compacting");
         }
     }
-
-    return true;
 }
-
-
-
-
-
 
 
 
@@ -2235,19 +2285,10 @@ ArenaList::relocateArenas(ArenaHeader *toRelocate, ArenaHeader *relocated)
 
     while (ArenaHeader *arena = toRelocate) {
         toRelocate = arena->next;
-
-        if (RelocateArena(arena)) {
-            
-            arena->next = relocated;
-            relocated = arena;
-        } else {
-            
-            
-            
-            
-            MOZ_ASSERT(arena->hasFreeThings());
-            insertAtCursor(arena);
-        }
+        RelocateArena(arena);
+        
+        arena->next = relocated;
+        relocated = arena;
     }
 
     check();
@@ -2263,10 +2304,12 @@ ArenaLists::relocateArenas(ArenaHeader *relocatedList)
     checkEmptyFreeLists();
 
     for (size_t i = 0; i < FINALIZE_LIMIT; i++) {
-        ArenaList &al = arenaLists[i];
-        ArenaHeader *toRelocate = al.pickArenasToRelocate();
-        if (toRelocate)
-            relocatedList = al.relocateArenas(toRelocate, relocatedList);
+        if (CanRelocateAllocKind(AllocKind(i))) {
+            ArenaList &al = arenaLists[i];
+            ArenaHeader *toRelocate = al.pickArenasToRelocate();
+            if (toRelocate)
+                relocatedList = al.relocateArenas(toRelocate, relocatedList);
+        }
     }
 
     
