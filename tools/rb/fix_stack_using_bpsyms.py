@@ -4,6 +4,10 @@
 
 
 
+
+
+
+
 from __future__ import with_statement
 
 import sys
@@ -112,18 +116,14 @@ def addressToSymbol(file, address, symbolsDir):
   else:
     return ""
 
-line_re = re.compile("^(.*) ?\[([^ ]*) \+(0x[0-9A-F]{1,16})\](.*)$")
-balance_tree_re = re.compile("^([ \|0-9-]*)")
+
+line_re = re.compile("^(.*#\d+: )(.+)\[(.+) \+(0x.+)\](.*)$")
 
 def fixSymbols(line, symbolsDir):
   result = line_re.match(line)
   if result is not None:
-    
-    
-    (before, file, address, after) = result.groups()
+    (before, fn, file, address, after) = result.groups()
     address = int(address, 16)
-    
-    before = balance_tree_re.match(before).groups()[0]
     symbol = addressToSymbol(file, address, symbolsDir)
     if not symbol:
       symbol = "%s + 0x%x" % (os.path.basename(file), address)

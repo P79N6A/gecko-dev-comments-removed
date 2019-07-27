@@ -89,12 +89,9 @@ class CodeAddressService
 
       
       StringAlloc::free(mFunction);
-      mFunction =
-        !aFunction[0] ? nullptr : StringAlloc::copy(aFunction);
+      mFunction = !aFunction[0] ? nullptr : StringAlloc::copy(aFunction);
       StringAlloc::free(mFileName);
-      mFileName =
-        !aFileName[0] ? nullptr : StringAlloc::copy(aFileName);
-
+      mFileName = !aFileName[0] ? nullptr : StringAlloc::copy(aFileName);
 
       mLibrary = aLibrary;
       mLOffset = aLOffset;
@@ -166,26 +163,9 @@ public:
 
     MOZ_ASSERT(entry.mPc == aPc);
 
-    uintptr_t entryPc = (uintptr_t)(entry.mPc);
-    
-    
-    if (!entry.mFunction && !entry.mLibrary[0] && entry.mLOffset == 0) {
-      snprintf(aBuf, aBufLen, "??? 0x%" PRIxPTR, entryPc);
-    } else {
-      
-      const char* entryFunction = entry.mFunction ? entry.mFunction : "???";
-      if (entry.mFileName) {
-        
-        snprintf(aBuf, aBufLen, "%s (%s:%u) 0x%" PRIxPTR,
-                 entryFunction, entry.mFileName, entry.mLineNo, entryPc);
-      } else {
-        
-        
-        
-        snprintf(aBuf, aBufLen, "%s[%s +0x%" PRIXPTR "] 0x%" PRIxPTR,
-                 entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
-      }
-    }
+    NS_FormatCodeAddress(aBuf, aBufLen, aFrameNumber, entry.mPc,
+                         entry.mFunction, entry.mLibrary, entry.mLOffset,
+                         entry.mFileName, entry.mLineNo);
   }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
