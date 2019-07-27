@@ -9,9 +9,16 @@
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 const DOMUtils = Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+  "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "console",
+  "resource://gre/modules/devtools/Console.jsm");
+
 function FontInspector(inspector, window)
 {
   this.inspector = inspector;
+  this.pageStyle = this.inspector.pageStyle;
   this.chromeDoc = window.document;
   this.init();
 }
@@ -51,7 +58,6 @@ FontInspector.prototype = {
 
   onNewNode: function FI_onNewNode() {
     if (this.isActive() &&
-        this.inspector.selection.isLocal() &&
         this.inspector.selection.isConnected() &&
         this.inspector.selection.isElementNode()) {
       this.undim();
@@ -76,117 +82,90 @@ FontInspector.prototype = {
     this.chromeDoc.body.classList.remove("dim");
   },
 
-  
+ 
 
 
+  update: Task.async(function*() {
+    let node = this.inspector.selection.nodeFront;
 
-  update: function FI_update() {
-    if (!this.isActive() ||
+    if (!node ||
+        !this.isActive() ||
         !this.inspector.selection.isConnected() ||
         !this.inspector.selection.isElementNode() ||
         this.chromeDoc.body.classList.contains("dim")) {
       return;
     }
 
-    let node = this.inspector.selection.node;
-    let contentDocument = node.ownerDocument;
+    this.chromeDoc.querySelector("#all-fonts").innerHTML = "";
+
+    let fillStyle = (Services.prefs.getCharPref("devtools.theme") == "light") ?
+        "black" : "white";
+    let options = {
+      includePreviews: true,
+      previewFillStyle: fillStyle
+    }
+
+    let fonts = yield this.pageStyle.getUsedFontFaces(node, options)
+                      .then(null, console.error);
+    if (!fonts) {
+      return;
+    }
+
+    for (let font of fonts) {
+      font.previewUrl = yield font.preview.data.string();
+    }
 
     
-    let rng = contentDocument.createRange();
-    rng.selectNodeContents(node);
-    let fonts = DOMUtils.getUsedFontFaces(rng);
-    let fontsArray = [];
-    for (let i = 0; i < fonts.length; i++) {
-      fontsArray.push(fonts.item(i));
+    if (!this.chromeDoc) {
+      return;
     }
-    fontsArray = fontsArray.sort(function(a, b) {
-      return a.srcIndex < b.srcIndex;
-    });
+
+    
     this.chromeDoc.querySelector("#all-fonts").innerHTML = "";
-    for (let f of fontsArray) {
-      this.render(f, contentDocument);
+
+    for (let font of fonts) {
+      this.render(font);
     }
-  },
+
+    this.inspector.emit("fontinspector-updated");
+  }),
 
   
 
 
-  render: function FI_render(font, document) {
+  render: function FI_render(font) {
     let s = this.chromeDoc.querySelector("#template > section");
     s = s.cloneNode(true);
 
     s.querySelector(".font-name").textContent = font.name;
     s.querySelector(".font-css-name").textContent = font.CSSFamilyName;
-    s.querySelector(".font-format").textContent = font.format;
 
-    if (font.srcIndex == -1) {
-      s.classList.add("is-local");
-    } else {
+    if (font.URI) {
       s.classList.add("is-remote");
+    } else {
+      s.classList.add("is-local");
+    }
+
+    let formatElem = s.querySelector(".font-format");
+    if (font.format) {
+      formatElem.textContent = font.format;
+    } else {
+      formatElem.hidden = true;
     }
 
     s.querySelector(".font-url").value = font.URI;
 
-    let iframe = s.querySelector(".font-preview");
     if (font.rule) {
       
-      let cssText = font.rule.style.parentRule.cssText;
+      let cssText = font.ruleText;
 
       s.classList.add("has-code");
       s.querySelector(".font-css-code").textContent = cssText;
-
-      
-      
-      
-      
-      let origin = font.rule.style.parentRule.parentStyleSheet.href;
-      if (!origin) { 
-        origin = document.location.href;
-      }
-      
-      let base = origin.replace(/\/[^\/]*$/,"/")
-
-      
-      this.buildPreview(iframe, font.CSSFamilyName, cssText, base);
-    } else {
-      this.buildPreview(iframe, font.CSSFamilyName, "", "");
     }
+    let preview = s.querySelector(".font-preview");
+    preview.src = font.previewUrl;
 
     this.chromeDoc.querySelector("#all-fonts").appendChild(s);
-  },
-
-  
-
-
-  buildPreview: function FI_buildPreview(iframe, name, cssCode, base) {
-    
-
-
-
-
-
-
-
-
-
-
-    let extraCSS = "* {padding:0;margin:0}";
-    extraCSS += ".theme-dark {color: white}";
-    extraCSS += "p {font-size: 40px;line-height:60px;padding:0 10px;margin:0;}";
-    cssCode += extraCSS;
-    let src = "data:text/html;charset=utf-8,<!DOCTYPE HTML><head><base></base></head><style></style><p contenteditable spellcheck='false'>Abc</p>";
-    iframe.addEventListener("load", function onload() {
-      iframe.removeEventListener("load", onload, true);
-      let doc = iframe.contentWindow.document;
-      
-      
-      doc.querySelector("base").href = base;
-      doc.querySelector("style").textContent = cssCode;
-      doc.querySelector("p").style.fontFamily = name;
-      
-      doc.documentElement.className = document.documentElement.className;
-    }, true);
-    iframe.src = src;
   },
 
   

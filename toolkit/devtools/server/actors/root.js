@@ -161,7 +161,10 @@ RootActor.prototype = {
     
     
     noBlackBoxing: false,
-    noPrettyPrinting: false
+    noPrettyPrinting: false,
+    
+    
+    getUsedFontFaces: true
   },
 
   

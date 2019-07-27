@@ -11,7 +11,9 @@ const protocol = require("devtools/server/protocol");
 const {Arg, Option, method, RetVal, types} = protocol;
 const events = require("sdk/event/core");
 const object = require("sdk/util/object");
-const { Class } = require("sdk/core/heritage");
+const {Class} = require("sdk/core/heritage");
+const {LongStringActor} = require("devtools/server/actors/string");
+
 
 
 require("devtools/server/actors/stylesheets");
@@ -33,6 +35,11 @@ exports.PSEUDO_ELEMENTS = PSEUDO_ELEMENTS;
 const PSEUDO_ELEMENTS_TO_READ = PSEUDO_ELEMENTS.filter(pseudo => {
   return pseudo !== ":before" && pseudo !== ":after";
 });
+
+const XHTML_NS = "http://www.w3.org/1999/xhtml";
+const FONT_PREVIEW_TEXT = "Abc";
+const FONT_PREVIEW_FONT_SIZE = 40;
+const FONT_PREVIEW_FILLSTYLE = "black";
 
 
 types.addActorType("domnode");
@@ -68,6 +75,23 @@ types.addDictType("appliedStylesReturn", {
   entries: "array:appliedstyle",
   rules: "array:domstylerule",
   sheets: "array:stylesheet"
+});
+
+types.addDictType("fontpreview", {
+  data: "nullable:longstring",
+  size: "json"
+});
+
+types.addDictType("fontface", {
+  name: "string",
+  CSSFamilyName: "string",
+  rule: "nullable:domstylerule",
+  srcIndex: "number",
+  URI: "string",
+  format: "string",
+  preview: "nullable:fontpreview",
+  localName: "string",
+  metadata: "string"
 });
 
 
@@ -192,6 +216,90 @@ var PageStyleActor = protocol.ActorClass({
     },
     response: {
       computed: RetVal("json")
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getUsedFontFaces: method(function(node, options) {
+    let contentDocument = node.rawNode.ownerDocument;
+
+    
+    let rng = contentDocument.createRange();
+    rng.selectNodeContents(node.rawNode);
+    let fonts = DOMUtils.getUsedFontFaces(rng);
+    let fontsArray = [];
+
+    for (let i = 0; i < fonts.length; i++) {
+      let font = fonts.item(i);
+      let fontFace = {
+        name: font.name,
+        CSSFamilyName: font.CSSFamilyName,
+        srcIndex: font.srcIndex,
+        URI: font.URI,
+        format: font.format,
+        localName: font.localName,
+        metadata: font.metadata
+      }
+
+      
+      if (font.rule) {
+        fontFace.rule = StyleRuleActor(this, font.rule);
+        fontFace.ruleText = font.rule.cssText;
+      }
+
+      if (options.includePreviews) {
+        let opts = {
+          previewText: options.previewText,
+          previewFontSize: options.previewFontSize,
+          fillStyle: options.previewFillStyle
+        }
+        let { dataURL, size } = getFontPreviewData(font.CSSFamilyName,
+                                                   contentDocument, opts);
+        fontFace.preview = {
+          data: LongStringActor(this.conn, dataURL),
+          size: size
+        };
+      }
+      fontsArray.push(fontFace);
+    }
+
+    
+    fontsArray.sort(function(a, b) {
+      if (a.CSSFamilyName == b.CSSFamilyName) {
+        return 0;
+      }
+      return a.CSSFamilyName > b.CSSFamilyName ? 1 : -1;
+    });
+    fontsArray.sort(function(a, b) {
+      if ((a.rule && b.rule) || (!a.rule && !b.rule)) {
+        return 0;
+      }
+      return !a.rule && b.rule ? 1 : -1;
+    });
+
+    return fontsArray;
+  }, {
+    request: {
+      node: Arg(0, "domnode"),
+      includePreviews: Option(1, "boolean"),
+      previewText: Option(1, "string"),
+      previewFontSize: Option(1, "string"),
+      previewFillStyle: Option(1, "string")
+    },
+    response: {
+      fontFaces: RetVal("array:fontface")
     }
   }),
 
@@ -1104,3 +1212,53 @@ var RuleModificationList = Class({
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getFontPreviewData(font, doc, options) {
+  options = options || {};
+  let previewText = options.previewText || FONT_PREVIEW_TEXT;
+  let previewFontSize = options.previewFontSize || FONT_PREVIEW_FONT_SIZE;
+  let fillStyle = options.fillStyle || FONT_PREVIEW_FILLSTYLE;
+  let fontStyle = options.fontStyle || "";
+
+  let canvas = doc.createElementNS(XHTML_NS, "canvas");
+  let ctx = canvas.getContext("2d");
+  let fontValue = fontStyle + " " + previewFontSize + "px " + font + ", serif";
+
+  
+  ctx.font = fontValue;
+  ctx.fillStyle = fillStyle;
+  let textWidth = ctx.measureText(previewText).width;
+  let offset = 4; 
+  canvas.width = textWidth * 2 + offset * 2;
+  canvas.height = previewFontSize * 3;
+
+  
+  ctx.font = fontValue;
+  ctx.fillStyle = fillStyle;
+
+  
+  ctx.textBaseline = "top";
+  ctx.scale(2, 2);
+  ctx.fillText(previewText, offset, Math.round(previewFontSize / 3));
+
+  let dataURL = canvas.toDataURL("image/png");
+
+  return {
+    dataURL: dataURL,
+    size: textWidth + offset * 2
+  };
+}
+
+exports.getFontPreviewData = getFontPreviewData;
