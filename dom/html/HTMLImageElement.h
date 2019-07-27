@@ -206,6 +206,8 @@ public:
 
   virtual void DestroyContent() override;
 
+  void MediaFeatureValuesChanged();
+
   
 
 
@@ -332,6 +334,8 @@ protected:
   nsRefPtr<ResponsiveImageSelector> mResponsiveSelector;
 
 private:
+  bool SourceElementMatches(nsIContent* aSourceNode);
+
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
                                     nsRuleData* aData);
 

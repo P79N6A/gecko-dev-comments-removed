@@ -1155,6 +1155,16 @@ public:
   
   virtual void GetPlugins(nsTArray<nsIObjectLoadingContent*>& aPlugins) override;
 
+  
+  
+  virtual nsresult AddResponsiveContent(nsIContent* aContent) override;
+  
+  
+  virtual void RemoveResponsiveContent(nsIContent* aContent) override;
+  
+  
+  virtual void NotifyMediaFeatureValuesChanged() override;
+
   virtual nsresult GetStateObject(nsIVariant** aResult) override;
 
   virtual nsDOMNavigationTiming* GetNavigationTiming() const override;
@@ -1753,6 +1763,9 @@ private:
   
   bool mStyledLinksCleared;
 #endif
+
+  
+  nsTHashtable< nsPtrHashKey<nsIContent> > mResponsiveContent;
 
   
   nsString mLastStyleSheetSet;

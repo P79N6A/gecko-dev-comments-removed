@@ -1912,6 +1912,8 @@ nsPresContext::MediaFeatureValuesChanged(nsRestyleHint aRestyleHint,
     return;
   }
 
+  mDocument->NotifyMediaFeatureValuesChanged();
+
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
 
   
