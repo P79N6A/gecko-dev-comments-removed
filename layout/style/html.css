@@ -256,7 +256,6 @@ xmp, pre, plaintext {
 
 
 table {
-  writing-mode: horizontal-tb !important; 
   display: table;
   border-spacing: 2px;
   border-collapse: separate;
