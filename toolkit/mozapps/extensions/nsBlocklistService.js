@@ -83,9 +83,20 @@ XPCOMUtils.defineLazyGetter(this, "gPref", function bls_gPref() {
          QueryInterface(Ci.nsIPrefBranch);
 });
 
+
+
+
+
 XPCOMUtils.defineLazyGetter(this, "gApp", function bls_gApp() {
-  return Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).
-         QueryInterface(Ci.nsIXULRuntime);
+  let appinfo = Cc["@mozilla.org/xre/app-info;1"]
+                  .getService(Ci.nsIXULRuntime);
+  try {
+    appinfo.QueryInterface(Ci.nsIXULAppInfo);
+  } catch (ex if ex instanceof Components.Exception &&
+                 ex.result == Cr.NS_NOINTERFACE) {
+    
+  }
+  return appinfo;
 });
 
 XPCOMUtils.defineLazyGetter(this, "gABI", function bls_gABI() {
@@ -396,6 +407,10 @@ Blocklist.prototype = {
     if (!gBlocklistEnabled)
       return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
 
+    
+    if (!appVersion && !gApp.version)
+      return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+
     if (!appVersion)
       appVersion = gApp.version;
     if (!toolkitVersion)
@@ -529,9 +544,13 @@ Blocklist.prototype = {
       pingCountTotal = 1;
 
     dsURI = dsURI.replace(/%APP_ID%/g, gApp.ID);
-    dsURI = dsURI.replace(/%APP_VERSION%/g, gApp.version);
+    
+    if (gApp.version)
+      dsURI = dsURI.replace(/%APP_VERSION%/g, gApp.version);
     dsURI = dsURI.replace(/%PRODUCT%/g, gApp.name);
-    dsURI = dsURI.replace(/%VERSION%/g, gApp.version);
+    
+    if (gApp.version)
+      dsURI = dsURI.replace(/%VERSION%/g, gApp.version);
     dsURI = dsURI.replace(/%BUILD_ID%/g, gApp.appBuildID);
     dsURI = dsURI.replace(/%BUILD_TARGET%/g, gApp.OS + "_" + gABI);
     dsURI = dsURI.replace(/%OS_VERSION%/g, gOSVersion);
@@ -1046,6 +1065,10 @@ Blocklist.prototype = {
   _getPluginBlocklistState: function Blocklist_getPluginBlocklistState(plugin,
                             pluginEntries, appVersion, toolkitVersion) {
     if (!gBlocklistEnabled)
+      return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+
+    
+    if (!appVersion && !gApp.version)
       return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
 
     if (!appVersion)
