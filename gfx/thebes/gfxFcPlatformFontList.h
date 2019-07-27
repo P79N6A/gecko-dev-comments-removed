@@ -256,6 +256,9 @@ protected:
     
     nsRefPtrHashtable<nsCStringHashKey, gfxFontFamily> mGenericMappings;
 
+    
+    nsRefPtrHashtable<nsCStringHashKey, gfxFontFamily> mFcSubstituteCache;
+
     nsCOMPtr<nsITimer> mCheckFontUpdatesTimer;
     nsCountedRef<FcConfig> mLastConfig;
 
