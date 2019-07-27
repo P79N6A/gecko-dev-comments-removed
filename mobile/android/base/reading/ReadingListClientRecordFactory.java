@@ -198,6 +198,10 @@ public class ReadingListClientRecordFactory {
     object.remove("client_last_modified");
     object.remove("is_deleted");
 
+    
+    
+    object.remove("stored_on");
+
     object.remove(ReadingListItems.CONTENT_STATUS);
     object.remove(ReadingListItems.SYNC_STATUS);
     object.remove(ReadingListItems.SYNC_CHANGE_FLAGS);
