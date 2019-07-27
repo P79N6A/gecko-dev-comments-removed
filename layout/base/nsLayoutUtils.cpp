@@ -4463,22 +4463,24 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
 }
 
  nscoord
-nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
-                              nsRenderingContext* aRenderingContext,
-                              nsIFrame*           aFrame,
-                              IntrinsicISizeType  aType,
-                              uint32_t            aFlags)
+nsLayoutUtils::IntrinsicForAxis(PhysicalAxis        aAxis,
+                                nsRenderingContext* aRenderingContext,
+                                nsIFrame*           aFrame,
+                                IntrinsicISizeType  aType,
+                                uint32_t            aFlags)
 {
   NS_PRECONDITION(aFrame, "null frame");
   NS_PRECONDITION(aFrame->GetParent(),
-                  "IntrinsicForWM called on frame not in tree");
+                  "IntrinsicForAxis called on frame not in tree");
   NS_PRECONDITION(aType == MIN_ISIZE || aType == PREF_ISIZE, "bad type");
 
+  const bool horizontalAxis = MOZ_LIKELY(aAxis == eAxisHorizontal);
 #ifdef DEBUG_INTRINSIC_WIDTH
   nsFrame::IndentBy(stderr, gNoiseIndent);
   static_cast<nsFrame*>(aFrame)->ListTag(stderr);
-  printf_stderr(" %s intrinsic inline-size for container:\n",
-         aType == MIN_ISIZE ? "min" : "pref");
+  printf_stderr(" %s %s intrinsic size for container:\n",
+                aType == MIN_ISIZE ? "min" : "pref",
+                horizontalAxis ? "horizontal" : "vertical");
 #endif
 
   
@@ -4491,9 +4493,12 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
   const nsStylePosition* stylePos = aFrame->StylePosition();
   uint8_t boxSizing = stylePos->mBoxSizing;
 
-  const nsStyleCoord& styleISize = stylePos->ISize(aWM);
-  const nsStyleCoord& styleMinISize = stylePos->MinISize(aWM);
-  const nsStyleCoord& styleMaxISize = stylePos->MaxISize(aWM);
+  const nsStyleCoord& styleISize =
+    horizontalAxis ? stylePos->mWidth : stylePos->mHeight;
+  const nsStyleCoord& styleMinISize =
+    horizontalAxis ? stylePos->mMinWidth : stylePos->mMinHeight;
+  const nsStyleCoord& styleMaxISize =
+    horizontalAxis ? stylePos->mMaxWidth : stylePos->mMaxHeight;
 
   
   
@@ -4524,7 +4529,8 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
     haveFixedMinISize = GetAbsoluteCoord(styleMinISize, minISize);
   }
 
-  WritingMode ourWM = aFrame->GetWritingMode();
+  PhysicalAxis ourInlineAxis =
+    aFrame->GetWritingMode().PhysicalAxis(eLogicalAxisInline);
   
   
   
@@ -4543,8 +4549,7 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
 #ifdef DEBUG_INTRINSIC_WIDTH
     ++gNoiseIndent;
 #endif
-    if (ourWM.IsOrthogonalTo(aWM)) {
-      
+    if (MOZ_UNLIKELY(aAxis != ourInlineAxis)) {
       
       
       
@@ -4563,8 +4568,10 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
     --gNoiseIndent;
     nsFrame::IndentBy(stderr, gNoiseIndent);
     static_cast<nsFrame*>(aFrame)->ListTag(stderr);
-    printf_stderr(" %s intrinsic inline-size from frame is %d.\n",
-           aType == MIN_ISIZE ? "min" : "pref", result);
+    printf_stderr(" %s %s intrinsic size from frame is %d.\n",
+                  aType == MIN_ISIZE ? "min" : "pref",
+                  horizontalAxis ? "horizontal" : "vertical",
+                  result);
 #endif
 
     
@@ -4573,9 +4580,12 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
     
     
     
-    const nsStyleCoord& styleBSize = stylePos->BSize(aWM);
-    const nsStyleCoord& styleMinBSize = stylePos->MinBSize(aWM);
-    const nsStyleCoord& styleMaxBSize = stylePos->MaxBSize(aWM);
+    const nsStyleCoord& styleBSize =
+      horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
+    const nsStyleCoord& styleMinBSize =
+      horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
+    const nsStyleCoord& styleMaxBSize =
+      horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
 
     if (styleBSize.GetUnit() != eStyleUnit_Auto ||
         !(styleMinBSize.GetUnit() == eStyleUnit_Auto ||
@@ -4583,24 +4593,27 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
            styleMinBSize.GetCoordValue() == 0)) ||
         styleMaxBSize.GetUnit() != eStyleUnit_None) {
 
-      LogicalSize ratio(aWM, aFrame->GetIntrinsicRatio());
-
-      if (ratio.BSize(aWM) != 0) {
+      nsSize ratio(aFrame->GetIntrinsicRatio());
+      nscoord ratioISize = (horizontalAxis ? ratio.width  : ratio.height);
+      nscoord ratioBSize = (horizontalAxis ? ratio.height : ratio.width);
+      if (ratioBSize != 0) {
         nscoord bSizeTakenByBoxSizing = 0;
         switch (boxSizing) {
         case NS_STYLE_BOX_SIZING_BORDER: {
           const nsStyleBorder* styleBorder = aFrame->StyleBorder();
           bSizeTakenByBoxSizing +=
-            aWM.IsVertical() ? styleBorder->GetComputedBorder().LeftRight()
-                             : styleBorder->GetComputedBorder().TopBottom();
+            horizontalAxis ? styleBorder->GetComputedBorder().TopBottom()
+                           : styleBorder->GetComputedBorder().LeftRight();
           
         }
         case NS_STYLE_BOX_SIZING_PADDING: {
           if (!(aFlags & IGNORE_PADDING)) {
             const nsStyleSides& stylePadding =
               aFrame->StylePadding()->mPadding;
-            const nsStyleCoord& paddingStart = stylePadding.GetBStart(aWM);
-            const nsStyleCoord& paddingEnd = stylePadding.GetBEnd(aWM);
+            const nsStyleCoord& paddingStart =
+              stylePadding.Get(horizontalAxis ? NS_SIDE_TOP : NS_SIDE_LEFT);
+            const nsStyleCoord& paddingEnd =
+              stylePadding.Get(horizontalAxis ? NS_SIDE_BOTTOM : NS_SIDE_RIGHT);
             nscoord pad;
             if (GetAbsoluteCoord(paddingStart, pad) ||
                 GetPercentBSize(paddingStart, aFrame, pad)) {
@@ -4622,13 +4635,13 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
         if (GetAbsoluteCoord(styleBSize, h) ||
             GetPercentBSize(styleBSize, aFrame, h)) {
           h = std::max(0, h - bSizeTakenByBoxSizing);
-          result = NSCoordMulDiv(h, ratio.ISize(aWM), ratio.BSize(aWM));
+          result = NSCoordMulDiv(h, ratioISize, ratioBSize);
         }
 
         if (GetAbsoluteCoord(styleMaxBSize, h) ||
             GetPercentBSize(styleMaxBSize, aFrame, h)) {
           h = std::max(0, h - bSizeTakenByBoxSizing);
-          nscoord maxISize = NSCoordMulDiv(h, ratio.ISize(aWM), ratio.BSize(aWM));
+          nscoord maxISize = NSCoordMulDiv(h, ratioISize, ratioBSize);
           if (maxISize < result)
             result = maxISize;
         }
@@ -4636,7 +4649,7 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
         if (GetAbsoluteCoord(styleMinBSize, h) ||
             GetPercentBSize(styleMinBSize, aFrame, h)) {
           h = std::max(0, h - bSizeTakenByBoxSizing);
-          nscoord minISize = NSCoordMulDiv(h, ratio.ISize(aWM), ratio.BSize(aWM));
+          nscoord minISize = NSCoordMulDiv(h, ratioISize, ratioBSize);
           if (minISize > result)
             result = minISize;
         }
@@ -4651,21 +4664,23 @@ nsLayoutUtils::IntrinsicForWM(WritingMode         aWM,
   }
 
   nsIFrame::IntrinsicISizeOffsetData offsets =
-    aWM.IsOrthogonalTo(ourWM) ? aFrame->IntrinsicBSizeOffsets()
-                              : aFrame->IntrinsicISizeOffsets();
+    MOZ_LIKELY(aAxis == ourInlineAxis) ? aFrame->IntrinsicISizeOffsets()
+                                       : aFrame->IntrinsicBSizeOffsets();
   result = AddIntrinsicSizeOffset(aRenderingContext, aFrame, offsets, aType,
                                   boxSizing, result, min, styleISize,
                                   haveFixedMinISize ? &minISize : nullptr,
                                   styleMinISize,
                                   haveFixedMaxISize ? &maxISize : nullptr,
                                   styleMaxISize,
-                                  aFlags, aWM.PhysicalAxis(eLogicalAxisInline));
+                                  aFlags, aAxis);
 
 #ifdef DEBUG_INTRINSIC_WIDTH
   nsFrame::IndentBy(stderr, gNoiseIndent);
   static_cast<nsFrame*>(aFrame)->ListTag(stderr);
-  printf_stderr(" %s intrinsic inline-size for container is %d twips.\n",
-         aType == MIN_ISIZE ? "min" : "pref", result);
+  printf_stderr(" %s %s intrinsic size for container is %d twips.\n",
+                aType == MIN_ISIZE ? "min" : "pref",
+                horizontalAxis ? "horizontal" : "vertical",
+                result);
 #endif
 
   return result;
@@ -4677,11 +4692,11 @@ nsLayoutUtils::IntrinsicForContainer(nsRenderingContext* aRenderingContext,
                                      IntrinsicISizeType aType,
                                      uint32_t aFlags)
 {
+  MOZ_ASSERT(aFrame && aFrame->GetParent());
   
-  
-  
-  WritingMode wm = aFrame->GetParent()->GetWritingMode();
-  return IntrinsicForWM(wm, aRenderingContext, aFrame, aType, aFlags);
+  PhysicalAxis axis =
+    aFrame->GetParent()->GetWritingMode().PhysicalAxis(eLogicalAxisInline);
+  return IntrinsicForAxis(axis, aRenderingContext, aFrame, aType, aFlags);
 }
 
  nscoord

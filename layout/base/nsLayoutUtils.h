@@ -1303,15 +1303,16 @@ public:
 
 
 
+
   enum IntrinsicISizeType { MIN_ISIZE, PREF_ISIZE };
   enum {
     IGNORE_PADDING = 0x01
   };
-  static nscoord IntrinsicForWM(mozilla::WritingMode aWM,
-                                nsRenderingContext*  aRenderingContext,
-                                nsIFrame*            aFrame,
-                                IntrinsicISizeType   aType,
-                                uint32_t             aFlags = 0);
+  static nscoord IntrinsicForAxis(mozilla::PhysicalAxis aAxis,
+                                  nsRenderingContext*   aRenderingContext,
+                                  nsIFrame*             aFrame,
+                                  IntrinsicISizeType    aType,
+                                  uint32_t              aFlags = 0);
   
 
 
