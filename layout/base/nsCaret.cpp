@@ -305,9 +305,15 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
     descent = fm->MaxDescent();
   }
   nscoord height = ascent + descent;
-  framePos.y = baseline - ascent;
+  bool vertical = aFrame->GetWritingMode().IsVertical();
+  if (vertical) {
+    framePos.x = baseline - ascent;
+  } else {
+    framePos.y = baseline - ascent;
+  }
   Metrics caretMetrics = ComputeMetrics(aFrame, aFrameOffset, height);
-  rect = nsRect(framePos, nsSize(caretMetrics.mCaretWidth, height));
+  rect = nsRect(framePos, vertical ? nsSize(height, caretMetrics.mCaretWidth) :
+                                     nsSize(caretMetrics.mCaretWidth, height));
 
   
   
@@ -321,10 +327,18 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
 
     
     
-    nscoord overflow = caretInScroll.XMost() -
-      scrolled->GetVisualOverflowRectRelativeToSelf().width;
-    if (overflow > 0) {
-      rect.x -= overflow;
+    if (vertical) {
+      nscoord overflow = caretInScroll.YMost() -
+        scrolled->GetVisualOverflowRectRelativeToSelf().height;
+      if (overflow > 0) {
+        rect.y -= overflow;
+      }
+    } else {
+      nscoord overflow = caretInScroll.XMost() -
+        scrolled->GetVisualOverflowRectRelativeToSelf().width;
+      if (overflow > 0) {
+        rect.x -= overflow;
+      }
     }
   }
 
@@ -822,13 +836,19 @@ nsCaret::ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
 {
   NS_ASSERTION(aFrame, "Should have a frame here");
 
+  bool isVertical = aFrame->GetWritingMode().IsVertical();
+
   nscoord bidiIndicatorSize;
   *aCaretRect = GetGeometryForFrame(aFrame, aFrameOffset, &bidiIndicatorSize);
 
   
   const nsStyleVisibility* vis = aFrame->StyleVisibility();
   if (NS_STYLE_DIRECTION_RTL == vis->mDirection) {
-    aCaretRect->x -= aCaretRect->width;
+    if (isVertical) {
+      aCaretRect->y -= aCaretRect->height;
+    } else {
+      aCaretRect->x -= aCaretRect->width;
+    }
   }
 
   
@@ -846,10 +866,19 @@ nsCaret::ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
     
     
     
-    aHookRect->SetRect(aCaretRect->x + (isCaretRTL ? bidiIndicatorSize * -1 : aCaretRect->width),
-                       aCaretRect->y + bidiIndicatorSize,
-                       bidiIndicatorSize,
-                       aCaretRect->width);
+    if (isVertical) {
+      aHookRect->SetRect(aCaretRect->XMost() - bidiIndicatorSize,
+                         aCaretRect->y + (isCaretRTL ? bidiIndicatorSize * -1 :
+                                                       aCaretRect->height),
+                         aCaretRect->height,
+                         bidiIndicatorSize);
+    } else {
+      aHookRect->SetRect(aCaretRect->x + (isCaretRTL ? bidiIndicatorSize * -1 :
+                                                       aCaretRect->width),
+                         aCaretRect->y + bidiIndicatorSize,
+                         bidiIndicatorSize,
+                         aCaretRect->width);
+    }
   }
 }
 
