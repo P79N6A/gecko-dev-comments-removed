@@ -276,7 +276,7 @@ public:
   void NotifyTransactionCompleted(uint64_t aTransactionId) MOZ_OVERRIDE;
   void RevokeTransactionId(uint64_t aTransactionId) MOZ_OVERRIDE;
 
-  bool IsWaitingForPaint();
+  bool IsWaitingForPaint(mozilla::TimeStamp aTime);
 
   
   NS_IMETHOD_(MozExternalRefCountType) AddRef(void) { return TransactionIdAllocator::AddRef(); }
@@ -355,10 +355,11 @@ private:
   
   
   
-  uint32_t mSkippedPaints;
+  bool mSkippedPaints;
 
   int64_t mMostRecentRefreshEpochTime;
   mozilla::TimeStamp mMostRecentRefresh;
+  mozilla::TimeStamp mMostRecentTick;
 
   
   ObserverArray mObservers[3];
