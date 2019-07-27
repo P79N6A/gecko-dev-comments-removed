@@ -411,7 +411,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
     
-    dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
+    dirty = dirty.ScaleToOtherAppUnitsRoundOut(parentAPD, subdocAPD);
 
     if (nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame()) {
       if (gfxPrefs::LayoutUseContainersForRootFrames()) {
@@ -500,7 +500,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       nsRect bounds = GetContentRectRelativeToSelf() +
         aBuilder->ToReferenceFrame(this);
       if (subdocRootFrame) {
-        bounds = bounds.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
+        bounds = bounds.ScaleToOtherAppUnitsRoundOut(parentAPD, subdocAPD);
       }
 
       

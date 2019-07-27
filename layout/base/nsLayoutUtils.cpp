@@ -2066,7 +2066,7 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(nsIWidget* aWidget,
   
   int32_t rootAPD = rootFrame->PresContext()->AppUnitsPerDevPixel();
   int32_t localAPD = aFrame->PresContext()->AppUnitsPerDevPixel();
-  widgetToView = widgetToView.ConvertAppUnits(rootAPD, localAPD);
+  widgetToView = widgetToView.ScaleToOtherAppUnits(rootAPD, localAPD);
 
   
 

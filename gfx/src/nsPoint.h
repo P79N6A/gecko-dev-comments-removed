@@ -32,7 +32,7 @@ struct nsPoint : public mozilla::gfx::BasePoint<nscoord, nsPoint> {
 
 
   MOZ_WARN_UNUSED_RESULT inline nsPoint
-    ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
+    ScaleToOtherAppUnits(int32_t aFromAPP, int32_t aToAPP) const;
 };
 
 
@@ -65,7 +65,7 @@ nsPoint::ToNearestPixels(nscoord aAppUnitsPerPixel) const
 }
 
 inline nsPoint
-nsPoint::ConvertAppUnits(int32_t aFromAPP, int32_t aToAPP) const
+nsPoint::ScaleToOtherAppUnits(int32_t aFromAPP, int32_t aToAPP) const
 {
   if (aFromAPP != aToAPP) {
     nsPoint point;

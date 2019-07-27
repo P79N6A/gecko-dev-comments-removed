@@ -294,9 +294,9 @@ public:
 
 
   MOZ_WARN_UNUSED_RESULT nsRegion
-    ConvertAppUnitsRoundOut (int32_t aFromAPP, int32_t aToAPP) const;
+    ScaleToOtherAppUnitsRoundOut (int32_t aFromAPP, int32_t aToAPP) const;
   MOZ_WARN_UNUSED_RESULT nsRegion
-    ConvertAppUnitsRoundIn (int32_t aFromAPP, int32_t aToAPP) const;
+    ScaleToOtherAppUnitsRoundIn (int32_t aFromAPP, int32_t aToAPP) const;
   nsRegion& ScaleRoundOut(float aXScale, float aYScale);
   nsRegion& ScaleInverseRoundOut(float aXScale, float aYScale);
   nsRegion& Transform (const gfx3DMatrix &aTransform);

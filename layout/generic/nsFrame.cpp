@@ -4750,7 +4750,7 @@ nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther, const int32_t aAPD) const
       int32_t newAPD = f ? f->PresContext()->AppUnitsPerDevPixel() : 0;
       if (!f || newAPD != currAPD) {
         
-        offset += docOffset.ConvertAppUnits(currAPD, aAPD);
+        offset += docOffset.ScaleToOtherAppUnits(currAPD, aAPD);
         docOffset.x = docOffset.y = 0;
       }
       currAPD = newAPD;
@@ -4758,7 +4758,7 @@ nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther, const int32_t aAPD) const
     }
   }
   if (f == aOther) {
-    offset += docOffset.ConvertAppUnits(currAPD, aAPD);
+    offset += docOffset.ScaleToOtherAppUnits(currAPD, aAPD);
   } else {
     
     
