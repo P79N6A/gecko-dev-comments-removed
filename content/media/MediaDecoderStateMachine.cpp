@@ -1472,6 +1472,10 @@ void MediaDecoderStateMachine::Seek(const SeekTarget& aTarget)
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
+  if (mState == DECODER_STATE_SHUTDOWN) {
+    return;
+  }
+
   
   
   if (!mDecoder->IsMediaSeekable()) {
