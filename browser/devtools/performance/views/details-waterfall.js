@@ -74,6 +74,11 @@ let WaterfallView = Heritage.extend(DetailsSubview, {
 
   _onMarkerSelected: function (event, marker) {
     let recording = PerformanceController.getCurrentRecording();
+    
+    
+    if (!recording) {
+      return;
+    }
     let frames = recording.getFrames();
 
     if (event === "selected") {
