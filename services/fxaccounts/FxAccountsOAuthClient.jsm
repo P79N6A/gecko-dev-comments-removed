@@ -66,6 +66,8 @@ this.FxAccountsOAuthClient.prototype = {
   
 
 
+
+
   onComplete: null,
   
 
@@ -115,6 +117,7 @@ this.FxAccountsOAuthClient.prototype = {
     this.onComplete = null;
     this._complete = true;
     this._channel.stopListening();
+    this._channel = null;
   },
 
   
@@ -157,16 +160,23 @@ this.FxAccountsOAuthClient.prototype = {
         switch (command) {
           case "oauth_complete":
             
-            if (this.onComplete && data.code && this.parameters.state === data.state) {
-              log.debug("OAuth flow completed.");
-              this.onComplete({
+            let result = null;
+            if (this.parameters.state === data.state) {
+              result = {
                 code: data.code,
                 state: data.state
-              });
-              
-              
-              this.tearDown();
+              };
+              log.debug("OAuth flow completed.");
+            } else {
+              log.debug("OAuth flow failed. State doesn't match");
             }
+
+            if (this.onComplete) {
+              this.onComplete(result);
+            }
+            
+            
+            this.tearDown();
 
             
             if (data.closeWindow && target && target.contentWindow) {

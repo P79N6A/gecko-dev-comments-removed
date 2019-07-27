@@ -14,6 +14,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/osfile.jsm", this);
+Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/FxAccountsOAuthClient.jsm");
 
 this.EXPORTED_SYMBOLS = ["MozLoopService"];
 
@@ -56,6 +58,8 @@ let gHawkClient = null;
 let gRegisteredLoopServer = false;
 let gLocalizedStrings =  null;
 let gInitializeTimer = null;
+let gFxAOAuthClientPromise = null;
+let gFxAOAuthClient = null;
 
 
 
@@ -449,7 +453,86 @@ let MozLoopServiceInternal = {
     };
 
     Chat.open(contentWindow, origin, title, url, undefined, undefined, callback);
-  }
+  },
+
+  
+
+
+
+
+  promiseFxAOAuthParameters: function() {
+    return this.hawkRequest("/fxa-oauth/params", "POST").then(response => {
+      return JSON.parse(response.body);
+    });
+  },
+
+  
+
+
+
+
+  promiseFxAOAuthClient: Task.async(function* () {
+    
+    
+    if (gFxAOAuthClientPromise) {
+      return gFxAOAuthClientPromise;
+    }
+
+    gFxAOAuthClientPromise = this.promiseFxAOAuthParameters().then(
+      parameters => {
+        try {
+          gFxAOAuthClient = new FxAccountsOAuthClient({
+            parameters: parameters,
+          });
+        } catch (ex) {
+          gFxAOAuthClientPromise = null;
+          throw ex;
+        }
+        return gFxAOAuthClient;
+      },
+      error => {
+        gFxAOAuthClientPromise = null;
+        return error;
+      }
+    );
+
+    return gFxAOAuthClientPromise;
+  }),
+
+  
+
+
+  promiseFxAOAuthAuthorization: function() {
+    let deferred = Promise.defer();
+    this.promiseFxAOAuthClient().then(
+      client => {
+        client.onComplete = this._fxAOAuthComplete.bind(this, deferred);
+        client.launchWebFlow();
+      },
+      error => {
+        Cu.reportError(error);
+        deferred.reject(error);
+      }
+    );
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+  _fxAOAuthComplete: function(deferred, result) {
+    gFxAOAuthClientPromise = null;
+
+    
+    if (result) {
+      deferred.resolve(result);
+    } else {
+      deferred.reject("Invalid token data");
+    }
+  },
 };
 Object.freeze(MozLoopServiceInternal);
 
@@ -469,6 +552,17 @@ let gInitializeTimerFunc = () => {
 
 
 this.MozLoopService = {
+#ifdef DEBUG
+  
+  get internal() {
+    return MozLoopServiceInternal;
+  },
+
+  resetFxA: function() {
+    gFxAOAuthClientPromise = null;
+  },
+#endif
+
   set initializeTimerFunc(value) {
     gInitializeTimerFunc = value;
   },
@@ -634,6 +728,19 @@ this.MozLoopService = {
         "; exception: " + ex);
       return null;
     }
+  },
+
+  
+
+
+
+
+
+
+  logInToFxA: function() {
+    return MozLoopServiceInternal.promiseFxAOAuthAuthorization().then(response => {
+      return MozLoopServiceInternal.promiseFxAOAuthToken(response.code, response.state);
+    });
   },
 
   
