@@ -222,6 +222,11 @@ private:
   
 
 
+  nsIntRect OutputFilterSpaceBounds() const;
+
+  
+
+
   nsresult ComputeUserSpaceToFilterSpaceScale();
 
   
@@ -277,12 +282,6 @@ private:
 
   gfxMatrix               mFilterSpaceToFrameSpaceInCSSPxTransform;
   gfxMatrix               mFrameSpaceInCSSPxToFilterSpaceTransform;
-
-  
-
-
-  gfxRect                 mUserSpaceBounds;
-  nsIntRect               mFilterSpaceBounds;
 
   
 
