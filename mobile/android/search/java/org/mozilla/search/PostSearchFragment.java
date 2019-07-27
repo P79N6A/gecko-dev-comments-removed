@@ -4,6 +4,7 @@
 
 package org.mozilla.search;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -21,20 +22,17 @@ import android.widget.ProgressBar;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.search.providers.SearchEngine;
+import org.mozilla.search.providers.SearchEngineManager;
 
 public class PostSearchFragment extends Fragment {
 
-    private static final String LOGTAG = "PostSearchFragment";
-    private static final String ABOUT_BLANK = "about:blank";
+    private static final String LOG_TAG = "PostSearchFragment";
 
     private ProgressBar progressBar;
+
+    private SearchEngineManager searchEngineManager;
     private WebView webview;
-
-    private static final String HIDE_BANNER_SCRIPT = "javascript:(function(){var tag=document.createElement('style');" +
-            "tag.type='text/css';document.getElementsByTagName('head')[0].appendChild(tag);tag.innerText='#nav,#header{display:none}'})();";
-
-    public PostSearchFragment() {
-    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -61,31 +59,33 @@ public class PostSearchFragment extends Fragment {
         progressBar = null;
     }
 
-    
-
-
-
-
-
-
-
-
-    private boolean shouldSendToBrowser(String url) {
-        return !(TextUtils.equals(ABOUT_BLANK, url) || url.contains(Constants.YAHOO_WEB_SEARCH_RESULTS_FILTER));
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        searchEngineManager = new SearchEngineManager(activity);
     }
 
-    public void startSearch(String query) {
-        setUrl(Constants.YAHOO_WEB_SEARCH_BASE_URL + Uri.encode(query));
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        searchEngineManager.destroy();
+        searchEngineManager = null;
     }
 
-    private void setUrl(String url) {
-        
-        
-        if (!TextUtils.equals(webview.getUrl(), url)) {
-            webview.loadUrl(ABOUT_BLANK);
-            webview.loadUrl(url);
-        }
+    public void startSearch(final String query) {
+        searchEngineManager.getEngine(new SearchEngineManager.SearchEngineCallback() {
+            @Override
+            public void execute(SearchEngine engine) {
+                final String url = engine.resultsUriForQuery(query);
+                
+                if (!TextUtils.equals(webview.getUrl(), url)) {
+                    webview.loadUrl(Constants.ABOUT_BLANK);
+                    webview.loadUrl(url);
+                }
+            }
+        });
     }
+
 
     
 
@@ -95,18 +95,29 @@ public class PostSearchFragment extends Fragment {
     private class LinkInterceptingClient extends WebViewClient {
 
         @Override
-        public void onPageStarted(WebView view, String url, Bitmap favicon) {
-            if (shouldSendToBrowser(url)) {
-                view.stopLoading();
+        public void onPageStarted(WebView view, final String url, Bitmap favicon) {
+            searchEngineManager.getEngine(new SearchEngineManager.SearchEngineCallback() {
+                @Override
+                public void execute(SearchEngine engine) {
+                    
+                    if (TextUtils.equals(url, Constants.ABOUT_BLANK) || engine.isSearchResultsPage(url)) {
+                        
+                        return;
+                    }
 
-                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
-                        TelemetryContract.Method.CONTENT, "search-result");
+                    webview.stopLoading();
 
-                final Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
-                i.setData(Uri.parse(url));
-                startActivity(i);
-            }
+                    Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
+                            TelemetryContract.Method.CONTENT, "search-result");
+
+                    final Intent i = new Intent(Intent.ACTION_VIEW);
+
+                    
+                    i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
+                }
+            });
         }
     }
 
@@ -121,9 +132,14 @@ public class PostSearchFragment extends Fragment {
     private class ChromeClient extends WebChromeClient {
 
         @Override
-        public void onReceivedTitle(WebView view, String title) {
-            super.onReceivedTitle(view, title);
-            view.loadUrl(HIDE_BANNER_SCRIPT);
+        public void onReceivedTitle(final WebView view, String title) {
+
+            searchEngineManager.getEngine(new SearchEngineManager.SearchEngineCallback() {
+                @Override
+                public void execute(SearchEngine engine) {
+                    view.loadUrl(engine.getInjectableJs());
+                }
+            });
         }
 
         @Override
