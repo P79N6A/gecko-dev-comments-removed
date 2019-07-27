@@ -10,6 +10,7 @@
 #include "nsString.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/TextEventDispatcherListener.h"
 #include "mozilla/TextRange.h"
 
 class nsIWidget;
@@ -46,8 +47,16 @@ public:
 
 
 
-  nsresult Init();
-  nsresult InitForTests();
+
+
+
+
+
+
+
+
+  nsresult Init(TextEventDispatcherListener* aListener);
+  nsresult InitForTests(TextEventDispatcherListener* aListener);
 
   
 
@@ -154,6 +163,12 @@ private:
   
   
   nsIWidget* mWidget;
+  
+  
+  
+  
+  
+  nsWeakPtr mListener;
 
   
   
@@ -178,10 +193,11 @@ private:
   };
   PendingComposition mPendingComposition;
 
-  bool mInitialized;
   bool mForTests;
   
   bool mIsComposing;
+
+  nsresult InitInternal(TextEventDispatcherListener* aListener, bool aForTests);
 
   
 
