@@ -6,6 +6,9 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#if defined(OS_MACOSX)
+#include <sched.h>
+#endif
 #include <stddef.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -724,9 +727,39 @@ bool Channel::ChannelImpl::ProcessOutgoingMessages() {
       msg->file_descriptor_set()->CommitAll();
 #endif
 
-    if (bytes_written < 0 && errno != EAGAIN) {
-      CHROMIUM_LOG(ERROR) << "pipe error: " << strerror(errno);
-      return false;
+    if (bytes_written < 0) {
+      switch (errno) {
+      case EAGAIN:
+        
+        
+        break;
+#if defined(OS_MACOSX)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      case EMSGSIZE:
+        
+        
+        sched_yield();
+        break;
+#endif
+      default:
+        CHROMIUM_LOG(ERROR) << "pipe error: " << strerror(errno);
+        return false;
+      }
     }
 
     if (static_cast<size_t>(bytes_written) != amt_to_write) {
