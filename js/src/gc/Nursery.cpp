@@ -405,10 +405,8 @@ GetObjectAllocKindForCopy(const Nursery &nursery, JSObject *obj)
     }
 
     
-    if (obj->is<OutlineTypedObject>()) {
-        TypeDescr *descr = &obj->as<OutlineTypedObject>().typeDescr();
-        return OutlineTypedObject::allocKindForTypeDescriptor(descr);
-    }
+    if (obj->is<OutlineTypedObject>())
+        return FINALIZE_OBJECT0;
 
     
     MOZ_ASSERT(obj->isNative());

@@ -4232,20 +4232,6 @@ class LTypedObjectProto : public LCallInstructionHelper<1, 1, 1>
 };
 
 
-class LTypedObjectUnsizedLength : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(TypedObjectUnsizedLength)
-
-    explicit LTypedObjectUnsizedLength(const LAllocation &object) {
-        setOperand(0, object);
-    }
-    const LAllocation *object() {
-        return getOperand(0);
-    }
-};
-
-
 class LTypedObjectElements : public LInstructionHelper<1, 1, 0>
 {
   public:
