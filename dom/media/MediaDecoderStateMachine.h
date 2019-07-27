@@ -889,8 +889,8 @@ public:
   bool mDurationSet;
 
   
-  Mirror<MediaDecoder::PlayState>::Holder mPlayState;
-  Mirror<MediaDecoder::PlayState>::Holder mNextPlayState;
+  Mirror<MediaDecoder::PlayState> mPlayState;
+  Mirror<MediaDecoder::PlayState> mNextPlayState;
 
   
   

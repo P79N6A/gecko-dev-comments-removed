@@ -1056,7 +1056,7 @@ protected:
   WatchManager<MediaDecoder> mWatchManager;
 
   
-  Mirror<MediaDecoderOwner::NextFrameStatus>::Holder mNextFrameStatus;
+  Mirror<MediaDecoderOwner::NextFrameStatus> mNextFrameStatus;
 
   
 
