@@ -12,6 +12,7 @@ const TAB_SIZE    = "devtools.editor.tabsize";
 const EXPAND_TAB  = "devtools.editor.expandtab";
 const KEYMAP      = "devtools.editor.keymap";
 const AUTO_CLOSE  = "devtools.editor.autoclosebrackets";
+const AUTOCOMPLETE  = "devtools.editor.autocomplete";
 const DETECT_INDENT = "devtools.editor.detectindentation";
 const DETECT_INDENT_MAX_LINES = 500;
 const L10N_BUNDLE = "chrome://browser/locale/devtools/sourceeditor.properties";
@@ -98,9 +99,7 @@ const CM_MAPPING = [
   "clearHistory",
   "openDialog",
   "refresh",
-  "getScrollInfo",
-  "getOption",
-  "setOption"
+  "getScrollInfo"
 ];
 
 const { cssProperties, cssValues, cssColors } = getCSSKeywords();
@@ -364,6 +363,13 @@ Editor.prototype = {
 
   setMode: function (value) {
     this.setOption("mode", value);
+
+    
+    
+    if (this.config.autocomplete) {
+      this.setOption("autocomplete", false);
+      this.setOption("autocomplete", true);
+    }
   },
 
   
@@ -869,12 +875,50 @@ Editor.prototype = {
 
 
 
+
+  setOption: function(o, v) {
+    let cm = editors.get(this);
+    if (o === "autocomplete") {
+      this.config.autocomplete = v;
+      this.setupAutoCompletion();
+    } else {
+      cm.setOption(o, v);
+    }
+  },
+
+  
+
+
+
+
+  getOption: function(o) {
+    let cm = editors.get(this);
+    if (o === "autocomplete") {
+      return this.config.autocomplete;
+    } else {
+      return cm.getOption(o);
+    }
+  },
+
+  
+
+
+
+
+
+
+
   setupAutoCompletion: function (options = {}) {
-    if (this.config.autocomplete) {
+    
+    
+    if (!this.initializeAutoCompletion) {
       this.extend(require("./autocomplete"));
-      
-      
-      this.setupAutoCompletion(options);
+    }
+
+    if (this.config.autocomplete && Services.prefs.getBoolPref(AUTOCOMPLETE)) {
+      this.initializeAutoCompletion(options);
+    } else {
+      this.destroyAutoCompletion();
     }
   },
 
