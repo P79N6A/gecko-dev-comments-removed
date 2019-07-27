@@ -1,11 +1,11 @@
+/** @jsx React.DOM */
 
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
+/* jshint newcap:false */
+/* global loop:true, React */
 var loop = loop || {};
 loop.shared = loop.shared || {};
 loop.shared.views = (function(_, OT, l10n) {
@@ -14,29 +14,29 @@ loop.shared.views = (function(_, OT, l10n) {
   var sharedModels = loop.shared.models;
   var __ = l10n.get;
 
-  
-
-
+  /**
+   * L10n view. Translates resulting view DOM fragment once rendered.
+   */
   var L10nView = (function() {
-    var L10nViewImpl   = Backbone.View.extend(), 
-        originalExtend = L10nViewImpl.extend;    
+    var L10nViewImpl   = Backbone.View.extend(), // Original View constructor
+        originalExtend = L10nViewImpl.extend;    // Original static extend fn
 
-    
-
-
-
-
-
+    /**
+     * Patches View extend() method so we can hook and patch any declared render
+     * method.
+     *
+     * @return {Backbone.View} Extended view with patched render() method.
+     */
     L10nViewImpl.extend = function() {
       var ExtendedView   = originalExtend.apply(this, arguments),
           originalRender = ExtendedView.prototype.render;
 
-      
-
-
-
-
-
+      /**
+       * Wraps original render() method to translate contents once they're
+       * rendered.
+       *
+       * @return {Backbone.View} Extended view instance.
+       */
       ExtendedView.prototype.render = function() {
         if (originalRender) {
           originalRender.apply(this, arguments);
@@ -51,38 +51,38 @@ loop.shared.views = (function(_, OT, l10n) {
     return L10nViewImpl;
   })();
 
-  
-
-
+  /**
+   * Base view.
+   */
   var BaseView = L10nView.extend({
-    
-
-
-
-
+    /**
+     * Hides view element.
+     *
+     * @return {BaseView}
+     */
     hide: function() {
       this.$el.hide();
       return this;
     },
 
-    
-
-
-
-
+    /**
+     * Shows view element.
+     *
+     * @return {BaseView}
+     */
     show: function() {
       this.$el.show();
       return this;
     },
 
-    
-
-
-
-
-
-
-
+    /**
+     * Base render implementation: renders an attached template if available.
+     *
+     * Note: You need to override this if you want to do fancier stuff, eg.
+     *       rendering the template using model data.
+     *
+     * @return {BaseView}
+     */
     render: function() {
       if (this.template) {
         this.$el.html(this.template());
@@ -91,16 +91,16 @@ loop.shared.views = (function(_, OT, l10n) {
     }
   });
 
-  
-
-
-
-
-
-
-
-
-  var MediaControlButton = React.createClass({displayName: 'MediaControlButton',
+  /**
+   * Media control button.
+   *
+   * Required props:
+   * - {String}   scope   Media scope, can be "local" or "remote".
+   * - {String}   type    Media type, can be "audio" or "video".
+   * - {Function} action  Function to be executed on click.
+   * - {Enabled}  enabled Stream activation status (default: true).
+   */
+  var MediaControlButton = React.createClass({
     propTypes: {
       scope: React.PropTypes.string.isRequired,
       type: React.PropTypes.string.isRequired,
@@ -118,7 +118,7 @@ loop.shared.views = (function(_, OT, l10n) {
 
     _getClasses: function() {
       var cx = React.addons.classSet;
-      
+      // classes
       var classesObj = {
         "btn": true,
         "media-control": true,
@@ -138,17 +138,17 @@ loop.shared.views = (function(_, OT, l10n) {
 
     render: function() {
       return (
-        React.DOM.button( {className:this._getClasses(),
-                title:this._getTitle(),
-                onClick:this.handleClick})
+        <button className={this._getClasses()}
+                title={this._getTitle()}
+                onClick={this.handleClick}></button>
       );
     }
   });
 
-  
-
-
-  var ConversationToolbar = React.createClass({displayName: 'ConversationToolbar',
+  /**
+   * Conversation controls.
+   */
+  var ConversationToolbar = React.createClass({
     getDefaultProps: function() {
       return {
         video: {enabled: true},
@@ -177,22 +177,22 @@ loop.shared.views = (function(_, OT, l10n) {
 
     render: function() {
       return (
-        React.DOM.ul( {className:"controls"}, 
-          React.DOM.li(null, React.DOM.button( {className:"btn btn-hangup",
-                      onClick:this.handleClickHangup,
-                      title:__("hangup_button_title")})),
-          React.DOM.li(null, MediaControlButton( {action:this.handleToggleVideo,
-                                  enabled:this.props.video.enabled,
-                                  scope:"local", type:"video"} )),
-          React.DOM.li(null, MediaControlButton( {action:this.handleToggleAudio,
-                                  enabled:this.props.audio.enabled,
-                                  scope:"local", type:"audio"} ))
-        )
+        <ul className="controls">
+          <li><button className="btn btn-hangup"
+                      onClick={this.handleClickHangup}
+                      title={__("hangup_button_title")}></button></li>
+          <li><MediaControlButton action={this.handleToggleVideo}
+                                  enabled={this.props.video.enabled}
+                                  scope="local" type="video" /></li>
+          <li><MediaControlButton action={this.handleToggleAudio}
+                                  enabled={this.props.audio.enabled}
+                                  scope="local" type="audio" /></li>
+        </ul>
       );
     }
   });
 
-  var ConversationView = React.createClass({displayName: 'ConversationView',
+  var ConversationView = React.createClass({
     mixins: [Backbone.Events],
 
     propTypes: {
@@ -200,8 +200,8 @@ loop.shared.views = (function(_, OT, l10n) {
       model: React.PropTypes.object.isRequired
     },
 
-    
-    
+    // height set to "auto" to fix video layout on Google Chrome
+    // @see https://bugzilla.mozilla.org/show_bug.cgi?id=991122
     publisherConfig: {
       width: "100%",
       height: "auto",
@@ -242,16 +242,16 @@ loop.shared.views = (function(_, OT, l10n) {
       this.props.model.endSession();
     },
 
-    
-
-
-
-
-
-
-
-
-
+    /**
+     * Subscribes and attaches each created stream to a DOM element.
+     *
+     * XXX: for now we only support a single remote stream, hence a single DOM
+     *      element.
+     *
+     * http://tokbox.com/opentok/libraries/client/js/reference/StreamEvent.html
+     *
+     * @param  {StreamEvent} event
+     */
     _streamCreated: function(event) {
       var incoming = this.getDOMNode().querySelector(".incoming");
       event.streams.forEach(function(stream) {
@@ -263,21 +263,21 @@ loop.shared.views = (function(_, OT, l10n) {
       }, this);
     },
 
-    
-
-
-
-
-
-
+    /**
+     * Publishes remote streams available once a session is connected.
+     *
+     * http://tokbox.com/opentok/libraries/client/js/reference/SessionConnectEvent.html
+     *
+     * @param  {SessionConnectEvent} event
+     */
     startPublishing: function(event) {
       var outgoing = this.getDOMNode().querySelector(".outgoing");
 
-      
+      // XXX move this into its StreamingVideo component?
       this.publisher = this.props.sdk.initPublisher(
         outgoing, this.publisherConfig);
 
-      
+      // Suppress OT GuM custom dialog, see bug 1018875
       function preventOpeningAccessDialog(event) {
         event.preventDefault();
       }
@@ -301,12 +301,12 @@ loop.shared.views = (function(_, OT, l10n) {
       this.props.model.session.publish(this.publisher);
     },
 
-    
-
-
-
-
-
+    /**
+     * Toggles streaming status for a given stream type.
+     *
+     * @param  {String}  type     Stream type ("audio" or "video").
+     * @param  {Boolean} enabled  Enabled stream flag.
+     */
     publishStream: function(type, enabled) {
       if (type === "audio") {
         this.publisher.publishAudio(enabled);
@@ -317,11 +317,11 @@ loop.shared.views = (function(_, OT, l10n) {
       }
     },
 
-    
-
-
+    /**
+     * Unpublishes local stream.
+     */
     stopPublishing: function() {
-      
+      // Unregister access OT GuM custom dialog listeners, see bug 1018875
       this.publisher.off("accessDialogOpened");
       this.publisher.off("accessDenied");
 
@@ -330,23 +330,23 @@ loop.shared.views = (function(_, OT, l10n) {
 
     render: function() {
       return (
-        React.DOM.div( {className:"conversation"}, 
-          ConversationToolbar( {video:this.state.video,
-                               audio:this.state.audio,
-                               publishStream:this.publishStream,
-                               hangup:this.hangup} ),
-          React.DOM.div( {className:"media nested"}, 
-            React.DOM.div( {className:"remote"}, React.DOM.div( {className:"incoming"})),
-            React.DOM.div( {className:"local"}, React.DOM.div( {className:"outgoing"}))
-          )
-        )
+        <div className="conversation">
+          <ConversationToolbar video={this.state.video}
+                               audio={this.state.audio}
+                               publishStream={this.publishStream}
+                               hangup={this.hangup} />
+          <div className="media nested">
+            <div className="remote"><div className="incoming"></div></div>
+            <div className="local"><div className="outgoing"></div></div>
+          </div>
+        </div>
       );
     }
   });
 
-  
-
-
+  /**
+   * Notification view.
+   */
   var NotificationView = BaseView.extend({
     template: _.template([
       '<div class="alert alert-<%- level %>">',
@@ -365,7 +365,7 @@ loop.shared.views = (function(_, OT, l10n) {
       setTimeout(function() {
         this.collection.remove(this.model);
         this.remove();
-      }.bind(this), 500); 
+      }.bind(this), 500); // XXX make timeout value configurable
     },
 
     render: function() {
@@ -374,19 +374,19 @@ loop.shared.views = (function(_, OT, l10n) {
     }
   });
 
-  
-
-
+  /**
+   * Notification list view.
+   */
   var NotificationListView = Backbone.View.extend({
-    
-
-
-
-
-
-
-
-
+    /**
+     * Constructor.
+     *
+     * Available options:
+     * - {loop.shared.models.NotificationCollection} collection Notifications
+     *                                                          collection
+     *
+     * @param  {Object} options Options object
+     */
     initialize: function(options) {
       options = options || {};
       if (!options.collection) {
@@ -395,29 +395,29 @@ loop.shared.views = (function(_, OT, l10n) {
       this.listenTo(this.collection, "reset add remove", this.render);
     },
 
-    
-
-
+    /**
+     * Clears the notification stack.
+     */
     clear: function() {
       this.collection.reset();
     },
 
-    
-
-
-
-
+    /**
+     * Adds a new notification to the stack, triggering rendering of it.
+     *
+     * @param  {Object|NotificationModel} notification Notification data.
+     */
     notify: function(notification) {
       this.collection.add(notification);
     },
 
-    
-
-
-
-
-
-
+    /**
+     * Adds a new notification to the stack using an l10n message identifier,
+     * triggering rendering of it.
+     *
+     * @param  {String} messageId L10n message id
+     * @param  {String} level     Notification level
+     */
     notifyL10n: function(messageId, level) {
       this.notify({
         message: l10n.get(messageId),
@@ -425,47 +425,47 @@ loop.shared.views = (function(_, OT, l10n) {
       });
     },
 
-    
-
-
-
-
+    /**
+     * Adds a warning notification to the stack and renders it.
+     *
+     * @return {String} message
+     */
     warn: function(message) {
       this.notify({level: "warning", message: message});
     },
 
-    
-
-
-
-
+    /**
+     * Adds a l10n warning notification to the stack and renders it.
+     *
+     * @param  {String} messageId L10n message id
+     */
     warnL10n: function(messageId) {
       this.warn(l10n.get(messageId));
     },
 
-    
-
-
-
-
+    /**
+     * Adds an error notification to the stack and renders it.
+     *
+     * @return {String} message
+     */
     error: function(message) {
       this.notify({level: "error", message: message});
     },
 
-    
-
-
-
-
+    /**
+     * Adds a l10n rror notification to the stack and renders it.
+     *
+     * @param  {String} messageId L10n message id
+     */
     errorL10n: function(messageId) {
       this.error(l10n.get(messageId));
     },
 
-    
-
-
-
-
+    /**
+     * Renders this view.
+     *
+     * @return {loop.shared.views.NotificationListView}
+     */
     render: function() {
       this.$el.html(this.collection.map(function(notification) {
         return new NotificationView({
@@ -477,9 +477,9 @@ loop.shared.views = (function(_, OT, l10n) {
     }
   });
 
-  
-
-
+  /**
+   * Unsupported Browsers view.
+   */
   var UnsupportedBrowserView = BaseView.extend({
     template: _.template([
       '<div>',
@@ -492,9 +492,9 @@ loop.shared.views = (function(_, OT, l10n) {
     ].join(""))
   });
 
-  
-
-
+  /**
+   * Unsupported Browsers view.
+   */
   var UnsupportedDeviceView = BaseView.extend({
     template: _.template([
       '<div>',

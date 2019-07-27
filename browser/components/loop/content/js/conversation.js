@@ -164,10 +164,10 @@ loop.conversation = (function(OT, mozL10n) {
         return;
       }
 
-      this.loadView(
-        new loop.shared.views.ConversationView({
-          sdk: OT,
-          model: this._conversation
+      
+      this.loadReactComponent(sharedViews.ConversationView({
+        sdk: OT,
+        model: this._conversation
       }));
     },
 
