@@ -161,6 +161,13 @@ CryptoBuffer::ToSECItem() const
   return item;
 }
 
+JSObject*
+CryptoBuffer::ToUint8Array(JSContext* aCx) const
+{
+  return Uint8Array::Create(aCx, Length(), Elements());
+}
+
+
 
 
 
