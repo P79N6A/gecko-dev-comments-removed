@@ -109,7 +109,6 @@ public:
     bool           AllowPush()   { return mAllowPush; }
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
-    bool           AllowSpeculativeConnectOnLoopback() { return mAllowSpeculativeConnectOnLoopback; }
     bool           CriticalRequestPrioritization() { return mCriticalRequestPrioritization; }
     double         BypassCacheLockThreshold() { return mBypassCacheLockThreshold; }
 
@@ -228,6 +227,9 @@ public:
     nsresult GetIOService(nsIIOService** service);
     nsICookieService * GetCookieService(); 
     nsISiteSecurityService * GetSSService();
+
+    
+    uint32_t Get32BitsOfPseudoRandom();
 
     
     void OnOpeningRequest(nsIHttpChannel *chan)
@@ -479,9 +481,6 @@ private:
     
     
     uint32_t       mParallelSpeculativeConnectLimit;
-
-    
-    bool           mAllowSpeculativeConnectOnLoopback;
 
     
     

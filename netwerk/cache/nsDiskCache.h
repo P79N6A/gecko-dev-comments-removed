@@ -11,7 +11,7 @@
 #include "nsCacheEntry.h"
 
 #ifdef XP_WIN
-#include <winsock2.h>  
+#include <winsock.h>  
 #endif
 
 

@@ -84,9 +84,6 @@ typedef uint8_t nsHttpVersion;
 #define NS_HTTP_ALLOW_RSA_FALSESTART (1<<9)
 
 
-#define NS_HTTP_ALLOW_PRIVATE_IP_ADDRESSES (1<<10)
-
-
 
 
 

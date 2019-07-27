@@ -140,9 +140,6 @@ public:
     
     
     virtual void SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks) = 0;
-
-    
-    virtual bool PeerHasPrivateIP() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
@@ -233,10 +230,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
     {                                                       \
         if (fwdObject)                                      \
             (fwdObject)->SetSecurityCallbacks(aCallbacks);  \
-    }                                                       \
-    bool PeerHasPrivateIP()                                 \
-    { \
-        return fwdObject ? (fwdObject)->PeerHasPrivateIP() : false; \
     }
 
 }} 

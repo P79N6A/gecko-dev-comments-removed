@@ -18,7 +18,6 @@
 #include "nsCategoryCache.h"
 #include "nsISpeculativeConnect.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/net/DNS.h"
 
 #define NS_N(x) (sizeof(x)/sizeof(*x))
 
@@ -74,15 +73,6 @@ public:
     bool IsComingOnline() const {
       return mOffline && mSettingOffline && !mSetOfflineValue;
     }
-
-    
-    uint64_t GetNetworkLinkID() const;
-
-    
-    
-    
-    
-    void UpdateNetworkLinkID(const mozilla::net::NetAddr aCurrentSelfAddr);
 
 private:
     
@@ -143,16 +133,6 @@ public:
     
     static uint32_t   gDefaultSegmentSize;
     static uint32_t   gDefaultSegmentCount;
-
-private:
-    
-    
-    
-    
-    
-    uint64_t                             mNetworkLinkID;
-    
-    mozilla::net::NetAddr                mNetworkLinkSelfAddr;
 };
 
 
