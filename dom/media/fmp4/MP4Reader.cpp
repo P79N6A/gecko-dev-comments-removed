@@ -319,7 +319,8 @@ bool
 MP4Reader::IsSupportedVideoMimeType(const char* aMimeType)
 {
   return (!strcmp(aMimeType, "video/mp4") ||
-          !strcmp(aMimeType, "video/avc")) &&
+          !strcmp(aMimeType, "video/avc") ||
+          !strcmp(aMimeType, "video/x-vnd.on2.vp6")) &&
          mPlatform->SupportsVideoMimeType(aMimeType);
 }
 
@@ -339,11 +340,6 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     
     mInfo.mVideo.mHasVideo = mVideo.mActive = mDemuxer->HasValidVideo() &&
                                               mDecoder->GetImageContainer();
-    const VideoDecoderConfig& video = mDemuxer->VideoConfig();
-    
-    if (mInfo.mVideo.mHasVideo && strcmp(video.mime_type, "video/avc")) {
-      return NS_ERROR_FAILURE;
-    }
 
     mInfo.mAudio.mHasAudio = mAudio.mActive = mDemuxer->HasValidAudio();
 
