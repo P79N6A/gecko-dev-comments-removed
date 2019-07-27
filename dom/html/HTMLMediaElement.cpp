@@ -3111,16 +3111,11 @@ void HTMLMediaElement::CheckProgress(bool aHaveNewProgress)
                    "timer dispatched when there was no timer");
       
       StartProgressTimer();
-      if (!mLoadedDataFired) {
-        ChangeDelayLoadStatus(true);
-      }
     }
   }
 
   if (now - mDataTime >= TimeDuration::FromMilliseconds(STALL_MS)) {
     DispatchAsyncEvent(NS_LITERAL_STRING("stalled"));
-    ChangeDelayLoadStatus(false);
-
     NS_ASSERTION(mProgressTimer, "detected stalled without timer");
     
     
