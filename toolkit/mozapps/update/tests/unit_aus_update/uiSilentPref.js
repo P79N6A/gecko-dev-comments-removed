@@ -2,6 +2,8 @@
 
 
 
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
+
 
 
 
@@ -16,11 +18,12 @@ function run_test() {
 
   Services.prefs.setBoolPref(PREF_APP_UPDATE_SILENT, true);
 
-  let registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
-  registrar.registerFactory(Components.ID("{1dfeb90a-2193-45d5-9cb8-864928b2af55}"),
-                            "Fake Window Watcher",
-                            "@mozilla.org/embedcomp/window-watcher;1",
-                            WindowWatcherFactory);
+  let windowWatcherCID =
+    MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1",
+                           WindowWatcher);
+  do_register_cleanup(() => {
+    MockRegistrar.unregister(windowWatcherCID);
+  });
 
   standardInit();
 
@@ -57,10 +60,6 @@ function run_test() {
   
   do_check_true(true);
 
-  registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
-  registrar.unregisterFactory(Components.ID("{1dfeb90a-2193-45d5-9cb8-864928b2af55}"),
-                              WindowWatcherFactory);
-
   doTestFinish();
 }
 
@@ -86,13 +85,4 @@ const WindowWatcher = {
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWindowWatcher])
-};
-
-const WindowWatcherFactory = {
-  createInstance: function createInstance(aOuter, aIID) {
-    if (aOuter != null) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
-    }
-    return WindowWatcher.QueryInterface(aIID);
-  }
 };

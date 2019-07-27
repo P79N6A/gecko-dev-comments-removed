@@ -28,12 +28,12 @@ function run_test() {
 
 
 
-function callHandleEvent() {
+function callHandleEvent(aXHR) {
   
   
-  gXHR.status = 404;
-  let e = { target: gXHR };
-  gXHR.onload(e);
+  aXHR.status = 404;
+  var e = { target: aXHR };
+  aXHR.onload(e);
 }
 
 

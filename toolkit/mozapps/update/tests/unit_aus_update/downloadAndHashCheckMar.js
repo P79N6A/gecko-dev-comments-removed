@@ -33,17 +33,17 @@ function finish_test() {
 
 
 
-function callHandleEvent() {
-  gXHR.status = 400;
-  gXHR.responseText = gResponseBody;
+function callHandleEvent(aXHR) {
+  aXHR.status = 400;
+  aXHR.responseText = gResponseBody;
   try {
     let parser = Cc["@mozilla.org/xmlextras/domparser;1"].
                  createInstance(Ci.nsIDOMParser);
-    gXHR.responseXML = parser.parseFromString(gResponseBody, "application/xml");
+    aXHR.responseXML = parser.parseFromString(gResponseBody, "application/xml");
   } catch(e) {
   }
-  let e = { target: gXHR };
-  gXHR.onload(e);
+  let e = { target: aXHR };
+  aXHR.onload(e);
 }
 
 

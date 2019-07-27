@@ -5,9 +5,9 @@
 
 
 
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
 const INC_CONTRACT_ID = "@mozilla.org/network/incremental-download;1";
 
-var gIncrementalDownloadClassID, gIncOldFactory;
 
 
 var gIncrementalDownloadErrorType = 0;
@@ -36,23 +36,19 @@ function finish_test() {
   stop_httpserver(doTestFinish);
 }
 
-function end_test() {
-  cleanupMockIncrementalDownload();
-}
 
 
-
-function callHandleEvent() {
-  gXHR.status = 400;
-  gXHR.responseText = gResponseBody;
+function callHandleEvent(aXHR) {
+  aXHR.status = 400;
+  aXHR.responseText = gResponseBody;
   try {
     let parser = Cc["@mozilla.org/xmlextras/domparser;1"].
                  createInstance(Ci.nsIDOMParser);
-    gXHR.responseXML = parser.parseFromString(gResponseBody, "application/xml");
+    aXHR.responseXML = parser.parseFromString(gResponseBody, "application/xml");
   } catch (e) {
   }
-  let e = { target: gXHR };
-  gXHR.onload(e);
+  let e = { target: aXHR };
+  aXHR.onload(e);
 }
 
 
@@ -92,37 +88,12 @@ function setResponseBody(aHashFunction, aHashValue, aSize) {
   gResponseBody = getRemoteUpdatesXMLString(updates);
 }
 
-const newFactory = {
-  createInstance: function(aOuter, aIID) {
-    if (aOuter) {
-      throw Cr.NS_ERROR_NO_AGGREGATION;
-    }
-    return new IncrementalDownload().QueryInterface(aIID);
-  },
-  lockFactory: function(aLock) {
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-  },
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory])
-};
-
 function initMockIncrementalDownload() {
-  let registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
-  gIncrementalDownloadClassID = registrar.contractIDToCID(INC_CONTRACT_ID);
-  gIncOldFactory = Cm.getClassObject(Cc[INC_CONTRACT_ID], Ci.nsIFactory);
-  registrar.unregisterFactory(gIncrementalDownloadClassID, gIncOldFactory);
-  let components = [IncrementalDownload];
-  registrar.registerFactory(gIncrementalDownloadClassID, "",
-                            INC_CONTRACT_ID, newFactory);
-}
-
-function cleanupMockIncrementalDownload() {
-  if (gIncOldFactory) {
-    let registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
-    registrar.unregisterFactory(gIncrementalDownloadClassID, newFactory);
-    registrar.registerFactory(gIncrementalDownloadClassID, "",
-                              INC_CONTRACT_ID, gIncOldFactory);
-  }
-  gIncOldFactory = null;
+  let incrementalDownloadCID =
+    MockRegistrar.register(INC_CONTRACT_ID, IncrementalDownload);
+  do_register_cleanup(() => {
+    MockRegistrar.unregister(incrementalDownloadCID);
+  });
 }
 
 

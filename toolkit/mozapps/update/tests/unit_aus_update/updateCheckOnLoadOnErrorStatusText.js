@@ -27,10 +27,10 @@ function run_test() {
 
 
 
-function callHandleEvent() {
-  gXHR.status = gExpectedStatusCode;
-  let e = { target: gXHR };
-  gXHR.onload(e);
+function callHandleEvent(aXHR) {
+  aXHR.status = gExpectedStatusCode;
+  var e = { target: aXHR };
+  aXHR.onload(e);
 }
 
 
