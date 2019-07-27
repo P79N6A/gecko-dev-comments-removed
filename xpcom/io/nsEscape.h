@@ -110,10 +110,16 @@ enum EscapeMask {
 
 
 
+
+
+
+
 bool NS_EscapeURL(const char* aStr,
                   int32_t aLen,
                   uint32_t aFlags,
                   nsACString& aResult);
+
+
 
 
 
@@ -157,6 +163,8 @@ NS_UnescapeURL(const nsCSubstring& aStr, uint32_t aFlags, nsCSubstring& aResult)
   }
   return aStr;
 }
+const nsSubstring&
+NS_EscapeURL(const nsSubstring& aStr, uint32_t aFlags, nsSubstring& aResult);
 
 
 

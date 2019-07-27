@@ -4,14 +4,15 @@
 
 
 
-
-
 #include "nsEscape.h"
-#include "nsMemory.h"
-#include "nsCRT.h"
-#include "nsReadableUtils.h"
 
-const int netCharType[256] =
+#include "mozilla/ArrayUtils.h"
+#include "nsCRT.h"
+#include "plstr.h"
+
+static const char hexChars[] = "0123456789ABCDEF";
+
+static const int netCharType[256] =
 
 
 
@@ -41,6 +42,31 @@ const int netCharType[256] =
 #define IS_OK(C) (netCharType[((unsigned int)(C))] & (aFlags))
 #define HEX_ESCAPE '%'
 
+static uint32_t
+AppendPercentHex(char* aBuffer, unsigned char aChar)
+{
+  uint32_t i = 0;
+  aBuffer[i++] = '%';
+  aBuffer[i++] = hexChars[aChar >> 4]; 
+  aBuffer[i++] = hexChars[aChar & 0xF]; 
+  return i;
+}
+
+static uint32_t
+AppendPercentHex(char16_t* aBuffer, char16_t aChar)
+{
+  uint32_t i = 0;
+  aBuffer[i++] = '%';
+  if (aChar & 0xff00) {
+    aBuffer[i++] = 'u';
+    aBuffer[i++] = hexChars[aChar >> 12]; 
+    aBuffer[i++] = hexChars[(aChar >> 8) & 0xF]; 
+  }
+  aBuffer[i++] = hexChars[(aChar >> 4) & 0xF]; 
+  aBuffer[i++] = hexChars[aChar & 0xF]; 
+  return i;
+}
+
 
 static char*
 nsEscapeCount(const char* aStr, nsEscapeMask aFlags, size_t* aOutLen)
@@ -52,7 +78,6 @@ nsEscapeCount(const char* aStr, nsEscapeMask aFlags, size_t* aOutLen)
 
   size_t len = 0;
   size_t charsToEscape = 0;
-  static const char hexChars[] = "0123456789ABCDEF";
 
   const unsigned char* src = (const unsigned char*)aStr;
   while (*src) {
@@ -311,7 +336,22 @@ nsEscapeHTML2(const char16_t* aSourceBuffer, int32_t aSourceBufferLen)
 
 
 
-const int EscapeChars[256] =
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const uint32_t EscapeChars[256] =
 
 {
      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  
@@ -322,66 +362,51 @@ const int EscapeChars[256] =
   1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,   0, 896,   0, 896,1023,  
      0,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,  
   1023,1023,1023,1023,1023,1023,1023,1023,1023,1023,1023, 896,1012, 896,1023,   0,  
-     0    
+     0                                                                              
 };
 
-#define NO_NEED_ESC(C) (EscapeChars[((unsigned int)(C))] & (aFlags))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-NS_EscapeURL(const char* aPart, int32_t aPartLen, uint32_t aFlags,
-             nsACString& aResult)
+static uint16_t dontNeedEscape(unsigned char aChar, uint32_t aFlags)
 {
+  return EscapeChars[(uint32_t)aChar] & aFlags;
+}
+static uint16_t dontNeedEscape(uint16_t aChar, uint32_t aFlags)
+{
+  return aChar < mozilla::ArrayLength(EscapeChars) ?
+    (EscapeChars[(uint32_t)aChar]  & aFlags) : 0;
+}
+
+
+
+template<class T>
+static bool
+T_EscapeURL(const typename T::char_type* aPart, size_t aPartLen,
+            uint32_t aFlags, T& aResult)
+{
+  typedef nsCharTraits<typename T::char_type> traits;
+  typedef typename traits::unsigned_char_type unsigned_char_type;
+  static_assert(sizeof(*aPart) == 1 || sizeof(*aPart) == 2,
+                "unexpected char type");
+
   if (!aPart) {
     NS_NOTREACHED("null pointer");
     return false;
   }
 
-  static const char hexChars[] = "0123456789ABCDEF";
-  if (aPartLen < 0) {
-    aPartLen = strlen(aPart);
-  }
+  const uint32_t ENCODE_MAX_LEN = 6; 
   bool forced = !!(aFlags & esc_Forced);
   bool ignoreNonAscii = !!(aFlags & esc_OnlyASCII);
   bool ignoreAscii = !!(aFlags & esc_OnlyNonASCII);
   bool writing = !!(aFlags & esc_AlwaysCopy);
   bool colon = !!(aFlags & esc_Colon);
 
-  const unsigned char* src = (const unsigned char*)aPart;
+  auto src = reinterpret_cast<const unsigned_char_type*>(aPart);
 
-  char tempBuffer[100];
+  typename T::char_type tempBuffer[100];
   unsigned int tempBufferPos = 0;
 
   bool previousIsNonASCII = false;
-  for (int i = 0; i < aPartLen; ++i) {
-    unsigned char c = *src++;
+  for (size_t i = 0; i < aPartLen; ++i) {
+    unsigned_char_type c = *src++;
 
     
     
@@ -399,7 +424,7 @@ NS_EscapeURL(const char* aPart, int32_t aPartLen, uint32_t aFlags,
     
     
     
-    if ((NO_NEED_ESC(c) || (c == HEX_ESCAPE && !forced)
+    if ((dontNeedEscape(c, aFlags) || (c == HEX_ESCAPE && !forced)
          || (c > 0x7f && ignoreNonAscii)
          || (c > 0x20 && c < 0x7f && ignoreAscii))
         && !(c == ':' && colon)
@@ -412,25 +437,43 @@ NS_EscapeURL(const char* aPart, int32_t aPartLen, uint32_t aFlags,
         aResult.Append(aPart, i);
         writing = true;
       }
-      tempBuffer[tempBufferPos++] = HEX_ESCAPE;
-      tempBuffer[tempBufferPos++] = hexChars[c >> 4]; 
-      tempBuffer[tempBufferPos++] = hexChars[c & 0x0f]; 
+      uint32_t len = ::AppendPercentHex(tempBuffer + tempBufferPos, c);
+      tempBufferPos += len;
+      MOZ_ASSERT(len <= ENCODE_MAX_LEN, "potential buffer overflow");
     }
 
-    if (tempBufferPos >= sizeof(tempBuffer) - 4) {
+    
+    if (tempBufferPos >= mozilla::ArrayLength(tempBuffer) - ENCODE_MAX_LEN) {
       NS_ASSERTION(writing, "should be writing");
-      tempBuffer[tempBufferPos] = '\0';
-      aResult += tempBuffer;
+      aResult.Append(tempBuffer, tempBufferPos);
       tempBufferPos = 0;
     }
 
     previousIsNonASCII = (c > 0x7f);
   }
   if (writing) {
-    tempBuffer[tempBufferPos] = '\0';
-    aResult += tempBuffer;
+    aResult.Append(tempBuffer, tempBufferPos);
   }
   return writing;
+}
+
+bool
+NS_EscapeURL(const char* aPart, int32_t aPartLen, uint32_t aFlags,
+             nsACString& aResult)
+{
+  if (aPartLen < 0) {
+    aPartLen = strlen(aPart);
+  }
+  return T_EscapeURL(aPart, aPartLen, aFlags, aResult);
+}
+
+const nsSubstring&
+NS_EscapeURL(const nsSubstring& aStr, uint32_t aFlags, nsSubstring& aResult)
+{
+  if (T_EscapeURL(aStr.Data(), aStr.Length(), aFlags, aResult)) {
+    return aResult;
+  }
+  return aStr;
 }
 
 #define ISHEX(c) memchr(hexChars, c, sizeof(hexChars)-1)
