@@ -305,6 +305,18 @@ MediaSourceDecoder::SetCDMProxy(CDMProxy* aProxy)
   rv = mReader->SetCDMProxy(aProxy);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  {
+    
+    
+    
+    
+    CDMCaps::AutoLock caps(aProxy->Capabilites());
+    if (!caps.AreCapsKnown()) {
+      nsCOMPtr<nsIRunnable> task(
+        NS_NewRunnableMethod(this, &MediaDecoder::NotifyWaitingForResourcesStatusChanged));
+      caps.CallOnMainThreadWhenCapsAvailable(task);
+    }
+  }
   return NS_OK;
 }
 #endif
