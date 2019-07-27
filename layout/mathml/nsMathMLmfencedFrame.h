@@ -13,7 +13,7 @@
 
 
 
-class nsMathMLmfencedFrame : public nsMathMLContainerFrame {
+class nsMathMLmfencedFrame MOZ_FINAL : public nsMathMLContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 

@@ -29,9 +29,9 @@ class HTMLSelectElement;
 
 
 
-class HTMLOptionsCollection : public nsIHTMLCollection
-                            , public nsIDOMHTMLOptionsCollection
-                            , public nsWrapperCache
+class HTMLOptionsCollection MOZ_FINAL : public nsIHTMLCollection
+                                      , public nsIDOMHTMLOptionsCollection
+                                      , public nsWrapperCache
 {
   typedef HTMLOptionElementOrHTMLOptGroupElement HTMLOptionOrOptGroupElement;
 public:

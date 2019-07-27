@@ -71,7 +71,7 @@ private:
 
 
 
-class EmbeddedObjCollector : public AccCollector
+class EmbeddedObjCollector MOZ_FINAL : public AccCollector
 {
 public:
   virtual ~EmbeddedObjCollector() { }

@@ -110,7 +110,7 @@ private:
 
 
 
-class XULGroupboxAccessible : public AccessibleWrap
+class XULGroupboxAccessible MOZ_FINAL : public AccessibleWrap
 {
 public:
   XULGroupboxAccessible(nsIContent* aContent, DocAccessible* aDoc);

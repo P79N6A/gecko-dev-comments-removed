@@ -9,7 +9,7 @@
 #include "nsContainerFrame.h"
 #include "nsIFrameInlines.h" 
 
-class nsColumnSetFrame : public nsContainerFrame {
+class nsColumnSetFrame MOZ_FINAL : public nsContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
 

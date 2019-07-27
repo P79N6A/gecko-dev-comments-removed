@@ -23,8 +23,8 @@ class nsTransactionItem;
 
 
 
-class nsTransactionManager : public nsITransactionManager
-                           , public nsSupportsWeakReference
+class nsTransactionManager MOZ_FINAL : public nsITransactionManager
+                                     , public nsSupportsWeakReference
 {
 private:
 

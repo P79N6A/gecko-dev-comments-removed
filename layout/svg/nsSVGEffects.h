@@ -164,7 +164,7 @@ protected:
 
 
 
-class nsSVGFilterReference :
+class nsSVGFilterReference MOZ_FINAL :
   public nsSVGIDRenderingObserver, public nsISVGFilterReference {
 public:
   nsSVGFilterReference(nsIURI *aURI, nsIFrame *aFilteredFrame)

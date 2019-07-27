@@ -40,11 +40,11 @@ class ImageURL;
 } 
 } 
 
-class imgRequest : public nsIStreamListener,
-                   public nsIThreadRetargetableStreamListener,
-                   public nsIChannelEventSink,
-                   public nsIInterfaceRequestor,
-                   public nsIAsyncVerifyRedirectCallback
+class imgRequest MOZ_FINAL : public nsIStreamListener,
+                             public nsIThreadRetargetableStreamListener,
+                             public nsIChannelEventSink,
+                             public nsIInterfaceRequestor,
+                             public nsIAsyncVerifyRedirectCallback
 {
   virtual ~imgRequest();
 

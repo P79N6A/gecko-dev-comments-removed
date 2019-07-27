@@ -64,7 +64,7 @@ using namespace mozilla::dom;
 
 #define SMOOTH_INTERVAL 100
 
-class nsListScrollSmoother : public nsITimerCallback
+class nsListScrollSmoother MOZ_FINAL : public nsITimerCallback
 {
 private:
   virtual ~nsListScrollSmoother();

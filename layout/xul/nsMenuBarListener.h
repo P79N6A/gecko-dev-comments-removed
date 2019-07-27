@@ -19,7 +19,7 @@ class nsIDOMKeyEvent;
 
 
 
-class nsMenuBarListener : public nsIDOMEventListener
+class nsMenuBarListener MOZ_FINAL : public nsIDOMEventListener
 {
 public:
   

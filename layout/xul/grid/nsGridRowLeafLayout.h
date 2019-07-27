@@ -22,7 +22,7 @@
 
 
 
-class nsGridRowLeafLayout : public nsGridRowLayout
+class nsGridRowLeafLayout MOZ_FINAL : public nsGridRowLayout
 {
 public:
 

@@ -50,7 +50,7 @@ using namespace mozilla::dom;
 
 
 
-class CSSRuleListImpl : public CSSRuleList
+class CSSRuleListImpl MOZ_FINAL : public CSSRuleList
 {
 public:
   CSSRuleListImpl(CSSStyleSheet *aStyleSheet);

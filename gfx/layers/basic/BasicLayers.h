@@ -41,7 +41,7 @@ class ReadbackProcessor;
 
 
 
-class BasicLayerManager :
+class BasicLayerManager MOZ_FINAL :
     public LayerManager
 {
 public:

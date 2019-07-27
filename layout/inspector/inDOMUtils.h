@@ -17,7 +17,7 @@ class Element;
 } 
 } 
 
-class inDOMUtils : public inIDOMUtils
+class inDOMUtils MOZ_FINAL : public inIDOMUtils
 {
 public:
   NS_DECL_ISUPPORTS

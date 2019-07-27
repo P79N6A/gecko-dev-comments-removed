@@ -31,7 +31,7 @@ class SVGMPathElement;
 
 
 
-class SVGMotionSMILAnimationFunction : public nsSMILAnimationFunction
+class SVGMotionSMILAnimationFunction MOZ_FINAL : public nsSMILAnimationFunction
 {
   typedef mozilla::gfx::Path Path;
 

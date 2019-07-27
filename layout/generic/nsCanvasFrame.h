@@ -25,9 +25,9 @@ class nsRenderingContext;
 
 
 
-class nsCanvasFrame : public nsContainerFrame,
-                      public nsIScrollPositionListener,
-                      public nsIAnonymousContentCreator
+class nsCanvasFrame MOZ_FINAL : public nsContainerFrame,
+                                public nsIScrollPositionListener,
+                                public nsIAnonymousContentCreator
 {
 public:
   nsCanvasFrame(nsStyleContext* aContext)

@@ -109,7 +109,7 @@ protected:
 
 
 
-class HTMLTextFieldAccessible : public HyperTextAccessibleWrap
+class HTMLTextFieldAccessible MOZ_FINAL : public HyperTextAccessibleWrap
 {
 
 public:

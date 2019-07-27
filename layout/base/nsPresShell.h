@@ -56,10 +56,10 @@ class CSSStyleSheet;
 
 #define PAINTLOCK_EVENT_DELAY 250
 
-class PresShell : public nsIPresShell,
-                  public nsStubDocumentObserver,
-                  public nsISelectionController, public nsIObserver,
-                  public nsSupportsWeakReference
+class PresShell MOZ_FINAL : public nsIPresShell,
+                            public nsStubDocumentObserver,
+                            public nsISelectionController, public nsIObserver,
+                            public nsSupportsWeakReference
 {
 public:
   PresShell();

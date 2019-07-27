@@ -103,10 +103,10 @@ class nsNSSShutDownList;
 class nsCertVerificationThread;
 
 
-class nsNSSComponent : public nsIEntropyCollector,
-                       public nsINSSComponent,
-                       public nsIObserver,
-                       public nsSupportsWeakReference
+class nsNSSComponent MOZ_FINAL : public nsIEntropyCollector,
+                                 public nsINSSComponent,
+                                 public nsIObserver,
+                                 public nsSupportsWeakReference
 {
   typedef mozilla::Mutex Mutex;
 

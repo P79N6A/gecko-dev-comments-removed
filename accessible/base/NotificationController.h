@@ -85,8 +85,8 @@ private:
 
 
 
-class NotificationController : public EventQueue,
-                               public nsARefreshObserver
+class NotificationController MOZ_FINAL : public EventQueue,
+                                         public nsARefreshObserver
 {
 public:
   NotificationController(DocAccessible* aDocument, nsIPresShell* aPresShell);

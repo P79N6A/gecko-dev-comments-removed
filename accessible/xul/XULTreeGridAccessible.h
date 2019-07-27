@@ -72,7 +72,7 @@ protected:
 
 
 
-class XULTreeGridRowAccessible : public XULTreeItemAccessibleBase
+class XULTreeGridRowAccessible MOZ_FINAL : public XULTreeItemAccessibleBase
 {
 public:
   using Accessible::GetChildAt;

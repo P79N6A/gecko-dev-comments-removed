@@ -12,7 +12,7 @@
 class nsSharedPageData;
 
 
-class nsPageFrame : public nsContainerFrame {
+class nsPageFrame MOZ_FINAL : public nsContainerFrame {
 
 public:
   NS_DECL_FRAMEARENA_HELPERS

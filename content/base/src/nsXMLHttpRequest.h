@@ -179,16 +179,16 @@ class nsXMLHttpRequestXPCOMifier;
 
 
 
-class nsXMLHttpRequest : public nsXHREventTarget,
-                         public nsIXMLHttpRequest,
-                         public nsIJSXMLHttpRequest,
-                         public nsIStreamListener,
-                         public nsIChannelEventSink,
-                         public nsIProgressEventSink,
-                         public nsIInterfaceRequestor,
-                         public nsSupportsWeakReference,
-                         public nsITimerCallback,
-                         public nsISizeOfEventTarget
+class nsXMLHttpRequest MOZ_FINAL : public nsXHREventTarget,
+                                   public nsIXMLHttpRequest,
+                                   public nsIJSXMLHttpRequest,
+                                   public nsIStreamListener,
+                                   public nsIChannelEventSink,
+                                   public nsIProgressEventSink,
+                                   public nsIInterfaceRequestor,
+                                   public nsSupportsWeakReference,
+                                   public nsITimerCallback,
+                                   public nsISizeOfEventTarget
 {
   friend class nsXHRParseEndListener;
   friend class nsXMLHttpRequestXPCOMifier;

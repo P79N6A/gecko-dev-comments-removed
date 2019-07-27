@@ -2016,7 +2016,7 @@ nsCycleCollectorLoggerConstructor(nsISupports* aOuter,
 
 
 
-class CCGraphBuilder : public nsCycleCollectionTraversalCallback,
+class CCGraphBuilder MOZ_FINAL : public nsCycleCollectionTraversalCallback,
   public nsCycleCollectionNoteRootCallback
 {
 private:

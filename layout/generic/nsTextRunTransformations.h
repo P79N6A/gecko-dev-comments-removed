@@ -79,7 +79,7 @@ protected:
 
 
 
-class nsTransformedTextRun : public gfxTextRun {
+class nsTransformedTextRun MOZ_FINAL : public gfxTextRun {
 public:
   static nsTransformedTextRun *Create(const gfxTextRunFactory::Parameters* aParams,
                                       nsTransformingTextRunFactory* aFactory,

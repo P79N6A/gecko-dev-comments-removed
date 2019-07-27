@@ -37,8 +37,8 @@ namespace layers {
 
 
 
-class ImageBridgeParent : public PImageBridgeParent,
-                          public CompositableParentManager
+class ImageBridgeParent MOZ_FINAL : public PImageBridgeParent,
+                                    public CompositableParentManager
 {
 public:
   typedef InfallibleTArray<CompositableOperation> EditArray;

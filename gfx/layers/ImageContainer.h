@@ -865,8 +865,8 @@ protected:
 
 
 
-class CairoImage : public Image,
-                   public ISharedImage {
+class CairoImage MOZ_FINAL : public Image,
+                             public ISharedImage {
 public:
   struct Data {
     gfx::IntSize mSize;

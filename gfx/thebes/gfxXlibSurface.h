@@ -17,7 +17,7 @@
 
 #include "nsSize.h"
 
-class gfxXlibSurface : public gfxASurface {
+class gfxXlibSurface MOZ_FINAL : public gfxASurface {
 public:
     
     

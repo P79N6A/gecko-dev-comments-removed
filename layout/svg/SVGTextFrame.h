@@ -238,7 +238,7 @@ struct SVGTextContextPaint : public gfxTextContextPaint {
 
 
 
-class SVGTextFrame : public SVGTextFrameBase
+class SVGTextFrame MOZ_FINAL : public SVGTextFrameBase
 {
   friend nsIFrame*
   NS_NewSVGTextFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);

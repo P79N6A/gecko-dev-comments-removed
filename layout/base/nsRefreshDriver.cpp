@@ -431,7 +431,7 @@ protected:
 
 
 
-class InactiveRefreshDriverTimer :
+class InactiveRefreshDriverTimer MOZ_FINAL :
     public RefreshDriverTimer
 {
 public:

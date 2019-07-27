@@ -207,7 +207,7 @@ private:
 
 
 
-class SurfaceCacheImpl : public nsIMemoryReporter
+class SurfaceCacheImpl MOZ_FINAL : public nsIMemoryReporter
 {
 public:
   NS_DECL_ISUPPORTS

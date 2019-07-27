@@ -20,7 +20,7 @@ namespace a11y {
 
 
 
-class OuterDocAccessible : public AccessibleWrap
+class OuterDocAccessible MOZ_FINAL : public AccessibleWrap
 {
 public:
   OuterDocAccessible(nsIContent* aContent, DocAccessible* aDoc);
