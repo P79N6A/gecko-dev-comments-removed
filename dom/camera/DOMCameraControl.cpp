@@ -46,12 +46,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 
-#ifdef MOZ_WIDGET_GONK
-StaticRefPtr<ICameraControl> nsDOMCameraControl::sCachedCameraControl;
- nsresult nsDOMCameraControl::sCachedCameraControlStartResult = NS_OK;
- nsCOMPtr<nsITimer> nsDOMCameraControl::sDiscardCachedCameraControlTimer;
-#endif
-
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDOMCameraControl)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END_INHERITING(DOMMediaStream)
@@ -150,60 +144,6 @@ nsDOMCameraControl::DOMCameraConfiguration::~DOMCameraConfiguration()
   MOZ_COUNT_DTOR(nsDOMCameraControl::DOMCameraConfiguration);
 }
 
-#ifdef MOZ_WIDGET_GONK
-
-static const unsigned long kCachedCameraTimeoutMs = 3500;
-
-
-static const uint32_t kDefaultCameraId = 0;
-
- void
-nsDOMCameraControl::PreinitCameraHardware()
-{
-  
-  
-  nsRefPtr<ICameraControl> cameraControl = ICameraControl::Create(kDefaultCameraId);
-  if (NS_WARN_IF(!cameraControl)) {
-    return;
-  }
-
-  sCachedCameraControlStartResult = cameraControl->Start();
-  if (NS_WARN_IF(NS_FAILED(sCachedCameraControlStartResult))) {
-    return;
-  }
-
-  sCachedCameraControl = cameraControl;
-
-  nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
-  if (NS_WARN_IF(!timer)) {
-    return;
-  }
-
-  nsresult rv = timer->InitWithFuncCallback(DiscardCachedCameraInstance,
-                                            nullptr,
-                                            kCachedCameraTimeoutMs,
-                                            nsITimer::TYPE_ONE_SHOT);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    
-    
-    
-    sCachedCameraControl = nullptr;
-    return;
-  }
-
-  sDiscardCachedCameraControlTimer = timer;
-}
-
- void
-nsDOMCameraControl::DiscardCachedCameraInstance(nsITimer* aTimer, void* aClosure)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  sDiscardCachedCameraControlTimer = nullptr;
-  sCachedCameraControl = nullptr;
-}
-#endif
-
 nsDOMCameraControl::nsDOMCameraControl(uint32_t aCameraId,
                                        const CameraConfiguration& aInitialConfig,
                                        GetCameraCallback* aOnSuccess,
@@ -274,19 +214,7 @@ nsDOMCameraControl::nsDOMCameraControl(uint32_t aCameraId,
     config.mRecorderProfile = aInitialConfig.mRecorderProfile;
   }
 
-#ifdef MOZ_WIDGET_GONK
-  bool gotCached = false;
-  if (sCachedCameraControl && aCameraId == kDefaultCameraId) {
-    mCameraControl = sCachedCameraControl;
-    sCachedCameraControl = nullptr;
-    gotCached = true;
-  } else {
-    sCachedCameraControl = nullptr;
-#endif
-    mCameraControl = ICameraControl::Create(aCameraId);
-#ifdef MOZ_WIDGET_GONK
-  }
-#endif
+  mCameraControl = ICameraControl::Create(aCameraId);
   mCurrentConfiguration = initialConfig.forget();
 
   
@@ -300,20 +228,12 @@ nsDOMCameraControl::nsDOMCameraControl(uint32_t aCameraId,
   mListener = new DOMCameraControlListener(this, mInput);
   mCameraControl->AddListener(mListener);
 
-#ifdef MOZ_WIDGET_GONK
-  if (!gotCached || NS_FAILED(sCachedCameraControlStartResult)) {
-#endif
-
-    if (haveInitialConfig) {
-      rv = mCameraControl->Start(&config);
-    } else {
-      rv = mCameraControl->Start();
-    }
-#ifdef MOZ_WIDGET_GONK
+  
+  if (haveInitialConfig) {
+    rv = mCameraControl->Start(&config);
   } else {
-    rv = mCameraControl->SetConfiguration(config);
+    rv = mCameraControl->Start();
   }
-#endif
   if (NS_FAILED(rv)) {
     mListener->OnUserError(DOMCameraControlListener::kInStartCamera, rv);
   }
