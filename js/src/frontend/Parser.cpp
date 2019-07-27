@@ -7151,6 +7151,7 @@ Parser<ParseHandler>::objectLiteral()
     if (!literal)
         return null();
 
+    bool seenPrototypeMutation = false;
     RootedAtom atom(context);
     for (;;) {
         TokenKind ltok = tokenStream.getToken(TokenStream::KeywordIsName);
@@ -7293,6 +7294,12 @@ Parser<ParseHandler>::objectLiteral()
                     return null();
 
                 if (atom == context->names().proto) {
+                    if (seenPrototypeMutation) {
+                        report(ParseError, false, propname, JSMSG_DUPLICATE_PROPERTY, "__proto__");
+                        return null();
+                    }
+                    seenPrototypeMutation = true;
+
                     
                     
                     
