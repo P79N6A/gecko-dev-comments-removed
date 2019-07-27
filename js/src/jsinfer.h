@@ -1201,13 +1201,7 @@ struct TypeObject : public gc::TenuredCell
     gc::InitialHeap initialHeap(CompilerConstraintList *constraints);
 
     bool canPreTenure() {
-        
-        
-        
-        
-        if (unknownProperties())
-            return false;
-        return fromAllocationSite() || newScript();
+        return !unknownProperties();
     }
 
     bool fromAllocationSite() {
