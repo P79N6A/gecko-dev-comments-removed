@@ -38,8 +38,8 @@ inline bool IsDOMProxy(JSObject *obj)
 class BaseDOMProxyHandler : public js::BaseProxyHandler
 {
 public:
-  BaseDOMProxyHandler(const void* aProxyFamily, bool aHasPrototype = false)
-    : js::BaseProxyHandler(aProxyFamily, aHasPrototype)
+  BaseDOMProxyHandler(const void* aProxyFamily)
+    : js::BaseProxyHandler(aProxyFamily)
   {}
 
   
