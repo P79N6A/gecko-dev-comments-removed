@@ -242,7 +242,103 @@ ArrayBufferObject::fun_isView(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+#ifdef JS_CPU_X64
+static void
+ReleaseAsmJSMappedData(void *base)
+{
+    MOZ_ASSERT(uintptr_t(base) % AsmJSPageSize == 0);
+#  ifdef XP_WIN
+    VirtualFree(base, 0, MEM_RELEASE);
+#  else
+    munmap(base, AsmJSMappedSize);
+#   if defined(MOZ_VALGRIND) && defined(VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE)
+    
+    
+    if (AsmJSMappedSize > 0) {
+        VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE(base, AsmJSMappedSize);
+    }
+#   endif
+#  endif
+}
+#else
+static void
+ReleaseAsmJSMappedData(void *base)
+{
+    MOZ_CRASH("Only x64 has asm.js mapped buffers");
+}
+#endif
+
 #ifdef NIGHTLY_BUILD
+# ifdef JS_CPU_X64
+static bool
+TransferAsmJSMappedBuffer(JSContext *cx, CallArgs args, Handle<ArrayBufferObject*> oldBuffer,
+                          size_t newByteLength)
+{
+    size_t oldByteLength = oldBuffer->byteLength();
+    MOZ_ASSERT(oldByteLength % AsmJSPageSize == 0);
+    MOZ_ASSERT(newByteLength % AsmJSPageSize == 0);
+
+    ArrayBufferObject::BufferContents stolen =
+        ArrayBufferObject::stealContents(cx, oldBuffer,  true);
+    if (!stolen)
+        return false;
+
+    MOZ_ASSERT(stolen.kind() == ArrayBufferObject::ASMJS_MAPPED);
+    uint8_t *data = stolen.data();
+
+    if (newByteLength > oldByteLength) {
+        void *diffStart = data + oldByteLength;
+        size_t diffLength = newByteLength - oldByteLength;
+#  ifdef XP_WIN
+        if (!VirtualAlloc(diffStart, diffLength, MEM_COMMIT, PAGE_READWRITE)) {
+            ReleaseAsmJSMappedData(data);
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+#  else
+        
+        
+        int flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
+        if (mmap(diffStart, diffLength, PROT_READ | PROT_WRITE, flags, -1, 0) == MAP_FAILED) {
+            ReleaseAsmJSMappedData(data);
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+#  endif
+    } else if (newByteLength < oldByteLength) {
+        void *diffStart = data + newByteLength;
+        size_t diffLength = oldByteLength - newByteLength;
+#  ifdef XP_WIN
+        if (!VirtualFree(diffStart, diffLength, MEM_DECOMMIT)) {
+            ReleaseAsmJSMappedData(data);
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+#  else
+        if (madvise(diffStart, diffLength, MADV_DONTNEED) ||
+            mprotect(diffStart, diffLength, PROT_NONE))
+        {
+            ReleaseAsmJSMappedData(data);
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+#  endif
+    }
+
+    ArrayBufferObject::BufferContents newContents =
+        ArrayBufferObject::BufferContents::create<ArrayBufferObject::ASMJS_MAPPED>(data);
+
+    RootedObject newBuffer(cx, ArrayBufferObject::create(cx, newByteLength, newContents));
+    if (!newBuffer) {
+        ReleaseAsmJSMappedData(data);
+        return false;
+    }
+
+    args.rval().setObject(*newBuffer);
+    return true;
+}
+# endif  
+
 
 
 
@@ -306,6 +402,13 @@ ArrayBufferObject::fun_transfer(JSContext *cx, unsigned argc, Value *vp)
             return false;
         newData = nullptr;
     } else {
+# ifdef JS_CPU_X64
+        
+        
+        if (oldBuffer->isAsmJSMapped() && (newByteLength % AsmJSPageSize) == 0)
+            return TransferAsmJSMappedBuffer(cx, args, oldBuffer, newByteLength);
+# endif
+
         
         
         
@@ -338,7 +441,7 @@ ArrayBufferObject::fun_transfer(JSContext *cx, unsigned argc, Value *vp)
     args.rval().setObject(*newBuffer);
     return true;
 }
-#endif
+#endif  
 
 
 
@@ -537,25 +640,6 @@ ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buf
 
     return true;
 }
-
-static void
-ReleaseAsmJSMappedData(void *base)
-{
-    MOZ_ASSERT(uintptr_t(base) % AsmJSPageSize == 0);
-#ifdef XP_WIN
-    VirtualFree(base, 0, MEM_RELEASE);
-#else
-    munmap(base, AsmJSMappedSize);
-# if defined(MOZ_VALGRIND) && defined(VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE)
-    
-    
-    if (AsmJSMappedSize > 0) {
-        VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE(base, AsmJSMappedSize);
-    }
-# endif
-#endif
-}
-
 #else 
 bool
 ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer,
