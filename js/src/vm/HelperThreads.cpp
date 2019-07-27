@@ -689,6 +689,15 @@ GlobalHelperThreadState::canStartGCHelperTask()
     return !gcHelperWorklist().empty();
 }
 
+static void
+LeaveParseTaskZone(JSRuntime *rt, ParseTask *task)
+{
+    
+    
+    task->cx->leaveCompartment(task->cx->compartment());
+    rt->clearUsedByExclusiveThread(task->cx->zone());
+}
+
 JSScript *
 GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void *token)
 {
@@ -709,13 +718,11 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
     }
     JS_ASSERT(parseTask);
 
-    
-    
-    parseTask->cx->leaveCompartment(parseTask->cx->compartment());
-    rt->clearUsedByExclusiveThread(parseTask->cx->zone());
     if (!maybecx) {
+        LeaveParseTaskZone(rt, parseTask);
         return nullptr;
     }
+
     JSContext *cx = maybecx;
     JS_ASSERT(cx->compartment());
 
@@ -730,6 +737,8 @@ GlobalHelperThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void
     {
         return nullptr;
     }
+
+    LeaveParseTaskZone(rt, parseTask);
 
     
     
