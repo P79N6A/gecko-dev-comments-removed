@@ -156,17 +156,6 @@ public:
                  const nsAString& aPath);
 
   
-  
-  static void
-  SetCurrentWindow(nsPIDOMWindow* aWindow)
-  {
-    QuotaManager* quotaManager = Get();
-    NS_ASSERTION(quotaManager, "Must have a manager here!");
-
-    quotaManager->SetCurrentWindowInternal(aWindow);
-  }
-
-  
   bool
   RegisterStorage(nsIOfflineStorage* aStorage);
 
@@ -333,9 +322,6 @@ private:
   nsresult
   Init();
 
-  void
-  SetCurrentWindowInternal(nsPIDOMWindow* aWindow);
-
   uint64_t
   LockedCollectOriginsForEviction(uint64_t aMinSizeToBeFreed,
                                   nsTArray<OriginInfo*>& aOriginInfos);
@@ -446,9 +432,6 @@ private:
                                      GroupInfoPair* aValue,
                                      void* aUserArg);
 
-  
-  unsigned int mCurrentWindowIndex;
-
   mozilla::Mutex mQuotaMutex;
 
   nsClassHashtable<nsCStringHashKey, GroupInfoPair> mGroupInfoPairs;
@@ -486,20 +469,6 @@ private:
   bool mTemporaryStorageInitialized;
 
   bool mStorageAreaInitialized;
-};
-
-class AutoEnterWindow
-{
-public:
-  explicit AutoEnterWindow(nsPIDOMWindow* aWindow)
-  {
-    QuotaManager::SetCurrentWindow(aWindow);
-  }
-
-  ~AutoEnterWindow()
-  {
-    QuotaManager::SetCurrentWindow(nullptr);
-  }
 };
 
 END_QUOTA_NAMESPACE

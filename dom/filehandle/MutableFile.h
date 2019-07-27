@@ -23,7 +23,6 @@ class FileService;
 
 
 
-
 class MutableFileBase
 {
   friend class FileService;
@@ -49,15 +48,6 @@ public:
   virtual already_AddRefed<nsISupports>
   CreateStream(bool aReadOnly);
 
-  virtual void
-  SetThreadLocals()
-  {
-  }
-
-  virtual void
-  UnsetThreadLocals()
-  {
-  }
 
 protected:
   MutableFileBase();

@@ -58,8 +58,6 @@
 #include "UsageInfo.h"
 #include "Utilities.h"
 
-#define BAD_TLS_INDEX ((uint32_t) -1)
-
 
 
 #define DEFAULT_THREAD_TIMEOUT_MS 30000
@@ -1260,8 +1258,7 @@ GetTemporaryStorageLimit(nsIFile* aDirectory, uint64_t aCurrentUsage,
 } 
 
 QuotaManager::QuotaManager()
-: mCurrentWindowIndex(BAD_TLS_INDEX),
-  mQuotaMutex("QuotaManager.mQuotaMutex"),
+: mQuotaMutex("QuotaManager.mQuotaMutex"),
   mTemporaryStorageLimit(0),
   mTemporaryStorageUsage(0),
   mTemporaryStorageInitialized(false),
@@ -1338,15 +1335,6 @@ QuotaManager::IsShuttingDown()
 nsresult
 QuotaManager::Init()
 {
-  
-  NS_ASSERTION(mCurrentWindowIndex == BAD_TLS_INDEX, "Huh?");
-
-  if (PR_NewThreadPrivateIndex(&mCurrentWindowIndex, nullptr) != PR_SUCCESS) {
-    NS_ERROR("PR_NewThreadPrivateIndex failed, QuotaManager disabled");
-    mCurrentWindowIndex = BAD_TLS_INDEX;
-    return NS_ERROR_FAILURE;
-  }
-
   nsresult rv;
   if (IsMainProcess()) {
     nsCOMPtr<nsIFile> baseDir;
@@ -3001,24 +2989,6 @@ QuotaManager::Observe(nsISupports* aSubject,
 
   NS_NOTREACHED("Unknown topic!");
   return NS_ERROR_UNEXPECTED;
-}
-
-void
-QuotaManager::SetCurrentWindowInternal(nsPIDOMWindow* aWindow)
-{
-  NS_ASSERTION(mCurrentWindowIndex != BAD_TLS_INDEX,
-               "Should have a valid TLS storage index!");
-
-  if (aWindow) {
-    NS_ASSERTION(!PR_GetThreadPrivate(mCurrentWindowIndex),
-                 "Somebody forgot to clear the current window!");
-    PR_SetThreadPrivate(mCurrentWindowIndex, aWindow);
-  }
-  else {
-    
-    
-    PR_SetThreadPrivate(mCurrentWindowIndex, nullptr);
-  }
 }
 
 uint64_t
