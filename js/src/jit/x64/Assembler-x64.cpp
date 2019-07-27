@@ -188,7 +188,7 @@ Assembler::finish()
         return;
 
     
-    masm.align(SizeOfJumpTableEntry);
+    masm.haltingAlign(SizeOfJumpTableEntry);
     extendedJumpTable_ = masm.size();
 
     

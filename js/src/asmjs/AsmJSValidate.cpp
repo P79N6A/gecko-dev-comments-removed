@@ -1961,7 +1961,7 @@ class MOZ_STACK_CLASS ModuleCompiler
         
         
         MOZ_ASSERT(!finishedFunctionBodies_);
-        masm_.align(AsmJSPageSize);
+        masm_.haltingAlign(AsmJSPageSize);
         module_->finishFunctionBodies(masm_.currentOffset());
         finishedFunctionBodies_ = true;
     }
@@ -8218,7 +8218,7 @@ GenerateEntry(ModuleCompiler &m, unsigned exportIndex)
     MacroAssembler &masm = m.masm();
 
     Label begin;
-    masm.align(CodeAlignment);
+    masm.haltingAlign(CodeAlignment);
     masm.bind(&begin);
 
     
@@ -9000,7 +9000,7 @@ static bool
 GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
 {
     MacroAssembler &masm = m.masm();
-    masm.align(CodeAlignment);
+    masm.haltingAlign(CodeAlignment);
     masm.bind(&m.asyncInterruptLabel());
 
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
@@ -9166,7 +9166,7 @@ static bool
 GenerateThrowStub(ModuleCompiler &m, Label *throwLabel)
 {
     MacroAssembler &masm = m.masm();
-    masm.align(CodeAlignment);
+    masm.haltingAlign(CodeAlignment);
     masm.bind(throwLabel);
 
     
