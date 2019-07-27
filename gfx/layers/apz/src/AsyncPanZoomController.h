@@ -368,7 +368,7 @@ public:
 
   
   
-  bool CanScroll(double aDeltaX, double aDeltaY) const;
+  bool CanScrollWithWheel(const LayoutDevicePoint& aDelta) const;
 
   void NotifyMozMouseScrollEvent(const nsString& aString) const;
 
