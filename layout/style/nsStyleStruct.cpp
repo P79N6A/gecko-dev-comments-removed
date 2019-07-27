@@ -1154,17 +1154,16 @@ nsChangeHint nsStyleSVGReset::CalcDifference(const nsStyleSVGReset& aOther) cons
 {
   nsChangeHint hint = nsChangeHint(0);
 
-  bool equalFilters = (mFilters == aOther.mFilters);
-
-  if (!equalFilters) {
-    NS_UpdateHint(hint, nsChangeHint_UpdateOverflow);
-  }
-
   if (!EqualURIs(mClipPath, aOther.mClipPath) ||
       !EqualURIs(mMask, aOther.mMask) ||
-      !equalFilters) {
+      mFilters != aOther.mFilters) {
     NS_UpdateHint(hint, nsChangeHint_UpdateEffects);
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+    
+    
+    
+    
+    NS_UpdateHint(hint, nsChangeHint_UpdateOverflow);
   }
 
   if (mDominantBaseline != aOther.mDominantBaseline) {
