@@ -1850,6 +1850,8 @@ MediaManager::GetUserMedia(
                                 false) ||
 #if defined(XP_MACOSX) || defined(XP_WIN)
           (
+            
+            (src != dom::MediaSourceEnum::Browser) &&
             !Preferences::GetBool("media.getusermedia.screensharing.allow_on_old_platforms",
                                   false) &&
 #if defined(XP_MACOSX)
