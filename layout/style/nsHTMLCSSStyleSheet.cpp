@@ -78,7 +78,7 @@ nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
       
       
       aPresContext->PresShell()->RestyleForAnimation(aElement,
-                                                     eRestyle_Self);
+        eRestyle_StyleAttribute | eRestyle_ChangeAnimationPhase);
     } else {
       
       
@@ -143,7 +143,7 @@ nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aDat
   
   
   if (aData->mAttrHasChanged && aData->mAttribute == nsGkAtoms::style) {
-    return eRestyle_Self;
+    return eRestyle_StyleAttribute | eRestyle_ChangeAnimationPhase;
   }
 
   return nsRestyleHint(0);
