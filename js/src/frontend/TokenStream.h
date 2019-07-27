@@ -370,20 +370,17 @@ class MOZ_STACK_CLASS TokenStream
 
     
     
-    bool getToken(TokenKind *ttp, Modifier modifier = None) {
+    TokenKind getToken(Modifier modifier = None) {
         
         if (lookahead != 0) {
             lookahead--;
             cursor = (cursor + 1) & ntokensMask;
             TokenKind tt = currentToken().type;
             MOZ_ASSERT(tt != TOK_EOL);
-            *ttp = tt;
-            return tt != TOK_ERROR;
+            return tt;
         }
 
-        TokenKind tt = getTokenInternal(modifier);
-        *ttp = tt;
-        return tt != TOK_ERROR;
+        return getTokenInternal(modifier);
     }
 
     
@@ -435,9 +432,7 @@ class MOZ_STACK_CLASS TokenStream
         
         
         
-        TokenKind tmp;
-        if (!getToken(&tmp, modifier))
-            return TOK_ERROR;
+        (void)getToken(modifier);
         const Token &next = currentToken();
         ungetToken();
         return srcCoords.lineNum(curr.pos.end) == srcCoords.lineNum(next.pos.begin)
@@ -447,29 +442,18 @@ class MOZ_STACK_CLASS TokenStream
 
     
     bool matchToken(TokenKind tt, Modifier modifier = None) {
-        TokenKind token;
-        if (!getToken(&token, modifier)) {
-            ungetToken();
-            return false;
-        }
-        if (token == tt)
+        if (getToken(modifier) == tt)
             return true;
         ungetToken();
         return false;
     }
 
     void consumeKnownToken(TokenKind tt) {
-        MOZ_ASSERT(lookahead != 0);
         JS_ALWAYS_TRUE(matchToken(tt));
     }
 
     bool matchContextualKeyword(Handle<PropertyName*> keyword) {
-        TokenKind token;
-        if (!getToken(&token)) {
-            ungetToken();
-            return false;
-        }
-        if (token == TOK_NAME && currentToken().name() == keyword)
+        if (getToken() == TOK_NAME && currentToken().name() == keyword)
             return true;
         ungetToken();
         return false;
