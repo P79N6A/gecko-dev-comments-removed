@@ -41,10 +41,6 @@ class gfxContext MOZ_FINAL {
     NS_INLINE_DECL_REFCOUNTING(gfxContext)
 
 public:
-    
-
-
-    gfxContext(gfxASurface *surface);
 
     
 
