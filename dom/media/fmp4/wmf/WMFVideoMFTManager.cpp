@@ -4,6 +4,7 @@
 
 
 
+#include <algorithm>
 #include "WMFVideoMFTManager.h"
 #include "MediaDecoderReader.h"
 #include "WMFUtils.h"
@@ -362,7 +363,7 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
   nsRefPtr<VideoData> v = VideoData::Create(mVideoInfo,
                                             mImageContainer,
                                             aStreamOffset,
-                                            pts,
+                                            std::max(0LL, pts),
                                             duration,
                                             b,
                                             false,
