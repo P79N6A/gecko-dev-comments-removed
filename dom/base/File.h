@@ -215,7 +215,7 @@ private:
   
   
   
-  const nsRefPtr<FileImpl> mImpl;
+  nsRefPtr<FileImpl> mImpl;
 
   nsCOMPtr<nsISupports> mParent;
 };
@@ -287,12 +287,9 @@ public:
   virtual bool IsFile() const = 0;
 
   
-  virtual void Unlink() = 0;
-  virtual void Traverse(nsCycleCollectionTraversalCallback &aCb) = 0;
-
-  virtual bool IsCCed() const
+  virtual bool MayBeClonedToOtherThreads() const
   {
-    return false;
+    return true;
   }
 
 protected:
@@ -459,9 +456,6 @@ public:
   {
     return mLength == UINT64_MAX;
   }
-
-  virtual void Unlink() MOZ_OVERRIDE {}
-  virtual void Traverse(nsCycleCollectionTraversalCallback &aCb) MOZ_OVERRIDE {}
 
 protected:
   virtual ~FileImplBase() {}
