@@ -7,6 +7,7 @@
 #include <math.h>
 #include "DrawTargetCG.h"
 #include "Logging.h"
+#include "PathHelpers.h"
 
 namespace mozilla {
 namespace gfx {
@@ -71,6 +72,10 @@ PathBuilderCG::Arc(const Point &aOrigin, Float aRadius, Float aStartAngle,
   
   
   
+#if 0
+  
+  
+  
   
   
   
@@ -82,6 +87,9 @@ PathBuilderCG::Arc(const Point &aOrigin, Float aRadius, Float aStartAngle,
                aStartAngle,
                aEndAngle,
                aAntiClockwise);
+#endif
+  ArcToBezier(this, aOrigin, Size(aRadius, aRadius), aStartAngle, aEndAngle,
+              aAntiClockwise);
 }
 
 Point
