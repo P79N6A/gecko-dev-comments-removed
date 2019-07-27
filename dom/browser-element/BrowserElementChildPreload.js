@@ -646,13 +646,13 @@ BrowserElementChild.prototype = {
 
     
     let currentWindow = e.target.defaultView;
-    while (currentWindow.realFrameElement) {
-      let currentRect = currentWindow.realFrameElement.getBoundingClientRect();
+    while (currentWindow.top != currentWindow) {
+      let currentRect = currentWindow.frameElement.getBoundingClientRect();
       detail.rect.top += currentRect.top;
       detail.rect.bottom += currentRect.top;
       detail.rect.left += currentRect.left;
       detail.rect.right += currentRect.left;
-      currentWindow = currentWindow.realFrameElement.ownerDocument.defaultView;
+      currentWindow = currentWindow.parent;
     }
 
     sendAsyncMsg("selectionchange", detail);
