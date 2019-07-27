@@ -27,7 +27,6 @@
 #define ASSERT(x) if (!(x)) { MOZ_CRASH(); }
 
 
-
 XRE_ProcLoaderServiceRunType XRE_ProcLoaderServiceRun;
 XRE_ProcLoaderClientInitType XRE_ProcLoaderClientInit;
 XRE_ProcLoaderPreloadType XRE_ProcLoaderPreload;
@@ -42,6 +41,10 @@ static const nsDynamicFunctionLoad kXULFuncs[] = {
   { "XRE_GetFileFromPath", (NSFuncPtr*) &XRE_GetFileFromPath },
   { nullptr, nullptr }
 };
+
+typedef mozilla::Vector<int> FdArray;
+static const int kReservedFileDescriptors = 5;
+static const int kBeginReserveFileDescriptor = STDERR_FILENO + 1;
 
 static int
 GetDirnameSlash(const char *aPath, char *aOutDir, int aMaxLen)
@@ -69,7 +72,7 @@ GetXPCOMPath(const char *aProgram, char *aOutPath, int aMaxLen)
   int len = GetDirnameSlash(progBuf, aOutPath, aMaxLen);
   NS_ENSURE_TRUE(!!len, false);
 
-  NS_ENSURE_TRUE((len + sizeof(XPCOM_DLL)) < aMaxLen, false);
+  NS_ENSURE_TRUE((len + sizeof(XPCOM_DLL)) < (unsigned)aMaxLen, false);
   char *afterSlash = aOutPath + len;
   strcpy(afterSlash, XPCOM_DLL);
   return true;
@@ -181,7 +184,7 @@ LoadStaticData(int argc, const char *argv[])
 
 
 static int
-RunProcesses(int argc, const char *argv[])
+RunProcesses(int argc, const char *argv[], FdArray& aReservedFds)
 {
   
 
@@ -212,13 +215,48 @@ RunProcesses(int argc, const char *argv[])
 
 
 
-    return XRE_ProcLoaderServiceRun(getppid(), childSock, argc, argv);
+    return XRE_ProcLoaderServiceRun(getppid(), childSock, argc, argv,
+                                    aReservedFds);
   }
 
   
   int childPid = pid;
-  XRE_ProcLoaderClientInit(childPid, parentSock);
+  XRE_ProcLoaderClientInit(childPid, parentSock, aReservedFds);
   return b2g_main(argc, argv);
+}
+
+
+
+
+
+static void
+ReserveFileDescriptors(FdArray& aReservedFds)
+{
+  for (int i = 0; i < kReservedFileDescriptors; i++) {
+    struct stat fileState;
+    int target = kBeginReserveFileDescriptor + i;
+    if (fstat(target, &fileState) == 0) {
+      MOZ_CRASH("ProcLoader error: a magic file descriptor is occupied.");
+    }
+
+    int fd = open("/dev/null", O_RDWR);
+    if (fd == -1) {
+      MOZ_CRASH("ProcLoader error: failed to reserve a magic file descriptor.");
+    }
+
+    aReservedFds.append(target);
+
+    if (fd == target) {
+      
+      continue;
+    }
+
+    if (dup2(fd, target)) {
+      MOZ_CRASH("ProcLoader error: failed to reserve a magic file descriptor.");
+    }
+
+    close(fd);
+  }
 }
 
 
@@ -234,7 +272,12 @@ RunProcesses(int argc, const char *argv[])
 int
 main(int argc, const char* argv[])
 {
-  const char *program = argv[0];
+  
+
+
+  FdArray reservedFds;
+  ReserveFileDescriptors(reservedFds);
+
   
 
 
@@ -244,5 +287,5 @@ main(int argc, const char* argv[])
     return 255;
   }
 
-  return RunProcesses(argc, argv);
+  return RunProcesses(argc, argv, reservedFds);
 }
