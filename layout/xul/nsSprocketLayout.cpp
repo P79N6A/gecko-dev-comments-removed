@@ -293,9 +293,6 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
     origX = x;
     origY = y;
 
-    nscoord nextX = x;
-    nscoord nextY = y;
-
     
     
     
@@ -354,9 +351,6 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
           y -= (childBoxSize->right);
       }
 
-      nextX = x;
-      nextY = y;
-
       
       nscoord rectX = x;
       nscoord rectY = y;
@@ -383,6 +377,9 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
     
       
       
+      nscoord nextX = x;
+      nscoord nextY = y;
+
       ComputeChildsNextPosition(aBox, x, y, nextX, nextY, childRect);
 
       
