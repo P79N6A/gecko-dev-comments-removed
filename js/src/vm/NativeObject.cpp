@@ -1079,15 +1079,6 @@ UpdateShapeTypeAndValue(ExclusiveContext* cx, NativeObject* obj, Shape* shape, c
     return true;
 }
 
-static unsigned
-ApplyOrDefaultAttributes(unsigned attrs, const Shape* shape = nullptr)
-{
-    bool enumerable = shape ? shape->enumerable() : false;
-    bool writable = shape ? shape->writable() : false;
-    bool configurable = shape ? shape->configurable() : false;
-    return ApplyAttributes(attrs, enumerable, writable, configurable);
-}
-
 static bool
 PurgeProtoChain(ExclusiveContext* cx, JSObject* objArg, HandleId id)
 {
@@ -1473,12 +1464,6 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             desc.setGetterObject(shape->getterObject());
         }
     }
-
-    
-    
-    
-    
-    desc.setAttributes(ApplyOrDefaultAttributes(desc.attributes()) & ~JSPROP_IGNORE_VALUE);
 
     
     if (!AddOrChangeProperty(cx, obj, id, desc))
