@@ -364,18 +364,18 @@ typedef Log<LOG_WARNING> WarningLog;
 typedef Log<LOG_CRITICAL, CriticalLogger> CriticalLog;
 
 #ifdef GFX_LOG_DEBUG
-#define gfxDebug DebugLog
+#define gfxDebug mozilla::gfx::DebugLog
 #else
-#define gfxDebug if (1) ; else NoLog
+#define gfxDebug if (1) ; else mozilla::gfx::NoLog
 #endif
 #ifdef GFX_LOG_WARNING
-#define gfxWarning WarningLog
+#define gfxWarning mozilla::gfx::WarningLog
 #else
-#define gfxWarning if (1) ; else NoLog
+#define gfxWarning if (1) ; else mozilla::gfx::NoLog
 #endif
 
 
-#define gfxCriticalError CriticalLog
+#define gfxCriticalError mozilla::gfx::CriticalLog
 
 
 
