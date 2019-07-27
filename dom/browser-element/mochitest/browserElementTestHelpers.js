@@ -111,7 +111,8 @@ const browserElementTestHelpers = {
 
 
 
-function expectProcessCreated() {
+function expectProcessCreated( initialPriority,
+                               initialCPUPriority) {
   return new Promise(function(resolve, reject) {
     var observed = false;
     browserElementTestHelpers.addProcessPriorityObserver(
@@ -126,7 +127,13 @@ function expectProcessCreated() {
 
         var childID = parseInt(data);
         ok(true, 'Got new process, id=' + childID);
-        resolve(childID);
+        if (initialPriority) {
+          expectPriorityChange(childID, initialPriority, initialCPUPriority).then(function() {
+            resolve(childID);
+          });
+        } else {
+          resolve(childID);
+        }
       }
     );
   });
@@ -134,8 +141,9 @@ function expectProcessCreated() {
 
 
 
-function expectOnlyOneProcessCreated() {
-  var p = expectProcessCreated();
+function expectOnlyOneProcessCreated( initialPriority,
+                                      initialCPUPriority) {
+  var p = expectProcessCreated(initialPriority, initialCPUPriority);
   p.then(function() {
     expectProcessCreated().then(function(childID) {
       ok(false, 'Got unexpected process creation, childID=' + childID);
