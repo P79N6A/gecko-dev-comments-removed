@@ -116,15 +116,6 @@
 
 
 
-#define CREATE_IDX_MOZ_FAVICONS_GUID \
-  CREATE_PLACES_IDX( \
-    "guid_uniqueindex", "moz_favicons", "guid", "UNIQUE" \
-  )
-
-
-
-
-
 #define CREATE_IDX_MOZ_KEYWORDS_PLACEPOSTDATA \
   CREATE_PLACES_IDX( \
     "placepostdata_uniqueindex", "moz_keywords", "place_id, post_data", "UNIQUE" \
