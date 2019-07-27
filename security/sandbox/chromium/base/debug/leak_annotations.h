@@ -5,6 +5,7 @@
 #ifndef BASE_DEBUG_LEAK_ANNOTATIONS_H_
 #define BASE_DEBUG_LEAK_ANNOTATIONS_H_
 
+#include "base/basictypes.h"
 #include "build/build_config.h"
 
 
@@ -18,27 +19,16 @@
 
 
 
+#if defined(LEAK_SANITIZER) && !defined(OS_NACL)
 
-
-
-
-#if defined(OS_POSIX) && !defined(OS_MACOSX) && !defined(OS_NACL) && \
-    defined(USE_HEAPCHECKER)
-
-#include "third_party/tcmalloc/chromium/src/gperftools/heap-checker.h"
-
-#define ANNOTATE_SCOPED_MEMORY_LEAK \
-    HeapLeakChecker::Disabler heap_leak_checker_disabler; static_cast<void>(0)
-
-#define ANNOTATE_LEAKING_OBJECT_PTR(X) \
-    HeapLeakChecker::IgnoreObject(X)
-
-#elif defined(LEAK_SANITIZER) && !defined(OS_NACL)
 
 extern "C" {
 void __lsan_disable();
 void __lsan_enable();
 void __lsan_ignore_object(const void *p);
+
+
+void __lsan_do_leak_check();
 }  
 
 class ScopedLeakSanitizerDisabler {

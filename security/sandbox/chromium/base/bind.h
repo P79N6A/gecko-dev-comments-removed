@@ -65,12 +65,6 @@ Bind(Functor functor) {
   typedef typename internal::FunctorTraits<Functor>::RunnableType RunnableType;
   typedef typename internal::FunctorTraits<Functor>::RunType RunType;
 
-  
-  
-  
-  typedef internal::FunctionTraits<typename RunnableType::RunType>
-      BoundFunctorTraits;
-
   typedef internal::BindState<RunnableType, RunType, void()> BindState;
 
 

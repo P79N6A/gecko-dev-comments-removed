@@ -353,7 +353,7 @@ TEST(RestrictedTokenTest, DeleteAllPrivilegesException) {
   RestrictedToken token;
   HANDLE token_handle = NULL;
 
-  std::vector<std::wstring> exceptions;
+  std::vector<base::string16> exceptions;
   exceptions.push_back(SE_CHANGE_NOTIFY_NAME);
 
   ASSERT_EQ(ERROR_SUCCESS, token.Init(NULL));
@@ -408,8 +408,8 @@ TEST(RestrictedTokenTest, DeletePrivilege) {
 
 void CheckRestrictingSid(const ATL::CAccessToken &restricted_token,
                          ATL::CSid sid, int count) {
-  DWORD length = 1000;
-  BYTE *memory = new BYTE[1000];
+  DWORD length = 8192;
+  BYTE *memory = new BYTE[length];
   TOKEN_GROUPS *groups = reinterpret_cast<TOKEN_GROUPS*>(memory);
   ASSERT_TRUE(::GetTokenInformation(restricted_token.GetHandle(),
                                     TokenRestrictedSids,
@@ -530,8 +530,8 @@ TEST(RestrictedTokenTest, AddMultipleRestrictingSids) {
   ATL::CSid session;
   restricted_token.GetLogonSid(&session);
 
-  DWORD length = 1000;
-  BYTE *memory = new BYTE[1000];
+  DWORD length = 8192;
+  BYTE *memory = new BYTE[length];
   TOKEN_GROUPS *groups = reinterpret_cast<TOKEN_GROUPS*>(memory);
   ASSERT_TRUE(::GetTokenInformation(restricted_token.GetHandle(),
                                     TokenRestrictedSids,
@@ -578,16 +578,11 @@ TEST(RestrictedTokenTest, AddAllSidToRestrictingSids) {
 }
 
 
-#ifndef _DEBUG
-
-
 TEST(RestrictedTokenTest, DoubleInit) {
   RestrictedToken token;
   ASSERT_EQ(ERROR_SUCCESS, token.Init(NULL));
 
   ASSERT_EQ(ERROR_ALREADY_INITIALIZED, token.Init(NULL));
 }
-
-#endif
 
 }  

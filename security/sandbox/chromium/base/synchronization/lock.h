@@ -16,7 +16,8 @@ namespace base {
 
 class BASE_EXPORT Lock {
  public:
-#if defined(NDEBUG)             
+#if defined(NDEBUG) && !defined(DCHECK_ALWAYS_ON)
+   
   Lock() : lock_() {}
   ~Lock() {}
   void Acquire() { lock_.Lock(); }
@@ -55,7 +56,7 @@ class BASE_EXPORT Lock {
   }
 
   void AssertAcquired() const;
-#endif                          
+#endif  
 
 #if defined(OS_POSIX)
   
@@ -69,7 +70,7 @@ class BASE_EXPORT Lock {
 #endif
 
  private:
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) || defined(DCHECK_ALWAYS_ON)
   
   
   
@@ -80,11 +81,7 @@ class BASE_EXPORT Lock {
 
   
   
-
-  
-  
-  bool owned_by_thread_;
-  base::PlatformThreadId owning_thread_id_;
+  base::PlatformThreadRef owning_thread_ref_;
 #endif  
 
   

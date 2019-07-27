@@ -18,7 +18,10 @@ subtle::AtomicWord WaitForInstance(subtle::AtomicWord* instance) {
   
   subtle::AtomicWord value;
   while (true) {
-    value = subtle::NoBarrier_Load(instance);
+    
+    
+    
+    value = subtle::Acquire_Load(instance);
     if (value != kBeingCreatedMarker)
       break;
     PlatformThread::YieldCurrentThread();

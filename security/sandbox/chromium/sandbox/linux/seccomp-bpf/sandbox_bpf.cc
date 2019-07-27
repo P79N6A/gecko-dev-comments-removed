@@ -22,6 +22,7 @@
 
 #include "base/compiler_specific.h"
 #include "base/logging.h"
+#include "base/macros.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/posix/eintr_wrapper.h"
 #include "sandbox/linux/seccomp-bpf/codegen.h"
@@ -56,20 +57,26 @@ void WriteFailedStderrSetupMessage(int out_fd) {
 
 
 
-ErrorCode ProbeEvaluator(SandboxBPF*, int sysnum, void*) __attribute__((const));
-ErrorCode ProbeEvaluator(SandboxBPF*, int sysnum, void*) {
-  switch (sysnum) {
-    case __NR_getpid:
-      
-      return ErrorCode(EPERM);
-    case __NR_exit_group:
-      
-      return ErrorCode(ErrorCode::ERR_ALLOWED);
-    default:
-      
-      return ErrorCode(EINVAL);
+class ProbePolicy : public SandboxBPFPolicy {
+ public:
+  ProbePolicy() {}
+  virtual ErrorCode EvaluateSyscall(SandboxBPF*, int sysnum) const OVERRIDE {
+    switch (sysnum) {
+      case __NR_getpid:
+        
+        return ErrorCode(EPERM);
+      case __NR_exit_group:
+        
+        return ErrorCode(ErrorCode::ERR_ALLOWED);
+      default:
+        
+        return ErrorCode(EINVAL);
+    }
   }
-}
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(ProbePolicy);
+};
 
 void ProbeProcess(void) {
   if (syscall(__NR_getpid) < 0 && errno == EPERM) {
@@ -77,12 +84,17 @@ void ProbeProcess(void) {
   }
 }
 
-ErrorCode AllowAllEvaluator(SandboxBPF*, int sysnum, void*) {
-  if (!SandboxBPF::IsValidSyscallNumber(sysnum)) {
-    return ErrorCode(ENOSYS);
+class AllowAllPolicy : public SandboxBPFPolicy {
+ public:
+  AllowAllPolicy() {}
+  virtual ErrorCode EvaluateSyscall(SandboxBPF*, int sysnum) const OVERRIDE {
+    DCHECK(SandboxBPF::IsValidSyscallNumber(sysnum));
+    return ErrorCode(ErrorCode::ERR_ALLOWED);
   }
-  return ErrorCode(ErrorCode::ERR_ALLOWED);
-}
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(AllowAllPolicy);
+};
 
 void TryVsyscallProcess(void) {
   time_t current_time;
@@ -187,13 +199,21 @@ class RedirectToUserSpacePolicyWrapper : public SandboxBPFPolicy {
     ErrorCode err =
         wrapped_policy_->EvaluateSyscall(sandbox_compiler, system_call_number);
     if ((err.err() & SECCOMP_RET_ACTION) == SECCOMP_RET_ERRNO) {
-      return sandbox_compiler->Trap(
-          ReturnErrno, reinterpret_cast<void*>(err.err() & SECCOMP_RET_DATA));
+      return ReturnErrnoViaTrap(sandbox_compiler, err.err() & SECCOMP_RET_DATA);
     }
     return err;
   }
 
+  virtual ErrorCode InvalidSyscall(
+      SandboxBPF* sandbox_compiler) const OVERRIDE {
+    return ReturnErrnoViaTrap(sandbox_compiler, ENOSYS);
+  }
+
  private:
+  ErrorCode ReturnErrnoViaTrap(SandboxBPF* sandbox_compiler, int err) const {
+    return sandbox_compiler->Trap(ReturnErrno, reinterpret_cast<void*>(err));
+  }
+
   const SandboxBPFPolicy* wrapped_policy_;
   DISALLOW_COPY_AND_ASSIGN(RedirectToUserSpacePolicyWrapper);
 };
@@ -201,25 +221,6 @@ class RedirectToUserSpacePolicyWrapper : public SandboxBPFPolicy {
 intptr_t BPFFailure(const struct arch_seccomp_data&, void* aux) {
   SANDBOX_DIE(static_cast<char*>(aux));
 }
-
-
-class CompatibilityPolicy : public SandboxBPFPolicy {
- public:
-  CompatibilityPolicy(SandboxBPF::EvaluateSyscall syscall_evaluator, void* aux)
-      : syscall_evaluator_(syscall_evaluator), aux_(aux) {
-    DCHECK(syscall_evaluator_);
-  }
-
-  virtual ErrorCode EvaluateSyscall(SandboxBPF* sandbox_compiler,
-                                    int system_call_number) const OVERRIDE {
-    return syscall_evaluator_(sandbox_compiler, system_call_number, aux_);
-  }
-
- private:
-  SandboxBPF::EvaluateSyscall syscall_evaluator_;
-  void* aux_;
-  DISALLOW_COPY_AND_ASSIGN(CompatibilityPolicy);
-};
 
 }  
 
@@ -251,8 +252,7 @@ bool SandboxBPF::IsValidSyscallNumber(int sysnum) {
 }
 
 bool SandboxBPF::RunFunctionInPolicy(void (*code_in_sandbox)(),
-                                     EvaluateSyscall syscall_evaluator,
-                                     void* aux) {
+                                     scoped_ptr<SandboxBPFPolicy> policy) {
   
   
   sigset_t old_mask, new_mask;
@@ -322,7 +322,7 @@ bool SandboxBPF::RunFunctionInPolicy(void (*code_in_sandbox)(),
 #endif
     }
 
-    SetSandboxPolicyDeprecated(syscall_evaluator, aux);
+    SetSandboxPolicy(policy.release());
     if (!StartSandbox(PROCESS_SINGLE_THREADED)) {
       SANDBOX_DIE(NULL);
     }
@@ -371,8 +371,11 @@ bool SandboxBPF::RunFunctionInPolicy(void (*code_in_sandbox)(),
 }
 
 bool SandboxBPF::KernelSupportSeccompBPF() {
-  return RunFunctionInPolicy(ProbeProcess, ProbeEvaluator, 0) &&
-         RunFunctionInPolicy(TryVsyscallProcess, AllowAllEvaluator, 0);
+  return RunFunctionInPolicy(ProbeProcess,
+                             scoped_ptr<SandboxBPFPolicy>(new ProbePolicy())) &&
+         RunFunctionInPolicy(
+             TryVsyscallProcess,
+             scoped_ptr<SandboxBPFPolicy>(new AllowAllPolicy()));
 }
 
 SandboxBPF::SandboxStatus SandboxBPF::SupportsSeccompSandbox(int proc_fd) {
@@ -481,24 +484,10 @@ bool SandboxBPF::StartSandbox(SandboxThreadState thread_state) {
 }
 
 void SandboxBPF::PolicySanityChecks(SandboxBPFPolicy* policy) {
-  for (SyscallIterator iter(true); !iter.Done();) {
-    uint32_t sysnum = iter.Next();
-    if (!IsDenied(policy->EvaluateSyscall(this, sysnum))) {
-      SANDBOX_DIE(
-          "Policies should deny system calls that are outside the "
-          "expected range (typically MIN_SYSCALL..MAX_SYSCALL)");
-    }
+  if (!IsDenied(policy->InvalidSyscall(this))) {
+    SANDBOX_DIE("Policies should deny invalid system calls.");
   }
   return;
-}
-
-
-void SandboxBPF::SetSandboxPolicyDeprecated(EvaluateSyscall syscall_evaluator,
-                                            void* aux) {
-  if (sandbox_has_started_ || !conds_) {
-    SANDBOX_DIE("Cannot change policy after sandbox has started");
-  }
-  SetSandboxPolicy(new CompatibilityPolicy(syscall_evaluator, aux));
 }
 
 
@@ -624,7 +613,7 @@ SandboxBPF::Program* SandboxBPF::AssembleFilter(bool force_verification) {
     
     
     if (has_unsafe_traps) {
-      if (SandboxSyscall(-1) == -1 && errno == ENOSYS) {
+      if (Syscall::Call(-1) == -1 && errno == ENOSYS) {
         SANDBOX_DIE(
             "Support for UnsafeTrap() has not yet been ported to this "
             "architecture");
@@ -662,8 +651,7 @@ SandboxBPF::Program* SandboxBPF::AssembleFilter(bool force_verification) {
 
       
       
-      uintptr_t syscall_entry_point =
-          static_cast<uintptr_t>(SandboxSyscall(-1));
+      uintptr_t syscall_entry_point = static_cast<uintptr_t>(Syscall::Call(-1));
       uint32_t low = static_cast<uint32_t>(syscall_entry_point);
 #if __SIZEOF_POINTER__ > 4
       uint32_t hi = static_cast<uint32_t>(syscall_entry_point >> 32);
@@ -763,20 +751,18 @@ void SandboxBPF::FindRanges(Ranges* ranges) {
   
   
   
+  const ErrorCode invalid_err = policy_->InvalidSyscall(this);
   uint32_t old_sysnum = 0;
-  ErrorCode old_err = policy_->EvaluateSyscall(this, old_sysnum);
-  ErrorCode invalid_err = policy_->EvaluateSyscall(this, MIN_SYSCALL - 1);
+  ErrorCode old_err = IsValidSyscallNumber(old_sysnum)
+                          ? policy_->EvaluateSyscall(this, old_sysnum)
+                          : invalid_err;
 
   for (SyscallIterator iter(false); !iter.Done();) {
     uint32_t sysnum = iter.Next();
-    ErrorCode err = policy_->EvaluateSyscall(this, static_cast<int>(sysnum));
-    if (!iter.IsValid(sysnum) && !invalid_err.Equals(err)) {
-      
-      
-      
-      
-      SANDBOX_DIE("Invalid seccomp policy");
-    }
+    ErrorCode err =
+        IsValidSyscallNumber(sysnum)
+            ? policy_->EvaluateSyscall(this, static_cast<int>(sysnum))
+            : invalid_err;
     if (!err.Equals(old_err) || iter.Done()) {
       ranges->push_back(Range(old_sysnum, sysnum - 1, old_err));
       old_sysnum = sysnum;
@@ -1016,13 +1002,13 @@ ErrorCode SandboxBPF::UnsafeTrap(Trap::TrapFnc fnc, const void* aux) {
 }
 
 intptr_t SandboxBPF::ForwardSyscall(const struct arch_seccomp_data& args) {
-  return SandboxSyscall(args.nr,
-                        static_cast<intptr_t>(args.args[0]),
-                        static_cast<intptr_t>(args.args[1]),
-                        static_cast<intptr_t>(args.args[2]),
-                        static_cast<intptr_t>(args.args[3]),
-                        static_cast<intptr_t>(args.args[4]),
-                        static_cast<intptr_t>(args.args[5]));
+  return Syscall::Call(args.nr,
+                       static_cast<intptr_t>(args.args[0]),
+                       static_cast<intptr_t>(args.args[1]),
+                       static_cast<intptr_t>(args.args[2]),
+                       static_cast<intptr_t>(args.args[3]),
+                       static_cast<intptr_t>(args.args[4]),
+                       static_cast<intptr_t>(args.args[5]));
 }
 
 ErrorCode SandboxBPF::Cond(int argno,

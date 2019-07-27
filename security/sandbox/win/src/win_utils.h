@@ -7,7 +7,9 @@
 
 #include <windows.h>
 #include <string>
+
 #include "base/basictypes.h"
+#include "base/strings/string16.h"
 
 namespace sandbox {
 
@@ -65,35 +67,37 @@ class SingletonBase {
 
 
 
-bool ConvertToLongPath(const std::wstring& short_path, std::wstring* long_path);
+bool ConvertToLongPath(const base::string16& short_path,
+                       base::string16* long_path);
 
 
 
 
 
 
-DWORD IsReparsePoint(const std::wstring& full_path, bool* result);
+DWORD IsReparsePoint(const base::string16& full_path, bool* result);
 
 
 bool SameObject(HANDLE handle, const wchar_t* full_path);
 
 
-bool GetPathFromHandle(HANDLE handle, std::wstring* path);
+bool GetPathFromHandle(HANDLE handle, base::string16* path);
 
 
 
-bool GetNtPathFromWin32Path(const std::wstring& path, std::wstring* nt_path);
-
-
-
-
-HKEY GetReservedKeyFromName(const std::wstring& name);
+bool GetNtPathFromWin32Path(const base::string16& path,
+                            base::string16* nt_path);
 
 
 
 
+HKEY GetReservedKeyFromName(const base::string16& name);
 
-bool ResolveRegistryName(std::wstring name, std::wstring* resolved_name);
+
+
+
+
+bool ResolveRegistryName(base::string16 name, base::string16* resolved_name);
 
 
 

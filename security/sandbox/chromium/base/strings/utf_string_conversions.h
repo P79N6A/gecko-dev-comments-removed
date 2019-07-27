@@ -41,32 +41,13 @@ BASE_EXPORT std::string UTF16ToUTF8(const string16& utf16);
 
 
 
-
-
-
-#if defined(OS_WIN)
-# define WideToUTF16Hack
-# define UTF16ToWideHack
-#else
-# define WideToUTF16Hack WideToUTF16
-# define UTF16ToWideHack UTF16ToWide
-#endif
-
-
-
 BASE_EXPORT std::wstring ASCIIToWide(const StringPiece& ascii);
 BASE_EXPORT string16 ASCIIToUTF16(const StringPiece& ascii);
 
+
+
+BASE_EXPORT std::string UTF16ToASCII(const string16& utf16);
+
 }  
-
-
-using base::WideToUTF8;
-using base::UTF8ToWide;
-using base::WideToUTF16;
-using base::UTF16ToWide;
-using base::UTF8ToUTF16;
-using base::UTF16ToUTF8;
-using base::ASCIIToWide;
-using base::ASCIIToUTF16;
 
 #endif  

@@ -11,9 +11,8 @@
 
 namespace sandbox {
 
-SANDBOX_INTERCEPT HANDLE  g_shared_section = NULL;
-
-static bool               s_is_broker =  false;
+SANDBOX_INTERCEPT HANDLE  g_shared_section;
+static bool               s_is_broker = false;
 
 
 
@@ -42,3 +41,8 @@ TargetServices* SandboxFactory::GetTargetServices() {
 }
 
 }  
+
+
+extern "C" bool __declspec(dllexport) IsSandboxedProcess() {
+  return sandbox::g_shared_section != NULL;
+}

@@ -8,6 +8,7 @@
 #include <string>
 
 #include "base/basictypes.h"
+#include "base/strings/string16.h"
 #include "sandbox/win/src/sandbox_types.h"
 #include "sandbox/win/src/security_level.h"
 
@@ -25,7 +26,8 @@ class TargetPolicy {
     SUBSYS_PROCESS,           
     SUBSYS_REGISTRY,          
     SUBSYS_SYNC,              
-    SUBSYS_HANDLES            
+    SUBSYS_HANDLES,           
+    SUBSYS_WIN32K_LOCKDOWN    
   };
 
   
@@ -51,7 +53,10 @@ class TargetPolicy {
     EVENTS_ALLOW_ANY,      
     EVENTS_ALLOW_READONLY, 
     REG_ALLOW_READONLY,    
-    REG_ALLOW_ANY          
+    REG_ALLOW_ANY,         
+    FAKE_USER_GDI_INIT     
+                           
+                           
   };
 
   
@@ -85,6 +90,12 @@ class TargetPolicy {
   
   
   virtual ResultCode SetTokenLevel(TokenLevel initial, TokenLevel lockdown) = 0;
+
+  
+  virtual TokenLevel GetInitialTokenLevel() const = 0;
+
+  
+  virtual TokenLevel GetLockdownTokenLevel() const = 0;
 
   
   
@@ -124,12 +135,17 @@ class TargetPolicy {
   
   
   
+  virtual ResultCode SetJobMemoryLimit(size_t memory_limit) = 0;
+
+  
+  
+  
   virtual ResultCode SetAlternateDesktop(bool alternate_winstation) = 0;
 
   
   
   
-  virtual std::wstring GetAlternateDesktop() const = 0;
+  virtual base::string16 GetAlternateDesktop() const = 0;
 
   
   virtual ResultCode CreateAlternateDesktop(bool alternate_winstation) = 0;
@@ -142,6 +158,9 @@ class TargetPolicy {
   
   
   virtual ResultCode SetIntegrityLevel(IntegrityLevel level) = 0;
+
+  
+  virtual IntegrityLevel GetIntegrityLevel() const = 0;
 
   
   
@@ -178,7 +197,7 @@ class TargetPolicy {
   virtual ResultCode SetDelayedProcessMitigations(MitigationFlags flags) = 0;
 
   
-  virtual MitigationFlags GetDelayedProcessMitigations() = 0;
+  virtual MitigationFlags GetDelayedProcessMitigations() const = 0;
 
   
   
@@ -224,4 +243,4 @@ class TargetPolicy {
 }  
 
 
-#endif
+#endif  

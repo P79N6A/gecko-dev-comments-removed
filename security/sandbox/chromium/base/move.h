@@ -191,6 +191,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 #define MOVE_ONLY_TYPE_FOR_CPP_03(type, rvalue_type) \
  private: \
   struct rvalue_type { \
@@ -202,6 +212,7 @@
  public: \
   operator rvalue_type() { return rvalue_type(this); } \
   type Pass() { return type(rvalue_type(this)); } \
+  typedef void MoveOnlyTypeForCPP03; \
  private:
 
 #endif  

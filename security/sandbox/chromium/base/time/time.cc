@@ -8,48 +8,89 @@
 #include <ostream>
 
 #include "base/float_util.h"
+#include "base/lazy_instance.h"
 #include "base/logging.h"
 #include "base/third_party/nspr/prtime.h"
-#include "base/third_party/nspr/prtypes.h"
 
 namespace base {
 
 
 
+
+TimeDelta TimeDelta::Max() {
+  return TimeDelta(std::numeric_limits<int64>::max());
+}
+
 int TimeDelta::InDays() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<int>::max();
+  }
   return static_cast<int>(delta_ / Time::kMicrosecondsPerDay);
 }
 
 int TimeDelta::InHours() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<int>::max();
+  }
   return static_cast<int>(delta_ / Time::kMicrosecondsPerHour);
 }
 
 int TimeDelta::InMinutes() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<int>::max();
+  }
   return static_cast<int>(delta_ / Time::kMicrosecondsPerMinute);
 }
 
 double TimeDelta::InSecondsF() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<double>::infinity();
+  }
   return static_cast<double>(delta_) / Time::kMicrosecondsPerSecond;
 }
 
 int64 TimeDelta::InSeconds() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<int64>::max();
+  }
   return delta_ / Time::kMicrosecondsPerSecond;
 }
 
 double TimeDelta::InMillisecondsF() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<double>::infinity();
+  }
   return static_cast<double>(delta_) / Time::kMicrosecondsPerMillisecond;
 }
 
 int64 TimeDelta::InMilliseconds() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<int64>::max();
+  }
   return delta_ / Time::kMicrosecondsPerMillisecond;
 }
 
 int64 TimeDelta::InMillisecondsRoundedUp() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<int64>::max();
+  }
   return (delta_ + Time::kMicrosecondsPerMillisecond - 1) /
       Time::kMicrosecondsPerMillisecond;
 }
 
 int64 TimeDelta::InMicroseconds() const {
+  if (is_max()) {
+    
+    return std::numeric_limits<int64>::max();
+  }
   return delta_;
 }
 
@@ -88,7 +129,7 @@ time_t Time::ToTimeT() const {
 Time Time::FromDoubleT(double dt) {
   if (dt == 0 || IsNaN(dt))
     return Time();  
-  if (dt == std::numeric_limits<double>::max())
+  if (dt == std::numeric_limits<double>::infinity())
     return Max();
   return Time(static_cast<int64>((dt *
                                   static_cast<double>(kMicrosecondsPerSecond)) +
@@ -100,7 +141,7 @@ double Time::ToDoubleT() const {
     return 0;  
   if (is_max()) {
     
-    return std::numeric_limits<double>::max();
+    return std::numeric_limits<double>::infinity();
   }
   return (static_cast<double>(us_ - kTimeTToMicrosecondsOffset) /
           static_cast<double>(kMicrosecondsPerSecond));
@@ -119,7 +160,7 @@ Time Time::FromTimeSpec(const timespec& ts) {
 Time Time::FromJsTime(double ms_since_epoch) {
   
   
-  if (ms_since_epoch == std::numeric_limits<double>::max())
+  if (ms_since_epoch == std::numeric_limits<double>::infinity())
     return Max();
   return Time(static_cast<int64>(ms_since_epoch * kMicrosecondsPerMillisecond) +
               kTimeTToMicrosecondsOffset);
@@ -132,7 +173,7 @@ double Time::ToJsTime() const {
   }
   if (is_max()) {
     
-    return std::numeric_limits<double>::max();
+    return std::numeric_limits<double>::infinity();
   }
   return (static_cast<double>(us_ - kTimeTToMicrosecondsOffset) /
           kMicrosecondsPerMillisecond);
@@ -187,6 +228,29 @@ bool Time::FromStringInternal(const char* time_string,
   result_time += kTimeTToMicrosecondsOffset;
   *parsed_time = Time(result_time);
   return true;
+}
+
+
+
+class UnixEpochSingleton {
+ public:
+  UnixEpochSingleton()
+      : unix_epoch_(TimeTicks::Now() - (Time::Now() - Time::UnixEpoch())) {}
+
+  TimeTicks unix_epoch() const { return unix_epoch_; }
+
+ private:
+  const TimeTicks unix_epoch_;
+
+  DISALLOW_COPY_AND_ASSIGN(UnixEpochSingleton);
+};
+
+static LazyInstance<UnixEpochSingleton>::Leaky
+    leaky_unix_epoch_singleton_instance = LAZY_INSTANCE_INITIALIZER;
+
+
+TimeTicks TimeTicks::UnixEpoch() {
+  return leaky_unix_epoch_singleton_instance.Get().unix_epoch();
 }
 
 

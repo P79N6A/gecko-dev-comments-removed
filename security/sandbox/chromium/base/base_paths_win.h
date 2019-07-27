@@ -25,7 +25,6 @@ enum {
   DIR_START_MENU,         
 
   DIR_APP_DATA,           
-  DIR_PROFILE,            
   DIR_LOCAL_APP_DATA_LOW, 
   DIR_LOCAL_APP_DATA,     
                           
@@ -42,6 +41,7 @@ enum {
                                   
   DIR_TASKBAR_PINS,       
                           
+  DIR_WINDOWS_FONTS,      
 
   PATH_WIN_END
 };

@@ -31,11 +31,6 @@
 #include "base/memory/scoped_ptr.h"
 #include "base/strings/string16.h"
 
-
-
-
-
-
 namespace base {
 
 class DictionaryValue;
@@ -69,13 +64,6 @@ class BASE_EXPORT Value {
   virtual ~Value();
 
   static Value* CreateNullValue();
-  
-  
-  static FundamentalValue* CreateBooleanValue(bool in_value);
-  static FundamentalValue* CreateIntegerValue(int in_value);
-  static FundamentalValue* CreateDoubleValue(double in_value);
-  static StringValue* CreateStringValue(const std::string& in_value);
-  static StringValue* CreateStringValue(const string16& in_value);
 
   
   
@@ -96,6 +84,7 @@ class BASE_EXPORT Value {
   virtual bool GetAsDouble(double* out_value) const;
   virtual bool GetAsString(std::string* out_value) const;
   virtual bool GetAsString(string16* out_value) const;
+  virtual bool GetAsString(const StringValue** out_value) const;
   virtual bool GetAsList(ListValue** out_value);
   virtual bool GetAsList(const ListValue** out_value) const;
   virtual bool GetAsDictionary(DictionaryValue** out_value);
@@ -137,6 +126,8 @@ class BASE_EXPORT FundamentalValue : public Value {
   
   virtual bool GetAsBoolean(bool* out_value) const OVERRIDE;
   virtual bool GetAsInteger(int* out_value) const OVERRIDE;
+  
+  
   virtual bool GetAsDouble(double* out_value) const OVERRIDE;
   virtual FundamentalValue* DeepCopy() const OVERRIDE;
   virtual bool Equals(const Value* other) const OVERRIDE;
@@ -160,8 +151,13 @@ class BASE_EXPORT StringValue : public Value {
   virtual ~StringValue();
 
   
+  std::string* GetString();
+  const std::string& GetString() const;
+
+  
   virtual bool GetAsString(std::string* out_value) const OVERRIDE;
   virtual bool GetAsString(string16* out_value) const OVERRIDE;
+  virtual bool GetAsString(const StringValue** out_value) const OVERRIDE;
   virtual StringValue* DeepCopy() const OVERRIDE;
   virtual bool Equals(const Value* other) const OVERRIDE;
 
@@ -266,14 +262,18 @@ class BASE_EXPORT DictionaryValue : public Value {
   
   
   
+  
   bool Get(const std::string& path, const Value** out_value) const;
   bool Get(const std::string& path, Value** out_value);
 
   
   
   
+  
   bool GetBoolean(const std::string& path, bool* out_value) const;
   bool GetInteger(const std::string& path, int* out_value) const;
+  
+  
   bool GetDouble(const std::string& path, double* out_value) const;
   bool GetString(const std::string& path, std::string* out_value) const;
   bool GetString(const std::string& path, string16* out_value) const;
@@ -326,6 +326,11 @@ class BASE_EXPORT DictionaryValue : public Value {
 
   
   
+  virtual bool RemovePath(const std::string& path,
+                          scoped_ptr<Value>* out_value);
+
+  
+  
   DictionaryValue* DeepCopyWithoutEmptyChildren() const;
 
   
@@ -343,6 +348,7 @@ class BASE_EXPORT DictionaryValue : public Value {
   class BASE_EXPORT Iterator {
    public:
     explicit Iterator(const DictionaryValue& target);
+    ~Iterator();
 
     bool IsAtEnd() const { return it_ == target_.dictionary_.end(); }
     void Advance() { ++it_; }
@@ -393,14 +399,18 @@ class BASE_EXPORT ListValue : public Value {
   
   
   
+  
   bool Get(size_t index, const Value** out_value) const;
   bool Get(size_t index, Value** out_value);
 
   
   
   
+  
   bool GetBoolean(size_t index, bool* out_value) const;
   bool GetInteger(size_t index, int* out_value) const;
+  
+  
   bool GetDouble(size_t index, double* out_value) const;
   bool GetString(size_t index, std::string* out_value) const;
   bool GetString(size_t index, string16* out_value) const;
@@ -521,11 +531,5 @@ BASE_EXPORT inline std::ostream& operator<<(std::ostream& out,
 }
 
 }  
-
-
-using base::DictionaryValue;
-using base::ListValue;
-using base::StringValue;
-using base::Value;
 
 #endif  
