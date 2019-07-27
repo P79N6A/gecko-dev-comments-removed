@@ -296,7 +296,7 @@ IMEContentObserver::IsManaging(nsPresContext* aPresContext,
   if (!mSelection || !mRootContent || !mEditableNode) {
     return false; 
   }
-  if (!mRootContent->IsInDoc()) {
+  if (!mRootContent->IsInComposedDoc()) {
     return false; 
   }
   return mEditableNode == IMEStateManager::GetRootEditableNode(aPresContext,

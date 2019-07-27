@@ -6426,7 +6426,8 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
 
   if (aOperation == CONTENTINSERT) {
     if (aChild->IsRootOfAnonymousSubtree() ||
-        aChild->HasFlag(NODE_IS_IN_SHADOW_TREE) ||
+        (aChild->HasFlag(NODE_IS_IN_SHADOW_TREE) &&
+         !aChild->IsInNativeAnonymousSubtree()) ||
         aChild->IsEditable() || aChild->IsXUL()) {
       return false;
     }
@@ -6739,7 +6740,10 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
 #endif 
 
-  if (aContainer && aContainer->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+  if (aContainer && aContainer->HasFlag(NODE_IS_IN_SHADOW_TREE) &&
+      !aContainer->IsInNativeAnonymousSubtree() &&
+      !aFirstNewContent->IsInNativeAnonymousSubtree()) {
+    
     
     
     
@@ -7173,7 +7177,11 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     return NS_OK;
   }
 
-  if (aContainer->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+  if (aContainer->HasFlag(NODE_IS_IN_SHADOW_TREE) &&
+      !aContainer->IsInNativeAnonymousSubtree() &&
+      (!aStartChild || !aStartChild->IsInNativeAnonymousSubtree()) &&
+      (!aEndChild || !aEndChild->IsInNativeAnonymousSubtree())) {
+    
     
     
     
@@ -7665,7 +7673,10 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
     }
   }
 
-  if (aContainer && aContainer->HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+  if (aContainer && aContainer->HasFlag(NODE_IS_IN_SHADOW_TREE) &&
+      !aContainer->IsInNativeAnonymousSubtree() &&
+      !aChild->IsInNativeAnonymousSubtree()) {
+    
     
     
     

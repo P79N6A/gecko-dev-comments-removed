@@ -3530,8 +3530,8 @@ PresShell::ScrollContentIntoView(nsIContent*              aContent,
                                  uint32_t                 aFlags)
 {
   NS_ENSURE_TRUE(aContent, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIDocument> currentDoc = aContent->GetCurrentDoc();
-  NS_ENSURE_STATE(currentDoc);
+  nsCOMPtr<nsIDocument> composedDoc = aContent->GetComposedDoc();
+  NS_ENSURE_STATE(composedDoc);
 
   NS_ASSERTION(mDidInitialize, "should have done initial reflow by now");
 
@@ -3549,8 +3549,8 @@ PresShell::ScrollContentIntoView(nsIContent*              aContent,
   }
 
   
-  currentDoc->SetNeedLayoutFlush();
-  currentDoc->FlushPendingNotifications(Flush_InterruptibleLayout);
+  composedDoc->SetNeedLayoutFlush();
+  composedDoc->FlushPendingNotifications(Flush_InterruptibleLayout);
 
   
   
@@ -4724,7 +4724,7 @@ PresShell::StyleRuleRemoved(nsIDocument *aDocument,
 nsIFrame*
 PresShell::GetRealPrimaryFrameFor(nsIContent* aContent) const
 {
-  if (aContent->GetDocument() != GetDocument()) {
+  if (aContent->GetComposedDoc() != GetDocument()) {
     return nullptr;
   }
   nsIFrame *primaryFrame = aContent->GetPrimaryFrame();
@@ -6467,7 +6467,7 @@ bool PresShell::InZombieDocument(nsIContent *aContent)
   
   
   
-  nsIDocument *doc = aContent->GetDocument();
+  nsIDocument* doc = aContent->GetComposedDoc();
   return !doc || !doc->GetWindow();
 }
 
@@ -7354,8 +7354,8 @@ PresShell::HandleEvent(nsIFrame* aFrame,
         
         
         if (eventTarget &&
-            nsContentUtils::IsChromeDoc(gKeyDownTarget->GetCurrentDoc()) !=
-            nsContentUtils::IsChromeDoc(eventTarget->GetCurrentDoc())) {
+            nsContentUtils::IsChromeDoc(gKeyDownTarget->GetComposedDoc()) !=
+            nsContentUtils::IsChromeDoc(eventTarget->GetComposedDoc())) {
           eventTarget = gKeyDownTarget;
         }
 
@@ -8386,13 +8386,6 @@ PresShell::WillPaintWindow()
 void
 PresShell::DidPaintWindow()
 {
-  if (mDocument) {
-    nsCOMPtr<nsPIDOMWindow> window = mDocument->GetWindow();
-    if (window) {
-      window->SendAfterRemotePaintIfRequested();
-    }
-  }
-
   nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
   if (rootPresContext != mPresContext) {
     

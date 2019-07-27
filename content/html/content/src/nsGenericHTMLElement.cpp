@@ -1085,9 +1085,9 @@ nsGenericHTMLElement::GetAttributeMappingFunction() const
 nsIFormControlFrame*
 nsGenericHTMLElement::GetFormControlFrame(bool aFlushFrames)
 {
-  if (aFlushFrames && IsInDoc()) {
+  if (aFlushFrames && IsInComposedDoc()) {
     
-    GetCurrentDoc()->FlushPendingNotifications(Flush_Frames);
+    GetComposedDoc()->FlushPendingNotifications(Flush_Frames);
   }
   nsIFrame* frame = GetPrimaryFrame();
   if (frame) {
@@ -2346,7 +2346,7 @@ nsGenericHTMLFormElement::FocusTristate
 nsGenericHTMLFormElement::FocusState()
 {
   
-  nsIDocument* doc = GetCurrentDoc();
+  nsIDocument* doc = GetComposedDoc();
   if (!doc)
     return eUnfocusable;
 
@@ -2592,7 +2592,7 @@ nsGenericHTMLElement::Blur(mozilla::ErrorResult& aError)
     return;
   }
 
-  nsIDocument* doc = GetCurrentDoc();
+  nsIDocument* doc = GetComposedDoc();
   if (!doc) {
     return;
   }
@@ -2620,7 +2620,7 @@ nsGenericHTMLElement::Click()
     return;
 
   
-  nsCOMPtr<nsIDocument> doc = GetCurrentDoc();
+  nsCOMPtr<nsIDocument> doc = GetComposedDoc();
 
   nsCOMPtr<nsIPresShell> shell;
   nsRefPtr<nsPresContext> context;
@@ -2650,7 +2650,7 @@ nsGenericHTMLElement::IsHTMLFocusable(bool aWithMouse,
                                       bool *aIsFocusable,
                                       int32_t *aTabIndex)
 {
-  nsIDocument *doc = GetCurrentDoc();
+  nsIDocument* doc = GetComposedDoc();
   if (!doc || doc->HasFlag(NODE_IS_EDITABLE)) {
     
     if (aTabIndex) {
