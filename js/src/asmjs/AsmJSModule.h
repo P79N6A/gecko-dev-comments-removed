@@ -527,7 +527,7 @@ class AsmJSModule
         RelativeLink()
         { }
 
-        RelativeLink(Kind kind)
+        explicit RelativeLink(Kind kind)
         {
 #if defined(JS_CODEGEN_MIPS)
             kind_ = kind;
@@ -536,7 +536,7 @@ class AsmJSModule
             
             JS_ASSERT(kind == CodeLabel || kind == RawPointer);
 #endif
-            
+
         }
 
         bool isRawPointerPatch() {
