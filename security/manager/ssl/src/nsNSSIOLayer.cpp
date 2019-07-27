@@ -84,30 +84,6 @@ typedef enum {ASK, AUTO} SSM_UserCertChoice;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static const bool FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT = true;
-
-
-
-
-
-
 static const bool FALSE_START_REQUIRE_NPN_DEFAULT = false;
 
 } 
@@ -134,7 +110,6 @@ nsNSSSocketInfo::nsNSSSocketInfo(SharedSSLState& aState, uint32_t providerFlags)
     mNotedTimeUntilReady(false),
     mFailedVerification(false),
     mKEAUsed(nsISSLSocketControl::KEY_EXCHANGE_UNKNOWN),
-    mKEAExpected(nsISSLSocketControl::KEY_EXCHANGE_UNKNOWN),
     mKEAKeyBits(0),
     mSSLVersionUsed(nsISSLSocketControl::SSL_VERSION_UNKNOWN),
     mMACAlgorithmUsed(nsISSLSocketControl::SSL_MAC_UNKNOWN),
@@ -167,20 +142,6 @@ NS_IMETHODIMP
 nsNSSSocketInfo::GetKEAUsed(int16_t* aKea)
 {
   *aKea = mKEAUsed;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSSocketInfo::GetKEAExpected(int16_t* aKea)
-{
-  *aKea = mKEAExpected;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSSocketInfo::SetKEAExpected(int16_t aKea)
-{
-  mKEAExpected = aKea;
   return NS_OK;
 }
 
@@ -1484,7 +1445,6 @@ nsSSLIOLayerHelpers::nsSSLIOLayerHelpers()
   , mWarnLevelMissingRFC5746(1)
   , mTLSIntoleranceInfo()
   , mFalseStartRequireNPN(true)
-  , mFalseStartRequireForwardSecrecy(false)
   , mVersionFallbackLimit(SSL_LIBRARY_VERSION_TLS_1_0)
   , mutex("nsSSLIOLayerHelpers.mutex")
 {
@@ -1708,10 +1668,6 @@ PrefObserver::Observe(nsISupports* aSubject, const char* aTopic,
       mOwner->mFalseStartRequireNPN =
         Preferences::GetBool("security.ssl.false_start.require-npn",
                              FALSE_START_REQUIRE_NPN_DEFAULT);
-    } else if (prefName.EqualsLiteral("security.ssl.false_start.require-forward-secrecy")) {
-      mOwner->mFalseStartRequireForwardSecrecy =
-        Preferences::GetBool("security.ssl.false_start.require-forward-secrecy",
-                             FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT);
     } else if (prefName.EqualsLiteral("security.tls.version.fallback-limit")) {
       mOwner->loadVersionFallbackLimit();
     }
@@ -1750,8 +1706,6 @@ nsSSLIOLayerHelpers::~nsSSLIOLayerHelpers()
         "security.ssl.warn_missing_rfc5746");
     Preferences::RemoveObserver(mPrefObserver,
         "security.ssl.false_start.require-npn");
-    Preferences::RemoveObserver(mPrefObserver,
-        "security.ssl.false_start.require-forward-secrecy");
   }
 }
 
@@ -1819,9 +1773,6 @@ nsSSLIOLayerHelpers::Init()
   mFalseStartRequireNPN =
     Preferences::GetBool("security.ssl.false_start.require-npn",
                          FALSE_START_REQUIRE_NPN_DEFAULT);
-  mFalseStartRequireForwardSecrecy =
-    Preferences::GetBool("security.ssl.false_start.require-forward-secrecy",
-                         FALSE_START_REQUIRE_FORWARD_SECRECY_DEFAULT);
   loadVersionFallbackLimit();
 
   mPrefObserver = new PrefObserver(this);
@@ -1833,8 +1784,6 @@ nsSSLIOLayerHelpers::Init()
                                  "security.ssl.warn_missing_rfc5746");
   Preferences::AddStrongObserver(mPrefObserver,
                                  "security.ssl.false_start.require-npn");
-  Preferences::AddStrongObserver(mPrefObserver,
-                                 "security.ssl.false_start.require-forward-secrecy");
   Preferences::AddStrongObserver(mPrefObserver,
                                  "security.tls.version.fallback-limit");
   return NS_OK;
