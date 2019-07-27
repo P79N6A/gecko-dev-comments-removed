@@ -378,20 +378,7 @@ SocketListener.prototype = {
 
   onSocketAccepted:
   DevToolsUtils.makeInfallible(function(socket, socketTransport) {
-    if (this.encryption) {
-      new SecurityObserver(socketTransport);
-    }
-    if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") &&
-        !this.allowConnection()) {
-      return;
-    }
-    dumpn("New debugging connection on " +
-          socketTransport.host + ":" + socketTransport.port);
-
-    let input = socketTransport.openInputStream(0, 0, 0);
-    let output = socketTransport.openOutputStream(0, 0, 0);
-    let transport = new DebuggerTransport(input, output);
-    DebuggerServer._onConnection(transport);
+    new ServerSocketConnection(this, socketTransport);
   }, "SocketListener.onSocketAccepted"),
 
   onStopListening: function(socket, status) {
@@ -405,25 +392,105 @@ loader.lazyGetter(this, "HANDSHAKE_TIMEOUT", () => {
   return Services.prefs.getIntPref("devtools.remote.tls-handshake-timeout");
 });
 
-function SecurityObserver(socketTransport) {
-  this.socketTransport = socketTransport;
-  let connectionInfo = socketTransport.securityInfo
-                       .QueryInterface(Ci.nsITLSServerConnectionInfo);
-  connectionInfo.setSecurityObserver(this);
-  this._handshakeTimeout = setTimeout(this._onHandshakeTimeout.bind(this),
-                                      HANDSHAKE_TIMEOUT);
+
+
+
+
+
+
+function ServerSocketConnection(listener, socketTransport) {
+  this._listener = listener;
+  this._socketTransport = socketTransport;
+  this._handle();
 }
 
-SecurityObserver.prototype = {
+ServerSocketConnection.prototype = {
+
+  get host() {
+    return this._socketTransport.host;
+  },
+
+  get port() {
+    return this._socketTransport.port;
+  },
+
+  get address() {
+    return this.host + ":" + this.port;
+  },
+
+  
+
+
+
+
+  _handle() {
+    dumpn("Debugging connection starting authentication on " + this.address);
+    let self = this;
+    Task.spawn(function*() {
+      self._listenForTLSHandshake();
+      self._createTransport();
+      yield self._awaitTLSHandshake();
+      yield self._authenticate();
+    }).then(() => this.allow()).catch(e => this.deny(e));
+  },
+
+  
+
+
+
+  _createTransport() {
+    let input = this._socketTransport.openInputStream(0, 0, 0);
+    let output = this._socketTransport.openOutputStream(0, 0, 0);
+    this._transport = new DebuggerTransport(input, output);
+    
+    
+    this._transport.hooks = {
+      onClosed: reason => {
+        this.deny(reason);
+      }
+    };
+    this._transport.ready();
+  },
+
+  
+
+
+
+  _setSecurityObserver(observer) {
+    let connectionInfo = this._socketTransport.securityInfo
+                         .QueryInterface(Ci.nsITLSServerConnectionInfo);
+    connectionInfo.setSecurityObserver(observer);
+  },
+
+  
+
+
+
+
+  _listenForTLSHandshake() {
+    this._handshakeDeferred = promise.defer();
+    if (!this._listener.encryption) {
+      this._handshakeDeferred.resolve();
+      return;
+    }
+    this._setSecurityObserver(this);
+    this._handshakeTimeout = setTimeout(this._onHandshakeTimeout.bind(this),
+                                        HANDSHAKE_TIMEOUT);
+  },
+
+  _awaitTLSHandshake() {
+    return this._handshakeDeferred.promise;
+  },
 
   _onHandshakeTimeout() {
-    dumpv("Client failed to complete handshake");
-    this.destroy(Cr.NS_ERROR_NET_TIMEOUT);
+    dumpv("Client failed to complete TLS handshake");
+    this._handshakeDeferred.reject(Cr.NS_ERROR_NET_TIMEOUT);
   },
 
   
   onHandshakeDone(socket, clientStatus) {
     clearTimeout(this._handshakeTimeout);
+    this._setSecurityObserver(null);
     dumpv("TLS version:    " + clientStatus.tlsVersionUsed.toString(16));
     dumpv("TLS cipher:     " + clientStatus.cipherName);
     dumpv("TLS key length: " + clientStatus.keyLength);
@@ -436,21 +503,50 @@ SecurityObserver.prototype = {
 
 
 
-
-
-
     if (clientStatus.tlsVersionUsed != Ci.nsITLSClientStatus.TLS_VERSION_1_2) {
-      this.destroy(Cr.NS_ERROR_CONNECTION_REFUSED);
+      this._handshakeDeferred.reject(Cr.NS_ERROR_CONNECTION_REFUSED);
+      return;
     }
+
+    this._handshakeDeferred.resolve();
   },
 
-  destroy(result) {
+  _authenticate() {
+    if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") &&
+        !this._listener.allowConnection()) {
+      return promise.reject(Cr.NS_ERROR_CONNECTION_REFUSED);
+    }
+    return promise.resolve();
+  },
+
+  deny(result) {
+    let errorName = result;
+    for (let name in Cr) {
+      if (Cr[name] === result) {
+        errorName = name;
+        break;
+      }
+    }
+    dumpn("Debugging connection denied on " + this.address +
+          " (" + errorName + ")");
+    this._transport.hooks = null;
+    this._transport.close(result);
+    this._socketTransport.close(result);
+    this.destroy();
+  },
+
+  allow() {
+    dumpn("Debugging connection allowed on " + this.address);
+    DebuggerServer._onConnection(this._transport);
+    this.destroy();
+  },
+
+  destroy() {
     clearTimeout(this._handshakeTimeout);
-    let connectionInfo = this.socketTransport.securityInfo
-                         .QueryInterface(Ci.nsITLSServerConnectionInfo);
-    connectionInfo.setSecurityObserver(null);
-    this.socketTransport.close(result);
-    this.socketTransport = null;
+    this._setSecurityObserver(null);
+    this._listener = null;
+    this._socketTransport = null;
+    this._transport = null;
   }
 
 };
