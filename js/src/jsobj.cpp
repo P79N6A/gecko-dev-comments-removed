@@ -1077,13 +1077,17 @@ js::SetIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level)
         JS_ALWAYS_TRUE(NativeObject::setLastProperty(cx, nobj, last));
     } else {
         RootedId id(cx);
+        Rooted<PropertyDescriptor> desc(cx);
         for (size_t i = 0; i < keys.length(); i++) {
             id = keys[i];
 
-            unsigned attrs;
-            if (!GetPropertyAttributes(cx, obj, id, &attrs))
+            if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
                 return false;
 
+            if (!desc.object())
+                continue;
+
+            unsigned attrs = desc.attributes();
             unsigned new_attrs = GetSealedOrFrozenAttributes(attrs, level);
 
             
@@ -1147,19 +1151,21 @@ js::TestIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level, bo
     
     
     RootedId id(cx);
+    Rooted<PropertyDescriptor> desc(cx);
     for (size_t i = 0, len = props.length(); i < len; i++) {
         id = props[i];
 
-        unsigned attrs;
-        if (!GetPropertyAttributes(cx, obj, id, &attrs))
+        if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
             return false;
+
+        if (!desc.object())
+            continue;
 
         
         
         
-        if (!(attrs & JSPROP_PERMANENT) ||
-            (level == IntegrityLevel::Frozen &&
-             !(attrs & (JSPROP_READONLY | JSPROP_GETTER | JSPROP_SETTER))))
+        if (!desc.isPermanent() ||
+            (level == IntegrityLevel::Frozen && desc.isDataDescriptor() && desc.isWritable()))
         {
             *result = false;
             return true;

@@ -954,13 +954,6 @@ HasOwnProperty(JSContext *cx, HandleObject obj, HandleId id, bool *result);
 
 
 inline bool
-GetPropertyAttributes(JSContext *cx, HandleObject obj, HandleId id, unsigned *attrsp);
-
-
-
-
-
-inline bool
 SetPropertyAttributes(JSContext *cx, HandleObject obj, HandleId id, unsigned *attrsp);
 
 

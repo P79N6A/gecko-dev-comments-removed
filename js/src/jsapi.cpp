@@ -2839,16 +2839,17 @@ GetPropertyDescriptorById(JSContext *cx, HandleObject obj, HandleId id,
             if (shape->hasSlot())
                 desc.value().set(obj2->as<NativeObject>().getSlot(shape->slot()));
         }
-    } else {
-        if (obj2->is<ProxyObject>())
-            return Proxy::getPropertyDescriptor(cx, obj2, id, desc);
-        if (!GetPropertyAttributes(cx, obj2, id, &desc.attributesRef()))
-            return false;
-        MOZ_ASSERT(desc.getter() == nullptr);
-        MOZ_ASSERT(desc.setter() == nullptr);
-        MOZ_ASSERT(desc.value().isUndefined());
+
+        return true;
     }
-    return true;
+
+    
+    
+    if (obj2->is<ProxyObject>())
+        return Proxy::getPropertyDescriptor(cx, obj2, id, desc);
+
+    
+    return GetOwnPropertyDescriptor(cx, obj2, id, desc);
 }
 
 JS_PUBLIC_API(bool)
