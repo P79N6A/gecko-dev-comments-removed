@@ -48,6 +48,9 @@ public:
 
   
   static void Init();
+
+  
+  static int GetNumDecoderThreads();
 private:
   bool ShouldUseDXVA(const VideoInfo& aConfig) const;
   bool mWMFInitialized;
