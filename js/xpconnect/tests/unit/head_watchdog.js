@@ -20,6 +20,11 @@ function isWatchdogEnabled() {
   return gPrefs.getBoolPref("dom.use_watchdog");
 }
 
+function setScriptTimeout(seconds) {
+  var oldTimeout = gPrefs.getIntPref("dom.max_script_run_time");
+  gPrefs.setIntPref("dom.max_script_run_time", seconds);
+}
+
 
 
 
@@ -51,7 +56,9 @@ function executeSoon(fn) {
 
 
 
+
 function checkWatchdog(expectInterrupt, continuation) {
+  var oldTimeout = setScriptTimeout(1);
   var lastWatchdogWakeup = Cu.getWatchdogTimestamp("WatchdogWakeup");
   setInterruptCallback(function() {
     
@@ -62,6 +69,7 @@ function checkWatchdog(expectInterrupt, continuation) {
     }
     do_check_true(expectInterrupt);
     setInterruptCallback(undefined);
+    setScriptTimeout(oldTimeout);
     
     executeSoon(continuation);
     return false;
@@ -70,6 +78,7 @@ function checkWatchdog(expectInterrupt, continuation) {
     busyWait(3000);
     do_check_true(!expectInterrupt);
     setInterruptCallback(undefined);
+    setScriptTimeout(oldTimeout);
     continuation();
   });
 }
