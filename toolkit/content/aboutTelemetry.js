@@ -814,7 +814,9 @@ let KeyValueTable = {
   renderBody: function KeyValueTable_renderBody(aTable, aMeasurements) {
     for (let [key, value] of Iterator(aMeasurements)) {
       
-      if ((typeof value == "object") && (typeof value.valueOf() == "object")) {
+      if (value &&
+         (typeof value == "object") &&
+         (typeof value.valueOf() == "object")) {
         value = RenderObject(value);
       }
 
