@@ -759,23 +759,18 @@ class TreeMetadataEmitter(LoggingMixin):
         
         
         
-        
-        
-        
-        
-        
         test_manifests = dict(
-            A11Y=('a11y', 'testing/mochitest', 'a11y', True, True),
-            BROWSER_CHROME=('browser-chrome', 'testing/mochitest', 'browser', True, True),
-            ANDROID_INSTRUMENTATION=('instrumentation', 'instrumentation', '.', False, False),
-            JETPACK_PACKAGE=('jetpack-package', 'testing/mochitest', 'jetpack-package', True, True),
-            JETPACK_ADDON=('jetpack-addon', 'testing/mochitest', 'jetpack-addon', True, False),
-            METRO_CHROME=('metro-chrome', 'testing/mochitest', 'metro', True, True),
-            MOCHITEST=('mochitest', 'testing/mochitest', 'tests', True, True),
-            MOCHITEST_CHROME=('chrome', 'testing/mochitest', 'chrome', True, True),
-            MOCHITEST_WEBAPPRT_CHROME=('webapprt-chrome', 'testing/mochitest', 'webapprtChrome', True, True),
-            WEBRTC_SIGNALLING_TEST=('steeplechase', 'steeplechase', '.', True, True),
-            XPCSHELL_TESTS=('xpcshell', 'xpcshell', '.', False, True),
+            A11Y=('a11y', 'testing/mochitest', 'a11y', True),
+            BROWSER_CHROME=('browser-chrome', 'testing/mochitest', 'browser', True),
+            ANDROID_INSTRUMENTATION=('instrumentation', 'instrumentation', '.', False),
+            JETPACK_PACKAGE=('jetpack-package', 'testing/mochitest', 'jetpack-package', True),
+            JETPACK_ADDON=('jetpack-addon', 'testing/mochitest', 'jetpack-addon', False),
+            METRO_CHROME=('metro-chrome', 'testing/mochitest', 'metro', True),
+            MOCHITEST=('mochitest', 'testing/mochitest', 'tests', True),
+            MOCHITEST_CHROME=('chrome', 'testing/mochitest', 'chrome', True),
+            MOCHITEST_WEBAPPRT_CHROME=('webapprt-chrome', 'testing/mochitest', 'webapprtChrome', True),
+            WEBRTC_SIGNALLING_TEST=('steeplechase', 'steeplechase', '.', True),
+            XPCSHELL_TESTS=('xpcshell', 'xpcshell', '.', True),
         )
 
         for prefix, info in test_manifests.items():
@@ -827,7 +822,7 @@ class TreeMetadataEmitter(LoggingMixin):
         return sub
 
     def _process_test_manifest(self, context, info, manifest_path):
-        flavor, install_root, install_subdir, filter_inactive, package_tests = info
+        flavor, install_root, install_subdir, package_tests = info
 
         manifest_path = mozpath.normpath(manifest_path)
         path = mozpath.normpath(mozpath.join(context.srcdir, manifest_path))
@@ -849,12 +844,6 @@ class TreeMetadataEmitter(LoggingMixin):
                 dupe_manifest='dupe-manifest' in defaults)
 
             filtered = m.tests
-
-            if filter_inactive:
-                
-                
-                filtered = m.active_tests(exists=False, disabled=True,
-                    **self.info)
 
             
             
