@@ -41,7 +41,9 @@ loop.store.ActiveRoomStore = (function() {
     
     FULL: "room-full",
     
-    ENDED: "room-ended"
+    ENDED: "room-ended",
+    
+    CLOSING: "room-closing"
   };
 
   
@@ -386,7 +388,7 @@ loop.store.ActiveRoomStore = (function() {
 
 
     windowUnload: function() {
-      this._leaveRoom();
+      this._leaveRoom(ROOM_STATES.CLOSING);
 
       
       this._mozLoop.rooms.off("update:" + this.getStoreState().roomToken,
