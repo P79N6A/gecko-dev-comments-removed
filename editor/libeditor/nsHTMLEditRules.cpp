@@ -3420,29 +3420,24 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
   nsString tString(*aBlockType);
 
   
-  nsTArray<nsCOMPtr<nsINode>> array;
+  nsTArray<nsCOMPtr<nsINode>> arrayOfNodes;
   res = GetNodesFromSelection(*aSelection, EditAction::makeBasicBlock,
-                              array);
+                              arrayOfNodes);
   NS_ENSURE_SUCCESS(res, res);
 
   
-  int32_t listCount = array.Length();
+  int32_t listCount = arrayOfNodes.Length();
   int32_t i;
   for (i=listCount-1; i>=0; i--)
   {
     NS_ENSURE_STATE(mHTMLEditor);
-    if (!mHTMLEditor->IsEditable(array[i])) {
-      array.RemoveElementAt(i);
+    if (!mHTMLEditor->IsEditable(arrayOfNodes[i])) {
+      arrayOfNodes.RemoveElementAt(i);
     }
   }
 
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  for (auto& node : array) {
-    arrayOfNodes.AppendObject(GetAsDOMNode(node));
-  }
   
-  
-  listCount = arrayOfNodes.Count();
+  listCount = arrayOfNodes.Length();
   
   
   if (ListIsEmptyLine(arrayOfNodes))
@@ -3500,10 +3495,9 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
     else  
     {   
       
-      nsCOMPtr<nsIDOMNode> brNode;
       NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->GetNextHTMLNode(parent->AsDOMNode(), offset,
-                                         address_of(brNode), true);
+      nsCOMPtr<nsIContent> brNode =
+        mHTMLEditor->GetNextHTMLNode(parent, offset, true);
       NS_ENSURE_SUCCESS(res, res);
       if (brNode && nsTextEditUtils::IsBreak(brNode))
       {
@@ -3511,7 +3505,7 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
         res = mHTMLEditor->DeleteNode(brNode);
         NS_ENSURE_SUCCESS(res, res);
         
-        arrayOfNodes.RemoveObject(brNode);
+        arrayOfNodes.RemoveElement(brNode);
       }
       
       res = SplitAsNeeded(blockType, parent, offset);
@@ -3523,13 +3517,12 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
       
       mNewBlock = theBlock;
       
-      for (int32_t j = arrayOfNodes.Count() - 1; j >= 0; --j) 
-      {
-        nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[0];
+      while (!arrayOfNodes.IsEmpty()) {
+        nsCOMPtr<nsINode> curNode = arrayOfNodes[0];
         NS_ENSURE_STATE(mHTMLEditor);
         res = mHTMLEditor->DeleteNode(curNode);
         NS_ENSURE_SUCCESS(res, res);
-        arrayOfNodes.RemoveObjectAt(0);
+        arrayOfNodes.RemoveElementAt(0);
       }
       
       res = aSelection->Collapse(theBlock,0);
@@ -3543,13 +3536,17 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
     
     
     
+    nsCOMArray<nsIDOMNode> arrayOfDOMNodes;
+    for (auto& node : arrayOfNodes) {
+      arrayOfDOMNodes.AppendObject(GetAsDOMNode(node));
+    }
     if (tString.EqualsLiteral("blockquote"))
-      res = MakeBlockquote(arrayOfNodes);
+      res = MakeBlockquote(arrayOfDOMNodes);
     else if (tString.EqualsLiteral("normal") ||
              tString.IsEmpty() )
-      res = RemoveBlockStyle(arrayOfNodes);
+      res = RemoveBlockStyle(arrayOfDOMNodes);
     else
-      res = ApplyBlockStyle(arrayOfNodes, aBlockType);
+      res = ApplyBlockStyle(arrayOfDOMNodes, aBlockType);
     return res;
   }
   return res;
@@ -3607,7 +3604,7 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
   NS_ENSURE_STATE(mHTMLEditor);
   nsAutoSelectionReset selectionResetter(aSelection, mHTMLEditor);
   nsTArray<nsRefPtr<nsRange>> arrayOfRanges;
-  nsTArray<nsCOMPtr<nsINode>> array;
+  nsTArray<nsCOMPtr<nsINode>> arrayOfNodes;
   
   
   
@@ -3632,7 +3629,7 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
   
   if (liNode)
   {
-    array.AppendElement(liNode);
+    arrayOfNodes.AppendElement(liNode);
   }
   else
   {
@@ -3640,15 +3637,10 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
     
     
     
-    res = GetNodesFromSelection(*aSelection, EditAction::indent, array);
+    res = GetNodesFromSelection(*aSelection, EditAction::indent, arrayOfNodes);
     NS_ENSURE_SUCCESS(res, res);
   }
 
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  for (auto& node : array) {
-    arrayOfNodes.AppendObject(GetAsDOMNode(node));
-  }
-  
   
   if (ListIsEmptyLine(arrayOfNodes))
   {
@@ -3669,13 +3661,12 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
     mNewBlock = theBlock->AsDOMNode();
     RelativeChangeIndentationOfElementNode(theBlock->AsDOMNode(), +1);
     
-    for (int32_t j = arrayOfNodes.Count() - 1; j >= 0; --j) 
-    {
-      nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[0];
+    while (!arrayOfNodes.IsEmpty()) {
+      nsCOMPtr<nsINode> curNode = arrayOfNodes[0];
       NS_ENSURE_STATE(mHTMLEditor);
       res = mHTMLEditor->DeleteNode(curNode);
       NS_ENSURE_SUCCESS(res, res);
-      arrayOfNodes.RemoveObjectAt(0);
+      arrayOfNodes.RemoveElementAt(0);
     }
     
     res = aSelection->Collapse(theBlock,0);
@@ -3690,12 +3681,12 @@ nsHTMLEditRules::WillCSSIndent(Selection* aSelection,
   nsCOMPtr<nsINode> curParent;
   nsCOMPtr<Element> curList, curQuote;
   nsCOMPtr<nsIContent> sibling;
-  int32_t listCount = arrayOfNodes.Count();
+  int32_t listCount = arrayOfNodes.Length();
   for (i=0; i<listCount; i++)
   {
     
-    nsCOMPtr<nsIContent> curNode = do_QueryInterface(arrayOfNodes[i]);
-    NS_ENSURE_STATE(!arrayOfNodes[i] || curNode);
+    NS_ENSURE_STATE(arrayOfNodes[i]->IsContent());
+    nsCOMPtr<nsIContent> curNode = arrayOfNodes[i]->AsContent();
 
     
     NS_ENSURE_STATE(mHTMLEditor);
@@ -3832,15 +3823,10 @@ nsHTMLEditRules::WillHTMLIndent(Selection* aSelection,
   GetPromotedRanges(*aSelection, arrayOfRanges, EditAction::indent);
   
   
-  nsTArray<nsCOMPtr<nsINode>> array;
-  res = GetNodesForOperation(arrayOfRanges, array, EditAction::indent);
+  nsTArray<nsCOMPtr<nsINode>> arrayOfNodes;
+  res = GetNodesForOperation(arrayOfRanges, arrayOfNodes, EditAction::indent);
   NS_ENSURE_SUCCESS(res, res);                                 
                                      
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  for (auto& node : array) {
-    arrayOfNodes.AppendObject(GetAsDOMNode(node));
-  }
-
   
   if (ListIsEmptyLine(arrayOfNodes))
   {
@@ -3860,13 +3846,12 @@ nsHTMLEditRules::WillHTMLIndent(Selection* aSelection,
     
     mNewBlock = theBlock->AsDOMNode();
     
-    for (int32_t j = arrayOfNodes.Count() - 1; j >= 0; --j) 
-    {
-      nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[0];
+    while (!arrayOfNodes.IsEmpty()) {
+      nsCOMPtr<nsINode> curNode = arrayOfNodes[0];
       NS_ENSURE_STATE(mHTMLEditor);
       res = mHTMLEditor->DeleteNode(curNode);
       NS_ENSURE_SUCCESS(res, res);
-      arrayOfNodes.RemoveObjectAt(0);
+      arrayOfNodes.RemoveElementAt(0);
     }
     
     res = aSelection->Collapse(theBlock,0);
@@ -3881,12 +3866,12 @@ nsHTMLEditRules::WillHTMLIndent(Selection* aSelection,
   nsCOMPtr<nsINode> curParent;
   nsCOMPtr<nsIContent> sibling;
   nsCOMPtr<Element> curList, curQuote, indentedLI;
-  int32_t listCount = arrayOfNodes.Count();
+  int32_t listCount = arrayOfNodes.Length();
   for (i=0; i<listCount; i++)
   {
     
-    nsCOMPtr<nsIContent> curNode = do_QueryInterface(arrayOfNodes[i]);
-    NS_ENSURE_STATE(!arrayOfNodes[i] || curNode);
+    NS_ENSURE_STATE(arrayOfNodes[i]->IsContent());
+    nsCOMPtr<nsIContent> curNode = arrayOfNodes[i]->AsContent();
 
     
     NS_ENSURE_STATE(mHTMLEditor);
@@ -8088,33 +8073,33 @@ nsHTMLEditRules::IsEmptyInline(nsIDOMNode *aNode)
 }
 
 
-bool 
-nsHTMLEditRules::ListIsEmptyLine(nsCOMArray<nsIDOMNode> &arrayOfNodes)
+bool
+nsHTMLEditRules::ListIsEmptyLine(nsTArray<nsCOMPtr<nsINode>>& aArrayOfNodes)
 {
   
   
   
-  int32_t listCount = arrayOfNodes.Count();
-  NS_ENSURE_TRUE(listCount, true);
-  nsCOMPtr<nsIDOMNode> somenode;
-  int32_t j, brCount=0;
-  for (j = 0; j < listCount; j++)
-  {
-    somenode = arrayOfNodes[j];
-    NS_ENSURE_TRUE(mHTMLEditor, false);
-    if (somenode && mHTMLEditor->IsEditable(somenode))
-    {
-      if (nsTextEditUtils::IsBreak(somenode))
-      {
-        
-        if (brCount) return false;
-        brCount++;
+  NS_ENSURE_TRUE(aArrayOfNodes.Length(), true);
+
+  NS_ENSURE_TRUE(mHTMLEditor, false);
+  nsCOMPtr<nsIEditor> kungFuDeathGrip(mHTMLEditor);
+
+  int32_t brCount = 0;
+
+  for (auto& node : aArrayOfNodes) {
+    if (!node || !mHTMLEditor->IsEditable(node)) {
+      continue;
+    }
+    if (nsTextEditUtils::IsBreak(node)) {
+      
+      if (brCount) {
+        return false;
       }
-      else if (IsEmptyInline(somenode)) 
-      {
-        
-      }
-      else return false;
+      brCount++;
+    } else if (IsEmptyInline(GetAsDOMNode(node))) {
+      
+    } else {
+      return false;
     }
   }
   return true;
@@ -8921,15 +8906,11 @@ nsHTMLEditRules::WillAbsolutePosition(Selection* aSelection,
                     EditAction::setAbsolutePosition);
   
   
-  nsTArray<nsCOMPtr<nsINode>> array;
-  res = GetNodesForOperation(arrayOfRanges, array,
+  nsTArray<nsCOMPtr<nsINode>> arrayOfNodes;
+  res = GetNodesForOperation(arrayOfRanges, arrayOfNodes,
                              EditAction::setAbsolutePosition);
   NS_ENSURE_SUCCESS(res, res);                                 
                                      
-  nsCOMArray<nsIDOMNode> arrayOfNodes;
-  for (auto& node : array) {
-    arrayOfNodes.AppendObject(GetAsDOMNode(node));
-  }
   
   if (ListIsEmptyLine(arrayOfNodes))
   {
@@ -8949,13 +8930,12 @@ nsHTMLEditRules::WillAbsolutePosition(Selection* aSelection,
     
     mNewBlock = thePositionedDiv->AsDOMNode();
     
-    for (int32_t j = arrayOfNodes.Count() - 1; j >= 0; --j) 
-    {
-      nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[0];
+    while (!arrayOfNodes.IsEmpty()) {
+      nsCOMPtr<nsINode> curNode = arrayOfNodes[0];
       NS_ENSURE_STATE(mHTMLEditor);
       res = mHTMLEditor->DeleteNode(curNode);
       NS_ENSURE_SUCCESS(res, res);
-      arrayOfNodes.RemoveObjectAt(0);
+      arrayOfNodes.RemoveElementAt(0);
     }
     
     res = aSelection->Collapse(thePositionedDiv,0);
@@ -8966,16 +8946,13 @@ nsHTMLEditRules::WillAbsolutePosition(Selection* aSelection,
 
   
   
-  int32_t i;
   nsCOMPtr<nsINode> curParent;
   nsCOMPtr<nsIDOMNode> indentedLI, sibling;
   nsCOMPtr<Element> curList, curPositionedDiv;
-  int32_t listCount = arrayOfNodes.Count();
-  for (i=0; i<listCount; i++)
-  {
+  for (uint32_t i = 0; i < arrayOfNodes.Length(); i++) {
     
-    nsCOMPtr<nsIContent> curNode = do_QueryInterface(arrayOfNodes[i]);
-    NS_ENSURE_STATE(curNode);
+    NS_ENSURE_STATE(arrayOfNodes[i]->IsContent());
+    nsCOMPtr<nsIContent> curNode = arrayOfNodes[i]->AsContent();
 
     
     NS_ENSURE_STATE(mHTMLEditor);
