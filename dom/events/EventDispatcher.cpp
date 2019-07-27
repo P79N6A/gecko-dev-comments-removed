@@ -466,7 +466,9 @@ EventDispatcher::Dispatch(nsISupports* aTarget,
       nsPIDOMWindow* win = doc ? doc->GetInnerWindow() : nullptr;
       
       EventTarget* piTarget = win ? win->GetParentTarget() : nullptr;
-      NS_ENSURE_TRUE(piTarget, NS_OK);
+      if (!piTarget) {
+        return NS_OK;
+      }
 
       
       aEvent->target = target;
