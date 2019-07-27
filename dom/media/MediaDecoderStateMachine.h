@@ -89,6 +89,7 @@
 #include "MediaDecoderReader.h"
 #include "MediaDecoderOwner.h"
 #include "MediaMetadataManager.h"
+#include "MediaDecoderStateMachineScheduler.h"
 
 class nsITimer;
 
@@ -943,8 +944,17 @@ protected:
   
   
   
-  uint32_t mAudioPrerollUsecs;
-  uint32_t mVideoPrerollFrames;
+  uint32_t AudioPrerollUsecs() const
+  {
+    if (mScheduler->IsRealTime()) {
+      return 0;
+    }
+
+    uint32_t result = mLowAudioThresholdUsecs * 2;
+    MOZ_ASSERT(result <= mAmpleAudioThresholdUsecs, "Prerolling will never finish");
+    return result;
+  }
+  uint32_t VideoPrerollFrames() const { return mScheduler->IsRealTime() ? 0 : mAmpleVideoFrames / 2; }
 
   
   
