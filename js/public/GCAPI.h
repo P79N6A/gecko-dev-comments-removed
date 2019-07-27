@@ -31,17 +31,6 @@ typedef enum JSGCMode {
     JSGC_MODE_INCREMENTAL = 2
 } JSGCMode;
 
-
-
-
-typedef enum JSGCInvocationKind {
-    
-    GC_NORMAL = 0,
-
-    
-    GC_SHRINK = 1
-} JSGCInvocationKind;
-
 namespace JS {
 
 #define GCREASONS(D)                            \
@@ -60,7 +49,6 @@ namespace JS {
     D(EVICT_NURSERY)                            \
     D(FULL_STORE_BUFFER)                        \
     D(SHARED_MEMORY_LIMIT)                      \
-    D(INCREMENTAL_ALLOC_TRIGGER)                \
                                                 \
     /* These are reserved for future use. */    \
     D(RESERVED0)                                \
@@ -81,6 +69,7 @@ namespace JS {
     D(RESERVED15)                               \
     D(RESERVED16)                               \
     D(RESERVED17)                               \
+    D(RESERVED18)                               \
                                                 \
     /* Reasons from Firefox */                  \
     D(DOM_WINDOW_UTILS)                         \
@@ -183,39 +172,8 @@ SkipZoneForGC(Zone *zone);
 
 
 
-
-
-
-
 extern JS_FRIEND_API(void)
-GCForReason(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+GCForReason(JSRuntime *rt, gcreason::Reason reason);
 
 
 
@@ -223,8 +181,31 @@ GCForReason(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason);
 
 
 extern JS_FRIEND_API(void)
-StartIncrementalGC(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason reason,
-                   int64_t millis = 0);
+ShrinkingGC(JSRuntime *rt, gcreason::Reason reason);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -235,7 +216,7 @@ StartIncrementalGC(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason re
 
 
 extern JS_FRIEND_API(void)
-IncrementalGCSlice(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
+IncrementalGC(JSRuntime *rt, gcreason::Reason reason, int64_t millis = 0);
 
 
 
