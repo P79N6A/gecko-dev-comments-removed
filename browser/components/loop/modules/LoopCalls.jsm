@@ -94,7 +94,7 @@ CallProgressSocket.prototype = {
     let helloMsg = {
       messageType: "hello",
       callId: this._callId,
-      auth: this._token,
+      auth: this._token
     };
     try { 
       this._websocket.sendMsg(JSON.stringify(helloMsg));
@@ -182,7 +182,7 @@ CallProgressSocket.prototype = {
       event: "terminate",
       reason: "busy"
     });
-  },
+  }
 };
 
 
@@ -194,7 +194,7 @@ CallProgressSocket.prototype = {
 
 let LoopCallsInternal = {
   mocks: {
-    webSocket: undefined,
+    webSocket: undefined
   },
 
   conversationInProgress: {},

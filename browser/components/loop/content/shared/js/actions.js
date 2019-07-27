@@ -252,7 +252,7 @@ loop.shared.actions = (function() {
       
       
       nameTemplate: String,
-      roomOwner: String,
+      roomOwner: String
       
       
     }),

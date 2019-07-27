@@ -161,7 +161,7 @@ const kRoomUpdates = {
 
 const kCreateRoomProps = {
   decryptedContext: {
-    roomName: "UX Discussion",
+    roomName: "UX Discussion"
   },
   roomOwner: "Alexis",
   maxSize: 2
@@ -428,7 +428,7 @@ add_task(function* test_openRoom() {
 
 add_task(function* test_refresh() {
   
-  Array.prototype.push.apply(gExpectedAdds, [...kExpectedRooms.values()].slice(1,3));
+  Array.prototype.push.apply(gExpectedAdds, [...kExpectedRooms.values()].slice(1, 3));
   gExpectedRefresh = true;
 
   

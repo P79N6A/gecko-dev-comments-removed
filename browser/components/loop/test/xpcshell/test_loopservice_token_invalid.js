@@ -21,7 +21,7 @@ add_test(function test_registration_invalid_token() {
         code: 401,
         errno: 110,
         error: "Unauthorized",
-        message: "Unknown credentials",
+        message: "Unknown credentials"
       }));
     } else {
       
