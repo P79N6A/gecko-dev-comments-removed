@@ -280,6 +280,11 @@ function checkSettingsSection(data) {
   Assert.ok(checkNullOrString(update.channel));
   Assert.equal(typeof update.enabled, "boolean");
   Assert.equal(typeof update.autoDownload, "boolean");
+
+  
+  if ("defaultSearchEngine" in data.settings) {
+    checkString(data.settings.defaultSearchEngine);
+  }
 }
 
 function checkProfileSection(data) {
@@ -561,6 +566,8 @@ function checkEnvironmentData(data) {
 }
 
 function run_test() {
+  
+  do_load_manifest("chrome.manifest");
   do_test_pending();
   spoofGfxAdapter();
   do_get_profile();
@@ -934,6 +941,64 @@ add_task(function* test_changeThrottling() {
 
   
   TelemetryEnvironment.unregisterChangeListener("testWatchPrefs_throttling");
+});
+
+add_task(function* test_defaultSearchEngine() {
+  
+  
+  let data = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(data);
+  Assert.ok(!("defaultSearchEngine" in data.settings));
+
+  
+  
+  let defaultBranch = Services.prefs.getDefaultBranch(null);
+  defaultBranch.setCharPref("browser.search.jarURIs", "chrome://testsearchplugin/locale/searchplugins/");
+  defaultBranch.setBoolPref("browser.search.loadFromJars", true);
+
+  
+  
+  Preferences.set("browser.search.geoip.url", "");
+  yield new Promise(resolve => Services.search.init(resolve));
+
+  
+  
+  data = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(data);
+  Assert.equal(data.settings.defaultSearchEngine, "telemetrySearchIdentifier");
+
+  
+  for (let engine of Services.search.getEngines()) {
+    Services.search.removeEngine(engine);
+  }
+  
+  
+  
+  Services.obs.notifyObservers(null, "browser-search-engine-modified", "engine-default");
+
+  
+  data = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(data);
+  Assert.equal(data.settings.defaultSearchEngine, "NONE");
+
+  
+  const SEARCH_ENGINE_ID = "telemetry_default";
+  const SEARCH_ENGINE_URL = "http://www.example.org/?search={searchTerms}";
+  Services.search.addEngineWithDetails(SEARCH_ENGINE_ID, "", null, "", "get", SEARCH_ENGINE_URL);
+
+  
+  gNow = fakeNow(futureDate(gNow, 10 * MILLISECONDS_PER_MINUTE));
+  
+  let deferred = PromiseUtils.defer();
+  TelemetryEnvironment.registerChangeListener("testWatch_SearchDefault", deferred.resolve);
+  Services.search.defaultEngine = Services.search.getEngineByName(SEARCH_ENGINE_ID);
+  yield deferred.promise;
+
+  data = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(data);
+
+  const EXPECTED_SEARCH_ENGINE = "other-" + SEARCH_ENGINE_ID;
+  Assert.equal(data.settings.defaultSearchEngine, EXPECTED_SEARCH_ENGINE);
 });
 
 add_task(function*() {
