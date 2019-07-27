@@ -179,6 +179,14 @@ loop.shared.actions = (function() {
 
     UpdateRoomList: Action.define("updateRoomList", {
       roomList: Array
+    }),
+
+    
+
+
+
+    OpenRoom: Action.define("openRoom", {
+      roomToken: String
     })
   };
 })();

@@ -328,6 +328,15 @@ loop.store = loop.store || {};
         rooms: this._processRoomList(actionData.roomList)
       });
     },
+
+    
+
+
+
+
+    openRoom: function(actionData) {
+      this._mozLoop.rooms.open(actionData.roomToken);
+    }
   }, Backbone.Events);
 
   loop.store.RoomListStore = RoomListStore;

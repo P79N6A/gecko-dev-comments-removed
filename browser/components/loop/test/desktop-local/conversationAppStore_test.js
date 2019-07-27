@@ -45,8 +45,6 @@ describe("loop.store.ConversationAppStore", function () {
       };
 
       fakeMozLoop = {
-        
-        getLoopBoolPref: function() { return false; },
         getConversationWindowData: function(windowId) {
           if (windowId === "42") {
             return fakeWindowData;

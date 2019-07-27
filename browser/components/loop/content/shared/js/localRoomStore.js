@@ -78,23 +78,6 @@ loop.store.LocalRoomStore = (function() {
 
 
 
-    _fetchRoomData: function(roomId, cb) {
-      
-      if (!this.mozLoop.getLoopBoolPref("test.alwaysUseRooms")) {
-        this.mozLoop.rooms.getRoomData(roomId, cb);
-      } else {
-        cb(null, {roomName: "Donkeys"});
-      }
-    },
-
-    
-
-
-
-
-
-
-
 
 
 
@@ -105,11 +88,11 @@ loop.store.LocalRoomStore = (function() {
         return;
       }
 
-      this._fetchRoomData(actionData.localRoomId,
+      this.mozLoop.rooms.get(actionData.roomToken,
         function(error, roomData) {
           this.setStoreState({
             error: error,
-            localRoomId: actionData.localRoomId,
+            roomToken: actionData.roomToken,
             serverData: roomData
           });
         }.bind(this));
