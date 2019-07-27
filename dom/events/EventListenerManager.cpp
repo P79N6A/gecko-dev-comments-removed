@@ -97,7 +97,6 @@ EventListenerManager::EventListenerManager(EventTarget* aTarget)
   , mMayHaveMutationListeners(false)
   , mMayHaveCapturingListeners(false)
   , mMayHaveSystemGroupListeners(false)
-  , mMayHaveTouchEventListener(false)
   , mMayHaveMouseEnterLeaveEventListener(false)
   , mMayHavePointerEnterLeaveEventListener(false)
   , mClearingListeners(false)
@@ -328,17 +327,6 @@ EventListenerManager::AddEventListenerInternal(
       window->EnableNetworkEvent(NS_NETWORK_DOWNLOAD_EVENT);
     }
 #endif
-  } else if (aTypeAtom == nsGkAtoms::ontouchstart ||
-             aTypeAtom == nsGkAtoms::ontouchend ||
-             aTypeAtom == nsGkAtoms::ontouchmove ||
-             aTypeAtom == nsGkAtoms::ontouchcancel) {
-    mMayHaveTouchEventListener = true;
-    nsPIDOMWindow* window = GetInnerWindowForTarget();
-    
-    
-    if (window && !aFlags.mInSystemGroup) {
-      window->SetHasTouchEventListeners();
-    }
   } else if (aType >= NS_POINTER_EVENT_START && aType <= NS_POINTER_LOST_CAPTURE) {
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (aTypeAtom == nsGkAtoms::onpointerenter ||

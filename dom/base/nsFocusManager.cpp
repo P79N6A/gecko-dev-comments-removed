@@ -1810,10 +1810,6 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     
     
     AdjustWindowFocus(aWindow, false);
-
-    
-    
-    aWindow->UpdateTouchState();
   }
 
   
