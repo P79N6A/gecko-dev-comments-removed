@@ -554,23 +554,6 @@ NewObjectWithGivenProto(ExclusiveContext *cx, JSObject *proto, JSObject *parent,
     return obj ? &obj->as<T>() : nullptr;
 }
 
-inline bool
-FindProto(ExclusiveContext *cx, const js::Class *clasp, MutableHandleObject proto)
-{
-    if (!FindClassPrototype(cx, proto, clasp))
-        return false;
-
-    if (!proto) {
-        
-        
-        
-        
-        MOZ_ASSERT(JSCLASS_CACHED_PROTO_KEY(clasp) == JSProto_Null);
-        return GetBuiltinPrototype(cx, JSProto_Object, proto);
-    }
-    return true;
-}
-
 
 
 

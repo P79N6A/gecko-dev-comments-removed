@@ -1092,18 +1092,6 @@ extern bool
 SetClassAndProto(JSContext *cx, HandleObject obj,
                  const Class *clasp, Handle<TaggedProto> proto);
 
-
-
-
-
-
-
-bool
-FindClassObject(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp);
-
-extern bool
-FindClassPrototype(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp);
-
 } 
 
 
