@@ -456,10 +456,10 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
       
       schedulePolicy.configureBackoffMillisBeforeSyncing(rateLimitBackoffHandler, backgroundBackoffHandler);
 
-      final String audience = fxAccount.getAudience();
       final String authServerEndpoint = fxAccount.getAccountServerURI();
       final String tokenServerEndpoint = fxAccount.getTokenServerURI();
       final URI tokenServerEndpointURI = new URI(tokenServerEndpoint);
+      final String audience = FxAccountUtils.getAudienceForURL(tokenServerEndpoint);
 
       
       final FxAccountClient client = new FxAccountClient20(authServerEndpoint, executor);
