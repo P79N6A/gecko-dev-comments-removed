@@ -42,8 +42,10 @@ Match.Pattern([{node: {}, edge: "shape"},
   .assert(findPath(o, o));
 print(findPath(o, o).map((e) => e.edge).toString());
 
-
-var so = { sym: Symbol() };
-Match.Pattern([{node: {}, edge: "sym" }])
-  .assert(findPath(so, so.sym));
-print(findPath(so, so.sym).map((e) => e.edge).toString());
+if (typeof Symbol === "function") {
+    
+    var so = { sym: Symbol() };
+    Match.Pattern([{node: {}, edge: "sym" }])
+      .assert(findPath(so, so.sym));
+    print(findPath(so, so.sym).map((e) => e.edge).toString());
+}
