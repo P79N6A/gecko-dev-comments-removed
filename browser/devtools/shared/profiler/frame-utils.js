@@ -140,7 +140,7 @@ exports.parseLocation = function parseLocation(location, fallbackLine, fallbackC
   
   if (uri) {
     functionName = location.substring(0, firstParenIndex - 1);
-    fileName = (uri.fileName + (uri.ref ? "#" + uri.ref : "")) || "/";
+    fileName = uri.fileName || "/";
     hostName = getHost(url, uri.host);
     
     
