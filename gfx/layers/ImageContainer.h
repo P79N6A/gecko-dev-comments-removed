@@ -302,6 +302,12 @@ public:
 
   B2G_ACL_EXPORT already_AddRefed<Image> CreateImage(ImageFormat aFormat);
 
+  struct NonOwningImage {
+    NonOwningImage(Image* aImage, TimeStamp aTimeStamp)
+      : mImage(aImage), mTimeStamp(aTimeStamp) {}
+    Image* mImage;
+    TimeStamp mTimeStamp;
+  };
   
 
 
@@ -319,7 +325,9 @@ public:
 
 
 
-  void SetCurrentImage(Image* aImage);
+
+
+  void SetCurrentImages(const nsTArray<NonOwningImage>& aImages);
 
   
 
