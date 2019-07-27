@@ -21,11 +21,9 @@
 
 
 
-#include "pkix/pkix.h"
 #include "pkixcheck.h"
 #include "pkixder.h"
 #include "pkixgtest.h"
-#include "pkixtestutil.h"
 #include "pkixutil.h"
 
 namespace mozilla { namespace pkix {
