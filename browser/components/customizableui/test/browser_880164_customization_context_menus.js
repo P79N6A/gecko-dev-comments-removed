@@ -39,6 +39,44 @@ add_task(function() {
 
 
 add_task(function() {
+  
+  let extraTab = gBrowser.selectedTab = gBrowser.addTab();
+  yield promiseTabLoadEvent(extraTab, "http://example.com/");
+  let contextMenu = document.getElementById("toolbar-context-menu");
+  let shownPromise = popupShown(contextMenu);
+  let tabstrip = document.getElementById("tabbrowser-tabs");
+  let rect = tabstrip.getBoundingClientRect();
+  EventUtils.synthesizeMouse(tabstrip, rect.width - 2, 2, {type: "contextmenu", button: 2 });
+  yield shownPromise;
+
+  let closedTabsAvailable = SessionStore.getClosedTabCount(window) == 0;
+  info("Closed tabs: " + closedTabsAvailable);
+  let expectedEntries = [
+    ["#toolbar-context-reloadAllTabs", true],
+    ["#toolbar-context-bookmarkAllTabs", true],
+    ["#toolbar-context-undoCloseTab", !closedTabsAvailable],
+    ["---"]
+  ];
+  if (!isOSX) {
+    expectedEntries.push(["#toggle_toolbar-menubar", true]);
+  }
+  expectedEntries.push(
+    ["#toggle_PersonalToolbar", true],
+    ["---"],
+    [".viewCustomizeToolbar", true]
+  );
+  checkContextMenu(contextMenu, expectedEntries);
+
+  let hiddenPromise = popupHidden(contextMenu);
+  contextMenu.hidePopup();
+  yield hiddenPromise;
+  gBrowser.removeTab(extraTab);
+});
+
+
+
+
+add_task(function() {
   let contextMenu = document.getElementById("toolbar-context-menu");
   let shownPromise = popupShown(contextMenu);
   let toolbar = createToolbarWithPlacements("880164_empty_toolbar", []);
