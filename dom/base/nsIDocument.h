@@ -1168,9 +1168,6 @@ public:
 
 
 
-
-
-
   static void ExitFullscreen(nsIDocument* aDocument, bool aRunAsync);
 
   virtual void RequestPointerLock(Element* aElement) = 0;

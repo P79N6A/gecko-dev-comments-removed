@@ -899,7 +899,6 @@ PresShell::Init(nsIDocument* aDocument,
   if (TouchCaretPrefEnabled() && !AccessibleCaretEnabled()) {
     
     mTouchCaret = new TouchCaret(this);
-    mTouchCaret->Init();
   }
 
   if (SelectionCaretPrefEnabled() && !AccessibleCaretEnabled()) {
@@ -2552,26 +2551,6 @@ PresShell::CheckVisibilityContent(nsIContent* aNode, int16_t aStartOffset,
 
   *aRetval = false;
   DoCheckVisibility(mPresContext, aNode, aStartOffset, aEndOffset, aRetval);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-PresShell::GetSelectionCaretsVisibility(bool* aOutVisibility)
-{
-  *aOutVisibility = (SelectionCaretPrefEnabled() && mSelectionCarets->GetVisibility());
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-PresShell::SetSelectionCaretsVisibility(bool aVisibility)
-{
-  if (SelectionCaretPrefEnabled() && mSelectionCarets) {
-    if (aVisibility) {
-      mSelectionCarets->UpdateSelectionCarets();
-    } else {
-      mSelectionCarets->SetVisibility(false);
-    }
-  }
   return NS_OK;
 }
 
@@ -8056,10 +8035,10 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
       case NS_KEY_UP: {
         nsIDocument* doc = GetCurrentEventContent() ?
                            mCurrentEventContent->OwnerDoc() : nullptr;
-        nsIDocument* fullscreenAncestor = nullptr;
         auto keyCode = aEvent->AsKeyboardEvent()->keyCode;
         if (keyCode == NS_VK_ESCAPE) {
-          if ((fullscreenAncestor = nsContentUtils::GetFullscreenAncestor(doc))) {
+          nsIDocument* root = nsContentUtils::GetRootDocument(doc);
+          if (root && root->IsFullScreenDoc()) {
             
             
             
@@ -8074,14 +8053,7 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
               
               
               
-              
-              
-              
-              
-              
-              nsIDocument::ExitFullscreen(
-                nsContentUtils::IsFullscreenApiContentOnly() ? fullscreenAncestor : nullptr,
-                 true);
+              nsIDocument::ExitFullscreen(nullptr,  true);
             }
           }
           nsCOMPtr<nsIDocument> pointerLockedDoc =
