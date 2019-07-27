@@ -573,13 +573,9 @@ FinishPopStatement(ContextT* ct)
 
 
 
-
-
-
-
 template <class ContextT>
 typename ContextT::StmtInfo*
-LexicalLookup(ContextT* ct, HandleAtom atom, int* slotp, typename ContextT::StmtInfo* stmt);
+LexicalLookup(ContextT* ct, HandleAtom atom, typename ContextT::StmtInfo* stmt = nullptr);
 
 } 
 
