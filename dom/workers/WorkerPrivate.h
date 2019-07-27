@@ -164,6 +164,8 @@ private:
   
   WorkerLoadInfo mLoadInfo;
 
+  Atomic<bool> mLoadingWorkerScript;
+
   
   nsTArray<nsCOMPtr<nsIRunnable>> mQueuedRunnables;
 
@@ -478,6 +480,23 @@ public:
   {
     AssertIsOnMainThread();
     return mLoadInfo.mResolvedScriptURI;
+  }
+
+  const nsString&
+  ServiceWorkerCacheName() const
+  {
+    MOZ_ASSERT(IsServiceWorker());
+    AssertIsOnMainThread();
+    return mLoadingWorkerScript ?
+             mLoadInfo.mServiceWorkerCacheName : EmptyString();
+  }
+  
+  void
+  SetLoadingWorkerScript(bool aLoadingWorkerScript)
+  {
+    
+    MOZ_ASSERT(IsServiceWorker());
+    mLoadingWorkerScript = aLoadingWorkerScript;
   }
 
   TimeStamp CreationTimeStamp() const
