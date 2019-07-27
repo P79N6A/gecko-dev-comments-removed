@@ -99,14 +99,13 @@ public:
   
 
 
-  virtual TextureHost* GetAsTextureHost() { return nullptr; }
+
+
+  virtual TextureHost* GetAsTextureHost(gfx::IntRect* aPictureRect = nullptr) {
+    return nullptr;
+  }
 
   virtual LayerRenderState GetRenderState() = 0;
-
-  virtual void SetPictureRect(const gfx::IntRect& aPictureRect)
-  {
-    MOZ_ASSERT(false, "Should have been overridden");
-  }
 
   virtual gfx::IntSize GetImageSize() const
   {
@@ -153,9 +152,10 @@ public:
     mKeepAttached = aFlags & KEEP_ATTACHED;
 
     
-    RefPtr<TextureHost> frontBuffer = GetAsTextureHost();
+    gfx::IntRect pictureRect;
+    RefPtr<TextureHost> frontBuffer = GetAsTextureHost(&pictureRect);
     if (frontBuffer) {
-      UseTextureHost(frontBuffer);
+      UseTextureHost(frontBuffer, pictureRect);
     }
   }
   
@@ -187,10 +187,12 @@ public:
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix) = 0;
 
-  virtual void UseTextureHost(TextureHost* aTexture);
+  virtual void UseTextureHost(TextureHost* aTexture,
+                              const gfx::IntRect& aPictureRect);
   virtual void UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
                                          TextureHost* aTextureOnWhite);
-  virtual void UseOverlaySource(OverlaySource aOverlay) { }
+  virtual void UseOverlaySource(OverlaySource aOverlay,
+                                const gfx::IntRect& aPictureRect) { }
 
   virtual void RemoveTextureHost(TextureHost* aTexture);
 

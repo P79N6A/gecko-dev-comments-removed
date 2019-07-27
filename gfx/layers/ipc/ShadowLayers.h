@@ -231,20 +231,16 @@ public:
   
 
 
-  void UpdatePictureRect(CompositableClient* aCompositable,
-                         const gfx::IntRect& aRect) override;
-
-  
-
-
   virtual void UseTexture(CompositableClient* aCompositable,
-                          TextureClient* aClient) override;
+                          TextureClient* aClient,
+                          const nsIntRect* aPictureRect = nullptr) override;
   virtual void UseComponentAlphaTextures(CompositableClient* aCompositable,
                                          TextureClient* aClientOnBlack,
                                          TextureClient* aClientOnWhite) override;
 #ifdef MOZ_WIDGET_GONK
   virtual void UseOverlaySource(CompositableClient* aCompositable,
-                                const OverlaySource& aOverlay) override;
+                                const OverlaySource& aOverlay,
+                                const nsIntRect& aPictureRect) override;
 #endif
 
   

@@ -72,15 +72,10 @@ public:
                                    const ThebesBufferData& aThebesBufferData,
                                    const nsIntRegion& aUpdatedRegion) = 0;
 
-  
-
-
-  virtual void UpdatePictureRect(CompositableClient* aCompositable,
-                                 const gfx::IntRect& aRect) = 0;
-
 #ifdef MOZ_WIDGET_GONK
   virtual void UseOverlaySource(CompositableClient* aCompositabl,
-                                const OverlaySource& aOverlay) = 0;
+                                const OverlaySource& aOverlay,
+                                const gfx::IntRect& aPictureRect) = 0;
 #endif
 
   
@@ -137,8 +132,12 @@ public:
 
 
 
+
+
+
   virtual void UseTexture(CompositableClient* aCompositable,
-                          TextureClient* aClient) = 0;
+                          TextureClient* aClient,
+                          const nsIntRect* aPictureRect = nullptr) = 0;
   virtual void UseComponentAlphaTextures(CompositableClient* aCompositable,
                                          TextureClient* aClientOnBlack,
                                          TextureClient* aClientOnWhite) = 0;
