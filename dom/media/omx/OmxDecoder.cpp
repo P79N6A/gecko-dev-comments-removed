@@ -600,7 +600,7 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
       
       
       if (mVideoBuffer->range_length() == 0) {
-        ReleaseVideoBuffer();
+        PostReleaseVideoBuffer(mVideoBuffer, FenceHandle());
         findNextBuffer = true;
       }
     }
