@@ -189,6 +189,20 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
                     context['DEFINES'][define] = True
 
             for include in target_conf.get('include_dirs', []):
+                
+                
+                
+                
+                
+                
+                
+                
+                if include.startswith('/'):
+                    resolved = mozpath.abspath(mozpath.join(config.topsrcdir, include[1:]))
+                else:
+                    resolved = mozpath.abspath(mozpath.join(mozpath.dirname(build_file), include))
+                if not os.path.exists(resolved):
+                    continue
                 context['LOCAL_INCLUDES'] += [include]
 
             context['EXTRA_ASSEMBLER_FLAGS'] = target_conf.get('asflags_mozilla', [])
