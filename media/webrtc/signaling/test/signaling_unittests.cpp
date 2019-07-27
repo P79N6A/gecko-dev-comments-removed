@@ -1408,16 +1408,16 @@ class SignalingAgent {
     
     if (!(flags & PIPELINE_VIDEO)) {
       if (flags & PIPELINE_SEND) {
-        ASSERT_TRUE_WAIT(pipeline->rtp_packets_sent() >= 40 &&
+        ASSERT_TRUE_WAIT(pipeline->rtp_packets_sent() >= 4 &&
                          pipeline->rtcp_packets_received() >= 1,
                          kDefaultTimeout);
-        ASSERT_GE(pipeline->rtp_packets_sent(), 40);
+        ASSERT_GE(pipeline->rtp_packets_sent(), 4);
         ASSERT_GE(pipeline->rtcp_packets_received(), 1);
       } else {
-        ASSERT_TRUE_WAIT(pipeline->rtp_packets_received() >= 40 &&
+        ASSERT_TRUE_WAIT(pipeline->rtp_packets_received() >= 4 &&
                          pipeline->rtcp_packets_sent() >= 1,
                          kDefaultTimeout);
-        ASSERT_GE(pipeline->rtp_packets_received(), 40);
+        ASSERT_GE(pipeline->rtp_packets_received(), 4);
         ASSERT_GE(pipeline->rtcp_packets_sent(), 1);
       }
     }
@@ -2408,15 +2408,15 @@ TEST_P(SignalingTest, OfferAnswerVideoInactive)
               SHOULD_SENDRECV_AUDIO | SHOULD_INACTIVE_VIDEO);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
   
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
   
   
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 TEST_P(SignalingTest, OfferAnswerBothInactive)
@@ -2612,18 +2612,18 @@ TEST_P(SignalingTest, FullCall)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 40 &&
-                   a1_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 4 &&
+                   a1_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
   
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsSent(0), 40);
-  ASSERT_GE(a1_->GetPacketsReceived(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsSent(0), 4);
+  ASSERT_GE(a1_->GetPacketsReceived(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 
   
   
@@ -2643,18 +2643,18 @@ TEST_P(SignalingTest, RenegotiationOffererAddsTracks)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4, kDefaultTimeout * 2);
 
   
   OfferAnswer(options, OFFER_AV,
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(1) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(1) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(1) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(1) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
@@ -2686,9 +2686,9 @@ TEST_P(SignalingTest, RenegotiationOffererRemovesTrack)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 4, kDefaultTimeout * 2);
 
   int a2PacketsSent = a2_->GetPacketsSent(0);
   int a1PacketsReceived = a1_->GetPacketsReceived(0);
@@ -2699,9 +2699,9 @@ TEST_P(SignalingTest, RenegotiationOffererRemovesTrack)
               SHOULD_RECV_AUDIO | SHOULD_SENDRECV_VIDEO,
               SHOULD_SEND_AUDIO | SHOULD_SENDRECV_VIDEO);
 
-  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(0) >= a1PacketsReceived + 40,
+  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(0) >= a1PacketsReceived + 4,
                    kDefaultTimeout * 2);
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= a2PacketsSent + 40,
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= a2PacketsSent + 4,
                    kDefaultTimeout * 2);
 
   CloseStreams();
@@ -2714,9 +2714,9 @@ TEST_P(SignalingTest, RenegotiationOffererReplacesTrack)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4, kDefaultTimeout * 2);
 
   a1_->RemoveTrack(0, false);
 
@@ -2725,9 +2725,9 @@ TEST_P(SignalingTest, RenegotiationOffererReplacesTrack)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(1) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(1) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(1) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(1) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
@@ -2763,9 +2763,9 @@ TEST_P(SignalingTest, RenegotiationOffererSwapsMsids)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4, kDefaultTimeout * 2);
 
   a1_->CreateOffer(options, OFFER_NONE, SHOULD_SENDRECV_AV);
   a1_->SetLocal(TestObserver::OFFER, a1_->offer());
@@ -2801,9 +2801,9 @@ TEST_P(SignalingTest, RenegotiationAnswererAddsTracks)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 4, kDefaultTimeout * 2);
 
   options.setInt32Option("OfferToReceiveAudio", 2);
   options.setInt32Option("OfferToReceiveVideo", 2);
@@ -2812,8 +2812,8 @@ TEST_P(SignalingTest, RenegotiationAnswererAddsTracks)
   OfferAnswer(options, ANSWER_AV,
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
-  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(1) >= 40, kDefaultTimeout * 2);
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(1) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsReceived(1) >= 4, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(1) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
@@ -2845,9 +2845,9 @@ TEST_P(SignalingTest, RenegotiationAnswererRemovesTrack)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4, kDefaultTimeout * 2);
 
   int a1PacketsSent = a1_->GetPacketsSent(0);
   int a2PacketsReceived = a2_->GetPacketsReceived(0);
@@ -2858,9 +2858,9 @@ TEST_P(SignalingTest, RenegotiationAnswererRemovesTrack)
               SHOULD_SENDRECV_AUDIO | SHOULD_SENDRECV_VIDEO,
               SHOULD_RECV_AUDIO | SHOULD_SENDRECV_VIDEO);
 
-  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= a2PacketsReceived + 40,
+  ASSERT_TRUE_WAIT(a2_->GetPacketsReceived(0) >= a2PacketsReceived + 4,
                    kDefaultTimeout * 2);
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= a1PacketsSent + 40,
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= a1PacketsSent + 4,
                    kDefaultTimeout * 2);
 
   CloseStreams();
@@ -2873,11 +2873,11 @@ TEST_P(SignalingTest, RenegotiationAnswererReplacesTrack)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 40 &&
-                   a1_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 4 &&
+                   a1_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   int a1PacketsSent = a1_->GetPacketsSent(0);
   int a2PacketsReceived = a2_->GetPacketsReceived(0);
@@ -2889,13 +2889,13 @@ TEST_P(SignalingTest, RenegotiationAnswererReplacesTrack)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= a1PacketsSent + 40 &&
-                   a2_->GetPacketsReceived(0) >= a2PacketsReceived + 40,
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= a1PacketsSent + 4 &&
+                   a2_->GetPacketsReceived(0) >= a2PacketsReceived + 4,
                    kDefaultTimeout * 2);
 
   
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 40 &&
-                   a1_->GetPacketsReceived(0) >= 40,
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 4 &&
+                   a1_->GetPacketsReceived(0) >= 4,
                    kDefaultTimeout * 2);
 
   CloseStreams();
@@ -2922,11 +2922,11 @@ TEST_P(SignalingTest, BundleRenegotiation)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 40 &&
-                   a1_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= 4 &&
+                   a1_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   int a1PacketsSent = a1_->GetPacketsSent(0);
   int a2PacketsSent = a2_->GetPacketsSent(0);
@@ -2945,12 +2945,12 @@ TEST_P(SignalingTest, BundleRenegotiation)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= a1PacketsSent + 40 &&
-                   a2_->GetPacketsReceived(0) >= a2PacketsReceived + 40,
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= a1PacketsSent + 4 &&
+                   a2_->GetPacketsReceived(0) >= a2PacketsReceived + 4,
                    kDefaultTimeout * 2);
 
-  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= a2PacketsSent + 40 &&
-                   a1_->GetPacketsReceived(0) >= a1PacketsReceived + 40,
+  ASSERT_TRUE_WAIT(a2_->GetPacketsSent(0) >= a2PacketsSent + 4 &&
+                   a1_->GetPacketsReceived(0) >= a1PacketsReceived + 4,
                    kDefaultTimeout * 2);
 
   
@@ -2971,15 +2971,15 @@ TEST_P(SignalingTest, FullCallAudioOnly)
               SHOULD_SENDRECV_AUDIO, SHOULD_SENDRECV_AUDIO);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
   
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
   
   
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -2994,15 +2994,15 @@ TEST_P(SignalingTest, DISABLED_FullCallAnswererRejectsVideo)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AUDIO);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
   
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
   
   
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 TEST_P(SignalingTest, FullCallVideoOnly)
@@ -3062,12 +3062,12 @@ TEST_P(SignalingTest, FullCallTrickle)
   std::cerr << "ICE handshake completed" << std::endl;
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -3081,12 +3081,12 @@ TEST_P(SignalingTest, DISABLED_FullCallTrickleChrome)
   std::cerr << "ICE handshake completed" << std::endl;
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 TEST_P(SignalingTest, FullCallTrickleBeforeSetLocal)
@@ -3106,12 +3106,12 @@ TEST_P(SignalingTest, FullCallTrickleBeforeSetLocal)
   std::cerr << "ICE handshake completed" << std::endl;
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -3775,13 +3775,13 @@ TEST_P(SignalingTest, AudioOnlyCalleeNoRtcpMux)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 
   
   
@@ -3815,13 +3815,13 @@ TEST_P(SignalingTest, AudioOnlyG722Only)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 TEST_P(SignalingTest, AudioOnlyG722MostPreferred)
@@ -3909,13 +3909,13 @@ TEST_P(SignalingTest, FullCallAudioNoMuxVideoMux)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 
   
   
@@ -4111,13 +4111,13 @@ TEST_P(SignalingTest, AudioCallForceDtlsRoles)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -4159,13 +4159,13 @@ TEST_P(SignalingTest, AudioCallReverseDtlsRoles)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -4211,7 +4211,7 @@ TEST_P(SignalingTest, AudioCallMismatchDtlsRoles)
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
   
   ASSERT_EQ(a2_->GetPacketsReceived(0), 0);
 }
@@ -4255,13 +4255,13 @@ TEST_P(SignalingTest, AudioCallGarbageSetup)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -4302,13 +4302,13 @@ TEST_P(SignalingTest, AudioCallOfferNoSetupOrConnection)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -4349,13 +4349,13 @@ TEST_P(SignalingTest, AudioCallAnswerNoSetupOrConnection)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 
@@ -4366,12 +4366,12 @@ TEST_P(SignalingTest, FullCallRealTrickle)
               SHOULD_SENDRECV_AV, SHOULD_SENDRECV_AV);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 TEST_P(SignalingTest, FullCallRealTrickleTestServer)
@@ -4385,12 +4385,12 @@ TEST_P(SignalingTest, FullCallRealTrickleTestServer)
   TestStunServer::GetInstance()->SetActive(true);
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
-  ASSERT_GE(a1_->GetPacketsSent(0), 40);
-  ASSERT_GE(a2_->GetPacketsReceived(0), 40);
+  ASSERT_GE(a1_->GetPacketsSent(0), 4);
+  ASSERT_GE(a2_->GetPacketsReceived(0), 4);
 }
 
 TEST_P(SignalingTest, hugeSdp)
@@ -4959,8 +4959,8 @@ TEST_P(SignalingTest, UseNonPrefferedPayloadTypeOnAnswer)
   WaitForCompleted();
 
   
-  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 40 &&
-                   a2_->GetPacketsReceived(0) >= 40, kDefaultTimeout * 2);
+  ASSERT_TRUE_WAIT(a1_->GetPacketsSent(0) >= 4 &&
+                   a2_->GetPacketsReceived(0) >= 4, kDefaultTimeout * 2);
 
   CloseStreams();
 }
