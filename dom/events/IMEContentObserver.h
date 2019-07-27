@@ -144,7 +144,11 @@ private:
 
 
 
-  void UnregisterObservers(bool aPostEvent);
+  void NotifyIMEOfBlur(bool aPostEvent);
+  
+
+
+  void UnregisterObservers();
   void StoreTextChangeData(const TextChangeData& aTextChangeData);
   void FlushMergeableNotifications();
 

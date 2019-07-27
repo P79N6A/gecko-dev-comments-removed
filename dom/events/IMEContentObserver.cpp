@@ -43,7 +43,8 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(IMEContentObserver)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IMEContentObserver)
   nsAutoScriptBlocker scriptBlocker;
 
-  tmp->UnregisterObservers(true);
+  tmp->NotifyIMEOfBlur(true);
+  tmp->UnregisterObservers();
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWidget)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSelection)
@@ -104,11 +105,26 @@ IMEContentObserver::Init(nsIWidget* aWidget,
 {
   MOZ_ASSERT(aEditor, "aEditor must not be null");
 
+  bool firstInitialization =
+    !(mRootContent && !mRootContent->IsInComposedDoc());
+  if (!firstInitialization) {
+    
+    
+    UnregisterObservers();
+    
+    mRootContent = nullptr;
+    mEditor = nullptr;
+    mSelection = nullptr;
+    mDocShell = nullptr;
+  }
+
   mESM = aPresContext->EventStateManager();
   mESM->OnStartToObserveContent(this);
 
   mWidget = aWidget;
-  mEditableNode = IMEStateManager::GetRootEditableNode(aPresContext, aContent);
+
+  mEditableNode =
+    IMEStateManager::GetRootEditableNode(aPresContext, aContent);
   if (!mEditableNode) {
     return;
   }
@@ -154,19 +170,21 @@ IMEContentObserver::Init(nsIWidget* aWidget,
   }
   NS_ENSURE_TRUE_VOID(mRootContent);
 
-  if (IMEStateManager::IsTestingIME()) {
-    nsIDocument* doc = aPresContext->Document();
-    (new AsyncEventDispatcher(doc, NS_LITERAL_STRING("MozIMEFocusIn"),
-                              false, false))->RunDOMEventWhenSafe();
-  }
+  if (firstInitialization) {
+    if (IMEStateManager::IsTestingIME()) {
+      nsIDocument* doc = aPresContext->Document();
+      (new AsyncEventDispatcher(doc, NS_LITERAL_STRING("MozIMEFocusIn"),
+                                false, false))->RunDOMEventWhenSafe();
+    }
 
-  aWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
+    aWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
 
-  
-  
-  
-  if (!mRootContent) {
-    return;
+    
+    
+    
+    if (!mRootContent) {
+      return;
+    }
   }
 
   mDocShell = aPresContext->GetDocShell();
@@ -203,32 +221,38 @@ IMEContentObserver::ObserveEditableNode()
 }
 
 void
-IMEContentObserver::UnregisterObservers(bool aPostEvent)
+IMEContentObserver::NotifyIMEOfBlur(bool aPostEvent)
+{
+  
+  
+  if (!mRootContent || !mWidget) {
+    return;
+  }
+
+  if (IMEStateManager::IsTestingIME() && mEditableNode) {
+    nsIDocument* doc = mEditableNode->OwnerDoc();
+    if (doc) {
+      nsRefPtr<AsyncEventDispatcher> dispatcher =
+        new AsyncEventDispatcher(doc, NS_LITERAL_STRING("MozIMEFocusOut"),
+                                 false, false);
+      if (aPostEvent) {
+        dispatcher->PostDOMEvent();
+      } else {
+        dispatcher->RunDOMEventWhenSafe();
+      }
+    }
+  }
+  
+  if (mWidget) {
+    mWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_BLUR));
+  }
+}
+
+void
+IMEContentObserver::UnregisterObservers()
 {
   if (mEditor) {
     mEditor->RemoveEditorObserver(this);
-  }
-
-  
-  
-  if (mRootContent && mWidget) {
-    if (IMEStateManager::IsTestingIME() && mEditableNode) {
-      nsIDocument* doc = mEditableNode->OwnerDoc();
-      if (doc) {
-        nsRefPtr<AsyncEventDispatcher> dispatcher =
-          new AsyncEventDispatcher(doc, NS_LITERAL_STRING("MozIMEFocusOut"),
-                                   false, false);
-        if (aPostEvent) {
-          dispatcher->PostDOMEvent();
-        } else {
-          dispatcher->RunDOMEventWhenSafe();
-        }
-      }
-    }
-    
-    if (mWidget) {
-      mWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_BLUR));
-    }
   }
 
   if (mUpdatePreference.WantSelectionChange() && mSelection) {
@@ -259,7 +283,8 @@ IMEContentObserver::Destroy()
 {
   
 
-  UnregisterObservers(false);
+  NotifyIMEOfBlur(false);
+  UnregisterObservers();
 
   mEditor = nullptr;
   
