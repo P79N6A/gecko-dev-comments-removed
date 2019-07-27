@@ -1501,30 +1501,8 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
 
   nsAutoScriptBlocker scriptBlocker;
 
-  MOZ_ASSERT(!mIsProcessingRestyles, "Nesting calls to processing restyles");
-#ifdef DEBUG
-  mIsProcessingRestyles = true;
-#endif
+  mDoRebuildAllStyleData = true;
 
-  
-  
-  
-  
-  mSkipAnimationRules = true;
-  mPostAnimationRestyles = true;
-
-  DoRebuildAllStyleData(mPendingRestyles);
-
-  mPostAnimationRestyles = false;
-  mSkipAnimationRules = false;
-#ifdef DEBUG
-  mIsProcessingRestyles = false;
-#endif
-
-  
-  
-  
-  
   ProcessPendingRestyles();
 }
 
@@ -1618,12 +1596,6 @@ RestyleManager::ProcessPendingRestyles()
   NS_PRECONDITION(mPresContext->Document(), "No document?  Pshaw!");
   NS_PRECONDITION(!nsContentUtils::IsSafeToRunScript(),
                   "Missing a script blocker!");
-
-  if (mDoRebuildAllStyleData) {
-    RebuildAllStyleData(nsChangeHint(0), nsRestyleHint(0));
-    MOZ_ASSERT(mPendingRestyles.Count() == 0);
-    return;
-  }
 
   
   
