@@ -478,16 +478,19 @@ Element::WrapObject(JSContext *aCx)
     return nullptr;
   }
 
-  nsRefPtr<nsXBLBinding> binding;
-  xblService->LoadBindings(this, uri, principal, getter_AddRefs(binding), &dummy);
-  
-  if (binding) {
-    if (nsContentUtils::IsSafeToRunScript()) {
-      binding->ExecuteAttachedHandler();
-    }
-    else {
-      nsContentUtils::AddScriptRunner(
-        NS_NewRunnableMethod(binding, &nsXBLBinding::ExecuteAttachedHandler));
+  {
+    
+    nsRefPtr<nsXBLBinding> binding;
+    xblService->LoadBindings(this, uri, principal, getter_AddRefs(binding), &dummy);
+
+    if (binding) {
+      if (nsContentUtils::IsSafeToRunScript()) {
+        binding->ExecuteAttachedHandler();
+      }
+      else {
+        nsContentUtils::AddScriptRunner(
+          NS_NewRunnableMethod(binding, &nsXBLBinding::ExecuteAttachedHandler));
+      }
     }
   }
 
