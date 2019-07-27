@@ -22,6 +22,15 @@ addMessageListener("devtools:test:console", function ({ data }) {
   content.console[method].apply(content.console, data);
 });
 
+
+
+addMessageListener("devtools:test:eval", function ({ data }) {
+  sendAsyncMessage("devtools:test:eval:response", {
+    value: content.eval(data.script),
+    id: data.id
+  });
+});
+
 addEventListener("load", function() {
   sendAsyncMessage("devtools:test:load");
 }, true);
