@@ -1102,7 +1102,7 @@ nsCSPContext::PermitsBaseURI(nsIURI* aURI, bool* outPermitsBaseURI)
         *outPermitsBaseURI = false;
       }
       nsAutoString violatedDirective;
-      mPolicies[i]->getDirectiveStringForBaseURI(violatedDirective);
+      mPolicies[i]->getDirectiveAsString(CSP_BASE_URI, violatedDirective);
       this->AsyncReportViolation(aURI,
                                  nullptr,       
                                  violatedDirective,
@@ -1121,6 +1121,48 @@ nsCSPContext::PermitsBaseURI(nsIURI* aURI, bool* outPermitsBaseURI)
     CSPCONTEXTLOG(("nsCSPContext::PermitsBaseURI, aUri: %s, isAllowed: %s",
                   spec.get(),
                   *outPermitsBaseURI ? "allow" : "deny"));
+  }
+#endif
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSPContext::PermitsFormAction(nsIURI* aURI, bool* outPermitsFormAction)
+{
+  
+  if (!aURI) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *outPermitsFormAction = true;
+
+  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
+    if (!mPolicies[i]->permitsFormAction(aURI)) {
+      
+      if (!mPolicies[i]->getReportOnlyFlag()) {
+        *outPermitsFormAction = false;
+      }
+      nsAutoString violatedDirective;
+      mPolicies[i]->getDirectiveAsString(CSP_FORM_ACTION, violatedDirective);
+      this->AsyncReportViolation(aURI,
+                                 mSelfURI,
+                                 violatedDirective,
+                                 i,             
+                                 EmptyString(), 
+                                 EmptyString(), 
+                                 EmptyString(), 
+                                 0);            
+    }
+  }
+
+#ifdef PR_LOGGING
+  {
+    nsAutoCString spec;
+    aURI->GetSpec(spec);
+    CSPCONTEXTLOG(("nsCSPContext::PermitsFormAction, aUri: %s, isAllowed: %s",
+                  spec.get(),
+                  *outPermitsFormAction ? "allow" : "deny"));
   }
 #endif
 

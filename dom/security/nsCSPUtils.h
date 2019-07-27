@@ -72,6 +72,7 @@ enum CSPDirective {
   CSP_FRAME_ANCESTORS,
   CSP_REFLECTED_XSS,
   CSP_BASE_URI,
+  CSP_FORM_ACTION,
   
   
   CSP_LAST_DIRECTIVE_VALUE
@@ -90,7 +91,8 @@ static const char* CSPStrDirectives[] = {
   "report-uri",      
   "frame-ancestors", 
   "reflected-xss",   
-  "base-uri"         
+  "base-uri",        
+  "form-action"      
 };
 
 inline const char* CSP_EnumToDirective(enum CSPDirective aDir)
@@ -333,6 +335,7 @@ class nsCSPPolicy {
                  bool aWasRedirected,
                  nsAString& outViolatedDirective) const;
     bool permitsBaseURI(nsIURI* aUri) const;
+    bool permitsFormAction(nsIURI* aUri) const;
     bool allows(nsContentPolicyType aContentType,
                 enum CSPKeyword aKeyword,
                 const nsAString& aHashOrNonce) const;
@@ -356,7 +359,7 @@ class nsCSPPolicy {
     void getDirectiveStringForContentType(nsContentPolicyType aContentType,
                                           nsAString& outDirective) const;
 
-    void getDirectiveStringForBaseURI(nsAString& outDirective) const;
+    void getDirectiveAsString(enum CSPDirective aDir, nsAString& outDirective) const;
 
     inline uint32_t getNumDirectives() const
       { return mDirectives.Length(); }
