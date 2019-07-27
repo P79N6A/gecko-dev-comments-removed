@@ -27,9 +27,6 @@ public class testAxisLocking extends PixelTest {
         loadAndVerifyBoxes(url);
 
         
-        meh.disableGeckoLongpress();
-
-        
         
         Actions.RepeatedEventExpecter paintExpecter = mActions.expectPaint();
         meh.dragSync(20, 150, 10, 50);
