@@ -9,6 +9,7 @@
 
 #include "nsIDOMNodeList.h"
 #include "nsWrapperCache.h"
+#include "nsIContent.h"
 
 
 #define NS_INODELIST_IID \
