@@ -347,7 +347,7 @@ DownloadElementShell.prototype = {
             this._extractFilePathAndNameFromFileURI(targetFileURI);
           this._metaData.displayName = this._metaData.fileName;
         } catch (ex) {
-          this._metaData.displayName = this._placesNode.title || this.downloadURI;
+          this._metaData.displayName = this.downloadURI;
         }
       }
     }
@@ -517,15 +517,6 @@ DownloadElementShell.prototype = {
   placesNodeIconChanged() {
     if (!this._dataItem) {
       this._element.setAttribute("image", this._getIcon());
-    }
-  },
-
-  placesNodeTitleChanged() {
-    
-    if (!this._dataItem && this.active &&
-        !this.getDownloadMetaData().filePath) {
-      this._metaData = null;
-      this._updateDisplayNameAndIcon();
     }
   },
 
@@ -1285,11 +1276,7 @@ DownloadsPlacesView.prototype = {
                                             des => des.placesNodeAnnotationChanged(aAnnoName));
   },
 
-  nodeTitleChanged(aNode, aNewTitle) {
-    this._forEachDownloadElementShellForURI(aNode.uri,
-                                            des => des.placesNodeTitleChanged());
-  },
-
+  nodeTitleChanged() {},
   nodeKeywordChanged() {},
   nodeDateAddedChanged() {},
   nodeLastModifiedChanged() {},
