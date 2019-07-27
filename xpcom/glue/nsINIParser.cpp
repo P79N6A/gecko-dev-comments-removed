@@ -117,7 +117,8 @@ nsINIParser::InitFromFILE(FILE* aFd)
   }
 
   long flen = ftell(aFd);
-  if (flen == 0) {
+  
+  if (flen <= 0) {
     return NS_ERROR_FAILURE;
   }
 
