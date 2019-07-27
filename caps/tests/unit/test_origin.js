@@ -92,6 +92,11 @@ function run_test() {
   do_check_eq(exampleCom_appBrowser.origin, 'https://www.example.com:123!appId=42&inBrowser=1');
 
   
+  var exampleOrg_addon = ssm.createCodebasePrincipal(makeURI('http://example.org'), {addonId: 'dummy'});
+  checkOriginAttributes(exampleOrg_addon, { addonId: "dummy" }, '!addonId=dummy');
+  do_check_eq(exampleOrg_addon.origin, 'http://example.org!addonId=dummy');
+
+  
   checkCrossOrigin(exampleOrg_app, exampleOrg);
   checkCrossOrigin(exampleOrg_app, nullPrin_app);
   checkCrossOrigin(exampleOrg_browser, exampleOrg_app);
@@ -99,4 +104,5 @@ function run_test() {
   checkCrossOrigin(exampleOrg_appBrowser, exampleOrg_app);
   checkCrossOrigin(exampleOrg_appBrowser, nullPrin_appBrowser);
   checkCrossOrigin(exampleOrg_appBrowser, exampleCom_appBrowser);
+  checkCrossOrigin(exampleOrg_addon, exampleOrg);
 }
