@@ -31,6 +31,7 @@ namespace gmp {
 
 GMPAudioDecoderParent::GMPAudioDecoderParent(GMPParent* aPlugin)
   : mIsOpen(false)
+  , mShuttingDown(false)
   , mPlugin(aPlugin)
   , mCallback(nullptr)
 {
@@ -161,17 +162,19 @@ GMPAudioDecoderParent::Shutdown()
   LOGD(("%s: %p", __FUNCTION__, this));
   MOZ_ASSERT(mPlugin->GMPThread() == NS_GetCurrentThread());
 
+  if (mShuttingDown) {
+    return NS_OK;
+  }
+  mShuttingDown = true;
+
   
   if (mCallback) {
     mCallback->Terminated();
     mCallback = nullptr;
   }
 
-  if (mIsOpen) {
-    
-    mIsOpen = false;
-    unused << SendDecodingComplete();
-  }
+  mIsOpen = false;
+  unused << SendDecodingComplete();
 
   return NS_OK;
 }
