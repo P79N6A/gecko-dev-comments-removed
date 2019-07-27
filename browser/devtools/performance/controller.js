@@ -8,6 +8,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/devtools/Loader.jsm");
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+Cu.import("resource://gre/modules/devtools/Console.jsm");
 
 let require = devtools.require;
 devtools.lazyRequireGetter(this, "Services");
@@ -41,6 +42,10 @@ const EVENTS = {
 
   
   OVERVIEW_RENDERED: "Performance:UI:OverviewRendered",
+  
+  OVERVIEW_RANGE_SELECTED: "Performance:UI:OverviewRangeSelected",
+  
+  OVERVIEW_RANGE_CLEARED: "Performance:UI:OverviewRangeCleared",
 
   
   CALL_TREE_RENDERED: "Performance:UI:CallTreeRendered"
