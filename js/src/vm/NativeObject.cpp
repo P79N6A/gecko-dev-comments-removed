@@ -1248,23 +1248,14 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             
             
             
-            if (obj->containsPure(id))
+            if ((desc_.attributes() & JSPROP_RESOLVING) == 0)
                 obj->as<ArgumentsObject>().markLengthOverridden();
         }
     }
 
     
     RootedShape shape(cx);
-    if (desc_.hasValue()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
+    if (desc_.attributes() & JSPROP_RESOLVING) {
         
         
         

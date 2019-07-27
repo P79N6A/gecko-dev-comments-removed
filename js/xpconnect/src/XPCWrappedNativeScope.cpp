@@ -210,7 +210,7 @@ XPCWrappedNativeScope::AttachComponentsObject(JSContext* aCx)
     
     
     
-    unsigned attrs = JSPROP_READONLY;
+    unsigned attrs = JSPROP_READONLY | JSPROP_RESOLVING;
     nsCOMPtr<nsIXPCComponents> c = do_QueryInterface(mComponents);
     if (c)
         attrs |= JSPROP_PERMANENT;
