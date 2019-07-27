@@ -402,17 +402,22 @@ var gAllTests = [
       
       var cb = this.win.document.querySelectorAll(
                  "#itemList > [preference='privacy.cpd.formdata']");
-      ok(cb.length == 1 && cb[0].disabled && !cb[0].checked,
-         "There is no formdata history, checkbox should be disabled and be " +
-         "cleared to reduce user confusion (bug 497664).");
 
-      var cb = this.win.document.querySelectorAll(
-                 "#itemList > [preference='privacy.cpd.history']");
-      ok(cb.length == 1 && !cb[0].disabled && cb[0].checked,
-         "There is no history, but history checkbox should always be enabled " +
-         "and will be checked from previous preference.");
+      
+      
+      promiseWaitForCondition(() => cb[0].disabled).then(() => {
+        ok(cb.length == 1 && cb[0].disabled && !cb[0].checked,
+           "There is no formdata history, checkbox should be disabled and be " +
+           "cleared to reduce user confusion (bug 497664).");
 
-      this.acceptDialog();
+        cb = this.win.document.querySelectorAll(
+                   "#itemList > [preference='privacy.cpd.history']");
+        ok(cb.length == 1 && !cb[0].disabled && cb[0].checked,
+           "There is no history, but history checkbox should always be enabled " +
+           "and will be checked from previous preference.");
+
+        this.acceptDialog();
+      });
     }
     wh.open();
   },
