@@ -2159,10 +2159,14 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
         {
           NS_ENSURE_STATE(mHTMLEditor);
           
-          res = JoinNodesSmart(sibling, startNode, address_of(selNode), &selOffset);
-          NS_ENSURE_SUCCESS(res, res);
+          nsCOMPtr<nsIContent> sibling_ = do_QueryInterface(sibling);
+          NS_ENSURE_STATE(sibling_);
+          nsCOMPtr<nsIContent> startNode_ = do_QueryInterface(startNode);
+          NS_ENSURE_STATE(startNode_);
+          ::DOMPoint pt = JoinNodesSmart(*sibling_, *startNode_);
+          NS_ENSURE_STATE(pt.node);
           
-          res = aSelection->Collapse(selNode, selOffset);
+          res = aSelection->Collapse(pt.node, pt.offset);
         }
       }
       NS_ENSURE_SUCCESS(res, res);    
@@ -2897,11 +2901,8 @@ nsHTMLEditRules::JoinBlocks(nsIDOMNode *aLeftNode,
     NS_ENSURE_STATE(mHTMLEditor);
     if (bMergeLists || mHTMLEditor->NodesSameType(aLeftBlock, aRightBlock)) {
       
-      nsCOMPtr<nsIDOMNode> parent;
-      int32_t offset;
-      res = JoinNodesSmart(aLeftBlock, aRightBlock, address_of(parent), &offset);
-      if (NS_SUCCEEDED(res) && bMergeLists)
-      {
+      ::DOMPoint pt = JoinNodesSmart(*leftBlock, *rightBlock);
+      if (pt.node && bMergeLists) {
         nsCOMPtr<nsIDOMNode> newBlock;
         res = ConvertListType(aRightBlock, address_of(newBlock),
                               existingList, nsGkAtoms::li);
@@ -7437,76 +7438,60 @@ nsHTMLEditRules::SplitAsNeeded(nsIAtom& aTag,
 
 
 
-nsresult 
-nsHTMLEditRules::JoinNodesSmart( nsIDOMNode *aNodeLeft, 
-                                 nsIDOMNode *aNodeRight, 
-                                 nsCOMPtr<nsIDOMNode> *aOutMergeParent, 
-                                 int32_t *aOutMergeOffset)
+
+
+
+::DOMPoint
+nsHTMLEditRules::JoinNodesSmart(nsIContent& aNodeLeft, nsIContent& aNodeRight)
 {
-  nsCOMPtr<nsIContent> nodeLeft = do_QueryInterface(aNodeLeft);
-  nsCOMPtr<nsIContent> nodeRight = do_QueryInterface(aNodeRight);
   
-  NS_ENSURE_TRUE(nodeLeft && nodeRight && aOutMergeParent && aOutMergeOffset,
-                 NS_ERROR_NULL_POINTER);
-  
-  nsresult res = NS_OK;
-  
-  
-  nsCOMPtr<nsIDOMNode> rightParent;
-  nsCOMPtr<nsINode> parent = nodeLeft->GetParentNode();
-  int32_t parOffset = parent ? parent->IndexOf(nodeLeft) : -1;
-  aNodeRight->GetParentNode(getter_AddRefs(rightParent));
+  nsCOMPtr<nsINode> parent = aNodeLeft.GetParentNode();
+  int32_t parOffset = parent ? parent->IndexOf(&aNodeLeft) : -1;
+  nsCOMPtr<nsINode> rightParent = aNodeRight.GetParentNode();
 
   
   
-  if (GetAsDOMNode(parent) != rightParent) {
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->MoveNode(nodeRight, parent, parOffset);
-    NS_ENSURE_SUCCESS(res, res);
+  nsresult res;
+  if (parent != rightParent) {
+    NS_ENSURE_TRUE(mHTMLEditor, ::DOMPoint());
+    res = mHTMLEditor->MoveNode(&aNodeRight, parent, parOffset);
+    NS_ENSURE_SUCCESS(res, ::DOMPoint());
   }
-  
-  
-  *aOutMergeParent = aNodeRight;
-  NS_ENSURE_STATE(mHTMLEditor);
-  res = mHTMLEditor->GetLengthOfDOMNode(aNodeLeft, *((uint32_t*)aOutMergeOffset));
-  NS_ENSURE_SUCCESS(res, res);
+
+  ::DOMPoint ret(&aNodeRight, aNodeLeft.Length());
 
   
-  if (nsHTMLEditUtils::IsList(aNodeLeft) ||
-      !mHTMLEditor ||
-      mHTMLEditor->IsTextNode(aNodeLeft))
-  {
+  if (nsHTMLEditUtils::IsList(&aNodeLeft) || aNodeLeft.GetAsText()) {
     
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->JoinNodes(*nodeLeft, *nodeRight);
-    NS_ENSURE_SUCCESS(res, res);
-    return res;
+    res = mHTMLEditor->JoinNodes(aNodeLeft, aNodeRight);
+    NS_ENSURE_SUCCESS(res, ::DOMPoint());
+    return ret;
   }
-  else
-  {
-    
-    nsCOMPtr<nsIDOMNode> lastLeft, firstRight;
-    NS_ENSURE_STATE(mHTMLEditor);
-    lastLeft = GetAsDOMNode(mHTMLEditor->GetLastEditableChild(*nodeLeft));
-    NS_ENSURE_STATE(mHTMLEditor);
-    firstRight = GetAsDOMNode(mHTMLEditor->GetFirstEditableChild(*nodeRight));
-    NS_ENSURE_SUCCESS(res, res);
 
-    
-    NS_ENSURE_STATE(mHTMLEditor);
-    res = mHTMLEditor->JoinNodes(*nodeLeft, *nodeRight);
-    NS_ENSURE_SUCCESS(res, res);
+  
+  NS_ENSURE_TRUE(mHTMLEditor, ::DOMPoint());
+  nsCOMPtr<nsIContent> lastLeft = mHTMLEditor->GetLastEditableChild(aNodeLeft);
+  NS_ENSURE_TRUE(lastLeft, ::DOMPoint());
 
-    if (lastLeft && firstRight && mHTMLEditor &&
-        mHTMLEditor->NodesSameType(lastLeft, firstRight) &&
-        (nsEditor::IsTextNode(lastLeft) ||
-         !mHTMLEditor ||
-         mHTMLEditor->mHTMLCSSUtils->ElementsSameStyle(lastLeft, firstRight))) {
-      NS_ENSURE_STATE(mHTMLEditor);      
-      return JoinNodesSmart(lastLeft, firstRight, aOutMergeParent, aOutMergeOffset);
-    }
+  NS_ENSURE_TRUE(mHTMLEditor, ::DOMPoint());
+  nsCOMPtr<nsIContent> firstRight = mHTMLEditor->GetFirstEditableChild(aNodeRight);
+  NS_ENSURE_TRUE(firstRight, ::DOMPoint());
+
+  
+  NS_ENSURE_TRUE(mHTMLEditor, ::DOMPoint());
+  res = mHTMLEditor->JoinNodes(aNodeLeft, aNodeRight);
+  NS_ENSURE_SUCCESS(res, ::DOMPoint());
+
+  if (lastLeft && firstRight && mHTMLEditor &&
+      mHTMLEditor->AreNodesSameType(lastLeft, firstRight) &&
+      (lastLeft->GetAsText() || !mHTMLEditor ||
+       (lastLeft->IsElement() && firstRight->IsElement() &&
+        mHTMLEditor->mHTMLCSSUtils->ElementsSameStyle(lastLeft->AsElement(),
+                                                  firstRight->AsElement())))) {
+    NS_ENSURE_TRUE(mHTMLEditor, ::DOMPoint());
+    return JoinNodesSmart(*lastLeft, *firstRight);
   }
-  return res;
+  return ret;
 }
 
 
