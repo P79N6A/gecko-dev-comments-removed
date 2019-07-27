@@ -354,9 +354,11 @@ let PopupBlocking = {
 };
 PopupBlocking.init();
 
-
-let Console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
-this.console = new Console.ConsoleAPI();
+XPCOMUtils.defineLazyGetter(this, "console", () => {
+  
+  let Console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {});
+  return new Console.ConsoleAPI();
+});
 
 let Printing = {
   
