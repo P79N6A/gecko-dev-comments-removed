@@ -5011,8 +5011,9 @@ SVGTextFrame::DoTextPathLayout()
       gfxFloat halfAdvance =
         it.GetGlyphAdvance(context) / mFontSizeScaleFactor / 2.0;
       gfxFloat sign = it.TextRun()->IsRightToLeft() ? -1.0 : 1.0;
-      gfxFloat midx = (it.TextRun()->IsVertical() ? mPositions[i].mPosition.y
-                                                  : mPositions[i].mPosition.x) +
+      bool vertical = it.TextRun()->IsVertical();
+      gfxFloat midx = (vertical ? mPositions[i].mPosition.y
+                                : mPositions[i].mPosition.x) +
                       sign * halfAdvance + offset;
 
       
@@ -5021,9 +5022,11 @@ SVGTextFrame::DoTextPathLayout()
       
       Point tangent; 
       Point pt = path->ComputePointAtLength(Float(midx), &tangent);
-      Float rotation = atan2f(tangent.y, tangent.x);
+      Float rotation = vertical ? atan2f(-tangent.x, tangent.y)
+                                : atan2f(tangent.y, tangent.x);
       Point normal(-tangent.y, tangent.x); 
-      Point offsetFromPath = normal * mPositions[i].mPosition.y;
+      Point offsetFromPath = normal * (vertical ? mPositions[i].mPosition.x
+                                                : mPositions[i].mPosition.y);
       pt += offsetFromPath;
       Point direction = tangent * sign;
       mPositions[i].mPosition = ThebesPoint(pt) - ThebesPoint(direction) * halfAdvance;
