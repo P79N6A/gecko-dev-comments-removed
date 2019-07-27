@@ -2567,7 +2567,8 @@ GLContext::Readback(SharedSurface* src, gfx::DataSourceSurface* dest)
 
         
         
-        src->ProducerReadAcquire();
+        
+        src->ProducerAcquire();
 
         if (src->mAttachType == AttachmentType::Screen) {
             fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
@@ -2594,7 +2595,7 @@ GLContext::Readback(SharedSurface* src, gfx::DataSourceSurface* dest)
 
         ReadPixelsIntoDataSurface(this, dest);
 
-        src->ProducerReadRelease();
+        src->ProducerRelease();
     }
 
     if (tempFB)

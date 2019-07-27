@@ -20,6 +20,8 @@
 #include "mozilla/gfx/Logging.h"        
 #include "mozilla/layers/TextureClientOGL.h"
 #include "mozilla/layers/PTextureChild.h"
+#include "SharedSurface.h"
+#include "GLContext.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h" 
 #include "nsPrintfCString.h"            
 #include "LayersLogging.h"              
@@ -111,7 +113,7 @@ public:
 
   bool RecvCompositorRecycle() override
   {
-    RECYCLE_LOG("[CLIENT] Receive recycle %p (%p)\n", mTextureClient, mWaitForRecycle.get());
+    RECYCLE_LOG("Receive recycle %p (%p)\n", mTextureClient, mWaitForRecycle.get());
     mWaitForRecycle = nullptr;
     return true;
   }
@@ -119,7 +121,7 @@ public:
   void WaitForCompositorRecycle()
   {
     mWaitForRecycle = mTextureClient;
-    RECYCLE_LOG("[CLIENT] Wait for recycle %p\n", mWaitForRecycle.get());
+    RECYCLE_LOG("Wait for recycle %p\n", mWaitForRecycle.get());
     SendClientRecycle();
   }
 
@@ -585,10 +587,6 @@ TextureClient::Finalize()
     
     
     actor->mTextureClient = nullptr;
-
-    
-    
-
     
     if (actor->GetForwarder()) {
       actor->GetForwarder()->RemoveTexture(this);
@@ -915,6 +913,32 @@ BufferTextureClient::GetLockedData() const
   MOZ_ASSERT(serializer.IsValid());
 
   return serializer.GetData();
+}
+
+
+
+
+SharedSurfaceTextureClient::SharedSurfaceTextureClient(ISurfaceAllocator* aAllocator,
+                                                       TextureFlags aFlags,
+                                                       gl::SharedSurface* surf)
+  : TextureClient(aAllocator, aFlags)
+  , mIsLocked(false)
+  , mSurf(surf)
+  , mGL(mSurf->mGL)
+{
+  AddFlags(TextureFlags::DEALLOCATE_CLIENT);
+}
+
+SharedSurfaceTextureClient::~SharedSurfaceTextureClient()
+{
+  
+}
+
+bool
+SharedSurfaceTextureClient::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
+{
+  aOutDescriptor = SharedSurfaceDescriptor((uintptr_t)mSurf);
+  return true;
 }
 
 TemporaryRef<SyncObject>

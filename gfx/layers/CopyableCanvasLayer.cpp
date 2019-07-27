@@ -3,9 +3,8 @@
 
 
 
-#include "CopyableCanvasLayer.h"
-
 #include "BasicLayersImpl.h"            
+#include "CopyableCanvasLayer.h"
 #include "GLContext.h"                  
 #include "GLScreenBuffer.h"             
 #include "SharedSurface.h"              
@@ -22,7 +21,6 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "gfxUtils.h"
-#include "client/TextureClientSharedSurface.h"
 
 namespace mozilla {
 namespace layers {
@@ -58,8 +56,11 @@ CopyableCanvasLayer::Initialize(const Data& aData)
 
     if (aData.mFrontbufferGLTex) {
       gfx::IntSize size(aData.mSize.width, aData.mSize.height);
-      mGLFrontbuffer = SharedSurface_Basic::Wrap(aData.mGLContext, size, aData.mHasAlpha,
-                                                 aData.mFrontbufferGLTex);
+      mGLFrontbuffer = SharedSurface_GLTexture::Create(aData.mGLContext,
+                                                       nullptr,
+                                                       aData.mGLContext->GetGLFormats(),
+                                                       size, aData.mHasAlpha,
+                                                       aData.mFrontbufferGLTex);
     }
   } else if (aData.mDrawTarget) {
     mDrawTarget = aData.mDrawTarget;
@@ -107,7 +108,7 @@ CopyableCanvasLayer::UpdateTarget(DrawTarget* aDestTarget)
     frontbuffer = mGLFrontbuffer.get();
   } else {
     GLScreenBuffer* screen = mGLContext->Screen();
-    const auto& front = screen->Front();
+    ShSurfHandle* front = screen->Front();
     if (front) {
       frontbuffer = front->Surf();
     }
@@ -136,7 +137,7 @@ CopyableCanvasLayer::UpdateTarget(DrawTarget* aDestTarget)
           Factory::CreateWrappingDataSourceSurface(destData, destStride, destSize, destFormat);
         mGLContext->Readback(frontbuffer, data);
         if (needsPremult) {
-          gfxUtils::PremultiplyDataSurface(data, data);
+            gfxUtils::PremultiplyDataSurface(data, data);
         }
         aDestTarget->ReleaseBits(destData);
         return;
