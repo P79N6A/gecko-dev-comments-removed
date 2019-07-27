@@ -24,6 +24,8 @@ public:
 
 private:
     nsCOMPtr<nsIChannel> mSuspendedChannel;
+    
+    bool mIsAllowListed;
 
     ~nsChannelClassifier() {}
     void MarkEntryClassified(nsresult status);
