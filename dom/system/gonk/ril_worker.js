@@ -1122,6 +1122,48 @@ RilObject.prototype = {
 
 
 
+
+  overrideICCNetworkName: function() {
+    if (!this.operator) {
+      return false;
+    }
+
+    
+    
+    if (!this.voiceRegistrationState.cell ||
+        this.voiceRegistrationState.cell.gsmLocationAreaCode == -1) {
+      return false;
+    }
+
+    let ICCUtilsHelper = this.context.ICCUtilsHelper;
+    let networkName = ICCUtilsHelper.getNetworkNameFromICC(
+      this.operator.mcc,
+      this.operator.mnc,
+      this.voiceRegistrationState.cell.gsmLocationAreaCode);
+
+    if (!networkName) {
+      return false;
+    }
+
+    if (DEBUG) {
+      this.context.debug("Operator names will be overriden: " +
+                         "longName = " + networkName.fullName + ", " +
+                         "shortName = " + networkName.shortName);
+    }
+
+    this.operator.longName = networkName.fullName;
+    this.operator.shortName = networkName.shortName;
+
+    this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+    return true;
+  },
+
+  
+
+
+
+
+
   setRadioEnabled: function(options) {
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_RADIO_POWER, options);
@@ -3903,35 +3945,20 @@ RilObject.prototype = {
         }
       }
 
+      this.operator.longName = longName;
+      this.operator.shortName = shortName;
+
       let ICCUtilsHelper = this.context.ICCUtilsHelper;
-      let networkName;
-      
-      if (this.voiceRegistrationState.cell &&
-          this.voiceRegistrationState.cell.gsmLocationAreaCode != -1) {
-        networkName = ICCUtilsHelper.getNetworkNameFromICC(
-          this.operator.mcc,
-          this.operator.mnc,
-          this.voiceRegistrationState.cell.gsmLocationAreaCode);
-      }
-
-      if (networkName) {
-        if (DEBUG) {
-          this.context.debug("Operator names will be overriden: " +
-                             "longName = " + networkName.fullName + ", " +
-                             "shortName = " + networkName.shortName);
-        }
-
-        this.operator.longName = networkName.fullName;
-        this.operator.shortName = networkName.shortName;
-      } else {
-        this.operator.longName = longName;
-        this.operator.shortName = shortName;
-      }
-
       if (ICCUtilsHelper.updateDisplayCondition()) {
         ICCUtilsHelper.handleICCInfoChange();
       }
-      this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+
+      
+      
+      
+      if (!this.overrideICCNetworkName()) {
+        this._sendNetworkInfoMessage(NETWORK_INFO_OPERATOR, this.operator);
+      }
     }
   },
 
@@ -13695,11 +13722,14 @@ SimRecordHelperObject.prototype = {
       }
       Buf.readStringDelimiter(strLen);
 
+      let RIL = this.context.RIL;
       if (options.p1 < options.totalRecords) {
         ICCIOHelper.loadNextRecord(options);
       } else {
-        this.context.RIL.iccInfoPrivate.OPL = opl;
+        RIL.iccInfoPrivate.OPL = opl;
       }
+
+      RIL.overrideICCNetworkName();
     }
 
     ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_OPL,
@@ -13757,6 +13787,7 @@ SimRecordHelperObject.prototype = {
         pnn.push(pnnElement);
       }
 
+      let RIL = this.context.RIL;
       
       if (pnnElement && options.p1 < options.totalRecords) {
         ICCIOHelper.loadNextRecord(options);
@@ -13766,8 +13797,10 @@ SimRecordHelperObject.prototype = {
             this.context.debug("PNN: [" + i + "]: " + JSON.stringify(pnn[i]));
           }
         }
-        this.context.RIL.iccInfoPrivate.PNN = pnn;
+        RIL.iccInfoPrivate.PNN = pnn;
       }
+
+      RIL.overrideICCNetworkName();
     }
 
     let pnn = [];
@@ -14204,17 +14237,55 @@ ICCUtilsHelperObject.prototype = {
         pnnEntry = iccInfoPriv.PNN[0];
       }
     } else {
+      let GsmPDUHelper = this.context.GsmPDUHelper;
+      let wildChar = GsmPDUHelper.bcdChars.charAt(0x0d);
       
       
       
       
       let length = iccInfoPriv.OPL ? iccInfoPriv.OPL.length : 0;
       for (let i = 0; i < length; i++) {
+        let unmatch = false;
         let opl = iccInfoPriv.OPL[i];
         
-        if (mcc != opl.mcc || mnc != opl.mnc) {
+        
+        
+        if (opl.mcc.indexOf(wildChar) !== -1) {
+          for (let j = 0; j < opl.mcc.length; j++) {
+            if (opl.mcc[j] !== wildChar && opl.mcc[j] !== mcc[j]) {
+              unmatch = true;
+              break;
+            }
+          }
+          if (unmatch) {
+            continue;
+          }
+        } else {
+          if (mcc !== opl.mcc) {
+            continue;
+          }
+        }
+
+        if (mnc.length !== opl.mnc.length) {
           continue;
         }
+
+        if (opl.mnc.indexOf(wildChar) !== -1) {
+          for (let j = 0; j < opl.mnc.length; j++) {
+            if (opl.mnc[j] !== wildChar && opl.mnc[j] !== mnc[j]) {
+              unmatch = true;
+              break;
+            }
+          }
+          if (unmatch) {
+            continue;
+          }
+        } else {
+          if (mnc !== opl.mnc) {
+            continue;
+          }
+        }
+
         
         
         
