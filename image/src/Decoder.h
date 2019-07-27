@@ -22,7 +22,7 @@ class Decoder
 {
 public:
 
-  explicit Decoder(RasterImage& aImage);
+  explicit Decoder(RasterImage* aImage);
 
   
 
@@ -188,6 +188,11 @@ public:
   ImageMetadata& GetImageMetadata() { return mImageMetadata; }
 
   
+
+
+  RasterImage* GetImage() const { MOZ_ASSERT(mImage); return mImage.get(); }
+
+  
   
   
   
@@ -312,7 +317,7 @@ protected:
 
 
 
-  RasterImage &mImage;
+  nsRefPtr<RasterImage> mImage;
   RawAccessFrameRef mCurrentFrame;
   ImageMetadata mImageMetadata;
   nsIntRect mInvalidRect; 
