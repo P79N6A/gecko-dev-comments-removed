@@ -72,8 +72,8 @@ ThreadSafeContext::isThreadLocal(T thing) const
     {
         
         
-        JS_ASSERT(!thing->zoneFromAnyThread()->needsBarrier());
-        JS_ASSERT(!thing->runtimeFromAnyThread()->needsBarrier());
+        JS_ASSERT(!thing->zoneFromAnyThread()->needsIncrementalBarrier());
+        JS_ASSERT(!thing->runtimeFromAnyThread()->needsIncrementalBarrier());
 
         return true;
     }

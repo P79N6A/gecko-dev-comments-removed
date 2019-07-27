@@ -227,7 +227,7 @@ BaselineCompiler::compile()
         baselineScript->setModifiesArguments();
 
     
-    if (cx->zone()->needsBarrier())
+    if (cx->zone()->needsIncrementalBarrier())
         baselineScript->toggleBarriers(true);
 
     

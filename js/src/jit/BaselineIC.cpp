@@ -481,7 +481,7 @@ ICFallbackStub::unlinkStub(Zone *zone, ICStub *prev, ICStub *stub)
     JS_ASSERT(numOptimizedStubs_ > 0);
     numOptimizedStubs_--;
 
-    if (zone->needsBarrier()) {
+    if (zone->needsIncrementalBarrier()) {
         
         
         stub->trace(zone->barrierTracer());
@@ -518,7 +518,7 @@ ICFallbackStub::unlinkStubsWithKind(JSContext *cx, ICStub::Kind kind)
 void
 ICTypeMonitor_Fallback::resetMonitorStubChain(Zone *zone)
 {
-    if (zone->needsBarrier()) {
+    if (zone->needsIncrementalBarrier()) {
         
         
         
@@ -621,7 +621,7 @@ ICStubCompiler::getStubCode()
         return nullptr;
 
     
-    if (cx->zone()->needsBarrier())
+    if (cx->zone()->needsIncrementalBarrier())
         newStubCode->togglePreBarriers(true);
 
     

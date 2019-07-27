@@ -341,7 +341,7 @@ class MinorCollectionTracer : public JSTracer
         tenuredSize(0),
         head(nullptr),
         tail(&head),
-        savedRuntimeNeedBarrier(rt->needsBarrier()),
+        savedRuntimeNeedBarrier(rt->needsIncrementalBarrier()),
         disableStrictProxyChecking(rt)
     {
         rt->gc.incGcNumber();
@@ -354,7 +354,8 @@ class MinorCollectionTracer : public JSTracer
 
 
 
-        rt->setNeedsBarrier(false);
+
+        rt->setNeedsIncrementalBarrier(false);
 
         
 
@@ -371,7 +372,7 @@ class MinorCollectionTracer : public JSTracer
     }
 
     ~MinorCollectionTracer() {
-        runtime()->setNeedsBarrier(savedRuntimeNeedBarrier);
+        runtime()->setNeedsIncrementalBarrier(savedRuntimeNeedBarrier);
         if (runtime()->gc.state() != NO_INCREMENTAL)
             ArrayBufferObject::restoreArrayBufferLists(liveArrayBuffers);
     }

@@ -2519,7 +2519,7 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 
 
     JS::Zone *zone = a->zone();
-    if (zone->needsBarrier()) {
+    if (zone->needsIncrementalBarrier()) {
         MarkChildren(zone->barrierTracer(), a);
         MarkChildren(zone->barrierTracer(), b);
     }

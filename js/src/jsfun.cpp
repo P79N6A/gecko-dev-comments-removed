@@ -1191,7 +1191,7 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
     Rooted<LazyScript*> lazy(cx, fun->lazyScriptOrNull());
     if (lazy) {
         
-        if (cx->zone()->needsBarrier())
+        if (cx->zone()->needsIncrementalBarrier())
             LazyScript::writeBarrierPre(lazy);
 
         

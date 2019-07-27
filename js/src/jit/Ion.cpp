@@ -968,7 +968,7 @@ IonScript::trace(JSTracer *trc)
 IonScript::writeBarrierPre(Zone *zone, IonScript *ionScript)
 {
 #ifdef JSGC_INCREMENTAL
-    if (zone->needsBarrier())
+    if (zone->needsIncrementalBarrier())
         ionScript->trace(zone->barrierTracer());
 #endif
 }
@@ -2616,7 +2616,7 @@ InvalidateActivation(FreeOp *fop, uint8_t *jitTop, bool invalidateAll)
         JitCode *ionCode = ionScript->method();
 
         JS::Zone *zone = script->zone();
-        if (zone->needsBarrier()) {
+        if (zone->needsIncrementalBarrier()) {
             
             
             
