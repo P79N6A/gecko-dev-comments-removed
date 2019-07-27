@@ -194,7 +194,7 @@ using namespace mozilla::system;
 
 
 #if defined(MOZ_CONTENT_SANDBOX) && defined(XP_LINUX)
-#include "mozilla/Sandbox.h"
+#include "mozilla/SandboxInfo.h"
 #endif
 
 #ifdef MOZ_TOOLKIT_SEARCH
@@ -699,7 +699,7 @@ ContentParent::StartUp()
 #if defined(MOZ_CONTENT_SANDBOX) && defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 19
     
     
-    if (ContentProcessSandboxStatus() == kSandboxingWouldFail) {
+    if (!SandboxInfo::Get().CanSandboxContent()) {
         
         
         printf_stderr("Sandboxing support is required on this platform.  "
