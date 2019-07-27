@@ -120,10 +120,6 @@ ForceCOWBehavior(JSObject *obj)
                    "instances modulo this hack");
         return true;
     }
-    
-    
-    if (key == JSProto_Proxy)
-        return true;
 
     return false;
 }
