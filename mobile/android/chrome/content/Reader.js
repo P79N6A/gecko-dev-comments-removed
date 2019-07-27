@@ -2,10 +2,14 @@
 
 
 
+
 "use strict";
 
-let Reader = {
+const { utils: Cu } = Components;
 
+Cu.import("resource://gre/modules/ReaderMode.jsm");
+
+let Reader = {
   
   STATUS_UNFETCHED: 0,
   STATUS_FETCH_FAILED_TEMPORARY: 1,
@@ -261,7 +265,7 @@ let Reader = {
     });
 
     for (let article of articles) {
-      yield this.storeArticleInCache(article);
+      yield ReaderMode.storeArticleInCache(article);
     }
 
     
