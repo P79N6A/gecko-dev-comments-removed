@@ -43,6 +43,10 @@ function SystemMessageManager() {
   this._registerManifestURLReady = false;
 
   
+  this._isHandling = false;
+  this._promise = null;
+
+  
   let appInfo = Cc["@mozilla.org/xre/app-info;1"];
   this._isParentProcess =
     !appInfo || appInfo.getService(Ci.nsIXULRuntime)
@@ -71,6 +75,7 @@ SystemMessageManager.prototype = {
     }
 
     aDispatcher.isHandling = true;
+    this._isHandling = true;
 
     
     
@@ -94,15 +99,29 @@ SystemMessageManager.prototype = {
       .handleMessage(wrapped ? aMessage
                              : Cu.cloneInto(aMessage, this._window));
 
-    
-    
-    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessageDone",
-                          { type: aType,
-                            manifestURL: this._manifestURL,
-                            pageURL: this._pageURL,
-                            msgID: aMessageID });
-
     aDispatcher.isHandling = false;
+    this._isHandling = false;
+
+    let self = this;
+    function sendResponse() {
+      
+      
+      
+      cpmm.sendAsyncMessage("SystemMessageManager:HandleMessageDone",
+                            { type: aType,
+                              manifestURL: self._manifestURL,
+                              pageURL: self._pageURL,
+                              msgID: aMessageID });
+    }
+
+    if (!this._promise) {
+      debug("No promise set, sending the response immediately");
+      sendResponse();
+    } else {
+      debug("Using the promise to postpone the response.");
+      this._promise.then(sendResponse, sendResponse);
+      this._promise = null;
+    }
 
     if (aDispatcher.messages.length > 0) {
       let msg = aDispatcher.messages.shift();
@@ -171,9 +190,25 @@ SystemMessageManager.prototype = {
                                   manifestURL: this._manifestURL })[0];
   },
 
+  mozIsHandlingMessage: function() {
+    debug("is handling message: " + this._isHandling);
+    return this._isHandling;
+  },
+
+  mozSetMessageHandlerPromise: function(aPromise) {
+    debug("setting a promise");
+
+    if (!this._isHandling) {
+      throw "Not in a handleMessage method";
+    }
+
+    this._promise = aPromise;
+  },
+
   uninit: function()  {
     this._dispatchers = null;
     this._pendings = null;
+    this._promise = null;
 
     if (this._isParentProcess) {
       Services.obs.removeObserver(this, kSystemMessageInternalReady);
