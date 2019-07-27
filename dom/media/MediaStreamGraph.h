@@ -1191,7 +1191,7 @@ public:
   
 
 
-  void StartNonRealtimeProcessing(TrackRate aRate, uint32_t aTicksToProcess);
+  void StartNonRealtimeProcessing(uint32_t aTicksToProcess);
 
   
 
