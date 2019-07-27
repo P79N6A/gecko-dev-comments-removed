@@ -14,6 +14,13 @@ function peerReadyCb(evt) {
 
   
   nfc.onpeerready = null;
+  emulator.deactivate();
+}
+
+function peerLostCb() {
+  log("peerLostCb called");
+  ok(true);
+  nfc.onpeerlost = null;
   toggleNFC(false).then(runNextTest);
 }
 
@@ -23,6 +30,7 @@ function handleTechnologyDiscoveredRE0(msg) {
   is(msg.techList[0], "P2P", "check for correct tech type");
 
   nfc.onpeerready = peerReadyCb;
+  nfc.onpeerlost = peerLostCb;
 
   let request = nfc.checkP2PRegistration(MANIFEST_URL);
   request.onsuccess = function (evt) {
