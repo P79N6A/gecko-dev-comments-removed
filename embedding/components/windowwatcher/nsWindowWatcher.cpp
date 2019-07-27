@@ -73,63 +73,71 @@ using namespace mozilla::dom;
 
 class nsWindowWatcher;
 
-struct nsWatcherWindowEntry {
+struct nsWatcherWindowEntry
+{
 
-  nsWatcherWindowEntry(nsIDOMWindow *inWindow, nsIWebBrowserChrome *inChrome) {
+  nsWatcherWindowEntry(nsIDOMWindow* aWindow, nsIWebBrowserChrome* aChrome)
+  {
 #ifdef USEWEAKREFS
-    mWindow = do_GetWeakReference(inWindow);
+    mWindow = do_GetWeakReference(aWindow);
 #else
-    mWindow = inWindow;
+    mWindow = aWindow;
 #endif
-    nsCOMPtr<nsISupportsWeakReference> supportsweak(do_QueryInterface(inChrome));
+    nsCOMPtr<nsISupportsWeakReference> supportsweak(do_QueryInterface(aChrome));
     if (supportsweak) {
       supportsweak->GetWeakReference(getter_AddRefs(mChromeWeak));
     } else {
-      mChrome = inChrome;
+      mChrome = aChrome;
       mChromeWeak = 0;
     }
     ReferenceSelf();
   }
   ~nsWatcherWindowEntry() {}
 
-  void InsertAfter(nsWatcherWindowEntry *inOlder);
+  void InsertAfter(nsWatcherWindowEntry* aOlder);
   void Unlink();
   void ReferenceSelf();
 
 #ifdef USEWEAKREFS
   nsCOMPtr<nsIWeakReference> mWindow;
 #else 
-  nsIDOMWindow              *mWindow;
+  nsIDOMWindow* mWindow;
 #endif
-  nsIWebBrowserChrome       *mChrome;
-  nsWeakPtr                  mChromeWeak;
+  nsIWebBrowserChrome* mChrome;
+  nsWeakPtr mChromeWeak;
   
-  nsWatcherWindowEntry      *mYounger, 
-                            *mOlder;
+  nsWatcherWindowEntry* mYounger; 
+  nsWatcherWindowEntry* mOlder;
 };
 
-void nsWatcherWindowEntry::InsertAfter(nsWatcherWindowEntry *inOlder)
+void
+nsWatcherWindowEntry::InsertAfter(nsWatcherWindowEntry* aOlder)
 {
-  if (inOlder) {
-    mOlder = inOlder;
-    mYounger = inOlder->mYounger;
+  if (aOlder) {
+    mOlder = aOlder;
+    mYounger = aOlder->mYounger;
     mOlder->mYounger = this;
-    if (mOlder->mOlder == mOlder)
+    if (mOlder->mOlder == mOlder) {
       mOlder->mOlder = this;
+    }
     mYounger->mOlder = this;
-    if (mYounger->mYounger == mYounger)
+    if (mYounger->mYounger == mYounger) {
       mYounger->mYounger = this;
+    }
   }
 }
 
-void nsWatcherWindowEntry::Unlink() {
-
+void
+nsWatcherWindowEntry::Unlink()
+{
   mOlder->mYounger = mYounger;
   mYounger->mOlder = mOlder;
   ReferenceSelf();
 }
 
-void nsWatcherWindowEntry::ReferenceSelf() {
+void
+nsWatcherWindowEntry::ReferenceSelf()
+{
 
   mYounger = this;
   mOlder = this;
@@ -139,12 +147,13 @@ void nsWatcherWindowEntry::ReferenceSelf() {
 
 
 
-class nsWatcherWindowEnumerator : public nsISimpleEnumerator {
+class nsWatcherWindowEnumerator : public nsISimpleEnumerator
+{
 
 public:
-  explicit nsWatcherWindowEnumerator(nsWindowWatcher *inWatcher);
-  NS_IMETHOD HasMoreElements(bool *retval) override;
-  NS_IMETHOD GetNext(nsISupports **retval) override;
+  explicit nsWatcherWindowEnumerator(nsWindowWatcher* aWatcher);
+  NS_IMETHOD HasMoreElements(bool* aResult) override;
+  NS_IMETHOD GetNext(nsISupports** aResult) override;
 
   NS_DECL_ISUPPORTS
 
@@ -154,20 +163,20 @@ protected:
 private:
   friend class nsWindowWatcher;
 
-  nsWatcherWindowEntry *FindNext();
-  void WindowRemoved(nsWatcherWindowEntry *inInfo);
+  nsWatcherWindowEntry* FindNext();
+  void WindowRemoved(nsWatcherWindowEntry* aInfo);
 
-  nsWindowWatcher      *mWindowWatcher;
-  nsWatcherWindowEntry *mCurrentPosition;
+  nsWindowWatcher* mWindowWatcher;
+  nsWatcherWindowEntry* mCurrentPosition;
 };
 
 NS_IMPL_ADDREF(nsWatcherWindowEnumerator)
 NS_IMPL_RELEASE(nsWatcherWindowEnumerator)
 NS_IMPL_QUERY_INTERFACE(nsWatcherWindowEnumerator, nsISimpleEnumerator)
 
-nsWatcherWindowEnumerator::nsWatcherWindowEnumerator(nsWindowWatcher *inWatcher)
-  : mWindowWatcher(inWatcher),
-    mCurrentPosition(inWatcher->mOldestWindow)
+nsWatcherWindowEnumerator::nsWatcherWindowEnumerator(nsWindowWatcher* aWatcher)
+  : mWindowWatcher(aWatcher)
+  , mCurrentPosition(aWatcher->mOldestWindow)
 {
   mWindowWatcher->AddEnumerator(this);
   mWindowWatcher->AddRef();
@@ -180,60 +189,67 @@ nsWatcherWindowEnumerator::~nsWatcherWindowEnumerator()
 }
 
 NS_IMETHODIMP
-nsWatcherWindowEnumerator::HasMoreElements(bool *retval)
+nsWatcherWindowEnumerator::HasMoreElements(bool* aResult)
 {
-  if (!retval)
+  if (!aResult) {
     return NS_ERROR_INVALID_ARG;
+  }
 
-  *retval = mCurrentPosition? true : false;
+  *aResult = !!mCurrentPosition;
   return NS_OK;
 }
-    
-NS_IMETHODIMP
-nsWatcherWindowEnumerator::GetNext(nsISupports **retval)
-{
-  if (!retval)
-    return NS_ERROR_INVALID_ARG;
 
-  *retval = nullptr;
+NS_IMETHODIMP
+nsWatcherWindowEnumerator::GetNext(nsISupports** aResult)
+{
+  if (!aResult) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  *aResult = nullptr;
 
 #ifdef USEWEAKREFS
   while (mCurrentPosition) {
-    CallQueryReferent(mCurrentPosition->mWindow, retval);
-    if (*retval) {
+    CallQueryReferent(mCurrentPosition->mWindow, aResult);
+    if (*aResult) {
       mCurrentPosition = FindNext();
       break;
-    } else 
+    } else { 
       mWindowWatcher->RemoveWindow(mCurrentPosition);
+    }
   }
-  NS_IF_ADDREF(*retval);
+  NS_IF_ADDREF(*aResult);
 #else
   if (mCurrentPosition) {
-    CallQueryInterface(mCurrentPosition->mWindow, retval);
+    CallQueryInterface(mCurrentPosition->mWindow, aResult);
     mCurrentPosition = FindNext();
   }
 #endif
   return NS_OK;
 }
 
-nsWatcherWindowEntry *
+nsWatcherWindowEntry*
 nsWatcherWindowEnumerator::FindNext()
 {
-  nsWatcherWindowEntry *info;
+  nsWatcherWindowEntry* info;
 
-  if (!mCurrentPosition)
+  if (!mCurrentPosition) {
     return 0;
+  }
 
   info = mCurrentPosition->mYounger;
   return info == mWindowWatcher->mOldestWindow ? 0 : info;
 }
 
 
-void nsWatcherWindowEnumerator::WindowRemoved(nsWatcherWindowEntry *inInfo) {
+void
+nsWatcherWindowEnumerator::WindowRemoved(nsWatcherWindowEntry* aInfo)
+{
 
-  if (mCurrentPosition == inInfo)
-    mCurrentPosition = mCurrentPosition != inInfo->mYounger ?
-                       inInfo->mYounger : 0;
+  if (mCurrentPosition == aInfo) {
+    mCurrentPosition =
+      mCurrentPosition != aInfo->mYounger ? aInfo->mYounger : 0;
+  }
 }
 
 
@@ -247,18 +263,19 @@ NS_IMPL_QUERY_INTERFACE(nsWindowWatcher,
                         nsIPromptFactory,
                         nsPIWindowWatcher)
 
-nsWindowWatcher::nsWindowWatcher() :
-        mEnumeratorList(),
-        mOldestWindow(0),
-        mListLock("nsWindowWatcher.mListLock")
+nsWindowWatcher::nsWindowWatcher()
+  : mEnumeratorList()
+  , mOldestWindow(0)
+  , mListLock("nsWindowWatcher.mListLock")
 {
 }
 
 nsWindowWatcher::~nsWindowWatcher()
 {
   
-  while (mOldestWindow)
+  while (mOldestWindow) {
     RemoveWindow(mOldestWindow);
+  }
 }
 
 nsresult
@@ -288,8 +305,9 @@ ConvertArgsToArray(nsISupports* aArguments)
   if (array) {
     uint32_t argc = 0;
     array->GetLength(&argc);
-    if (argc == 0)
+    if (argc == 0) {
       return nullptr;
+    }
 
     return array.forget();
   }
@@ -327,12 +345,12 @@ ConvertArgsToArray(nsISupports* aArguments)
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::OpenWindow(nsIDOMWindow *aParent,
-                            const char *aUrl,
-                            const char *aName,
-                            const char *aFeatures,
-                            nsISupports *aArguments,
-                            nsIDOMWindow **_retval)
+nsWindowWatcher::OpenWindow(nsIDOMWindow* aParent,
+                            const char* aUrl,
+                            const char* aName,
+                            const char* aFeatures,
+                            nsISupports* aArguments,
+                            nsIDOMWindow** aResult)
 {
   nsCOMPtr<nsIArray> argv = ConvertArgsToArray(aArguments);
 
@@ -344,21 +362,23 @@ nsWindowWatcher::OpenWindow(nsIDOMWindow *aParent,
 
   return OpenWindowInternal(aParent, aUrl, aName, aFeatures,
                              false, dialog,
-                             true, nullptr, argv, _retval);
+                             true, nullptr, argv, aResult);
 }
 
-struct SizeSpec {
-  SizeSpec() :
-    mLeftSpecified(false),
-    mTopSpecified(false),
-    mOuterWidthSpecified(false),
-    mOuterHeightSpecified(false),
-    mInnerWidthSpecified(false),
-    mInnerHeightSpecified(false),
-    mUseDefaultWidth(false),
-    mUseDefaultHeight(false)
-  {}
-  
+struct SizeSpec
+{
+  SizeSpec()
+    : mLeftSpecified(false)
+    , mTopSpecified(false)
+    , mOuterWidthSpecified(false)
+    , mOuterHeightSpecified(false)
+    , mInnerWidthSpecified(false)
+    , mInnerHeightSpecified(false)
+    , mUseDefaultWidth(false)
+    , mUseDefaultHeight(false)
+  {
+  }
+
   int32_t mLeft;
   int32_t mTop;
   int32_t mOuterWidth;  
@@ -378,27 +398,29 @@ struct SizeSpec {
   bool mUseDefaultWidth;
   bool mUseDefaultHeight;
 
-  bool PositionSpecified() const {
+  bool PositionSpecified() const
+  {
     return mLeftSpecified || mTopSpecified;
   }
-  
-  bool SizeSpecified() const {
+
+  bool SizeSpecified() const
+  {
     return mOuterWidthSpecified || mOuterHeightSpecified ||
-      mInnerWidthSpecified || mInnerHeightSpecified;
+           mInnerWidthSpecified || mInnerHeightSpecified;
   }
 };
 
 NS_IMETHODIMP
-nsWindowWatcher::OpenWindow2(nsIDOMWindow *aParent,
-                              const char *aUrl,
-                              const char *aName,
-                              const char *aFeatures,
-                              bool aCalledFromScript,
-                              bool aDialog,
-                              bool aNavigate,
-                              nsITabParent *aOpeningTab,
-                              nsISupports *aArguments,
-                              nsIDOMWindow **_retval)
+nsWindowWatcher::OpenWindow2(nsIDOMWindow* aParent,
+                             const char* aUrl,
+                             const char* aName,
+                             const char* aFeatures,
+                             bool aCalledFromScript,
+                             bool aDialog,
+                             bool aNavigate,
+                             nsITabParent* aOpeningTab,
+                             nsISupports* aArguments,
+                             nsIDOMWindow** aResult)
 {
   nsCOMPtr<nsIArray> argv = ConvertArgsToArray(aArguments);
 
@@ -417,39 +439,39 @@ nsWindowWatcher::OpenWindow2(nsIDOMWindow *aParent,
 
   return OpenWindowInternal(aParent, aUrl, aName, aFeatures,
                             aCalledFromScript, dialog,
-                            aNavigate, aOpeningTab, argv, _retval);
+                            aNavigate, aOpeningTab, argv, aResult);
 }
 
 nsresult
-nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
-                                    const char *aUrl,
-                                    const char *aName,
-                                    const char *aFeatures,
+nsWindowWatcher::OpenWindowInternal(nsIDOMWindow* aParent,
+                                    const char* aUrl,
+                                    const char* aName,
+                                    const char* aFeatures,
                                     bool aCalledFromJS,
                                     bool aDialog,
                                     bool aNavigate,
-                                    nsITabParent *aOpeningTab,
-                                    nsIArray *argv,
-                                    nsIDOMWindow **_retval)
+                                    nsITabParent* aOpeningTab,
+                                    nsIArray* aArgv,
+                                    nsIDOMWindow** aResult)
 {
-  nsresult                        rv = NS_OK;
-  bool                            nameSpecified,
-                                  featuresSpecified,
-                                  isNewToplevelWindow = false,
-                                  windowIsNew = false,
-                                  windowNeedsName = false,
-                                  windowIsModal = false,
-                                  uriToLoadIsChrome = false,
-                                  windowIsModalContentDialog = false,
+  nsresult rv = NS_OK;
+  bool isNewToplevelWindow = false;
+  bool windowIsNew = false;
+  bool windowNeedsName = false;
+  bool windowIsModal = false;
+  bool uriToLoadIsChrome = false;
+  bool windowIsModalContentDialog = false;
+
   
   
-                                  openedFromRemoteTab = !!aOpeningTab;
-  uint32_t                        chromeFlags;
-  nsAutoString                    name;             
-  nsAutoCString                   features;         
-  nsCOMPtr<nsIURI>                uriToLoad;        
-  nsCOMPtr<nsIDocShellTreeOwner>  parentTreeOwner;  
-  nsCOMPtr<nsIDocShellTreeItem>   newDocShellItem;  
+  bool openedFromRemoteTab = !!aOpeningTab;
+
+  uint32_t chromeFlags;
+  nsAutoString name;          
+  nsAutoCString features;     
+  nsCOMPtr<nsIURI> uriToLoad; 
+  nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner; 
+  nsCOMPtr<nsIDocShellTreeItem> newDocShellItem; 
 
   nsCOMPtr<nsPIDOMWindow> parent = do_QueryInterface(aParent);
   if (parent && parent->IsInnerWindow()) {
@@ -457,9 +479,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     aParent = parent->GetOuterWindow();
   }
 
-  MOZ_ASSERT_IF(openedFromRemoteTab, XRE_GetProcessType() == GeckoProcessType_Default);
-  NS_ENSURE_ARG_POINTER(_retval);
-  *_retval = 0;
+  MOZ_ASSERT_IF(openedFromRemoteTab,
+                XRE_GetProcessType() == GeckoProcessType_Default);
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = 0;
 
   if (!nsContentUtils::IsSafeToRunScript()) {
     nsContentUtils::WarnScriptWasIgnored(nullptr);
@@ -470,18 +493,19 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
   if (aUrl) {
     rv = URIfromURL(aUrl, aParent, getter_AddRefs(uriToLoad));
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
       return rv;
+    }
     uriToLoad->SchemeIs("chrome", &uriToLoadIsChrome);
   }
 
-  nameSpecified = false;
+  bool nameSpecified = false;
   if (aName) {
     CopyUTF8toUTF16(aName, name);
     nameSpecified = true;
   }
 
-  featuresSpecified = false;
+  bool featuresSpecified = false;
   if (aFeatures) {
     features.Assign(aFeatures);
     featuresSpecified = true;
@@ -524,7 +548,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     nsCOMPtr<nsIDOMDocument> domdoc;
     aParent->GetDocument(getter_AddRefs(domdoc));
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
-    hasChromeParent = doc && nsContentUtils::IsChromeDoc(doc) && !openedFromRemoteTab;
+    hasChromeParent =
+      doc && nsContentUtils::IsChromeDoc(doc) && !openedFromRemoteTab;
   }
 
   
@@ -543,7 +568,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   
-  if (!aCalledFromJS && argv &&
+  if (!aCalledFromJS && aArgv &&
       WinHasOption(features.get(), "-moz-internal-modal", 0, nullptr)) {
     windowIsModalContentDialog = true;
 
@@ -559,14 +584,16 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   SizeSpec sizeSpec;
   CalcSizeSpec(features.get(), sizeSpec);
 
-  nsCOMPtr<nsIScriptSecurityManager>
-    sm(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
+  nsCOMPtr<nsIScriptSecurityManager> sm(
+    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
 
-  bool isCallerChrome = nsContentUtils::IsCallerChrome() && !openedFromRemoteTab;
+  bool isCallerChrome =
+    nsContentUtils::IsCallerChrome() && !openedFromRemoteTab;
 
   dom::AutoJSAPI jsapiChromeGuard;
 
-  bool windowTypeIsChrome = chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
+  bool windowTypeIsChrome =
+    chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
   if (isCallerChrome && !hasChromeParent && !windowTypeIsChrome) {
     
     
@@ -616,8 +643,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     nsCOMPtr<nsIDOMChromeWindow> chromeWin = do_QueryInterface(aParent);
     if (!aDialog && !chromeWin &&
-        !(chromeFlags & (nsIWebBrowserChrome::CHROME_MODAL         |
-                         nsIWebBrowserChrome::CHROME_OPENAS_DIALOG | 
+        !(chromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
+                         nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
                          nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {
       nsCOMPtr<nsIWindowProvider> provider = do_GetInterface(parentTreeOwner);
       if (provider) {
@@ -641,8 +668,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
               do_QueryInterface(newDocShellItem);
             webNav->Stop(nsIWebNavigation::STOP_NETWORK);
           }
-        }
-        else if (rv == NS_ERROR_ABORT) {
+        } else if (rv == NS_ERROR_ABORT) {
           
           
           
@@ -653,7 +679,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
       }
     }
   }
-  
+
   bool newWindowShouldBeModal = false;
   bool parentIsModal = false;
   if (!newDocShellItem) {
@@ -674,7 +700,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
       windowIsModal = true;
       
       chromeFlags |= nsIWebBrowserChrome::CHROME_MODAL |
-        nsIWebBrowserChrome::CHROME_DEPENDENT;
+                     nsIWebBrowserChrome::CHROME_DEPENDENT;
     }
 
     
@@ -684,14 +710,16 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     if (!hasChromeParent && (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL)) {
       nsCOMPtr<nsIBaseWindow> parentWindow(do_GetInterface(parentTreeOwner));
       nsCOMPtr<nsIWidget> parentWidget;
-      if (parentWindow)
+      if (parentWindow) {
         parentWindow->GetMainWidget(getter_AddRefs(parentWidget));
+      }
       
       
       
       
-      if (parentWidget && !parentWidget->IsVisible())
+      if (parentWidget && !parentWidget->IsVisible()) {
         return NS_ERROR_NOT_AVAILABLE;
+      }
     }
 
     NS_ASSERTION(mWindowCreator,
@@ -707,7 +735,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
 
 
-      nsCOMPtr<nsIWindowCreator2> windowCreator2(do_QueryInterface(mWindowCreator));
+      nsCOMPtr<nsIWindowCreator2> windowCreator2(
+        do_QueryInterface(mWindowCreator));
       if (windowCreator2) {
         uint32_t contextFlags = 0;
         bool popupConditions = false;
@@ -722,8 +751,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
           popupConditions = !isCallerChrome;
         }
 
-        if (popupConditions)
-          contextFlags |= nsIWindowCreator2::PARENT_IS_LOADING_OR_RUNNING_TIMEOUT;
+        if (popupConditions) {
+          contextFlags |=
+            nsIWindowCreator2::PARENT_IS_LOADING_OR_RUNNING_TIMEOUT;
+        }
 
         bool cancel = false;
         rv = windowCreator2->CreateChromeWindow2(parentChrome, chromeFlags,
@@ -734,28 +765,33 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
           newChrome = 0; 
           rv = NS_ERROR_ABORT;
         }
-      }
-      else
+      } else {
         rv = mWindowCreator->CreateChromeWindow(parentChrome, chromeFlags,
                                                 getter_AddRefs(newChrome));
+      }
+
       if (newChrome) {
         
 
 
         nsCOMPtr<nsIDOMWindow> newWindow(do_GetInterface(newChrome));
-        if (newWindow)
+        if (newWindow) {
           GetWindowTreeItem(newWindow, getter_AddRefs(newDocShellItem));
-        if (!newDocShellItem)
+        }
+        if (!newDocShellItem) {
           newDocShellItem = do_GetInterface(newChrome);
-        if (!newDocShellItem)
+        }
+        if (!newDocShellItem) {
           rv = NS_ERROR_FAILURE;
+        }
       }
     }
   }
 
   
-  if (!newDocShellItem)
+  if (!newDocShellItem) {
     return rv;
+  }
 
   nsCOMPtr<nsIDocShell> newDocShell(do_QueryInterface(newDocShellItem));
   NS_ENSURE_TRUE(newDocShell, NS_ERROR_UNEXPECTED);
@@ -765,14 +801,15 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   if (activeDocsSandboxFlags != 0) {
     newDocShell->SetSandboxFlags(activeDocsSandboxFlags);
     if (parentWindow) {
-      newDocShell->
-        SetOnePermittedSandboxedNavigator(parentWindow->GetDocShell());
+      newDocShell->SetOnePermittedSandboxedNavigator(
+        parentWindow->GetDocShell());
     }
   }
-  
-  rv = ReadyOpenedDocShellItem(newDocShellItem, aParent, windowIsNew, _retval);
-  if (NS_FAILED(rv))
+
+  rv = ReadyOpenedDocShellItem(newDocShellItem, aParent, windowIsNew, aResult);
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   
 
@@ -784,21 +821,23 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
 
 
-    if (PL_strcasestr(features.get(), "width=") || PL_strcasestr(features.get(), "height=")) {
+    if (PL_strcasestr(features.get(), "width=") ||
+        PL_strcasestr(features.get(), "height=")) {
 
       nsCOMPtr<nsIDocShellTreeOwner> newTreeOwner;
       newDocShellItem->GetTreeOwner(getter_AddRefs(newTreeOwner));
-      if (newTreeOwner)
+      if (newTreeOwner) {
         newTreeOwner->SetPersistence(false, false, false);
+      }
     }
   }
 
-  if ((aDialog || windowIsModalContentDialog) && argv) {
+  if ((aDialog || windowIsModalContentDialog) && aArgv) {
     
-    nsCOMPtr<nsPIDOMWindow> piwin(do_QueryInterface(*_retval));
+    nsCOMPtr<nsPIDOMWindow> piwin(do_QueryInterface(*aResult));
     NS_ENSURE_TRUE(piwin, NS_ERROR_UNEXPECTED);
 
-    rv = piwin->SetArguments(argv);
+    rv = piwin->SetArguments(aArgv);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -821,8 +860,8 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   nsCOMPtr<nsIPrincipal> subjectPrincipal =
-    nsContentUtils::GetCurrentJSContext() ? nsContentUtils::SubjectPrincipal()
-                                          : nullptr;
+    nsContentUtils::GetCurrentJSContext() ? nsContentUtils::SubjectPrincipal() :
+                                            nullptr;
 
   if (windowIsNew) {
     
@@ -830,7 +869,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     
     
-    nsCOMPtr<nsPIDOMWindow> newWindow = do_QueryInterface(*_retval);
+    nsCOMPtr<nsPIDOMWindow> newWindow = do_QueryInterface(*aResult);
     NS_ASSERTION(newWindow == newDocShell->GetWindow(), "Different windows??");
 
     
@@ -846,9 +885,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   bool isPrivateBrowsingWindow =
-      Preferences::GetBool("browser.privatebrowsing.autostart") ||
-      (!!(chromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) &&
-       !(chromeFlags & nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW));
+    Preferences::GetBool("browser.privatebrowsing.autostart") ||
+    (!!(chromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) &&
+     !(chromeFlags & nsIWebBrowserChrome::CHROME_NON_PRIVATE_WINDOW));
 
   
   
@@ -918,30 +957,33 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     nsCOMPtr<nsIObserverService> obsSvc =
       mozilla::services::GetObserverService();
-    if (obsSvc)
-      obsSvc->NotifyObservers(*_retval, "toplevel-window-ready", nullptr);
+    if (obsSvc) {
+      obsSvc->NotifyObservers(*aResult, "toplevel-window-ready", nullptr);
+    }
   }
 
   if (uriToLoad && aNavigate) {
-    newDocShell->LoadURI(uriToLoad,
-                         loadInfo,
-                         windowIsNew
-                           ? static_cast<uint32_t>(nsIWebNavigation::LOAD_FLAGS_FIRST_LOAD)
-                           : static_cast<uint32_t>(nsIWebNavigation::LOAD_FLAGS_NONE),
-                         true);
+    newDocShell->LoadURI(
+      uriToLoad,
+      loadInfo,
+      windowIsNew ?
+        static_cast<uint32_t>(nsIWebNavigation::LOAD_FLAGS_FIRST_LOAD) :
+        static_cast<uint32_t>(nsIWebNavigation::LOAD_FLAGS_NONE),
+      true);
   }
 
   
   if (subjectPrincipal && parentDocShell) {
-    nsCOMPtr<nsIDOMStorageManager> parentStorageManager = do_QueryInterface(parentDocShell);
-    nsCOMPtr<nsIDOMStorageManager> newStorageManager = do_QueryInterface(newDocShell);
+    nsCOMPtr<nsIDOMStorageManager> parentStorageManager =
+      do_QueryInterface(parentDocShell);
+    nsCOMPtr<nsIDOMStorageManager> newStorageManager =
+      do_QueryInterface(newDocShell);
 
     if (parentStorageManager && newStorageManager) {
       nsCOMPtr<nsIDOMStorage> storage;
       nsCOMPtr<nsPIDOMWindow> pWin = do_QueryInterface(aParent);
-      nsCOMPtr<nsPIDOMWindow> pInnerWin = pWin->IsInnerWindow()
-                                            ? pWin.get()
-                                            : pWin->GetCurrentInnerWindow();
+      nsCOMPtr<nsPIDOMWindow> pInnerWin =
+        pWin->IsInnerWindow() ? pWin.get() : pWin->GetCurrentInnerWindow();
 
       parentStorageManager->GetStorage(pInnerWin, subjectPrincipal,
                                        isPrivateBrowsingWindow,
@@ -952,8 +994,9 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     }
   }
 
-  if (isNewToplevelWindow)
+  if (isNewToplevelWindow) {
     SizeOpenedDocShellItem(newDocShellItem, aParent, isCallerChrome, sizeSpec);
+  }
 
   
   if (windowIsModal || windowIsModalContentDialog) {
@@ -977,12 +1020,11 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
     if (!windowStateHelper.DefaultEnabled()) {
       
-      NS_RELEASE(*_retval);
+      NS_RELEASE(*aResult);
 
       return NS_OK;
     }
 
-        
     if (!newWindowShouldBeModal && parentIsModal) {
       nsCOMPtr<nsIBaseWindow> parentWindow(do_GetInterface(newTreeOwner));
       if (parentWindow) {
@@ -992,12 +1034,12 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
           parentWidget->SetModal(true);
         }
       }
-    } else { 
+    } else {
       
       
       
       nsAutoPopupStatePusher popupStatePusher(openAbused);
-  
+
       newChrome->ShowAsModal();
     }
   }
@@ -1006,35 +1048,40 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::RegisterNotification(nsIObserver *aObserver)
+nsWindowWatcher::RegisterNotification(nsIObserver* aObserver)
 {
   
 
-  if (!aObserver)
+  if (!aObserver) {
     return NS_ERROR_INVALID_ARG;
-  
+  }
+
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (!os)
+  if (!os) {
     return NS_ERROR_FAILURE;
+  }
 
   nsresult rv = os->AddObserver(aObserver, "domwindowopened", false);
-  if (NS_SUCCEEDED(rv))
+  if (NS_SUCCEEDED(rv)) {
     rv = os->AddObserver(aObserver, "domwindowclosed", false);
+  }
 
   return rv;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::UnregisterNotification(nsIObserver *aObserver)
+nsWindowWatcher::UnregisterNotification(nsIObserver* aObserver)
 {
   
 
-  if (!aObserver)
+  if (!aObserver) {
     return NS_ERROR_INVALID_ARG;
-  
+  }
+
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (!os)
+  if (!os) {
     return NS_ERROR_FAILURE;
+  }
 
   os->RemoveObserver(aObserver, "domwindowopened");
   os->RemoveObserver(aObserver, "domwindowclosed");
@@ -1043,102 +1090,116 @@ nsWindowWatcher::UnregisterNotification(nsIObserver *aObserver)
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::GetWindowEnumerator(nsISimpleEnumerator** _retval)
+nsWindowWatcher::GetWindowEnumerator(nsISimpleEnumerator** aResult)
 {
-  if (!_retval)
+  if (!aResult) {
     return NS_ERROR_INVALID_ARG;
+  }
 
   MutexAutoLock lock(mListLock);
-  nsWatcherWindowEnumerator *enumerator = new nsWatcherWindowEnumerator(this);
-  if (enumerator)
-    return CallQueryInterface(enumerator, _retval);
+  nsWatcherWindowEnumerator* enumerator = new nsWatcherWindowEnumerator(this);
+  if (enumerator) {
+    return CallQueryInterface(enumerator, aResult);
+  }
 
   return NS_ERROR_OUT_OF_MEMORY;
 }
-    
+
 NS_IMETHODIMP
-nsWindowWatcher::GetNewPrompter(nsIDOMWindow *aParent, nsIPrompt **_retval)
+nsWindowWatcher::GetNewPrompter(nsIDOMWindow* aParent, nsIPrompt** aResult)
 {
   
+  
   nsresult rv;
-  nsCOMPtr<nsIPromptFactory> factory = do_GetService("@mozilla.org/prompter;1", &rv);
+  nsCOMPtr<nsIPromptFactory> factory =
+    do_GetService("@mozilla.org/prompter;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  return factory->GetPrompt(aParent, NS_GET_IID(nsIPrompt), reinterpret_cast<void**>(_retval));
+  return factory->GetPrompt(aParent, NS_GET_IID(nsIPrompt),
+                            reinterpret_cast<void**>(aResult));
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::GetNewAuthPrompter(nsIDOMWindow *aParent, nsIAuthPrompt **_retval)
+nsWindowWatcher::GetNewAuthPrompter(nsIDOMWindow* aParent,
+                                    nsIAuthPrompt** aResult)
 {
   
+  
   nsresult rv;
-  nsCOMPtr<nsIPromptFactory> factory = do_GetService("@mozilla.org/prompter;1", &rv);
+  nsCOMPtr<nsIPromptFactory> factory =
+    do_GetService("@mozilla.org/prompter;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  return factory->GetPrompt(aParent, NS_GET_IID(nsIAuthPrompt), reinterpret_cast<void**>(_retval));
+  return factory->GetPrompt(aParent, NS_GET_IID(nsIAuthPrompt),
+                            reinterpret_cast<void**>(aResult));
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::GetPrompt(nsIDOMWindow *aParent, const nsIID& aIID,
-                           void **_retval)
+nsWindowWatcher::GetPrompt(nsIDOMWindow* aParent, const nsIID& aIID,
+                           void** aResult)
 {
   
+  
   nsresult rv;
-  nsCOMPtr<nsIPromptFactory> factory = do_GetService("@mozilla.org/prompter;1", &rv);
+  nsCOMPtr<nsIPromptFactory> factory =
+    do_GetService("@mozilla.org/prompter;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = factory->GetPrompt(aParent, aIID, _retval);
+  rv = factory->GetPrompt(aParent, aIID, aResult);
 
   
   if (rv == NS_NOINTERFACE && aIID.Equals(NS_GET_IID(nsIAuthPrompt2))) {
     nsCOMPtr<nsIAuthPrompt> oldPrompt;
-    rv = factory->GetPrompt(aParent,
-                            NS_GET_IID(nsIAuthPrompt),
-                            getter_AddRefs(oldPrompt));
+    rv = factory->GetPrompt(
+      aParent, NS_GET_IID(nsIAuthPrompt), getter_AddRefs(oldPrompt));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    NS_WrapAuthPrompt(oldPrompt, reinterpret_cast<nsIAuthPrompt2**>(_retval));
-    if (!*_retval)
+    NS_WrapAuthPrompt(oldPrompt, reinterpret_cast<nsIAuthPrompt2**>(aResult));
+    if (!*aResult) {
       rv = NS_ERROR_NOT_AVAILABLE;
+    }
   }
   return rv;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::SetWindowCreator(nsIWindowCreator *creator)
+nsWindowWatcher::SetWindowCreator(nsIWindowCreator* aCreator)
 {
-  mWindowCreator = creator; 
+  mWindowCreator = aCreator;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::HasWindowCreator(bool *result)
+nsWindowWatcher::HasWindowCreator(bool* aResult)
 {
-  *result = mWindowCreator;
+  *aResult = mWindowCreator;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::GetActiveWindow(nsIDOMWindow **aActiveWindow)
+nsWindowWatcher::GetActiveWindow(nsIDOMWindow** aActiveWindow)
 {
   *aActiveWindow = nullptr;
   nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
-  if (fm)
+  if (fm) {
     return fm->GetActiveWindow(aActiveWindow);
+  }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::SetActiveWindow(nsIDOMWindow *aActiveWindow)
+nsWindowWatcher::SetActiveWindow(nsIDOMWindow* aActiveWindow)
 {
   nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
-  if (fm)
+  if (fm) {
     return fm->SetActiveWindow(aActiveWindow);
+  }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::AddWindow(nsIDOMWindow *aWindow, nsIWebBrowserChrome *aChrome)
+nsWindowWatcher::AddWindow(nsIDOMWindow* aWindow, nsIWebBrowserChrome* aChrome)
 {
-  if (!aWindow)
+  if (!aWindow) {
     return NS_ERROR_INVALID_ARG;
+  }
 
 #ifdef DEBUG
   {
@@ -1150,14 +1211,15 @@ nsWindowWatcher::AddWindow(nsIDOMWindow *aWindow, nsIWebBrowserChrome *aChrome)
 #endif
 
   {
-    nsWatcherWindowEntry *info;
+    nsWatcherWindowEntry* info;
     MutexAutoLock lock(mListLock);
 
     
     
     info = FindWindowEntry(aWindow);
     if (info) {
-      nsCOMPtr<nsISupportsWeakReference> supportsweak(do_QueryInterface(aChrome));
+      nsCOMPtr<nsISupportsWeakReference> supportsweak(
+        do_QueryInterface(aChrome));
       if (supportsweak) {
         supportsweak->GetWeakReference(getter_AddRefs(info->mChromeWeak));
       } else {
@@ -1166,37 +1228,41 @@ nsWindowWatcher::AddWindow(nsIDOMWindow *aWindow, nsIWebBrowserChrome *aChrome)
       }
       return NS_OK;
     }
-  
+
     
     info = new nsWatcherWindowEntry(aWindow, aChrome);
-    if (!info)
+    if (!info) {
       return NS_ERROR_OUT_OF_MEMORY;
+    }
 
-    if (mOldestWindow)
+    if (mOldestWindow) {
       info->InsertAfter(mOldestWindow->mOlder);
-    else
+    } else {
       mOldestWindow = info;
+    }
   } 
 
   
   
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (!os)
+  if (!os) {
     return NS_ERROR_FAILURE;
+  }
 
   nsCOMPtr<nsISupports> domwin(do_QueryInterface(aWindow));
   return os->NotifyObservers(domwin, "domwindowopened", 0);
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::RemoveWindow(nsIDOMWindow *aWindow)
+nsWindowWatcher::RemoveWindow(nsIDOMWindow* aWindow)
 {
   
 
-  if (!aWindow)
+  if (!aWindow) {
     return NS_ERROR_INVALID_ARG;
+  }
 
-  nsWatcherWindowEntry *info = FindWindowEntry(aWindow);
+  nsWatcherWindowEntry* info = FindWindowEntry(aWindow);
   if (info) {
     RemoveWindow(info);
     return NS_OK;
@@ -1205,15 +1271,15 @@ nsWindowWatcher::RemoveWindow(nsIDOMWindow *aWindow)
   return NS_ERROR_INVALID_ARG;
 }
 
-nsWatcherWindowEntry *
-nsWindowWatcher::FindWindowEntry(nsIDOMWindow *aWindow)
+nsWatcherWindowEntry*
+nsWindowWatcher::FindWindowEntry(nsIDOMWindow* aWindow)
 {
   
-  nsWatcherWindowEntry *info,
-                       *listEnd;
+  nsWatcherWindowEntry* info;
+  nsWatcherWindowEntry* listEnd;
 #ifdef USEWEAKREFS
-  nsresult    rv;
-  bool        found;
+  nsresult rv;
+  bool found;
 #endif
 
   info = mOldestWindow;
@@ -1225,9 +1291,9 @@ nsWindowWatcher::FindWindowEntry(nsIDOMWindow *aWindow)
     nsCOMPtr<nsIDOMWindow> infoWindow(do_QueryReferent(info->mWindow));
     if (!infoWindow) { 
       rv = RemoveWindow(info);
-    }
-    else if (infoWindow.get() == aWindow)
+    } else if (infoWindow.get() == aWindow) {
       return info;
+    }
 
     info = info->mYounger;
     listEnd = mOldestWindow;
@@ -1235,8 +1301,9 @@ nsWindowWatcher::FindWindowEntry(nsIDOMWindow *aWindow)
   return 0;
 #else
   while (info != listEnd) {
-    if (info->mWindow == aWindow)
+    if (info->mWindow == aWindow) {
       return info;
+    }
     info = info->mYounger;
     listEnd = mOldestWindow;
   }
@@ -1244,21 +1311,23 @@ nsWindowWatcher::FindWindowEntry(nsIDOMWindow *aWindow)
 #endif
 }
 
-nsresult nsWindowWatcher::RemoveWindow(nsWatcherWindowEntry *inInfo)
+nsresult
+nsWindowWatcher::RemoveWindow(nsWatcherWindowEntry* aInfo)
 {
-  uint32_t  ctr,
-            count = mEnumeratorList.Length();
+  uint32_t count = mEnumeratorList.Length();
 
   {
     
     MutexAutoLock lock(mListLock);
-    for (ctr = 0; ctr < count; ++ctr) 
-      mEnumeratorList[ctr]->WindowRemoved(inInfo);
+    for (uint32_t ctr = 0; ctr < count; ++ctr) {
+      mEnumeratorList[ctr]->WindowRemoved(aInfo);
+    }
 
     
-    if (inInfo == mOldestWindow)
-      mOldestWindow = inInfo->mYounger == mOldestWindow ? 0 : inInfo->mYounger;
-    inInfo->Unlink();
+    if (aInfo == mOldestWindow) {
+      mOldestWindow = aInfo->mYounger == mOldestWindow ? 0 : aInfo->mYounger;
+    }
+    aInfo->Unlink();
   }
 
   
@@ -1266,45 +1335,47 @@ nsresult nsWindowWatcher::RemoveWindow(nsWatcherWindowEntry *inInfo)
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os) {
 #ifdef USEWEAKREFS
-    nsCOMPtr<nsISupports> domwin(do_QueryReferent(inInfo->mWindow));
-    if (domwin)
+    nsCOMPtr<nsISupports> domwin(do_QueryReferent(aInfo->mWindow));
+    if (domwin) {
       os->NotifyObservers(domwin, "domwindowclosed", 0);
+    }
     
 #else
-    nsCOMPtr<nsISupports> domwin(do_QueryInterface(inInfo->mWindow));
+    nsCOMPtr<nsISupports> domwin(do_QueryInterface(aInfo->mWindow));
     os->NotifyObservers(domwin, "domwindowclosed", 0);
 #endif
   }
 
-  delete inInfo;
+  delete aInfo;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::GetChromeForWindow(nsIDOMWindow *aWindow, nsIWebBrowserChrome **_retval)
+nsWindowWatcher::GetChromeForWindow(nsIDOMWindow* aWindow,
+                                    nsIWebBrowserChrome** aResult)
 {
-  if (!aWindow || !_retval)
+  if (!aWindow || !aResult) {
     return NS_ERROR_INVALID_ARG;
-  *_retval = 0;
+  }
+  *aResult = 0;
 
   MutexAutoLock lock(mListLock);
-  nsWatcherWindowEntry *info = FindWindowEntry(aWindow);
+  nsWatcherWindowEntry* info = FindWindowEntry(aWindow);
   if (info) {
-    if (info->mChromeWeak != nullptr) {
-      return info->mChromeWeak->
-                            QueryReferent(NS_GET_IID(nsIWebBrowserChrome),
-                                          reinterpret_cast<void**>(_retval));
+    if (info->mChromeWeak) {
+      return info->mChromeWeak->QueryReferent(
+        NS_GET_IID(nsIWebBrowserChrome), reinterpret_cast<void**>(aResult));
     }
-    *_retval = info->mChrome;
-    NS_IF_ADDREF(*_retval);
+    *aResult = info->mChrome;
+    NS_IF_ADDREF(*aResult);
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindowWatcher::GetWindowByName(const char16_t *aTargetName, 
-                                 nsIDOMWindow *aCurrentWindow,
-                                 nsIDOMWindow **aResult)
+nsWindowWatcher::GetWindowByName(const char16_t* aTargetName,
+                                 nsIDOMWindow* aCurrentWindow,
+                                 nsIDOMWindow** aResult)
 {
   if (!aResult) {
     return NS_ERROR_INVALID_ARG;
@@ -1320,8 +1391,7 @@ nsWindowWatcher::GetWindowByName(const char16_t *aTargetName,
     
     startItem->FindItemWithName(aTargetName, nullptr, nullptr,
                                 getter_AddRefs(treeItem));
-  }
-  else {
+  } else {
     
     FindItemWithName(aTargetName, nullptr, nullptr, getter_AddRefs(treeItem));
   }
@@ -1335,34 +1405,35 @@ nsWindowWatcher::GetWindowByName(const char16_t *aTargetName,
 }
 
 bool
-nsWindowWatcher::AddEnumerator(nsWatcherWindowEnumerator* inEnumerator)
+nsWindowWatcher::AddEnumerator(nsWatcherWindowEnumerator* aEnumerator)
 {
   
-  return mEnumeratorList.AppendElement(inEnumerator) != nullptr;
+  return mEnumeratorList.AppendElement(aEnumerator) != nullptr;
 }
 
 bool
-nsWindowWatcher::RemoveEnumerator(nsWatcherWindowEnumerator* inEnumerator)
+nsWindowWatcher::RemoveEnumerator(nsWatcherWindowEnumerator* aEnumerator)
 {
   
-  return mEnumeratorList.RemoveElement(inEnumerator);
+  return mEnumeratorList.RemoveElement(aEnumerator);
 }
 
 nsresult
-nsWindowWatcher::URIfromURL(const char *aURL,
-                            nsIDOMWindow *aParent,
-                            nsIURI **aURI)
+nsWindowWatcher::URIfromURL(const char* aURL,
+                            nsIDOMWindow* aParent,
+                            nsIURI** aURI)
 {
   
   nsCOMPtr<nsIDOMWindow> baseWindow = do_QueryInterface(GetEntryGlobal());
 
   
-  if (!baseWindow)
+  if (!baseWindow) {
     baseWindow = aParent;
+  }
 
   
 
-  nsIURI *baseURI = nullptr;
+  nsIURI* baseURI = nullptr;
 
   
   if (baseWindow) {
@@ -1381,16 +1452,15 @@ nsWindowWatcher::URIfromURL(const char *aURL,
   return NS_NewURI(aURI, aURL, baseURI);
 }
 
-#define NS_CALCULATE_CHROME_FLAG_FOR(feature, flag)               \
-    prefBranch->GetBoolPref(feature, &forceEnable);               \
-    if (forceEnable && !(aDialog && isCallerChrome) &&            \
-        !(isCallerChrome && aHasChromeParent) && !aChromeURL) {   \
-      chromeFlags |= flag;                                        \
-    } else {                                                      \
-      chromeFlags |= WinHasOption(aFeatures, feature,             \
-                                  0, &presenceFlag)               \
-                     ? flag : 0;                                  \
-    }
+#define NS_CALCULATE_CHROME_FLAG_FOR(feature, flag)                            \
+  prefBranch->GetBoolPref(feature, &forceEnable);                              \
+  if (forceEnable && !(aDialog && isCallerChrome) &&                           \
+      !(isCallerChrome && aHasChromeParent) && !aChromeURL) {                  \
+    chromeFlags |= flag;                                                       \
+  } else {                                                                     \
+    chromeFlags |=                                                             \
+      WinHasOption(aFeatures, feature, 0, &presenceFlag) ? flag : 0;           \
+  }
 
 
 
@@ -1402,22 +1472,24 @@ nsWindowWatcher::URIfromURL(const char *aURL,
 
 
 
-uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
-                                               const char *aFeatures,
-                                               bool aFeaturesSpecified,
-                                               bool aDialog,
-                                               bool aChromeURL,
-                                               bool aHasChromeParent,
-                                               bool aOpenedFromRemoteTab)
+uint32_t
+nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow* aParent,
+                                      const char* aFeatures,
+                                      bool aFeaturesSpecified,
+                                      bool aDialog,
+                                      bool aChromeURL,
+                                      bool aHasChromeParent,
+                                      bool aOpenedFromRemoteTab)
 {
-   if(!aFeaturesSpecified || !aFeatures) {
-      if(aDialog)
-         return nsIWebBrowserChrome::CHROME_ALL | 
-                nsIWebBrowserChrome::CHROME_OPENAS_DIALOG | 
-                nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
-      else
-         return nsIWebBrowserChrome::CHROME_ALL;
-   }
+  if (!aFeaturesSpecified || !aFeatures) {
+    if (aDialog) {
+      return nsIWebBrowserChrome::CHROME_ALL |
+             nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
+             nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
+    } else {
+      return nsIWebBrowserChrome::CHROME_ALL;
+    }
+  }
 
   
 
@@ -1431,12 +1503,14 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   bool presenceFlag = false;
 
   chromeFlags = nsIWebBrowserChrome::CHROME_WINDOW_BORDERS;
-  if (aDialog && WinHasOption(aFeatures, "all", 0, &presenceFlag))
+  if (aDialog && WinHasOption(aFeatures, "all", 0, &presenceFlag)) {
     chromeFlags = nsIWebBrowserChrome::CHROME_ALL;
+  }
 
   
 
-  bool isCallerChrome = nsContentUtils::IsCallerChrome() && !aOpenedFromRemoteTab;
+  bool isCallerChrome =
+    nsContentUtils::IsCallerChrome() && !aOpenedFromRemoteTab;
 
   
   if (isCallerChrome) {
@@ -1462,10 +1536,12 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   nsresult rv;
 
   nsCOMPtr<nsIPrefBranch> prefBranch;
-  nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
+  nsCOMPtr<nsIPrefService> prefs =
+    do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, true);
 
-  rv = prefs->GetBranch("dom.disable_window_open_feature.", getter_AddRefs(prefBranch));
+  rv = prefs->GetBranch("dom.disable_window_open_feature.",
+                        getter_AddRefs(prefBranch));
   NS_ENSURE_SUCCESS(rv, true);
 
   bool forceEnable = false;
@@ -1491,8 +1567,8 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   NS_CALCULATE_CHROME_FLAG_FOR("minimizable",
                                nsIWebBrowserChrome::CHROME_WINDOW_MIN);
 
-  chromeFlags |= WinHasOption(aFeatures, "popup", 0, &presenceFlag)
-                 ? nsIWebBrowserChrome::CHROME_WINDOW_POPUP : 0; 
+  chromeFlags |= WinHasOption(aFeatures, "popup", 0, &presenceFlag) ?
+    nsIWebBrowserChrome::CHROME_WINDOW_POPUP : 0;
 
   
 
@@ -1503,24 +1579,28 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
 
   
   if (!(chromeFlags & nsIWebBrowserChrome::CHROME_WINDOW_POPUP)) {
-    if (!PL_strcasestr(aFeatures, "titlebar"))
+    if (!PL_strcasestr(aFeatures, "titlebar")) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_TITLEBAR;
-    if (!PL_strcasestr(aFeatures, "close"))
+    }
+    if (!PL_strcasestr(aFeatures, "close")) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_WINDOW_CLOSE;
+    }
   }
 
-  if (aDialog && !presenceFlag)
+  if (aDialog && !presenceFlag) {
     chromeFlags = nsIWebBrowserChrome::CHROME_DEFAULT;
+  }
 
   
 
 
 
   if (WinHasOption(aFeatures, "alwaysLowered", 0, nullptr) ||
-      WinHasOption(aFeatures, "z-lock", 0, nullptr))
+      WinHasOption(aFeatures, "z-lock", 0, nullptr)) {
     chromeFlags |= nsIWebBrowserChrome::CHROME_WINDOW_LOWERED;
-  else if (WinHasOption(aFeatures, "alwaysRaised", 0, nullptr))
+  } else if (WinHasOption(aFeatures, "alwaysRaised", 0, nullptr)) {
     chromeFlags |= nsIWebBrowserChrome::CHROME_WINDOW_RAISED;
+  }
 
   chromeFlags |= WinHasOption(aFeatures, "macsuppressanimation", 0, nullptr) ?
     nsIWebBrowserChrome::CHROME_MAC_SUPPRESS_ANIMATION : 0;
@@ -1541,7 +1621,8 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
 
   bool disableDialogFeature = false;
   nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(prefs);
-  branch->GetBoolPref("dom.disable_window_open_dialog_feature", &disableDialogFeature);
+  branch->GetBoolPref("dom.disable_window_open_dialog_feature",
+                      &disableDialogFeature);
 
   bool isFullScreen = false;
   if (aParent) {
@@ -1561,10 +1642,12 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   
 
   if (aDialog) {
-    if (!PL_strcasestr(aFeatures, "dialog"))
+    if (!PL_strcasestr(aFeatures, "dialog")) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_OPENAS_DIALOG;
-    if (!PL_strcasestr(aFeatures, "chrome"))
+    }
+    if (!PL_strcasestr(aFeatures, "chrome")) {
       chromeFlags |= nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
+    }
   }
 
   
@@ -1607,47 +1690,57 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
 
 
 int32_t
-nsWindowWatcher::WinHasOption(const char *aOptions, const char *aName,
-                              int32_t aDefault, bool *aPresenceFlag)
+nsWindowWatcher::WinHasOption(const char* aOptions, const char* aName,
+                              int32_t aDefault, bool* aPresenceFlag)
 {
-  if (!aOptions)
+  if (!aOptions) {
     return 0;
+  }
 
-  char *comma, *equal;
+  char* comma;
+  char* equal;
   int32_t found = 0;
 
 #ifdef DEBUG
-    nsAutoCString options(aOptions);
-    NS_ASSERTION(options.FindCharInSet(" \n\r\t") == kNotFound, 
-                  "There should be no whitespace in this string!");
+  nsAutoCString options(aOptions);
+  NS_ASSERTION(options.FindCharInSet(" \n\r\t") == kNotFound,
+               "There should be no whitespace in this string!");
 #endif
 
   while (true) {
     comma = PL_strchr(aOptions, ',');
-    if (comma)
+    if (comma) {
       *comma = '\0';
-    equal = PL_strchr(aOptions, '=');
-    if (equal)
-      *equal = '\0';
-    if (nsCRT::strcasecmp(aOptions, aName) == 0) {
-      if (aPresenceFlag)
-        *aPresenceFlag = true;
-      if (equal)
-        if (*(equal + 1) == '*')
-          found = aDefault;
-        else if (nsCRT::strcasecmp(equal + 1, "yes") == 0)
-          found = 1;
-        else
-          found = atoi(equal + 1);
-      else
-        found = 1;
     }
-    if (equal)
+    equal = PL_strchr(aOptions, '=');
+    if (equal) {
+      *equal = '\0';
+    }
+    if (nsCRT::strcasecmp(aOptions, aName) == 0) {
+      if (aPresenceFlag) {
+        *aPresenceFlag = true;
+      }
+      if (equal)
+        if (*(equal + 1) == '*') {
+          found = aDefault;
+        } else if (nsCRT::strcasecmp(equal + 1, "yes") == 0) {
+          found = 1;
+        } else {
+          found = atoi(equal + 1);
+        }
+      else {
+        found = 1;
+      }
+    }
+    if (equal) {
       *equal = '=';
-    if (comma)
+    }
+    if (comma) {
       *comma = ',';
-    if (found || !comma)
+    }
+    if (found || !comma) {
       break;
+    }
     aOptions = comma + 1;
   }
   return found;
@@ -1666,23 +1759,26 @@ nsWindowWatcher::FindItemWithName(const char16_t* aName,
   *aFoundItem = 0;
 
   
-  if(!aName || !*aName)
+  if (!aName || !*aName) {
     return NS_OK;
+  }
 
   nsDependentString name(aName);
-  
+
   nsCOMPtr<nsISimpleEnumerator> windows;
   GetWindowEnumerator(getter_AddRefs(windows));
-  if (!windows)
+  if (!windows) {
     return NS_ERROR_FAILURE;
+  }
 
-  bool     more;
+  bool more;
   nsresult rv = NS_OK;
 
   do {
     windows->HasMoreElements(&more);
-    if (!more)
+    if (!more) {
       break;
+    }
     nsCOMPtr<nsISupports> nextSupWindow;
     windows->GetNext(getter_AddRefs(nextSupWindow));
     nsCOMPtr<nsIDOMWindow> nextWindow(do_QueryInterface(nextSupWindow));
@@ -1711,12 +1807,13 @@ nsWindowWatcher::FindItemWithName(const char16_t* aName,
           }
           rv = root->FindItemWithName(aName, rootOwner, aOriginalRequestor,
                                       aFoundItem);
-          if (NS_FAILED(rv) || *aFoundItem || !aRequestor)
+          if (NS_FAILED(rv) || *aFoundItem || !aRequestor) {
             break;
+          }
         }
       }
     }
-  } while(1);
+  } while (1);
 
   return rv;
 }
@@ -1748,8 +1845,7 @@ nsWindowWatcher::SafeGetWindowByName(const nsAString& aName,
   if (startItem) {
     startItem->FindItemWithName(flatName.get(), nullptr, callerItem,
                                 getter_AddRefs(foundItem));
-  }
-  else {
+  } else {
     FindItemWithName(flatName.get(), nullptr, callerItem,
                      getter_AddRefs(foundItem));
   }
@@ -1763,10 +1859,10 @@ nsWindowWatcher::SafeGetWindowByName(const nsAString& aName,
 
 
 nsresult
-nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem *aOpenedItem,
-                                         nsIDOMWindow        *aParent,
-                                         bool                aWindowIsNew,
-                                         nsIDOMWindow        **aOpenedWindow)
+nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem* aOpenedItem,
+                                         nsIDOMWindow* aParent,
+                                         bool aWindowIsNew,
+                                         nsIDOMWindow** aOpenedWindow)
 {
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -1783,8 +1879,7 @@ nsWindowWatcher::ReadyOpenedDocShellItem(nsIDocShellTreeItem *aOpenedItem,
         
         
         
-        nsCOMPtr<nsIDocumentLoader> docloader =
-          do_QueryInterface(aOpenedItem);
+        nsCOMPtr<nsIDocumentLoader> docloader = do_QueryInterface(aOpenedItem);
         NS_ASSERTION(docloader, "How can we not have a docloader here?");
 
         nsCOMPtr<nsIChannel> chan;
@@ -1808,29 +1903,32 @@ void
 nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
 {
   
-  bool    present;
+  bool present;
   int32_t temp;
 
   present = false;
-  if ((temp = WinHasOption(aFeatures, "left", 0, &present)) || present)
+  if ((temp = WinHasOption(aFeatures, "left", 0, &present)) || present) {
     aResult.mLeft = temp;
-  else if ((temp = WinHasOption(aFeatures, "screenX", 0, &present)) || present)
+  } else if ((temp = WinHasOption(aFeatures, "screenX", 0, &present)) ||
+             present) {
     aResult.mLeft = temp;
+  }
   aResult.mLeftSpecified = present;
 
   present = false;
-  if ((temp = WinHasOption(aFeatures, "top", 0, &present)) || present)
+  if ((temp = WinHasOption(aFeatures, "top", 0, &present)) || present) {
     aResult.mTop = temp;
-  else if ((temp = WinHasOption(aFeatures, "screenY", 0, &present)) || present)
+  } else if ((temp = WinHasOption(aFeatures, "screenY", 0, &present)) ||
+             present) {
     aResult.mTop = temp;
+  }
   aResult.mTopSpecified = present;
 
   
   if ((temp = WinHasOption(aFeatures, "outerWidth", INT32_MIN, nullptr))) {
     if (temp == INT32_MIN) {
       aResult.mUseDefaultWidth = true;
-    }
-    else {
+    } else {
       aResult.mOuterWidth = temp;
     }
     aResult.mOuterWidthSpecified = true;
@@ -1848,8 +1946,7 @@ nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
   if ((temp = WinHasOption(aFeatures, "outerHeight", INT32_MIN, nullptr))) {
     if (temp == INT32_MIN) {
       aResult.mUseDefaultHeight = true;
-    }
-    else {
+    } else {
       aResult.mOuterHeight = temp;
     }
     aResult.mOuterHeightSpecified = true;
@@ -1872,29 +1969,25 @@ nsWindowWatcher::CalcSizeSpec(const char* aFeatures, SizeSpec& aResult)
 
 
 void
-nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
-                                        nsIDOMWindow *aParent,
+nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem* aDocShellItem,
+                                        nsIDOMWindow* aParent,
                                         bool aIsCallerChrome,
-                                        const SizeSpec & aSizeSpec)
+                                        const SizeSpec& aSizeSpec)
 {
   
-  int32_t left = 0,
-          top = 0,
-          width = 100,
-          height = 100;
+  int32_t left = 0, top = 0, width = 100, height = 100;
   
-  int32_t chromeWidth = 0,
-          chromeHeight = 0;
+  int32_t chromeWidth = 0, chromeHeight = 0;
   
-  bool    sizeChromeWidth = true,
-          sizeChromeHeight = true;
+  bool sizeChromeWidth = true, sizeChromeHeight = true;
 
   
   nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
   aDocShellItem->GetTreeOwner(getter_AddRefs(treeOwner));
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_QueryInterface(treeOwner));
-  if (!treeOwnerAsWin) 
+  if (!treeOwnerAsWin) { 
     return;
+  }
 
   double openerZoom = 1.0;
   if (aParent) {
@@ -1927,7 +2020,8 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
   top = NSToIntRound(top / scale);
   width = NSToIntRound(width / scale);
   height = NSToIntRound(height / scale);
-  { 
+  {
+    
     nsCOMPtr<nsIBaseWindow> shellWindow(do_QueryInterface(aDocShellItem));
     if (shellWindow) {
       int32_t cox, coy;
@@ -1953,8 +2047,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (!aSizeSpec.mUseDefaultWidth) {
       width = NSToIntRound(aSizeSpec.mOuterWidth * openerZoom);
     } 
-  }
-  else if (aSizeSpec.mInnerWidthSpecified) {
+  } else if (aSizeSpec.mInnerWidthSpecified) {
     sizeChromeWidth = false;
     if (aSizeSpec.mUseDefaultWidth) {
       width = width - chromeWidth;
@@ -1968,8 +2061,7 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     if (!aSizeSpec.mUseDefaultHeight) {
       height = NSToIntRound(aSizeSpec.mOuterHeight * openerZoom);
     } 
-  }
-  else if (aSizeSpec.mInnerHeightSpecified) {
+  } else if (aSizeSpec.mInnerHeightSpecified) {
     sizeChromeHeight = false;
     if (aSizeSpec.mUseDefaultHeight) {
       height = height - chromeHeight;
@@ -1993,13 +2085,12 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 
     
 
-    int32_t oldTop = top,
-            oldLeft = left;
+    int32_t oldTop = top, oldLeft = left;
 
     
     nsCOMPtr<nsIScreen> screen;
-    nsCOMPtr<nsIScreenManager> screenMgr(do_GetService(
-                                         "@mozilla.org/gfx/screenmanager;1"));
+    nsCOMPtr<nsIScreenManager> screenMgr(
+      do_GetService("@mozilla.org/gfx/screenmanager;1"));
     if (screenMgr)
       screenMgr->ScreenForRect(left, top, width, height,
                                getter_AddRefs(screen));
@@ -2008,8 +2099,8 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
       int32_t winWidth = width + (sizeChromeWidth ? 0 : chromeWidth),
               winHeight = height + (sizeChromeHeight ? 0 : chromeHeight);
 
-      screen->GetAvailRectDisplayPix(&screenLeft, &screenTop,
-                                     &screenWidth, &screenHeight);
+      screen->GetAvailRectDisplayPix(&screenLeft, &screenTop, &screenWidth,
+                                     &screenHeight);
 
       if (aSizeSpec.SizeSpecified()) {
         
@@ -2031,7 +2122,8 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
         }
       }
 
-      if (left + winWidth > screenLeft + screenWidth || left + winWidth < left) {
+      if (left + winWidth > screenLeft + screenWidth ||
+          left + winWidth < left) {
         left = screenLeft + screenWidth - winWidth;
       }
       if (left < screenLeft) {
@@ -2062,12 +2154,13 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 
     if (!sizeChromeWidth && !sizeChromeHeight) {
       treeOwner->SizeShellTo(aDocShellItem, width * scale, height * scale);
-    }
-    else {
-      if (!sizeChromeWidth)
+    } else {
+      if (!sizeChromeWidth) {
         width += chromeWidth;
-      if (!sizeChromeHeight)
+      }
+      if (!sizeChromeHeight) {
         height += chromeHeight;
+      }
       treeOwnerAsWin->SetSize(width * scale, height * scale, false);
     }
   }
@@ -2075,37 +2168,40 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
 }
 
 void
-nsWindowWatcher::GetWindowTreeItem(nsIDOMWindow *inWindow,
-                                   nsIDocShellTreeItem **outTreeItem)
+nsWindowWatcher::GetWindowTreeItem(nsIDOMWindow* aWindow,
+                                   nsIDocShellTreeItem** aResult)
 {
-  *outTreeItem = 0;
+  *aResult = 0;
 
-  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(inWindow));
+  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(aWindow));
   if (window) {
-    nsIDocShell *docshell = window->GetDocShell();
-    if (docshell)
-      CallQueryInterface(docshell, outTreeItem);
+    nsIDocShell* docshell = window->GetDocShell();
+    if (docshell) {
+      CallQueryInterface(docshell, aResult);
+    }
   }
 }
 
 void
-nsWindowWatcher::GetWindowTreeOwner(nsIDOMWindow *inWindow,
-                                    nsIDocShellTreeOwner **outTreeOwner)
+nsWindowWatcher::GetWindowTreeOwner(nsIDOMWindow* aWindow,
+                                    nsIDocShellTreeOwner** aResult)
 {
-  *outTreeOwner = 0;
+  *aResult = 0;
 
   nsCOMPtr<nsIDocShellTreeItem> treeItem;
-  GetWindowTreeItem(inWindow, getter_AddRefs(treeItem));
-  if (treeItem)
-    treeItem->GetTreeOwner(outTreeOwner);
+  GetWindowTreeItem(aWindow, getter_AddRefs(treeItem));
+  if (treeItem) {
+    treeItem->GetTreeOwner(aResult);
+  }
 }
 
 
-int32_t nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow *aParent,
-                                               uint32_t aChromeFlags,
-                                               bool aCalledFromJS,
-                                               bool aPositionSpecified,
-                                               bool aSizeSpecified)
+int32_t
+nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow* aParent,
+                                       uint32_t aChromeFlags,
+                                       bool aCalledFromJS,
+                                       bool aPositionSpecified,
+                                       bool aSizeSpecified)
 {
   bool isFullScreen = false;
   if (aParent) {
@@ -2124,7 +2220,8 @@ int32_t nsWindowWatcher::GetWindowOpenLocation(nsIDOMWindow *aParent,
     isFullScreen &&
     Preferences::GetBool("browser.link.open_newwindow.disabled_in_fullscreen");
 
-  if (isDisabledOpenNewWindow && (containerPref == nsIBrowserDOMWindow::OPEN_NEWWINDOW)) {
+  if (isDisabledOpenNewWindow &&
+      (containerPref == nsIBrowserDOMWindow::OPEN_NEWWINDOW)) {
     containerPref = nsIBrowserDOMWindow::OPEN_NEWTAB;
   }
 
