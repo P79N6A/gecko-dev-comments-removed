@@ -568,11 +568,16 @@ let AboutReaderListener = {
     }
   },
   updateReaderButton: function() {
-    if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader) {
+    if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader ||
+        !(content.document instanceof content.HTMLDocument) ||
+        content.document.mozSyntheticDocument) {
       return;
     }
-    let isArticle = ReaderMode.isProbablyReaderable(content.document);
-    sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: isArticle });
+    
+    
+    if (ReaderMode.isProbablyReaderable(content.document)) {
+      sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
+    }
   },
 };
 AboutReaderListener.init();
