@@ -3,6 +3,47 @@
 
 
 
+function TypedArrayEvery(callbackfn, thisArg = undefined) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, thisArg,
+                            "TypedArrayEvery");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.every");
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    var T = thisArg;
+
+    
+    
+    for (var k = 0; k < len; k++) {
+        
+        var kValue = O[k];
+
+        
+        var testResult = callFunction(callbackfn, T, kValue, k, O);
+
+        
+        if (!testResult)
+            return false;
+    }
+
+    
+    return true;
+}
+
+
 function TypedArrayFill(value, start = 0, end = undefined) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
@@ -281,6 +322,47 @@ function TypedArrayReverse() {
 
     
     return O;
+}
+
+
+function TypedArraySome(callbackfn, thisArg = undefined) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, thisArg,
+                            "TypedArraySome");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.some");
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    var T = thisArg;
+
+    
+    
+    for (var k = 0; k < len; k++) {
+        
+        var kValue = O[k];
+
+        
+        var testResult = callFunction(callbackfn, T, kValue, k, O);
+
+        
+        if (testResult)
+            return true;
+    }
+
+    
+    return false;
 }
 
 
