@@ -404,7 +404,7 @@ pref("font.size.inflation.minTwips", 120);
 
 pref("browser.ui.zoom.force-user-scalable", false);
 
-pref("ui.touch.radius.enabled", true);
+pref("ui.touch.radius.enabled", false);
 pref("ui.touch.radius.leftmm", 3);
 pref("ui.touch.radius.topmm", 5);
 pref("ui.touch.radius.rightmm", 3);
