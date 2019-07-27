@@ -203,9 +203,11 @@ nsScriptError::ToString(nsACString&  aResult)
     if (!mMessage.IsEmpty())
         tempMessage = ToNewUTF8String(mMessage);
     if (!mSourceName.IsEmpty())
-        tempSourceName = ToNewUTF8String(mSourceName);
+        
+        tempSourceName = ToNewUTF8String(StringHead(mSourceName, 512));
     if (!mSourceLine.IsEmpty())
-        tempSourceLine = ToNewUTF8String(mSourceLine);
+        
+        tempSourceLine = ToNewUTF8String(StringHead(mSourceLine, 512));
 
     if (nullptr != tempSourceName && nullptr != tempSourceLine)
         temp = JS_smprintf(format0,
