@@ -290,6 +290,8 @@ public:
     mForcedRepaint = aForceRepaint; 
   }
 
+  void SetNeedsWindowPropertiesSync();
+
   
 
 
@@ -463,6 +465,7 @@ private:
   uint32_t          mVFlags;
   bool              mWidgetIsTopLevel;
   bool              mForcedRepaint;
+  bool              mNeedsWindowPropertiesSync;
 };
 
 #endif
