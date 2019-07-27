@@ -112,31 +112,43 @@ UseTileTexture(CompositableTextureHostRef& aTexture,
                TextureHost* aNewTexture,
                Compositor* aCompositor)
 {
-  if (aTexture && aTexture->GetFormat() != aNewTexture->GetFormat()) {
-    
-    aTextureSource = nullptr;
-    aTexture = nullptr;
+  MOZ_ASSERT(aNewTexture);
+  if (!aNewTexture) {
+    return;
   }
-  aTexture = aNewTexture;
-  if (aTexture) {
-    if (aCompositor) {
-      aTexture->SetCompositor(aCompositor);
-    }
 
-    if (!aUpdateRect.IsEmpty()) {
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-      aTexture->Updated(nullptr);
-#else
+  if (aTexture) {
+    aTexture->SetCompositor(aCompositor);
+    aNewTexture->SetCompositor(aCompositor);
+
+    if (aTexture->GetFormat() != aNewTexture->GetFormat()) {
       
-      
-      
-      
-      nsIntRegion region = aUpdateRect;
-      aTexture->Updated(&region);
-#endif
+      aTextureSource = nullptr;
+      aTexture = nullptr;
     }
-    aTexture->PrepareTextureSource(aTextureSource);
   }
+
+  aTexture = aNewTexture;
+
+
+  if (aCompositor) {
+    aTexture->SetCompositor(aCompositor);
+  }
+
+  if (!aUpdateRect.IsEmpty()) {
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+    aTexture->Updated(nullptr);
+#else
+    
+    
+    
+    
+    nsIntRegion region = aUpdateRect;
+    aTexture->Updated(&region);
+#endif
+  }
+
+  aTexture->PrepareTextureSource(aTextureSource);
 }
 
 bool
