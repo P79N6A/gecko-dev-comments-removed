@@ -2307,7 +2307,12 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   }
   mInUnlinkOrDeletion = oldVal;
 
-  mRegistry = nullptr;
+  if (!mMasterDocument) {
+    
+    
+    
+    mRegistry = nullptr;
+  }
 
   
   ResetStylesheetsToURI(aURI);
