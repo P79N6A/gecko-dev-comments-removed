@@ -633,10 +633,23 @@ this.DOMApplicationRegistry = {
 
       yield this.loadCurrentRegistry();
 
+      try {
+        let systemManifestURL =
+          Services.prefs.getCharPref("b2g.system_manifest_url");
+        let systemAppFound =
+          this.webapps.some(v => v.manifestURL == systemManifestURL);
+
+        
+        
+        if (!systemAppFound) {
+          runUpdate = true;
+        }
+      } catch(e) {} 
+
       if (runUpdate) {
 
         
-        Services.obs.notifyObservers(null, "webapps-before-update-merge", null);        
+        Services.obs.notifyObservers(null, "webapps-before-update-merge", null);
 
 #ifdef MOZ_WIDGET_GONK
         yield this.installSystemApps();
