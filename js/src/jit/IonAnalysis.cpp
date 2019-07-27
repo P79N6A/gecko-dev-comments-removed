@@ -1192,6 +1192,8 @@ jit::BuildDominatorTree(MIRGraph &graph)
 {
     ComputeImmediateDominators(graph);
 
+    Vector<MBasicBlock *, 4, IonAllocPolicy> worklist(graph.alloc());
+
     
     
     
@@ -1205,8 +1207,13 @@ jit::BuildDominatorTree(MIRGraph &graph)
         child->addNumDominated(1);
 
         
-        if (child == parent)
+        
+        
+        if (child == parent) {
+            if (!worklist.append(child))
+                return false;
             continue;
+        }
 
         if (!parent->addImmediatelyDominatedBlock(child))
             return false;
@@ -1222,22 +1229,7 @@ jit::BuildDominatorTree(MIRGraph &graph)
 #endif
     
     
-    
-    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist(graph.alloc());
-
-    
     size_t index = 0;
-
-    
-    
-    for (MBasicBlockIterator i(graph.begin()); i != graph.end(); i++) {
-        MBasicBlock *block = *i;
-        if (block->immediateDominator() == block) {
-            if (!worklist.append(block))
-                return false;
-        }
-    }
-    
     while (!worklist.empty()) {
         MBasicBlock *block = worklist.popCopy();
         block->setDomIndex(index);
@@ -1433,6 +1425,13 @@ static void
 AssertDominatorTree(MIRGraph &graph)
 {
     
+
+    JS_ASSERT(graph.entryBlock()->immediateDominator() == graph.entryBlock());
+    if (MBasicBlock *osrBlock = graph.osrBlock())
+        JS_ASSERT(osrBlock->immediateDominator() == osrBlock);
+    else
+        JS_ASSERT(graph.entryBlock()->numDominated() == graph.numBlocks());
+
     size_t i = graph.numBlocks();
     size_t totalNumDominated = 0;
     for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
