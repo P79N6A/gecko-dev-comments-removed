@@ -321,20 +321,6 @@ nsWindow::DispatchTouchEventForAPZ(const MultiTouchInput& aInput,
     
     
     
-    
-    
-    
-    if (TabParent* capturer = TabParent::GetEventCapturer()) {
-        InputAPZContext context(aGuid, aInputBlockId);
-        if (capturer->TryCapture(event)) {
-            return;
-        }
-    }
-
-    
-    
-    
-    
     ProcessUntransformedAPZEvent(&event, aGuid, aInputBlockId);
 }
 

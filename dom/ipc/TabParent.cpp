@@ -236,8 +236,6 @@ private:
 namespace mozilla {
 namespace dom {
 
-TabParent* sEventCapturer;
-
 TabParent *TabParent::mIMETabParent = nullptr;
 TabParent::LayerToTabParentTable* TabParent::sLayerToTabParentTable = nullptr;
 
@@ -262,7 +260,6 @@ TabParent::TabParent(nsIContentParent* aManager,
   , mIMECompositionStart(0)
   , mIMESeqno(0)
   , mIMECompositionRectOffset(0)
-  , mEventCaptureDepth(0)
   , mRect(0, 0, 0, 0)
   , mDimensions(0, 0)
   , mOrientation(0)
@@ -401,9 +398,6 @@ TabParent::Recv__delete__()
 void
 TabParent::ActorDestroy(ActorDestroyReason why)
 {
-  if (sEventCapturer == this) {
-    sEventCapturer = nullptr;
-  }
   if (mIMETabParent == this) {
     mIMETabParent = nullptr;
   }
@@ -1325,22 +1319,7 @@ bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
     return false;
   }
   if (event.message == NS_TOUCH_START) {
-    
-    nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
-    if (!frameLoader) {
-      
-      sEventCapturer = nullptr;
-      return false;
-    }
-
     mChildProcessOffsetAtTouchStart = GetChildProcessOffset();
-
-    MOZ_ASSERT((!sEventCapturer && mEventCaptureDepth == 0) ||
-               (sEventCapturer == this && mEventCaptureDepth > 0));
-    
-    
-    sEventCapturer = this;
-    ++mEventCaptureDepth;
   }
 
   
@@ -1371,41 +1350,6 @@ bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
   return (event.message == NS_TOUCH_MOVE) ?
     PBrowserParent::SendRealTouchMoveEvent(event, guid, blockId) :
     PBrowserParent::SendRealTouchEvent(event, guid, blockId);
-}
-
- TabParent*
-TabParent::GetEventCapturer()
-{
-  return sEventCapturer;
-}
-
-bool
-TabParent::TryCapture(const WidgetGUIEvent& aEvent)
-{
-  MOZ_ASSERT(sEventCapturer == this && mEventCaptureDepth > 0);
-
-  if (aEvent.mClass != eTouchEventClass) {
-    
-    return false;
-  }
-
-  WidgetTouchEvent event(*aEvent.AsTouchEvent());
-
-  bool isTouchPointUp = (event.message == NS_TOUCH_END ||
-                         event.message == NS_TOUCH_CANCEL);
-  if (event.message == NS_TOUCH_START || isTouchPointUp) {
-    
-    
-    if (isTouchPointUp && 0 == --mEventCaptureDepth) {
-      
-      
-      sEventCapturer = nullptr;
-    }
-    return false;
-  }
-
-  SendRealTouchEvent(event);
-  return true;
 }
 
 bool
@@ -2550,11 +2494,6 @@ TabParent::GetLoadContext()
   return loadContext.forget();
 }
 
-
-
-
-
-
 NS_IMETHODIMP
 TabParent::InjectTouchEvent(const nsAString& aType,
                             uint32_t* aIdentifiers,
@@ -2612,11 +2551,6 @@ TabParent::InjectTouchEvent(const nsAString& aType,
     
     t->mChanged = true;
     event.touches.AppendElement(t);
-  }
-
-  if ((msg == NS_TOUCH_END || msg == NS_TOUCH_CANCEL) && sEventCapturer) {
-    WidgetGUIEvent* guiEvent = event.AsGUIEvent();
-    TryCapture(*guiEvent);
   }
 
   SendRealTouchEvent(event);

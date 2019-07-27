@@ -102,30 +102,6 @@ public:
 
     nsIXULBrowserWindow* GetXULBrowserWindow();
 
-    
-
-
-
-
-
-
-
-
-
-
-    static TabParent* GetEventCapturer();
-    
-
-
-
-
-
-
-
-
-
-    bool TryCapture(const WidgetGUIEvent& aEvent);
-
     void Destroy();
 
     virtual bool RecvMoveFocus(const bool& aForward) MOZ_OVERRIDE;
@@ -439,9 +415,6 @@ protected:
     uint32_t mIMECaretOffset;
     LayoutDeviceIntRect mIMECaretRect;
     LayoutDeviceIntRect mIMEEditorRect;
-
-    
-    int32_t mEventCaptureDepth;
 
     nsIntRect mRect;
     ScreenIntSize mDimensions;
