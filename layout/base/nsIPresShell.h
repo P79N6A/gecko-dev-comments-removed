@@ -772,17 +772,17 @@ public:
   
 
 
-  virtual NS_HIDDEN_(already_AddRefed<mozilla::SelectionCarets>) GetSelectionCarets() const = 0;
+  virtual already_AddRefed<mozilla::SelectionCarets> GetSelectionCarets() const = 0;
 
   
 
 
-  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsStartElement() const = 0;
+  virtual mozilla::dom::Element* GetSelectionCaretsStartElement() const = 0;
 
   
 
 
-  virtual NS_HIDDEN_(mozilla::dom::Element*) GetSelectionCaretsEndElement() const = 0;
+  virtual mozilla::dom::Element* GetSelectionCaretsEndElement() const = 0;
 
   
 
