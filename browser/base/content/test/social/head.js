@@ -34,6 +34,16 @@ function waitForCondition(condition, nextTest, errorMsg) {
 }
 
 
+function promiseObserverNotified(aTopic) {
+  let deferred = Promise.defer();
+  Services.obs.addObserver(function onNotification(aSubject, aTopic, aData) {
+    Services.obs.removeObserver(onNotification, aTopic);
+      deferred.resolve({subject: aSubject, data: aData});
+    }, aTopic, false);
+  return deferred.promise;
+}
+
+
 
 function promiseSocialUrlNotRemembered(url) {
   let deferred = Promise.defer();

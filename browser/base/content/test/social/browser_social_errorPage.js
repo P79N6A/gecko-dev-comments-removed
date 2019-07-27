@@ -15,34 +15,55 @@ let openChatWindow = Cu.import("resource://gre/modules/MozSocialAPI.jsm", {}).op
 
 let origProxyType = Services.prefs.getIntPref('network.proxy.type');
 
+function toggleOfflineStatus(goOffline) {
+  
+  let deferred = Promise.defer();
+  if (!goOffline) {
+    Services.prefs.setIntPref('network.proxy.type', origProxyType);
+  }
+  if (goOffline != Services.io.offline) {
+    info("initial offline state " + Services.io.offline);
+    let expect = !Services.io.offline;
+    Services.obs.addObserver(function offlineChange(subject, topic, data) {
+      Services.obs.removeObserver(offlineChange, "network:offline-status-changed");
+      info("offline state changed to " + Services.io.offline);
+      is(expect, Services.io.offline, "network:offline-status-changed successful toggle");
+      deferred.resolve();
+    }, "network:offline-status-changed", false);
+    BrowserOffline.toggleOfflineStatus();
+  } else {
+    deferred.resolve();
+  }
+  if (goOffline) {
+    Services.prefs.setIntPref('network.proxy.type', 0);
+    
+    Services.cache2.clear();
+  }
+  return deferred.promise;
+}
+
 function goOffline() {
   
   
-  if (!Services.io.offline)
-    BrowserOffline.toggleOfflineStatus();
-  Services.prefs.setIntPref('network.proxy.type', 0);
-  
-  Services.cache2.clear();
+  return toggleOfflineStatus(true);
 }
 
 function goOnline(callback) {
-  Services.prefs.setIntPref('network.proxy.type', origProxyType);
-  if (Services.io.offline)
-    BrowserOffline.toggleOfflineStatus();
-  if (callback)
-    callback();
+  return toggleOfflineStatus(false);
 }
 
 function openPanel(url, panelCallback, loadCallback) {
   
   SocialFlyout.open(url, 0, panelCallback);
-  SocialFlyout.panel.firstChild.addEventListener("load", function panelLoad(evt) {
-    if (evt.target != SocialFlyout.panel.firstChild.contentDocument) {
-      return;
-    }
-    SocialFlyout.panel.firstChild.removeEventListener("load", panelLoad, true);
-    loadCallback();
-  }, true);
+  
+  
+  
+  waitForCondition(function() {
+                    return SocialFlyout.panel.state == "open" &&
+                           SocialFlyout.iframe.contentDocument.readyState == "complete";
+                   },
+                   function () { executeSoon(loadCallback) },
+                   "flyout is open and loaded");
 }
 
 function openChat(url, panelCallback, loadCallback) {
@@ -51,7 +72,7 @@ function openChat(url, panelCallback, loadCallback) {
   openChatWindow(null, SocialSidebar.provider, url, panelCallback);
   chatbar.firstChild.addEventListener("DOMContentLoaded", function panelLoad() {
     chatbar.firstChild.removeEventListener("DOMContentLoaded", panelLoad, true);
-    loadCallback();
+    executeSoon(loadCallback);
   }, true);
 }
 
@@ -59,27 +80,14 @@ function onSidebarLoad(callback) {
   let sbrowser = document.getElementById("social-sidebar-browser");
   sbrowser.addEventListener("load", function load() {
     sbrowser.removeEventListener("load", load, true);
-    callback();
+    executeSoon(callback);
   }, true);
-}
-
-function ensureWorkerLoaded(provider, callback) {
-  
-  let port = provider.getWorkerPort();
-  port.onmessage = function(msg) {
-    if (msg.data.topic == "pong") {
-      port.close();
-      callback();
-    }
-  }
-  port.postMessage({topic: "ping"})
 }
 
 let manifest = { 
   name: "provider 1",
   origin: "https://example.com",
-  sidebarURL: "https://example.com/browser/browser/base/content/test/social/social_sidebar.html",
-  workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
+  sidebarURL: "https://example.com/browser/browser/base/content/test/social/social_sidebar_empty.html",
   iconURL: "https://example.com/browser/browser/base/content/test/general/moz.png"
 };
 
@@ -87,7 +95,7 @@ function test() {
   waitForExplicitFinish();
 
   runSocialTestWithProvider(manifest, function (finishcb) {
-    runSocialTests(tests, undefined, goOnline, finishcb);
+    runSocialTests(tests, undefined, function(next) { goOnline().then(next) }, finishcb);
   });
 }
 
@@ -95,122 +103,123 @@ var tests = {
   testSidebar: function(next) {
     let sbrowser = document.getElementById("social-sidebar-browser");
     onSidebarLoad(function() {
-      ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?")==0, "is on social error page");
+      ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?")==0, "sidebar is on social error page");
       gc();
       
       onSidebarLoad(function() {
         
-        ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?")==0, "is still on social error page");
+        ok(sbrowser.contentDocument.location.href.indexOf("about:socialerror?")==0, "sidebar is still on social error page");
         
-        goOnline();
-        onSidebarLoad(function() {
-          
-          is(sbrowser.contentDocument.location.href, manifest.sidebarURL, "is now on social sidebar page");
-          next();
+        goOnline().then(function () {
+          onSidebarLoad(function() {
+            
+            is(sbrowser.contentDocument.location.href, manifest.sidebarURL, "sidebar is now on social sidebar page");
+            next();
+          });
+          sbrowser.contentDocument.getElementById("btnTryAgain").click();
         });
-        sbrowser.contentDocument.getElementById("btnTryAgain").click();
       });
       sbrowser.contentDocument.getElementById("btnTryAgain").click();
     });
     
-    
-    ensureWorkerLoaded(SocialSidebar.provider, function() {
-      
-      goOffline();
+    goOffline().then(function() {
       SocialSidebar.show();
-  });
+    });
   },
 
   testFlyout: function(next) {
     let panelCallbackCount = 0;
     let panel = document.getElementById("social-flyout-panel");
-    
-    goOffline();
-    openPanel(
-      "https://example.com/browser/browser/base/content/test/social/social_panel.html",
-      function() { 
-        panelCallbackCount++;
-      },
-      function() { 
-        executeSoon(function() {
+    goOffline().then(function() {
+      openPanel(
+        manifest.sidebarURL, 
+        function() { 
+          panelCallbackCount++;
+        },
+        function() { 
           todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
-          ok(panel.firstChild.contentDocument.location.href.indexOf("about:socialerror?")==0, "is on social error page");
+          let href = panel.firstChild.contentDocument.location.href;
+          ok(href.indexOf("about:socialerror?")==0, "flyout is on social error page");
           
           
           gc();
           openPanel(
-            "https://example.com/browser/browser/base/content/test/social/social_panel.html",
+            manifest.sidebarURL, 
             function() { 
               panelCallbackCount++;
             },
             function() { 
-              executeSoon(function() {
-                todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
-                ok(panel.firstChild.contentDocument.location.href.indexOf("about:socialerror?")==0, "is on social error page");
-                gc();
-                executeSoon(function() {
-                  SocialFlyout.unload();
-                  next();
-                });
-              });
+              todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
+              let href = panel.firstChild.contentDocument.location.href;
+              ok(href.indexOf("about:socialerror?")==0, "flyout is on social error page");
+              gc();
+              SocialFlyout.unload();
+              next();
             }
           );
-        });
-      }
-    );
+        }
+      );
+    });
   },
 
   testChatWindow: function(next) {
     let panelCallbackCount = 0;
     
-    goOffline();
-    openChat(
-      "https://example.com/browser/browser/base/content/test/social/social_chat.html",
-      function() { 
-        panelCallbackCount++;
-      },
-      function() { 
-        executeSoon(function() {
+    
+    goOffline().then(function() {
+      openChat(
+        manifest.sidebarURL, 
+        function() { 
+          panelCallbackCount++;
+        },
+        function() { 
           todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
           let chat = getChatBar().selectedChat;
-          waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
+          waitForCondition(function() chat.content != null && chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
                            function() {
                             chat.close();
                             next();
                             },
                            "error page didn't appear");
-        });
-      }
-    );
+        }
+      );
+    });
   },
 
   testChatWindowAfterTearOff: function(next) {
     
-    let url = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
+    let url = manifest.sidebarURL; 
     let panelCallbackCount = 0;
+    
+    
     
     openChat(
       url,
       null,
       function() { 
-        executeSoon(function() {
-          let chat = getChatBar().selectedChat;
-          is(chat.contentDocument.location.href, url, "correct url loaded");
-          
-          chat.swapWindows().then(
-            chat => {
+        let chat = getChatBar().selectedChat;
+        is(chat.contentDocument.location.href, url, "correct url loaded");
+        
+        chat.swapWindows().then(
+          chat => {
+            ok(!!chat.content, "we have chat content 1");
+            waitForCondition(function() chat.content != null && chat.contentDocument.readyState == "complete",
+                             function() {
               
-              goOffline();
-              chat.contentDocument.location.reload();
-              waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
-                               function() {
-                                chat.close();
-                                next();
-                                },
-                               "error page didn't appear");
-            }
-          );
-        });
+              goOffline().then(function() {
+                ok(!!chat.content, "we have chat content 2");
+                chat.contentDocument.location.reload();
+                info("chat reload called");
+                waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
+                                 function() {
+                                  chat.close();
+                                  next();
+                                  },
+                                 "error page didn't appear");
+              });
+            }, "swapped window loaded");
+          }
+        );
       }
     );
   }
