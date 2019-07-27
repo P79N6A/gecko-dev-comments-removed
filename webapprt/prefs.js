@@ -80,6 +80,8 @@ pref("dom.always_allow_move_resize_window", true);
 
 pref("plugin.allowed_types", " ");
 
+pref("extensions.blocklist.suppressUI", true);
+
 pref("devtools.debugger.remote-enabled", true);
 pref("devtools.debugger.force-local", true);
 
