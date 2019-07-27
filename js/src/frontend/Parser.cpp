@@ -5972,14 +5972,11 @@ Parser<ParseHandler>::statement(bool canHaveDirectives)
     if (!tokenStream.getToken(&tt, TokenStream::Operand))
         return null();
     switch (tt) {
+      
       case TOK_LC:
         return blockStatement();
 
-      case TOK_CONST:
-        if (!abortIfSyntaxParser())
-            return null();
-        return lexicalDeclaration( true);
-
+      
       case TOK_VAR: {
         Node pn = variables(PNK_VAR);
         if (!pn)
@@ -5993,54 +5990,11 @@ Parser<ParseHandler>::statement(bool canHaveDirectives)
         return pn;
       }
 
-      case TOK_LET:
-        return letDeclarationOrBlock();
-      case TOK_IMPORT:
-        return importDeclaration();
-      case TOK_EXPORT:
-        return exportDeclaration();
+      
       case TOK_SEMI:
         return handler.newEmptyStatement(pos());
-      case TOK_IF:
-        return ifStatement();
-      case TOK_DO:
-        return doWhileStatement();
-      case TOK_WHILE:
-        return whileStatement();
-      case TOK_FOR:
-        return forStatement();
-      case TOK_SWITCH:
-        return switchStatement();
-      case TOK_CONTINUE:
-        return continueStatement();
-      case TOK_BREAK:
-        return breakStatement();
-      case TOK_RETURN:
-        return returnStatement();
-      case TOK_WITH:
-        return withStatement();
-      case TOK_THROW:
-        return throwStatement();
-      case TOK_TRY:
-        return tryStatement();
-      case TOK_FUNCTION:
-        return functionStmt();
-      case TOK_DEBUGGER:
-        return debuggerStatement();
-      case TOK_CLASS:
-        if (!abortIfSyntaxParser())
-            return null();
-        return classDefinition(ClassStatement);
 
       
-      case TOK_CATCH:
-        report(ParseError, false, null(), JSMSG_CATCH_WITHOUT_TRY);
-        return null();
-
-      case TOK_FINALLY:
-        report(ParseError, false, null(), JSMSG_FINALLY_WITHOUT_TRY);
-        return null();
-
       case TOK_STRING:
         if (!canHaveDirectives && tokenStream.currentToken().atom() == context->names().useAsm) {
             if (!abortIfSyntaxParser())
@@ -6079,6 +6033,96 @@ Parser<ParseHandler>::statement(bool canHaveDirectives)
 
       default:
         return expressionStatement();
+
+      
+      case TOK_IF:
+        return ifStatement();
+
+      
+      
+      
+      
+      
+      case TOK_DO:
+        return doWhileStatement();
+
+      case TOK_WHILE:
+        return whileStatement();
+
+      case TOK_FOR:
+        return forStatement();
+
+      case TOK_SWITCH:
+        return switchStatement();
+
+      
+      case TOK_CONTINUE:
+        return continueStatement();
+
+      
+      case TOK_BREAK:
+        return breakStatement();
+
+      
+      case TOK_RETURN:
+        return returnStatement();
+
+      
+      case TOK_WITH:
+        return withStatement();
+
+      
+      
+
+      
+      case TOK_THROW:
+        return throwStatement();
+
+      
+      case TOK_TRY:
+        return tryStatement();
+
+      
+      case TOK_DEBUGGER:
+        return debuggerStatement();
+
+      
+      case TOK_FUNCTION:
+        return functionStmt();
+
+      
+      case TOK_CLASS:
+        if (!abortIfSyntaxParser())
+            return null();
+        return classDefinition(ClassStatement);
+
+      
+      case TOK_LET:
+        return letDeclarationOrBlock();
+      case TOK_CONST:
+        if (!abortIfSyntaxParser())
+            return null();
+        return lexicalDeclaration( true);
+
+      
+      case TOK_IMPORT:
+        return importDeclaration();
+
+      
+      case TOK_EXPORT:
+        return exportDeclaration();
+
+      
+
+      case TOK_CATCH:
+        report(ParseError, false, null(), JSMSG_CATCH_WITHOUT_TRY);
+        return null();
+
+      case TOK_FINALLY:
+        report(ParseError, false, null(), JSMSG_FINALLY_WITHOUT_TRY);
+        return null();
+
+      
     }
 }
 
