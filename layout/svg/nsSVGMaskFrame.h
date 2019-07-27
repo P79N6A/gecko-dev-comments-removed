@@ -68,6 +68,13 @@ public:
 
 private:
   
+
+
+
+
+  gfxMatrix GetMaskTransform(nsIFrame* aMaskedFrame);
+
+  
   
   
   
@@ -89,8 +96,7 @@ private:
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
   };
 
-  nsIFrame *mMaskParent;
-  nsAutoPtr<gfxMatrix> mMaskParentMatrix;
+  gfxMatrix mMatrixForChildren;
   
   bool mInUse;
 
