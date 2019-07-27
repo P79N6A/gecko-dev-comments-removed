@@ -1173,6 +1173,9 @@ pref("toolbar.customization.usesheet", true);
 pref("toolbar.customization.usesheet", false);
 #endif
 
+
+pref("dom.ipc.plugins.flash.disable-protected-mode", true);
+
 #ifdef XP_MACOSX
 
 pref("dom.ipc.plugins.enabled.i386", true);
