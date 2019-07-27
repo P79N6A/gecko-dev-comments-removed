@@ -1538,6 +1538,11 @@ nsEventStatus AsyncPanZoomController::OnScrollWheel(const ScrollWheelInput& aEve
     }
 
     case ScrollWheelInput::SCROLLMODE_SMOOTH: {
+      
+      
+      
+      ReentrantMonitorAutoEnter lock(mMonitor);
+
       if (mState != WHEEL_SCROLL) {
         CancelAnimation();
         SetState(WHEEL_SCROLL);
