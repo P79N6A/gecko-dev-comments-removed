@@ -86,12 +86,17 @@ let RLSidebar = {
 
 
 
-  onItemAdded(item) {
+  onItemAdded(item, append = false) {
     log.trace(`onItemAdded: ${item}`);
 
     let itemNode = document.importNode(this.itemTemplate.content, true).firstElementChild;
     this.updateItem(item, itemNode);
-    this.list.appendChild(itemNode);
+    
+    
+    if (append)
+      this.list.appendChild(itemNode);
+    else
+      this.list.insertBefore(itemNode, this.list.firstChild);
     this.itemNodesById.set(item.id, itemNode);
     this.itemsById.set(item.id, item);
 
@@ -156,11 +161,11 @@ let RLSidebar = {
     yield ReadingList.forEachItem(item => {
       
       try {
-        this.onItemAdded(item);
+        this.onItemAdded(item, true);
       } catch (e) {
         log.warn("Error adding item", e);
       }
-    });
+    }, {sort: "addedOn", descending: true});
     this.emptyListInfo.hidden = (this.numItems > 0);
   }),
 
