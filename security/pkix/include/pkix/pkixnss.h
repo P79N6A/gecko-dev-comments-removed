@@ -58,10 +58,6 @@ PRErrorCode MapResultToPRErrorCode(Result result);
 
 
 
-const char* MapResultToName(Result result);
-
-
-
 
 
 

@@ -27,7 +27,7 @@
 #include <ostream>
 
 #include "gtest/gtest.h"
-#include "pkix/pkixnss.h"
+#include "pkix/Result.h"
 
 
 namespace mozilla { namespace pkix {
