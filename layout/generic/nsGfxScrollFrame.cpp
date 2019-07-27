@@ -2641,7 +2641,13 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     nsDisplayScrollInfoLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
       aBuilder, mScrolledFrame, mOuter);
-    scrolledContent.BorderBackground()->AppendNewToBottom(layerItem);
+    nsDisplayList* positionedDescendants = scrolledContent.PositionedDescendants();
+    if (!positionedDescendants->IsEmpty()) {
+      layerItem->SetOverrideZIndex(MaxZIndexInList(positionedDescendants, aBuilder));
+      positionedDescendants->AppendNewToTop(layerItem);
+    } else {
+      aLists.Outlines()->AppendNewToTop(layerItem);
+    }
   }
   
   AppendScrollPartsTo(aBuilder, aDirtyRect, scrolledContent,
