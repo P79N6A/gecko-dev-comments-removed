@@ -371,6 +371,12 @@ loop.shared.actions = (function() {
     
 
 
+    UpdateRoomContextDone: Action.define("updateRoomContextDone", {
+    }),
+
+    
+
+
 
     CopyRoomUrl: Action.define("copyRoomUrl", {
       roomUrl: String
