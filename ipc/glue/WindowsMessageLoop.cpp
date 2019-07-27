@@ -642,6 +642,11 @@ MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool int
   , mPrev(mChannel->mTopFrame)
   , mStaticPrev(sStaticTopFrame)
 {
+  
+  if (GetCurrentThreadId() != gUIThreadId) {
+    return;
+  }
+
   mChannel->mTopFrame = this;
   sStaticTopFrame = this;
 
@@ -654,6 +659,10 @@ MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool int
 
 MessageChannel::SyncStackFrame::~SyncStackFrame()
 {
+  if (GetCurrentThreadId() != gUIThreadId) {
+    return;
+  }
+
   NS_ASSERTION(this == mChannel->mTopFrame,
                "Mismatched interrupt stack frames");
   NS_ASSERTION(this == sStaticTopFrame,
@@ -692,6 +701,8 @@ MessageChannel::NotifyGeckoEventDispatch()
 void
 MessageChannel::ProcessNativeEventsInInterruptCall()
 {
+  NS_ASSERTION(GetCurrentThreadId() == gUIThreadId,
+               "Shouldn't be on a non-main thread in here!");
   if (!mTopFrame) {
     NS_ERROR("Spin logic error: no Interrupt frame");
     return;
@@ -775,6 +786,10 @@ MessageChannel::WaitForSyncNotify()
 
   MOZ_ASSERT(gUIThreadId, "InitUIThread was not called!");
 
+  
+  
+  
+  
   if (GetCurrentThreadId() != gUIThreadId) {
     PRIntervalTime timeout = (kNoTimeout == mTimeoutMs) ?
                              PR_INTERVAL_NO_TIMEOUT :
@@ -795,8 +810,12 @@ MessageChannel::WaitForSyncNotify()
 
     
     
-    return WaitResponse(timeout == PR_INTERVAL_NO_TIMEOUT ? false : IsTimeoutExpired(waitStart, timeout));
+    return WaitResponse(timeout == PR_INTERVAL_NO_TIMEOUT ?
+                        false : IsTimeoutExpired(waitStart, timeout));
   }
+
+  NS_ASSERTION(GetCurrentThreadId() == gUIThreadId,
+               "Shouldn't be on a non-main thread in here!");
 
   NS_ASSERTION(mTopFrame && !mTopFrame->mInterrupt,
                "Top frame is not a sync frame!");
@@ -919,9 +938,15 @@ MessageChannel::WaitForInterruptNotify()
 
   MOZ_ASSERT(gUIThreadId, "InitUIThread was not called!");
 
+  
+  
+  
   if (GetCurrentThreadId() != gUIThreadId) {
     return WaitForSyncNotify();
   }
+
+  NS_ASSERTION(GetCurrentThreadId() == gUIThreadId,
+               "Shouldn't be on a non-main thread in here!");
 
   if (!InterruptStackDepth()) {
     
