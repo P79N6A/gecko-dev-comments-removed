@@ -716,19 +716,15 @@ falling back to not using job objects for managing child processes"""
         :param sig: Signal used to kill the process, defaults to SIGKILL
                     (has no effect on Windows)
         """
-        try:
-            self.proc.kill(sig=sig)
+        if not hasattr(self, 'proc'):
+            raise RuntimeError("Calling kill() on a non started process is not"
+                               " allowed.")
+        self.proc.kill(sig=sig)
 
-            
-            
-            
-            return self.wait()
-        except AttributeError:
-            
-            if not hasattr(self, 'proc'):
-                print >> sys.stderr, "Unable to kill Process because call to ProcessHandler constructor failed."
-            else:
-                raise
+        
+        
+        
+        return self.wait()
 
     def poll(self):
         """Check if child process has terminated
@@ -742,7 +738,10 @@ falling back to not using job objects for managing child processes"""
         
         
         
-        if self.reader.is_alive():
+        if not hasattr(self, 'proc'):
+            raise RuntimeError("Calling poll() on a non started process is not"
+                               " allowed.")
+        elif self.reader.is_alive():
             return None
         elif hasattr(self.proc, "returncode"):
             return self.proc.returncode
