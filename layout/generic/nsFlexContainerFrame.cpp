@@ -152,6 +152,10 @@ PhysicalCoordFromFlexRelativeCoord(nscoord aFlexRelativeCoord,
   (axisTracker_).IsCrossAxisHorizontal() ? (width_) : (height_)
 
 
+#define GET_MAIN_COMPONENT_LOGICAL(axisTracker_, isize_, bsize_)  \
+  (axisTracker_).IsRowOriented() ? (isize_) : (bsize_)
+
+
 class MOZ_STACK_CLASS nsFlexContainerFrame::FlexboxAxisTracker {
 public:
   FlexboxAxisTracker(const nsStylePosition* aStylePosition,
@@ -185,6 +189,7 @@ public:
   }
 
   bool IsRowOriented() const { return mIsRowOriented; }
+  bool IsColumnOriented() const { return !mIsRowOriented; }
 
   nscoord GetMainComponent(const nsSize& aSize) const {
     return GET_MAIN_COMPONENT(*this, aSize.width, aSize.height);
@@ -3105,16 +3110,17 @@ nsFlexContainerFrame::GenerateFlexLines(
     
     if (wrapThreshold == NS_UNCONSTRAINEDSIZE) {
       const nscoord flexContainerMaxMainSize =
-        GET_MAIN_COMPONENT(aAxisTracker,
-                           aReflowState.ComputedMaxWidth(),
-                           aReflowState.ComputedMaxHeight());
+        GET_MAIN_COMPONENT_LOGICAL(aAxisTracker,
+                                   aReflowState.ComputedMaxISize(),
+                                   aReflowState.ComputedMaxBSize());
 
       wrapThreshold = flexContainerMaxMainSize;
     }
 
     
     
-    if (!aAxisTracker.IsMainAxisHorizontal() &&
+    
+    if (aAxisTracker.IsColumnOriented() &&
         aAvailableBSizeForContent != NS_UNCONSTRAINEDSIZE) {
       wrapThreshold = std::min(wrapThreshold, aAvailableBSizeForContent);
     }
