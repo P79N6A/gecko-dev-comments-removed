@@ -100,6 +100,7 @@ protected:
 
     
     android::sp<android::MediaSource> mSource;
+    bool mSourceIsStopped;
     android::sp<android::MediaCodecProxy> mCodec;
     android::Vector<android::sp<android::ABuffer> > mInputBuffers;
     android::Vector<android::sp<android::ABuffer> > mOutputBuffers;
