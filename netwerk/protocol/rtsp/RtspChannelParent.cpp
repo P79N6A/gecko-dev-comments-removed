@@ -151,6 +151,13 @@ RtspChannelParent::SetParentListener(HttpChannelParentListener *aListener)
 }
 
 NS_IMETHODIMP
+RtspChannelParent::NotifyTrackingProtectionDisabled()
+{
+  
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 RtspChannelParent::Delete()
 {
   return NS_OK;
