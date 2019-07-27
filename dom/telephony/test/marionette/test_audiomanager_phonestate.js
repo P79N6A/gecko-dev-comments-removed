@@ -14,37 +14,25 @@ const PHONE_STATE_RINGTONE         = 1;
 const PHONE_STATE_IN_CALL          = 2;
 const PHONE_STATE_IN_COMMUNICATION = 3;
 
-let audioManager;
-function checkStates(speakerEnabled, phoneState) {
-  if (!audioManager) {
-    audioManager = SpecialPowers.Cc[AUDIO_MANAGER_CONTRACT_ID]
+let audioManager = SpecialPowers.Cc[AUDIO_MANAGER_CONTRACT_ID]
                                 .getService(SpecialPowers.Ci.nsIAudioManager);
-    ok(audioManager, "nsIAudioManager instance");
-  }
 
-  is(telephony.speakerEnabled, speakerEnabled, "telephony.speakerEnabled");
-  if (phoneState == PHONE_STATE_CURRENT) {
-    ok(audioManager.phoneState === PHONE_STATE_CURRENT ||
-       audioManager.phoneState === PHONE_STATE_NORMAL, "audioManager.phoneState");
-  } else {
-    is(audioManager.phoneState, phoneState, "audioManager.phoneState");
-  }
-}
+ok(audioManager, "nsIAudioManager instance");
 
-function check(phoneStateOrig, phoneStateEnabled, phoneStateDisabled) {
-  checkStates(false, phoneStateOrig);
+function check(phoneState) {
+  return new Promise(function(resolve, reject) {
+    waitFor(function() {
+      resolve();
+    }, function() {
+      let currentPhoneState = audioManager.phoneState;
+      log("waiting.. audioState should change to " + phoneState +
+          ", current is" + currentPhoneState);
 
-  let canEnableSpeaker = arguments.length > 1;
-  telephony.speakerEnabled = true;
-  if (canEnableSpeaker) {
-    checkStates(true, phoneStateEnabled);
-  } else {
-    checkStates(false, phoneStateOrig);
-    return;
-  }
-
-  telephony.speakerEnabled = false;
-  checkStates(false, arguments.length > 2 ? phoneStateDisabled : phoneStateOrig);
+      return (phoneState == currentPhoneState ||
+              (phoneState == PHONE_STATE_CURRENT &&
+               currentPhoneState == PHONE_STATE_NORMAL));
+    });
+  });
 }
 
 
@@ -55,50 +43,50 @@ startTest(function() {
   let inCall;
 
   Promise.resolve()
-    .then(() => check(PHONE_STATE_CURRENT, PHONE_STATE_NORMAL, PHONE_STATE_NORMAL))
+    .then(() => check(PHONE_STATE_CURRENT))
 
     
     .then(() => gRemoteDial(inNumber))
     .then(call => { inCall = call; })
-    .then(() => check(PHONE_STATE_RINGTONE, PHONE_STATE_RINGTONE, PHONE_STATE_RINGTONE))
+    .then(() => check(PHONE_STATE_RINGTONE))
     .then(() => gAnswer(inCall))
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     
     .then(() => gRemoteHangUp(inCall))
-    .then(() => check(PHONE_STATE_NORMAL, PHONE_STATE_NORMAL))
+    .then(() => check(PHONE_STATE_NORMAL))
 
     
     .then(() => gDial(outNumber))
     .then(call => { outCall = call; })
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     .then(() => gRemoteAnswer(outCall))
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     
     .then(() => gRemoteHangUp(outCall))
-    .then(() => check(PHONE_STATE_NORMAL, PHONE_STATE_NORMAL))
+    .then(() => check(PHONE_STATE_NORMAL))
 
     
     .then(() => gDial(outNumber))
     .then(call => { outCall = call; })
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     .then(() => gRemoteAnswer(outCall))
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     .then(() => gHold(outCall))
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     .then(() => gResume(outCall))
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     
     .then(() => gRemoteDial(inNumber))
     .then(call => { inCall = call; })
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     .then(() => gAnswer(inCall))
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     
     .then(() => gAddCallsToConference([outCall, inCall]))
-    .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
+    .then(() => check(PHONE_STATE_IN_CALL))
     
     .then(() => gRemoteHangUpCalls([outCall, inCall]))
-    .then(() => check(PHONE_STATE_NORMAL, PHONE_STATE_NORMAL))
+    .then(() => check(PHONE_STATE_NORMAL))
 
     
     .then(null, error => {
