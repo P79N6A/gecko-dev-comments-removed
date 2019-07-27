@@ -263,8 +263,12 @@ GMPChild::LoadPluginLibrary(const std::string& aPluginPath)
 
   
   
-  MOZ_ASSERT(mozilla::CanSandboxMediaPlugin());
-  mozilla::SetMediaPluginSandbox(nativePath.get());
+  if (mozilla::CanSandboxMediaPlugin()) {
+    mozilla::SetMediaPluginSandbox(nativePath.get());
+  } else {
+    printf_stderr("GMPChild::LoadPluginLibrary: Loading media plugin %s unsandboxed.\n",
+                  nativePath.get());
+  }
 #endif 
 
   libFile->Load(&mLib);
