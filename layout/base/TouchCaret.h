@@ -26,9 +26,6 @@ namespace mozilla {
 
 class TouchCaret MOZ_FINAL : public nsISelectionListener
 {
-private:
-  ~TouchCaret();
-
 public:
   explicit TouchCaret(nsIPresShell* aPresShell);
 
@@ -72,6 +69,8 @@ public:
 private:
   
   TouchCaret() MOZ_DELETE;
+
+  ~TouchCaret();
 
   
 
@@ -226,7 +225,6 @@ private:
     return sTouchCaretExpirationTime;
   }
 
-protected:
   nsWeakPtr mPresShell;
 
   
