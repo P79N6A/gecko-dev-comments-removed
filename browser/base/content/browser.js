@@ -1913,6 +1913,7 @@ function loadURI(uri, referrer, postData, allowThirdPartyFixup) {
 }
 
 function getShortcutOrURIAndPostData(aURL, aCallback) {
+  let mayInheritPrincipal = false;
   let postData = null;
   let shortcutURL = null;
   let keyword = aURL;
@@ -1928,7 +1929,8 @@ function getShortcutOrURIAndPostData(aURL, aCallback) {
   if (engine) {
     let submission = engine.getSubmission(param);
     postData = submission.postData;
-    aCallback({ postData: submission.postData, url: submission.uri.spec });
+    aCallback({ postData: submission.postData, url: submission.uri.spec,
+                mayInheritPrincipal: mayInheritPrincipal });
     return;
   }
 
@@ -1936,7 +1938,8 @@ function getShortcutOrURIAndPostData(aURL, aCallback) {
     PlacesUtils.getURLAndPostDataForKeyword(keyword);
 
   if (!shortcutURL) {
-    aCallback({ postData: postData, url: aURL });
+    aCallback({ postData: postData, url: aURL,
+                mayInheritPrincipal: mayInheritPrincipal });
     return;
   }
 
@@ -1968,7 +1971,12 @@ function getShortcutOrURIAndPostData(aURL, aCallback) {
         postData = getPostDataStream(escapedPostData, param, encodedParam,
                                                "application/x-www-form-urlencoded");
 
-      aCallback({ postData: postData, url: shortcutURL });
+      
+      
+      mayInheritPrincipal = true;
+
+      aCallback({ postData: postData, url: shortcutURL,
+                  mayInheritPrincipal: mayInheritPrincipal });
     }
 
     if (matches) {
@@ -1991,9 +1999,15 @@ function getShortcutOrURIAndPostData(aURL, aCallback) {
     
     postData = null;
 
-    aCallback({ postData: postData, url: aURL });
+    aCallback({ postData: postData, url: aURL,
+                mayInheritPrincipal: mayInheritPrincipal });
   } else {
-    aCallback({ postData: postData, url: shortcutURL });
+    
+    
+    mayInheritPrincipal = true;
+
+    aCallback({ postData: postData, url: shortcutURL,
+                mayInheritPrincipal: mayInheritPrincipal });
   }
 }
 
@@ -5181,7 +5195,8 @@ function middleMousePaste(event) {
     if (where != "current" ||
         lastLocationChange == gBrowser.selectedBrowser.lastLocationChange) {
       openUILink(data.url, event,
-                 { ignoreButton: true });
+                 { ignoreButton: true,
+                   disallowInheritPrincipal: !data.mayInheritPrincipal });
     }
   });
 
@@ -5190,25 +5205,8 @@ function middleMousePaste(event) {
 
 function stripUnsafeProtocolOnPaste(pasteData) {
   
-  const URI_INHERITS_SECURITY_CONTEXT = Ci.nsIProtocolHandler.URI_INHERITS_SECURITY_CONTEXT;
-
-  let pastedURI;
-  try {
-    pastedURI = makeURI(pasteData.trim());
-  } catch (ex) {
-    return pasteData;
-  }
-
-  while (Services.netutil.URIChainHasFlags(pastedURI, URI_INHERITS_SECURITY_CONTEXT)) {
-    pasteData = pastedURI.path.trim();
-    try {
-      pastedURI = makeURI(pasteData);
-    } catch (ex) {
-      break;
-    }
-  }
-
-  return pasteData;
+  
+  return pasteData.replace(/^(?:\s*javascript:)+/i, "");
 }
 
 function handleDroppedLink(event, url, name)
