@@ -97,9 +97,6 @@ class InterceptedChannelContent : public InterceptedChannelBase
   nsCOMPtr<nsIInputStream> mSynthesizedInput;
 
   
-  nsRefPtr<nsInputStreamPump> mStoragePump;
-
-  
   
   nsCOMPtr<nsIStreamListener> mStreamListener;
 public:
