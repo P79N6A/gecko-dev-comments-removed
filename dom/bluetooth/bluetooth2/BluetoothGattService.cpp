@@ -17,8 +17,34 @@ using namespace mozilla::dom;
 
 USING_BLUETOOTH_NAMESPACE
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(
-  BluetoothGattService, mOwner, mIncludedServices, mCharacteristics)
+NS_IMPL_CYCLE_COLLECTION_CLASS(BluetoothGattService)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(BluetoothGattService)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mOwner)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mIncludedServices)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCharacteristics)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+
+  
+
+
+
+
+
+
+  nsString path;
+  GeneratePathFromGattId(tmp->mServiceId.mId, path);
+  UnregisterBluetoothSignalHandler(path, tmp);
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(BluetoothGattService)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mIncludedServices)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCharacteristics)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(BluetoothGattService)
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(BluetoothGattService)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(BluetoothGattService)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BluetoothGattService)
@@ -36,24 +62,18 @@ BluetoothGattService::BluetoothGattService(
   MOZ_ASSERT(aOwner);
   MOZ_ASSERT(!mAppUuid.IsEmpty());
 
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
   
   
   nsString path;
   GeneratePathFromGattId(mServiceId.mId, path, mUuidStr);
-  bs->RegisterBluetoothSignalHandler(path, this);
+  RegisterBluetoothSignalHandler(path, this);
 }
 
 BluetoothGattService::~BluetoothGattService()
 {
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
   nsString path;
   GeneratePathFromGattId(mServiceId.mId, path);
-  bs->UnregisterBluetoothSignalHandler(path, this);
+  UnregisterBluetoothSignalHandler(path, this);
 }
 
 void
@@ -95,6 +115,7 @@ void
 BluetoothGattService::Notify(const BluetoothSignal& aData)
 {
   BT_LOGD("[D] %s", NS_ConvertUTF16toUTF8(aData.name()).get());
+  NS_ENSURE_TRUE_VOID(mSignalRegistered);
 
   BluetoothValue v = aData.value();
   if (aData.name().EqualsLiteral("IncludedServicesDiscovered")) {

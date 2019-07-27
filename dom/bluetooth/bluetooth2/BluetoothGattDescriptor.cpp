@@ -19,8 +19,32 @@ using namespace mozilla::dom;
 
 USING_BLUETOOTH_NAMESPACE
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(
-  BluetoothGattDescriptor, mOwner, mCharacteristic)
+NS_IMPL_CYCLE_COLLECTION_CLASS(BluetoothGattDescriptor)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(BluetoothGattDescriptor)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mOwner)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCharacteristic)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+
+  
+
+
+
+
+
+
+  nsString path;
+  GeneratePathFromGattId(tmp->mDescriptorId, path);
+  UnregisterBluetoothSignalHandler(path, tmp);
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(BluetoothGattDescriptor)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCharacteristic)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(BluetoothGattDescriptor)
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(BluetoothGattDescriptor)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(BluetoothGattDescriptor)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BluetoothGattDescriptor)
@@ -39,24 +63,18 @@ BluetoothGattDescriptor::BluetoothGattDescriptor(
   MOZ_ASSERT(aOwner);
   MOZ_ASSERT(aCharacteristic);
 
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
   
   
   nsString path;
   GeneratePathFromGattId(mDescriptorId, path, mUuidStr);
-  bs->RegisterBluetoothSignalHandler(path, this);
+  RegisterBluetoothSignalHandler(path, this);
 }
 
 BluetoothGattDescriptor::~BluetoothGattDescriptor()
 {
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
   nsString path;
   GeneratePathFromGattId(mDescriptorId, path);
-  bs->UnregisterBluetoothSignalHandler(path, this);
+  UnregisterBluetoothSignalHandler(path, this);
 }
 
 void
@@ -72,6 +90,7 @@ void
 BluetoothGattDescriptor::Notify(const BluetoothSignal& aData)
 {
   BT_LOGD("[D] %s", NS_ConvertUTF16toUTF8(aData.name()).get());
+  NS_ENSURE_TRUE_VOID(mSignalRegistered);
 
   BluetoothValue v = aData.value();
   if (aData.name().EqualsLiteral("DescriptorValueUpdated")) {

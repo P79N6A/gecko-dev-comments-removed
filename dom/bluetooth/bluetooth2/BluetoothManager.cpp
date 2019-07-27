@@ -5,11 +5,12 @@
 
 
 #include "base/basictypes.h"
-#include "BluetoothManager.h"
-#include "BluetoothAdapter.h"
-#include "BluetoothService.h"
 #include "BluetoothReplyRunnable.h"
+#include "BluetoothService.h"
+#include "BluetoothUtils.h"
 
+#include "mozilla/dom/bluetooth/BluetoothAdapter.h"
+#include "mozilla/dom/bluetooth/BluetoothManager.h"
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
 #include "mozilla/dom/BluetoothManager2Binding.h"
 #include "mozilla/Services.h"
@@ -22,6 +23,26 @@ using namespace mozilla;
 
 USING_BLUETOOTH_NAMESPACE
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(BluetoothManager)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(BluetoothManager,
+                                                DOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mAdapters)
+
+  
+
+
+
+
+
+
+  UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), tmp);
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(BluetoothManager,
+                                                  DOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAdapters)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(BluetoothManager)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
@@ -92,7 +113,7 @@ BluetoothManager::BluetoothManager(nsPIDOMWindow *aWindow)
 {
   MOZ_ASSERT(aWindow);
 
-  ListenToBluetoothSignal(true);
+  RegisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), this);
   BT_API2_LOGR("aWindow %p", aWindow);
 
   
@@ -105,27 +126,14 @@ BluetoothManager::BluetoothManager(nsPIDOMWindow *aWindow)
 
 BluetoothManager::~BluetoothManager()
 {
-  ListenToBluetoothSignal(false);
+  UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), this);
 }
 
 void
 BluetoothManager::DisconnectFromOwner()
 {
   DOMEventTargetHelper::DisconnectFromOwner();
-  ListenToBluetoothSignal(false);
-}
-
-void
-BluetoothManager::ListenToBluetoothSignal(bool aStart)
-{
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-
-  if (aStart) {
-    bs->RegisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), this);
-  } else {
-    bs->UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), this);
-  }
+  UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), this);
 }
 
 BluetoothAdapter*
@@ -265,6 +273,7 @@ void
 BluetoothManager::Notify(const BluetoothSignal& aData)
 {
   BT_LOGD("[M] %s", NS_ConvertUTF16toUTF8(aData.name()).get());
+  NS_ENSURE_TRUE_VOID(mSignalRegistered);
 
   if (aData.name().EqualsLiteral("AdapterAdded")) {
     HandleAdapterAdded(aData.value());

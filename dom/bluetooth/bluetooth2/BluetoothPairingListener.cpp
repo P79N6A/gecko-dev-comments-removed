@@ -4,12 +4,13 @@
 
 
 
+#include "BluetoothService.h"
+#include "BluetoothUtils.h"
 #include "mozilla/dom/bluetooth/BluetoothPairingListener.h"
 #include "mozilla/dom/bluetooth/BluetoothPairingHandle.h"
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
 #include "mozilla/dom/BluetoothPairingEvent.h"
 #include "mozilla/dom/BluetoothPairingListenerBinding.h"
-#include "BluetoothService.h"
 
 USING_BLUETOOTH_NAMESPACE
 
@@ -42,11 +43,8 @@ BluetoothPairingListener::Create(nsPIDOMWindow* aWindow)
 
 BluetoothPairingListener::~BluetoothPairingListener()
 {
-  BluetoothService* bs = BluetoothService::Get();
-  
-  NS_ENSURE_TRUE_VOID(bs);
-  bs->UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
-                                       this);
+  UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
+                                   this);
 }
 
 void
@@ -118,11 +116,8 @@ void
 BluetoothPairingListener::DisconnectFromOwner()
 {
   DOMEventTargetHelper::DisconnectFromOwner();
-
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-  bs->UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
-                                       this);
+  UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
+                                   this);
 }
 
 void
@@ -153,10 +148,8 @@ BluetoothPairingListener::TryListeningToBluetoothSignal()
   }
 
   
-  BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
-  bs->RegisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
-                                     this);
+  RegisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_PAIRING_LISTENER),
+                                 this);
 
   mHasListenedToSignal = true;
 }

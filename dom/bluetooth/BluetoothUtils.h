@@ -81,6 +81,32 @@ GeneratePathFromGattId(const BluetoothGattId& aId,
 
 
 
+
+
+
+
+
+
+
+void
+RegisterBluetoothSignalHandler(const nsAString& aPath,
+                               BluetoothSignalObserver* aHandler);
+
+
+
+
+
+
+
+
+void
+UnregisterBluetoothSignalHandler(const nsAString& aPath,
+                                 BluetoothSignalObserver* aHandler);
+
+
+
+
+
 bool
 BroadcastSystemMessage(const nsAString& aType,
                        const BluetoothValue& aData);
