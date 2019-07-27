@@ -893,6 +893,9 @@ protected:
   WatchManager<MediaDecoder> mWatchManager;
 
   
+  Mirror<media::TimeIntervals> mBuffered;
+
+  
   Mirror<MediaDecoderOwner::NextFrameStatus> mNextFrameStatus;
 
   

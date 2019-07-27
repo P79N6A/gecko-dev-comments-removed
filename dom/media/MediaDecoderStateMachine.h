@@ -252,11 +252,6 @@ public:
     return mState == DECODER_STATE_SEEKING;
   }
 
-  media::TimeIntervals GetBuffered() {
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    return mReader->GetBuffered();
-  }
-
   size_t SizeOfVideoQueue() {
     if (mReader) {
       return mReader->SizeOfVideoQueueInBytes();
@@ -271,16 +266,12 @@ public:
     return 0;
   }
 
-private:
-  void NotifyDataArrived(uint32_t aLength, int64_t aOffset);
-public:
   void DispatchNotifyDataArrived(uint32_t aLength, int64_t aOffset)
   {
-    RefPtr<nsRunnable> r =
-      NS_NewRunnableMethodWithArgs<uint32_t, int64_t>(this, &MediaDecoderStateMachine::NotifyDataArrived, aLength, aOffset);
-    TaskQueue()->Dispatch(r.forget());
     mReader->DispatchNotifyDataArrived(aLength, aOffset);
   }
+
+  AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() { return mReader->CanonicalBuffered(); }
 
   
   MediaTaskQueue* TaskQueue() const { return mTaskQueue; }
@@ -401,6 +392,8 @@ protected:
   void AssertCurrentThreadInMonitor() const { mDecoder->GetReentrantMonitor().AssertCurrentThreadIn(); }
 
   void SetState(State aState);
+
+  void BufferedRangeUpdated();
 
   
   
@@ -946,6 +939,9 @@ private:
   
   
   TimeStamp mBufferingStart;
+
+  
+  Mirror<media::TimeIntervals> mBuffered;
 
   
   

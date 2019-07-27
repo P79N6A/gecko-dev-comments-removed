@@ -219,9 +219,10 @@ private:
 
   
   
+  friend class TrackBuffer;
   already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget ,
                                                       int64_t aTolerance ,
-                                                      const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
+                                                      TrackBuffer* aTrackBuffer);
   bool HaveData(int64_t aTarget, MediaData::Type aType);
   already_AddRefed<SourceBufferDecoder> FirstDecoder(MediaData::Type aType);
 

@@ -199,13 +199,6 @@ SourceBufferDecoder::GetOwner()
 void
 SourceBufferDecoder::NotifyDataArrived(uint32_t aLength, int64_t aOffset)
 {
-  mReader->DispatchNotifyDataArrived(aLength, aOffset);
-
-  
-  
-  
-  
-  mParentDecoder->NotifyDataArrived(0, 0);
 }
 
 media::TimeIntervals
