@@ -91,7 +91,8 @@ public:
     return NS_CombineHint(NS_STYLE_HINT_REFLOW,
                           nsChangeHint_NeutralChange);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -338,7 +339,7 @@ struct nsStyleColor {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_VISUAL;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
@@ -376,7 +377,7 @@ struct nsStyleBackground {
                           NS_CombineHint(NS_STYLE_HINT_VISUAL,
                                          nsChangeHint_NeutralChange));
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
@@ -611,7 +612,7 @@ struct nsStyleMargin {
     return NS_CombineHint(nsChangeHint_NeedReflow,
                           nsChangeHint_ClearAncestorIntrinsics);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
@@ -654,7 +655,7 @@ struct nsStylePadding {
     return NS_SubtractHint(NS_STYLE_HINT_REFLOW,
                            nsChangeHint_ClearDescendantIntrinsics);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
@@ -844,7 +845,8 @@ struct nsStyleBorder {
                           NS_CombineHint(nsChangeHint_BorderStyleNoneChange,
                                          nsChangeHint_NeutralChange));
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -1079,7 +1081,7 @@ struct nsStyleOutline {
                           NS_CombineHint(nsChangeHint_RepaintFrame,
                                          nsChangeHint_NeutralChange));
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
@@ -1172,7 +1174,8 @@ struct nsStyleList {
     return NS_CombineHint(NS_STYLE_HINT_FRAMECHANGE,
                           nsChangeHint_NeutralChange);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -1347,7 +1350,7 @@ struct nsStylePosition {
                           nsChangeHint(nsChangeHint_RecomputePosition |
                                        nsChangeHint_UpdateParentOverflow));
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
@@ -1586,7 +1589,8 @@ struct nsStyleTextReset {
         NS_STYLE_HINT_REFLOW |
         nsChangeHint_UpdateSubtreeOverflow);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -1623,7 +1627,8 @@ struct nsStyleText {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -1814,7 +1819,8 @@ struct nsStyleVisibility {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2049,7 +2055,7 @@ struct nsStyleDisplay {
                         nsChangeHint_AddOrRemoveTransform |
                         nsChangeHint_NeutralChange);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
@@ -2302,7 +2308,8 @@ struct nsStyleTable {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2332,7 +2339,8 @@ struct nsStyleTableBorder {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2430,7 +2438,8 @@ struct nsStyleQuotes {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2504,7 +2513,8 @@ struct nsStyleContent {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2616,7 +2626,8 @@ struct nsStyleUIReset {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2679,7 +2690,8 @@ struct nsStyleUserInterface {
                           NS_CombineHint(nsChangeHint_UpdateCursor,
                                          nsChangeHint_NeutralChange));
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2723,7 +2735,8 @@ struct nsStyleXUL {
   static nsChangeHint MaxDifference() {
     return NS_STYLE_HINT_FRAMECHANGE;
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2759,7 +2772,8 @@ struct nsStyleColumn {
     return NS_CombineHint(NS_STYLE_HINT_FRAMECHANGE,
                           nsChangeHint_NeutralChange);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2852,7 +2866,8 @@ struct nsStyleSVG {
              NS_CombineHint(nsChangeHint_NeedReflow, nsChangeHint_NeedDirtyReflow)), 
                                          nsChangeHint_RepaintFrame);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return nsChangeHint_NeedReflow;
@@ -3132,7 +3147,8 @@ struct nsStyleSVGReset {
     return NS_CombineHint(nsChangeHint_UpdateEffects,
             NS_CombineHint(nsChangeHint_UpdateOverflow, NS_STYLE_HINT_REFLOW));
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
+    
     
     
     return NS_CombineHint(nsChangeHint_NeedReflow,
@@ -3181,7 +3197,7 @@ struct nsStyleVariables {
   static nsChangeHint MaxDifference() {
     return nsChangeHint(0);
   }
-  static nsChangeHint MaxDifferenceNeverInherited() {
+  static nsChangeHint DifferenceAlwaysHandledForDescendants() {
     
     
     return nsChangeHint(0);
