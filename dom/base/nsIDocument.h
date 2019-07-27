@@ -31,6 +31,7 @@
 #include "nsClassHashtable.h"
 #include "prclist.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/CORSMode.h"
 #include <bitset>                        
 
 class imgIRequest;
@@ -2037,7 +2038,8 @@ public:
   
 
 
-  virtual void MaybePreconnect(nsIURI* uri) = 0;
+  virtual void MaybePreconnect(nsIURI* uri,
+                               mozilla::CORSMode aCORSMode) = 0;
 
   enum DocumentTheme {
     Doc_Theme_Uninitialized, 
