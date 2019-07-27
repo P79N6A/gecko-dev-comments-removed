@@ -1345,6 +1345,9 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
   
   
   
+  
+  
+  
 
   nsTArray<RuleNodeInfo> rules;
   for (nsRuleNode* ruleNode = aOldRuleNode; !ruleNode->IsRoot();
