@@ -11,6 +11,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Messaging.jsm");
 
 
 
@@ -169,6 +170,29 @@ var SimpleServiceDiscovery = {
         log("failed to convert to byte array: " + e);
       }
     }
+
+    
+    this.getAndroidDevices();
+  },
+
+  getAndroidDevices: function() {
+    sendMessageToJava({ type: "MediaPlayer:Get" }, (result) => {
+      for (let id in result.displays) {
+        let display = result.displays[id];
+
+        
+        let service = {
+          location: display.location,
+          target: "media:router",
+          friendlyName: display.friendlyName,
+          uuid: display.uuid,
+          manufacturer: display.manufacturer,
+          modelName: display.modelName
+        };
+
+        this._addService(service);
+      }
+    })
   },
 
   _searchFixedTargets: function _searchFixedTargets() {
@@ -313,22 +337,26 @@ var SimpleServiceDiscovery = {
         aService.manufacturer = doc.querySelector("manufacturer").textContent;
         aService.modelName = doc.querySelector("modelName").textContent;
 
-        
-        if (!this._filterService(aService)) {
-          return;
-        }
-
-        
-        if (!this._services.has(aService.uuid)) {
-          this._services.set(aService.uuid, aService);
-          Services.obs.notifyObservers(null, EVENT_SERVICE_FOUND, aService.uuid);
-        }
-
-        
-        this._services.get(aService.uuid).lastPing = this._searchTimestamp;
+        this._addService(aService);
       }
     }).bind(this), false);
 
     xhr.send(null);
+  },
+
+  _addService: function(service) {
+    
+    if (!this._filterService(service)) {
+      return;
+    }
+
+    
+    if (!this._services.has(service.uuid)) {
+      this._services.set(service.uuid, service);
+      Services.obs.notifyObservers(null, EVENT_SERVICE_FOUND, service.uuid);
+    }
+
+    
+    this._services.get(service.uuid).lastPing = this._searchTimestamp;
   }
 }
