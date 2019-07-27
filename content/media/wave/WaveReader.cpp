@@ -265,7 +265,7 @@ nsresult WaveReader::Seek(int64_t aTarget, int64_t aStartTime, int64_t aEndTime,
     return NS_ERROR_FAILURE;
   }
   double d = BytesToTime(GetDataLength());
-  NS_ASSERTION(d < INT64_MAX / USECS_PER_S, "Duration overflow");
+  NS_ASSERTION(d < INT64_MAX / USECS_PER_S, "Duration overflow"); 
   int64_t duration = static_cast<int64_t>(d * USECS_PER_S);
   double seekTime = std::min(aTarget, duration) / static_cast<double>(USECS_PER_S);
   int64_t position = RoundDownToFrame(static_cast<int64_t>(TimeToBytes(seekTime)));

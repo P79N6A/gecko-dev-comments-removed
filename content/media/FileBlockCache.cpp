@@ -142,12 +142,12 @@ nsresult FileBlockCache::ReadFromFile(int64_t aOffset,
 
   nsresult res = Seek(aOffset);
   if (NS_FAILED(res)) return res;
-
+  
   aBytesRead = PR_Read(mFD, aDest, aBytesToRead);
   if (aBytesRead <= 0)
     return NS_ERROR_FAILURE;
   mFDCurrentPos += aBytesRead;
-
+  
   return NS_OK;
 }
 
@@ -327,7 +327,7 @@ nsresult FileBlockCache::MoveBlock(int32_t aSourceBlockIndex, int32_t aDestBlock
     
     mChangeIndexList.PushBack(aDestBlockIndex);
   }
-
+  
   
   
   if (sourceBlock && sourceBlock->IsWrite()) {

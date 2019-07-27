@@ -65,7 +65,7 @@ nsresult RawReader::ReadMetadata(MediaInfo* aInfo,
     return NS_ERROR_FAILURE; 
 
   
-  float pixelAspectRatio = static_cast<float>(mMetadata.aspectNumerator) /
+  float pixelAspectRatio = static_cast<float>(mMetadata.aspectNumerator) / 
                             mMetadata.aspectDenominator;
   nsIntSize display(mMetadata.frameWidth, mMetadata.frameHeight);
   ScaleDisplayByAspectRatio(display, pixelAspectRatio);
