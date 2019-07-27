@@ -15,6 +15,7 @@ pref("browser.chromeURL", "chrome://b2g/content/");
 
 
 pref("browser.startup.homepage", "data:text/plain,browser.startup.homepage=chrome://b2g/content/shell.html");
+pref("b2g.is_mulet", true);
 
 pref("startup.homepage_welcome_url", "");
 pref("browser.shell.checkDefaultBrowser", false);
@@ -1059,13 +1060,3 @@ pref("dom.udpsocket.enabled", true);
 
 
 pref("dom.tv.enabled", true);
-
-pref("dom.mozSettings.SettingsDB.debug.enabled", true);
-pref("dom.mozSettings.SettingsManager.debug.enabled", true);
-pref("dom.mozSettings.SettingsRequestManager.debug.enabled", true);
-pref("dom.mozSettings.SettingsService.debug.enabled", true);
-
-pref("dom.mozSettings.SettingsDB.verbose.enabled", false);
-pref("dom.mozSettings.SettingsManager.verbose.enabled", false);
-pref("dom.mozSettings.SettingsRequestManager.verbose.enabled", false);
-pref("dom.mozSettings.SettingsService.verbose.enabled", false);
