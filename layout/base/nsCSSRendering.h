@@ -10,6 +10,7 @@
 
 #include "gfxBlur.h"
 #include "gfxContext.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/gfx/Rect.h"
 #include "nsLayoutUtils.h"
 #include "nsStyleStruct.h"
@@ -24,7 +25,6 @@ namespace mozilla {
 
 namespace gfx {
 class DrawTarget;
-struct RectCornerRadii;
 }
 
 namespace layers {
@@ -350,10 +350,6 @@ struct nsCSSRendering {
                                 nscoord aAppUnitsPerPixel,
                                 RectCornerRadii *oBorderRadii);
 
-  static void ComputePixelRadii(const nscoord *aAppUnitsRadii,
-                                nscoord aAppUnitsPerPixel,
-                                gfxCornerSizes *oBorderRadii);
-
   
 
 
@@ -522,7 +518,7 @@ struct nsCSSRendering {
     gfxRect mDirtyRectGfx;
 
     nscoord mRadii[8];
-    gfxCornerSizes mClippedRadii;
+    RectCornerRadii mClippedRadii;
     bool mHasRoundedCorners;
     bool mHasAdditionalBGClipArea;
 
@@ -835,6 +831,8 @@ protected:
 
 
 class nsContextBoxBlur {
+  typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
+
 public:
   enum {
     FORCE_MASK = 0x01
@@ -940,7 +938,7 @@ public:
   static void BlurRectangle(gfxContext* aDestinationCtx,
                             const nsRect& aRect,
                             int32_t aAppUnitsPerDevPixel,
-                            gfxCornerSizes* aCornerRadii,
+                            RectCornerRadii* aCornerRadii,
                             nscoord aBlurRadius,
                             const gfxRGBA& aShadowColor,
                             const nsRect& aDirtyRect,

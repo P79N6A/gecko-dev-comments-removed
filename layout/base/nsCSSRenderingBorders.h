@@ -9,6 +9,7 @@
 
 #include "gfxRect.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/RefPtr.h"
 #include "nsColor.h"
 #include "nsCOMPtr.h"
@@ -21,7 +22,6 @@ struct nsBorderColors;
 namespace mozilla {
 namespace gfx {
 class GradientStops;
-struct RectCornerRadii;
 }
 }
 
@@ -85,12 +85,12 @@ struct nsCSSBorderRenderer {
                       gfxRect& aOuterRect,
                       const uint8_t* aBorderStyles,
                       const gfxFloat* aBorderWidths,
-                      gfxCornerSizes& aBorderRadii,
+                      RectCornerRadii& aBorderRadii,
                       const nscolor* aBorderColors,
                       nsBorderColors* const* aCompositeColors,
                       nscolor aBackgroundColor);
 
-  gfxCornerSizes mBorderCornerDimensions;
+  RectCornerRadii mBorderCornerDimensions;
 
   
   gfxContext* mContext;
@@ -104,7 +104,7 @@ struct nsCSSBorderRenderer {
   const gfxFloat* mBorderWidths;
   uint8_t* mSanitizedStyles;
   gfxFloat* mSanitizedWidths;
-  gfxCornerSizes mBorderRadii;
+  RectCornerRadii mBorderRadii;
 
   
   const nscolor* mBorderColors;
@@ -164,8 +164,8 @@ struct nsCSSBorderRenderer {
   
   void FillSolidBorder(const gfxRect& aOuterRect,
                        const gfxRect& aInnerRect,
-                       const gfxCornerSizes& aBorderRadii,
-                       const gfxFloat *aBorderSizes,
+                       const RectCornerRadii& aBorderRadii,
+                       const Float *aBorderSizes,
                        int aSides,
                        const gfxRGBA& aColor);
 
@@ -215,17 +215,17 @@ struct nsCSSBorderRenderer {
   void DrawBorders ();
 
   
-  static void ComputeInnerRadii(const gfxCornerSizes& aRadii,
-                                const gfxFloat *aBorderSizes,
-                                gfxCornerSizes *aInnerRadiiRet);
+  static void ComputeInnerRadii(const RectCornerRadii& aRadii,
+                                const Float* aBorderSizes,
+                                RectCornerRadii* aInnerRadiiRet);
 
   
   
   
   
   static void ComputeOuterRadii(const RectCornerRadii& aRadii,
-                                const Float *aBorderSizes,
-                                gfxCornerSizes *aOuterRadiiRet);
+                                const Float* aBorderSizes,
+                                RectCornerRadii* aOuterRadiiRet);
 };
 
 namespace mozilla {

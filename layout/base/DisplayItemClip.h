@@ -6,6 +6,7 @@
 #ifndef DISPLAYITEMCLIP_H_
 #define DISPLAYITEMCLIP_H_
 
+#include "mozilla/RefPtr.h"
 #include "nsRect.h"
 #include "nsTArray.h"
 #include "nsStyleConsts.h"
@@ -16,6 +17,13 @@ class nsPresContext;
 class nsRegion;
 
 namespace mozilla {
+namespace gfx {
+class DrawTarget;
+class Path;
+}
+}
+
+namespace mozilla {
 
 
 
@@ -24,6 +32,9 @@ namespace mozilla {
 
 
 class DisplayItemClip {
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::Path Path;
+
 public:
   struct RoundedRect {
     nsRect mRect;
@@ -70,15 +81,16 @@ public:
   
   
   
-  void ApplyRoundedRectsTo(gfxContext* aContext, int32_t A2DPRInt32,
-                           uint32_t aBegin, uint32_t aEnd) const;
+  void ApplyRoundedRectClipsTo(gfxContext* aContext, int32_t A2DPRInt32,
+                               uint32_t aBegin, uint32_t aEnd) const;
 
   
   void DrawRoundedRectsTo(gfxContext* aContext, int32_t A2D,
                           uint32_t aBegin, uint32_t aEnd) const;
   
-  void AddRoundedRectPathTo(gfxContext* aContext, int32_t A2D,
-                            const RoundedRect &aRoundRect) const;
+  mozilla::TemporaryRef<Path> MakeRoundedRectPath(DrawTarget& aDrawTarget,
+                                                  int32_t A2D,
+                                                  const RoundedRect &aRoundRect) const;
 
   
   

@@ -22,6 +22,12 @@ typedef struct _cairo cairo_t;
 class GlyphBufferAzure;
 template <typename T> class FallibleTArray;
 
+namespace mozilla {
+namespace gfx {
+struct RectCornerRadii;
+}
+}
+
 
 
 
@@ -41,6 +47,7 @@ class gfxContext MOZ_FINAL {
     typedef mozilla::gfx::Path Path;
     typedef mozilla::gfx::Pattern Pattern;
     typedef mozilla::gfx::Rect Rect;
+    typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
 
     NS_INLINE_DECL_REFCOUNTING(gfxContext)
 
@@ -193,7 +200,7 @@ public:
 
 
     void RoundedRectangle(const gfxRect& rect,
-                          const gfxCornerSizes& corners,
+                          const RectCornerRadii& corners,
                           bool draw_clockwise = true);
 
     
