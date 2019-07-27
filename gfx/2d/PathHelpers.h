@@ -86,6 +86,51 @@ void ArcToBezier(T* aSink, const Point &aOrigin, const Size &aRadius,
 
 
 
+template <typename T>
+void EllipseToBezier(T* aSink, const Point &aOrigin, const Size &aRadius)
+{
+  Point startPoint(aOrigin.x + aRadius.width,
+                   aOrigin.y);
+
+  aSink->LineTo(startPoint);
+
+  
+  
+  
+  Float kappaFactor = (4.0f / 3.0f) * tan((M_PI/2.0f) / 4.0f);
+  Float kappaX = kappaFactor * aRadius.width;
+  Float kappaY = kappaFactor * aRadius.height;
+  Float cosStartAngle = 1;
+  Float sinStartAngle = 0;
+  for (int i = 0; i < 4; i++) {
+    
+    
+    Point currentStartPoint(aOrigin.x + cosStartAngle * aRadius.width,
+                            aOrigin.y + sinStartAngle * aRadius.height);
+    Point currentEndPoint(aOrigin.x + -sinStartAngle * aRadius.width,
+                          aOrigin.y + cosStartAngle * aRadius.height);
+
+    Point tangentStart(-sinStartAngle, cosStartAngle);
+    Point cp1 = currentStartPoint;
+    cp1 += Point(tangentStart.x * kappaX, tangentStart.y * kappaY);
+
+    Point revTangentEnd(cosStartAngle, sinStartAngle);
+    Point cp2 = currentEndPoint;
+    cp2 += Point(revTangentEnd.x * kappaX, revTangentEnd.y * kappaY);
+
+    aSink->BezierTo(cp1, cp2, currentEndPoint);
+
+    
+    
+    Float tmp = cosStartAngle;
+    cosStartAngle = -sinStartAngle;
+    sinStartAngle = tmp;
+  }
+}
+
+
+
+
 
 
 
