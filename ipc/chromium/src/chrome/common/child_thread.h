@@ -17,7 +17,7 @@ class ChildThread : public IPC::Channel::Listener,
                     public base::Thread {
  public:
   
-  ChildThread(Thread::Options options);
+  explicit ChildThread(Thread::Options options);
   virtual ~ChildThread();
 
   

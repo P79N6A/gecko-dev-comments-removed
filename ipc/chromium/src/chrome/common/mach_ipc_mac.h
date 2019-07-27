@@ -86,7 +86,7 @@ class MachMsgPortDescriptor : public mach_msg_port_descriptor_t {
   }
 
   
-  MachMsgPortDescriptor(mach_port_t in_name) {
+  explicit MachMsgPortDescriptor(mach_port_t in_name) {
     name = in_name;
     pad1 = 0;
     pad2 = 0;
@@ -251,7 +251,7 @@ class MachReceiveMessage : public MachMessage {
 
 class MachSendMessage : public MachMessage {
  public:
-  MachSendMessage(int32_t message_id);
+  explicit MachSendMessage(int32_t message_id);
   MachSendMessage(void *storage, size_t storage_length, int32_t message_id);
 
  private:
@@ -265,11 +265,11 @@ class MachSendMessage : public MachMessage {
 class ReceivePort {
  public:
   
-  ReceivePort(const char *receive_port_name);
+  explicit ReceivePort(const char *receive_port_name);
 
   
   
-  ReceivePort(mach_port_t receive_port);
+  explicit ReceivePort(mach_port_t receive_port);
 
   
   ReceivePort();
@@ -295,11 +295,11 @@ class ReceivePort {
 class MachPortSender {
  public:
   
-  MachPortSender(const char *receive_port_name);
+  explicit MachPortSender(const char *receive_port_name);
 
 
   
-  MachPortSender(mach_port_t send_port);
+  explicit MachPortSender(mach_port_t send_port);
 
   kern_return_t SendMessage(MachSendMessage &message,
                             mach_msg_timeout_t timeout);

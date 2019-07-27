@@ -24,7 +24,7 @@ class ThreadLocalStorage {
   
   class Slot {
    public:
-    Slot(TLSDestructorFunc destructor = NULL);
+    explicit Slot(TLSDestructorFunc destructor = NULL);
 
     
     

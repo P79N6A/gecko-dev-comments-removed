@@ -21,7 +21,7 @@ class ChildProcess {
  public:
   
   
-  ChildProcess(ChildThread* child_thread);
+  explicit ChildProcess(ChildThread* child_thread);
   virtual ~ChildProcess();
 
   
