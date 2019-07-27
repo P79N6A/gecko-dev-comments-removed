@@ -1,7 +1,6 @@
-# -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http:
+
+
+
 
 "use strict";
 
@@ -20,6 +19,9 @@ XPCOMUtils.defineLazyGetter(this, "gNavigatorBundle", function() {
   const url = "chrome://browser/locale/browser.properties";
   return Services.strings.createBundle(url);
 });
+
+XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+  "resource://gre/modules/AppConstants.jsm");
 
 this.PluginContent = function (global) {
   this.init(global);
@@ -517,8 +519,10 @@ PluginContent.prototype = {
     this.global.sendAsyncMessage("PluginContent:LinkClickCallback", { name: name });
   },
 
-#ifdef MOZ_CRASHREPORTER
   submitReport: function submitReport(pluginDumpID, browserDumpID, plugin) {
+    if (!AppConstants.MOZ_CRASHREPORTER) {
+      return;
+    }
     let keyVals = {};
     if (plugin) {
       let userComment = this.getPluginUI(plugin, "submitComment").value.trim();
@@ -534,7 +538,6 @@ PluginContent.prototype = {
       keyVals: keyVals,
     });
   },
-#endif
 
   reloadPage: function () {
     this.global.content.location.reload();
@@ -885,7 +888,6 @@ PluginContent.prototype = {
     }
 
     let status;
-#ifdef MOZ_CRASHREPORTER
     
     if (submittedReport) { 
       status = "submitted";
@@ -911,7 +913,7 @@ PluginContent.prototype = {
     
     
     
-    if (doPrompt) {
+    if (AppConstants.MOZ_CRASHREPORTER && doPrompt) {
       let observer = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                                Ci.nsISupportsWeakReference]),
@@ -940,7 +942,6 @@ PluginContent.prototype = {
       
       doc.addEventListener("mozCleverClosureHack", observer, false);
     }
-#endif
 
     let isShowing = false;
 
