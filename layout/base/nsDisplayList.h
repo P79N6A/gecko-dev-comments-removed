@@ -369,8 +369,7 @@ public:
 
 
 
-
-  void EnterPresShell(nsIFrame* aReferenceFrame, const nsRect& aDirtyRect);
+  void EnterPresShell(nsIFrame* aReferenceFrame);
   
 
 
@@ -382,7 +381,7 @@ public:
   
 
 
-  void LeavePresShell(nsIFrame* aReferenceFrame, const nsRect& aDirtyRect);
+  void LeavePresShell(nsIFrame* aReferenceFrame);
 
   
 
@@ -710,7 +709,6 @@ private:
     nsIPresShell* mPresShell;
     nsIFrame*     mCaretFrame;
     nsRect        mCaretRect;
-    nsRect        mPrevDirtyRect;
     uint32_t      mFirstFrameMarkedForDisplay;
     bool          mIsBackgroundOnly;
   };
