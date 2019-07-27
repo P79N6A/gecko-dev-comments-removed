@@ -4023,8 +4023,7 @@ PointerType::ConstructData(JSContext* cx,
   
   RootedObject baseObj(cx, PointerType::GetBaseType(obj));
   bool looksLikeClosure = CType::GetTypeCode(baseObj) == TYPE_function &&
-                          args[0].isObject() &&
-                          JS_ObjectIsCallable(cx, &args[0].toObject());
+                          args[0].isObject() && JS::IsCallable(&args[0].toObject());
 
   
   

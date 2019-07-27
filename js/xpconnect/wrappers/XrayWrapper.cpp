@@ -288,7 +288,7 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(JSContext *cx,
         }
 
         
-        if (JS_ObjectIsCallable(cx, propObj)) {
+        if (JS::IsCallable(propObj)) {
             JSAutoCompartment ac(cx, wrapper);
             return SilentFailure(cx, id, "value is callable");
         }
@@ -1747,7 +1747,7 @@ DEBUG_CheckXBLCallable(JSContext *cx, JSObject *obj)
     
     MOZ_ASSERT_IF(js::IsCrossCompartmentWrapper(obj),
                   xpc::IsContentXBLScope(js::GetObjectCompartment(js::UncheckedUnwrap(obj))));
-    MOZ_ASSERT(JS_ObjectIsCallable(cx, obj));
+    MOZ_ASSERT(JS::IsCallable(obj));
 }
 
 static void

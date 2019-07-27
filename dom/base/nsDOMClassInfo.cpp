@@ -1535,7 +1535,7 @@ BaseStubConstructor(nsIWeakReference* aWeakOwner,
       }
 
       
-      NS_ENSURE_STATE(JS_ObjectIsCallable(cx, &funval.toObject()));
+      NS_ENSURE_STATE(JS::IsCallable(&funval.toObject()));
       {
         
         
