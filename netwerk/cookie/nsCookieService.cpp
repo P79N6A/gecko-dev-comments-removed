@@ -1551,11 +1551,6 @@ nsCookieService::Observe(nsISupports     *aSubject,
   if (!strcmp(aTopic, "profile-before-change")) {
     
     
-    if (mDBState && mDBState->dbConn &&
-        !nsCRT::strcmp(aData, MOZ_UTF16("shutdown-cleanse"))) {
-      
-      RemoveAll();
-    }
 
     
     
