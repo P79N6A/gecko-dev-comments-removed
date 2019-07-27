@@ -241,7 +241,7 @@ nsTableCellFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     GetRowIndex(rowIndex);
     
     
-    nsIntRect damageArea(colIndex, rowIndex, GetColSpan(),
+    TableArea damageArea(colIndex, rowIndex, GetColSpan(),
       std::min(GetRowSpan(), tableFrame->GetRowCount() - rowIndex));
     tableFrame->AddBCDamageArea(damageArea);
   }
