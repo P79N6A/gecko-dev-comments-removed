@@ -206,6 +206,10 @@ function isSubObjectOf(expectedObj, actualObj) {
 Services.prefs.setBoolPref("browser.search.log", true);
 
 
+
+Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", true);
+Services.prefs.setIntPref("browser.search.geoip.timeout", 2000);
+
 Services.prefs.setCharPref("browser.search.geoip.url", "");
 
 
