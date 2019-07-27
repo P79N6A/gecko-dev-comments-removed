@@ -3029,7 +3029,7 @@ js::CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, 
 
 
 
-                clone = CloneObjectLiteral(cx, cx->global(), obj);
+                clone = CloneObjectLiteral(cx, obj);
             }
             if (!clone || !objects.append(clone))
                 return nullptr;

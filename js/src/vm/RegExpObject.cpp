@@ -66,12 +66,10 @@ RegExpObjectBuilder::getOrCreateClone(HandleObjectGroup group)
 {
     MOZ_ASSERT(!reobj_);
     MOZ_ASSERT(group->clasp() == &RegExpObject::class_);
-    group->proto().toObject()->assertParentIs(&group->proto().toObject()->global());
-    RootedObject parent(cx, &group->proto().toObject()->global());
 
     
     
-    reobj_ = NewObjectWithGroup<RegExpObject>(cx->asJSContext(), group, parent, TenuredObject);
+    reobj_ = NewObjectWithGroup<RegExpObject>(cx->asJSContext(), group, TenuredObject);
     if (!reobj_)
         return false;
     reobj_->initPrivate(nullptr);
