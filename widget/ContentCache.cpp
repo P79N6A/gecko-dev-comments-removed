@@ -541,7 +541,10 @@ ContentCache::CacheTextRects(nsIWidget* aWidget,
   nsRefPtr<TextComposition> textComposition =
     IMEStateManager::GetTextCompositionFor(aWidget);
   if (textComposition) {
-    uint32_t length = textComposition->String().Length();
+    
+    
+    
+    uint32_t length = textComposition->LastData().Length();
     mTextRectArray.mRects.SetCapacity(length);
     mTextRectArray.mStart = textComposition->NativeOffsetOfStartComposition();
     uint32_t endOffset = mTextRectArray.mStart + length;
