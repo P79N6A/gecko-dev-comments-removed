@@ -230,10 +230,10 @@ nsMeterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   LogicalSize autoSize(wm);
   autoSize.BSize(wm) = autoSize.ISize(wm) = fontMet->Font().size; 
 
-  if (ResolvedOrientationIsVertical()) {
-    autoSize.Height(wm) *= 5; 
+  if (ResolvedOrientationIsVertical() == wm.IsVertical()) {
+    autoSize.ISize(wm) *= 5; 
   } else {
-    autoSize.Width(wm) *= 5; 
+    autoSize.BSize(wm) *= 5; 
   }
 
   return autoSize.ConvertTo(aWM, wm);

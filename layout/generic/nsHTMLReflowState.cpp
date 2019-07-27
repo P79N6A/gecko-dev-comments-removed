@@ -1960,10 +1960,10 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(
     
     
     if (!wm.IsVertical() &&
-        NS_AUTOHEIGHT == cbSize.Height(wm)) {
+        NS_AUTOHEIGHT == cbSize.BSize(wm)) {
       if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
           mStylePosition->mHeight.GetUnit() == eStyleUnit_Percent) {
-        cbSize.Height(wm) = CalcQuirkContainingBlockHeight(aContainingBlockRS);
+        cbSize.BSize(wm) = CalcQuirkContainingBlockHeight(aContainingBlockRS);
       }
     }
   }
