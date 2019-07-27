@@ -277,6 +277,18 @@ loop.standaloneRoomViews = (function(mozL10n) {
           publisherConfig: this.getDefaultPublisherConfig({publishVideo: true})
         }));
       }
+
+      
+      
+      
+      
+      if (!this.state.roomInfoFailure && nextState.roomInfoFailure) {
+        if (nextState.roomInfoFailure === ROOM_INFO_FAILURES.WEB_CRYPTO_UNSUPPORTED) {
+          console.error(mozL10n.get("room_information_failure_unsupported_browser"));
+        } else {
+          console.error(mozL10n.get("room_information_failure_not_available"));
+        }
+      }
     },
 
     joinRoom: function() {
