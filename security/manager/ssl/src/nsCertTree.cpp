@@ -15,14 +15,13 @@
 #include "nsUnicharUtils.h"
 #include "nsNSSCertificate.h"
 #include "nsNSSCertHelper.h"
-#include "nsINSSCertCache.h"
 #include "nsIMutableArray.h"
 #include "nsArrayUtils.h"
 #include "nsISupportsPrimitives.h"
 #include "nsXPCOMCID.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
- 
+
 #include "prlog.h"
 
 using namespace mozilla;
@@ -631,14 +630,23 @@ nsCertTree::GetCertsByType(uint32_t           aType,
                                     aCertCmpFnArg);
 }
 
-nsresult 
-nsCertTree::GetCertsByTypeFromCache(nsINSSCertCache   *aCache,
+nsresult
+nsCertTree::GetCertsByTypeFromCache(nsIX509CertList   *aCache,
                                     uint32_t           aType,
                                     nsCertCompareFunc  aCertCmpFn,
                                     void              *aCertCmpFnArg)
 {
   NS_ENSURE_ARG_POINTER(aCache);
-  CERTCertList *certList = reinterpret_cast<CERTCertList*>(aCache->GetCachedCerts());
+  
+  
+  
+  
+  
+  
+  
+  
+  nsNSSShutDownPreventionLock locker;
+  CERTCertList *certList = reinterpret_cast<CERTCertList*>(aCache->GetRawCertList());
   if (!certList)
     return NS_ERROR_FAILURE;
   return GetCertsByTypeFromCertList(certList, aType, aCertCmpFn, aCertCmpFnArg);
@@ -648,8 +656,8 @@ nsCertTree::GetCertsByTypeFromCache(nsINSSCertCache   *aCache,
 
 
 
-NS_IMETHODIMP 
-nsCertTree::LoadCertsFromCache(nsINSSCertCache *aCache, uint32_t aType)
+NS_IMETHODIMP
+nsCertTree::LoadCertsFromCache(nsIX509CertList *aCache, uint32_t aType)
 {
   if (mTreeArray) {
     FreeCertArray();

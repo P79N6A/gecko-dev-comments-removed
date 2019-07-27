@@ -1628,6 +1628,15 @@ nsNSSCertList::GetRawCertList()
 {
   
   
+  
+  
+  
+  
+  
+  nsNSSShutDownPreventionLock locker;
+  if (isAlreadyShutDown()) {
+    return nullptr;
+  }
   return mCertList.get();
 }
 
