@@ -159,6 +159,9 @@ public interface TelemetryContract {
         PAGEACTION("pageaction"),
 
         
+        SETTINGS("settings"),
+
+        
         SUGGESTION("suggestion"),
 
         
@@ -208,6 +211,9 @@ public interface TelemetryContract {
 
         
         SEARCH_ACTIVITY("searchactivity.1"),
+
+        
+        SETTINGS("settings.1"),
 
         
         _TEST_STARTED_TWICE("_test_session_started_twice.1"),
