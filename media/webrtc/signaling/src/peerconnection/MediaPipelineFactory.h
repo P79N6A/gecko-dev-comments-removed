@@ -67,6 +67,9 @@ private:
                                   RefPtr<TransportFlow>* aRtcpOut,
                                   nsAutoPtr<MediaPipelineFilter>* aFilterOut);
 
+  nsresult ConfigureVideoCodecMode(const JsepTrack& aTrack,
+                                   VideoSessionConduit& aConduit);
+
 private:
   
   

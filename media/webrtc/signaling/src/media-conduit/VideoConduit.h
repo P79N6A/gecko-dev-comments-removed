@@ -99,6 +99,11 @@ public:
   virtual MediaConduitErrorCode StopReceiving() MOZ_OVERRIDE;
   virtual MediaConduitErrorCode StartReceiving() MOZ_OVERRIDE;
 
+  
+
+
+  virtual MediaConduitErrorCode ConfigureCodecMode(webrtc::VideoCodecMode) MOZ_OVERRIDE;
+
    
 
 
@@ -354,6 +359,7 @@ private:
   nsAutoPtr<VideoCodecStatistics> mVideoCodecStat;
 
   nsAutoPtr<LoadManager> mLoadManager;
+  webrtc::VideoCodecMode mCodecMode;
 };
 
 } 
