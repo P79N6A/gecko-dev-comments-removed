@@ -12,7 +12,15 @@
 
 namespace mozilla {
 
+class MediaResource;
 class MediaSourceDecoder;
+class MediaDecoderReader;
+
+namespace dom {
+
+class TimeRanges;
+
+} 
 
 class SubBufferDecoder : public BufferDecoder
 {
@@ -47,22 +55,10 @@ public:
   virtual layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
   virtual MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
 
-  void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset)
-  {
-    mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
-
-    
-    
-    
-    
-    mParentDecoder->NotifyDataArrived(nullptr, 0, 0);
-  }
-
-  nsresult GetBuffered(dom::TimeRanges* aBuffered)
-  {
-    
-    return mReader->GetBuffered(aBuffered, 0);
-  }
+  
+  
+  void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  nsresult GetBuffered(dom::TimeRanges* aBuffered);
 
   
   
