@@ -447,6 +447,13 @@ FontFaceSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
     }
     httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
                                   accept, false);
+    
+    
+    if (aFontFaceSrc->mFormatFlags & (gfxUserFontSet::FLAG_FORMAT_WOFF |
+                                      gfxUserFontSet::FLAG_FORMAT_WOFF2)) {
+      httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept-Encoding"),
+                                    NS_LITERAL_CSTRING("identity"), false);
+    }
   }
   nsCOMPtr<nsISupportsPriority> priorityChannel(do_QueryInterface(channel));
   if (priorityChannel) {
