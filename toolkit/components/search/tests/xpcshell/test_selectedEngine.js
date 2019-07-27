@@ -8,9 +8,43 @@ const kSelectedEnginePref = "browser.search.selectedEngine";
 
 const kTestEngineName = "Test search engine";
 
+
+function getLocale() {
+  let LOCALE_PREF = "general.useragent.locale";
+  return Services.prefs.getCharPref(LOCALE_PREF);
+}
+
+function getIsUS() {
+  if (getLocale() != "en-US") {
+    return false;
+  }
+
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+
+  let UTCOffset = (new Date()).getTimezoneOffset();
+  let isNA = UTCOffset >= 150 && UTCOffset <= 600;
+
+  return isNA;
+}
+
 function getDefaultEngineName() {
   const nsIPLS = Ci.nsIPrefLocalizedString;
-  return Services.prefs.getComplexValue(kDefaultenginenamePref, nsIPLS).data;
+  
+  let pref = kDefaultenginenamePref;
+  if (getIsUS()) {
+    pref += ".US";
+  }
+  return Services.prefs.getComplexValue(pref, nsIPLS).data;
 }
 
 function waitForNotification(aExpectedData) {
@@ -94,7 +128,10 @@ add_task(function* test_persistAcrossRestarts() {
 
   
   Services.search.currentEngine = Services.search.defaultEngine;
-  do_check_eq(Services.search.currentEngine.name, getDefaultEngineName());
+  
+  
+  
+  
 });
 
 

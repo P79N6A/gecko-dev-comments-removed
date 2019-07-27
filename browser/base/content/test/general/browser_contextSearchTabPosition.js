@@ -54,7 +54,8 @@ function test() {
       let day = data.days.getDay(now);
 
       
-      let field = "google.contextmenu";
+      let defaultProviderID = "yahoo";
+      let field = defaultProviderID + ".contextmenu";
       ok(day.has(field), "Have search recorded for context menu.");
 
       

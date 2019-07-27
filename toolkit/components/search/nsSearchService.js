@@ -403,6 +403,39 @@ loadListener.prototype = {
 
 
 
+function getIsUS() {
+  
+  let cachePref = "browser.search.isUS";
+  try {
+    return Services.prefs.getBoolPref(cachePref);
+  } catch(e) {}
+
+  if (getLocale() != "en-US") {
+    Services.prefs.setBoolPref(cachePref, false);
+    return false;
+  }
+
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+
+  let UTCOffset = (new Date()).getTimezoneOffset();
+  let isNA = UTCOffset >= 150 && UTCOffset <= 600;
+
+  Services.prefs.setBoolPref(cachePref, isNA);
+
+  return isNA;
+}
+
+
 
 
 
@@ -2999,8 +3032,16 @@ SearchService.prototype = {
     let defaultPrefB = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF);
     let nsIPLS = Ci.nsIPrefLocalizedString;
     let defaultEngine;
+
+    let defPref;
+    if (getIsUS()) {
+      defPref = "defaultenginename.US";
+    } else {
+      defPref = "defaultenginename";
+    }
+
     try {
-      defaultEngine = defaultPrefB.getComplexValue("defaultenginename", nsIPLS).data;
+      defaultEngine = defaultPrefB.getComplexValue(defPref, nsIPLS).data;
     } catch (ex) {
       
       
@@ -3780,7 +3821,11 @@ SearchService.prototype = {
       catch (e) { }
 
       while (true) {
-        engineName = getLocalizedPref(BROWSER_SEARCH_PREF + "order." + (++i));
+        prefName = BROWSER_SEARCH_PREF + "order.";
+        if (getIsUS()) {
+          prefName += "US.";
+        }
+        engineName = getLocalizedPref(prefName + (++i));
         if (!engineName)
           break;
 
@@ -3942,7 +3987,12 @@ SearchService.prototype = {
 
     
     for (var j = 1; ; j++) {
-      engineName = getLocalizedPref(BROWSER_SEARCH_PREF + "order." + j);
+      var prefName = BROWSER_SEARCH_PREF + "order.";
+      if (getIsUS()) {
+        prefName += "US.";
+      }
+      prefName += j;
+      engineName = getLocalizedPref(prefName);
       if (!engineName)
         break;
 

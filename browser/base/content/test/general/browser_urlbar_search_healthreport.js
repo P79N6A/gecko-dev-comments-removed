@@ -28,7 +28,9 @@ add_task(function* test_healthreport_search_recording() {
   let oldCount = 0;
 
   
-  let field = "google.urlbar";
+  let defaultEngineID = "yahoo";
+
+  let field = defaultEngineID + ".urlbar";
 
   if (data.days.hasDay(now)) {
     let day = data.days.getDay(now);
@@ -71,7 +73,7 @@ add_task(function* test_healthreport_search_recording() {
   ok(data.days.hasDay(now), "Have engines data when Telemetry is enabled.");
   day = data.days.getDay(now);
   ok(day.has("default"), "We have default engine data.");
-  is(day.get("default"), "google", "The default engine is reported properly.");
+  is(day.get("default"), defaultEngineID, "The default engine is reported properly.");
 
   
   Services.prefs.setBoolPref("toolkit.telemetry.enabled", oldTelemetry);
