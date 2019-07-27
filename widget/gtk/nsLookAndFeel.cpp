@@ -243,9 +243,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor& aColor)
         break;
     case eColorID_graytext: 
     case eColorID_inactivecaptiontext: 
-        gtk_style_context_get_color(mBackgroundStyle, 
-                                    GTK_STATE_FLAG_INSENSITIVE, &gdk_color);
-        aColor = GDK_RGBA_TO_NS_RGBA(gdk_color);
+        aColor = sMenuTextInactive;
         break;
     case eColorID_inactivecaption:
         
@@ -1029,6 +1027,8 @@ nsLookAndFeel::Init()
     style = gtk_widget_get_style_context(accel_label);
     gtk_style_context_get_color(style, GTK_STATE_FLAG_NORMAL, &color);
     sMenuText = GDK_RGBA_TO_NS_RGBA(color);
+    gtk_style_context_get_color(style, GTK_STATE_FLAG_INSENSITIVE, &color);
+    sMenuTextInactive = GDK_RGBA_TO_NS_RGBA(color);
 
     style = gtk_widget_get_style_context(menu);
     gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL, &color);
