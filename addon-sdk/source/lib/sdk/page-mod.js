@@ -262,6 +262,20 @@ function onContent (mod, window) {
       return;
     domOff(window, eventName, onReady, true);
     createWorker(mod, window);
+
+    
+    
+    if (window.document.readyState == "complete") {
+      mod.on('attach', worker => {
+        try {
+          worker.send('pageshow');
+          emit(worker, 'pageshow');
+        }
+        catch (e) {
+          
+        }
+      });
+    }
   }, true);
 }
 

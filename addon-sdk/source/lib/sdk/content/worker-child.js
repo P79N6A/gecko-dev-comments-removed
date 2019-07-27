@@ -37,7 +37,17 @@ const WorkerChild = Class({
     this.receive = this.receive.bind(this);
     this.manager.addMessageListener('sdk/worker/message', this.receive);
 
-    this.sandbox = WorkerSandbox(this, getByInnerId(this.window));
+    let window = getByInnerId(this.window);
+    this.sandbox = WorkerSandbox(this, window);
+
+    if (options.currentReadyState != "complete" &&
+        window.document.readyState == "complete") {
+      
+      
+      
+      this.sandbox.emitSync("pageshow");
+      this.send("pageshow");
+    }
   },
   
   receive({ data: { id, args }}) {
