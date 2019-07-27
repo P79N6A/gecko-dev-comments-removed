@@ -2,19 +2,31 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ClearKeyPersistence.h"
 #include "ClearKeyUtils.h"
 #include "ClearKeyStorage.h"
 #include "ClearKeySessionManager.h"
-#include "mozilla/RefPtr.h"
+#include "RefCounted.h"
 
 #include <stdint.h>
 #include <string.h>
 #include <set>
 #include <vector>
 #include <sstream>
+#include <assert.h>
 
-using namespace mozilla;
 using namespace std;
 
 
@@ -36,7 +48,7 @@ ReadAllRecordsFromIterator(GMPRecordIterator* aRecordIterator,
                            void* aUserArg,
                            GMPErr aStatus)
 {
-  MOZ_ASSERT(sPersistentKeyState == LOADING);
+  assert(sPersistentKeyState == LOADING);
   if (GMP_SUCCEEDED(aStatus)) {
     
     
@@ -44,7 +56,7 @@ ReadAllRecordsFromIterator(GMPRecordIterator* aRecordIterator,
     uint32_t len = 0;
     while (GMP_SUCCEEDED(aRecordIterator->GetName(&name, &len))) {
       if (ClearKeyUtils::IsValidSessionId(name, len)) {
-        MOZ_ASSERT(name[len] == 0);
+        assert(name[len] == 0);
         sPersistentSessionIds.insert(atoi(name));
       }
       aRecordIterator->NextRecord();

@@ -2,6 +2,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,12 +21,17 @@
 #include "ClearKeySessionManager.h"
 #include "gmp-api/gmp-decryption.h"
 #include "gmp-api/gmp-platform.h"
-#include "mozilla/Attributes.h"
 
 #if defined(ENABLE_WMF)
 #include "WMFUtils.h"
 #include "AudioDecoder.h"
 #include "VideoDecoder.h"
+#endif
+
+#if defined(WIN32)
+#define GMP_EXPORT __declspec(dllexport)
+#else
+#define GMP_EXPORT __attribute__((visibility("default")))
 #endif
 
 static GMPPlatformAPI* sPlatform = nullptr;
@@ -26,14 +43,14 @@ GetPlatform()
 
 extern "C" {
 
-MOZ_EXPORT GMPErr
+GMP_EXPORT GMPErr
 GMPInit(GMPPlatformAPI* aPlatformAPI)
 {
   sPlatform = aPlatformAPI;
   return GMPNoErr;
 }
 
-MOZ_EXPORT GMPErr
+GMP_EXPORT GMPErr
 GMPGetAPI(const char* aApiName, void* aHostAPI, void** aPluginAPI)
 {
   CK_LOGD("ClearKey GMPGetAPI |%s|", aApiName);
@@ -58,7 +75,7 @@ GMPGetAPI(const char* aApiName, void* aHostAPI, void** aPluginAPI)
   return *aPluginAPI ? GMPNoErr : GMPNotImplementedErr;
 }
 
-MOZ_EXPORT GMPErr
+GMP_EXPORT GMPErr
 GMPShutdown(void)
 {
   CK_LOGD("ClearKey GMPShutdown");

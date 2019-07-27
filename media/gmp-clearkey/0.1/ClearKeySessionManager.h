@@ -2,6 +2,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __ClearKeyDecryptor_h__
 #define __ClearKeyDecryptor_h__
 
@@ -14,8 +26,6 @@
 #include "ClearKeySession.h"
 #include "ClearKeyUtils.h"
 #include "gmp-api/gmp-decryption.h"
-#include "mozilla/Attributes.h"
-#include "mozilla/RefPtr.h"
 #include "RefCounted.h"
 
 class ClearKeySessionManager final : public GMPDecryptor
@@ -76,7 +86,7 @@ private:
   void ClearInMemorySessionData(ClearKeySession* aSession);
   void Serialize(const ClearKeySession* aSession, std::vector<uint8_t>& aOutKeyData);
 
-  mozilla::RefPtr<ClearKeyDecryptionManager> mDecryptionManager;
+  RefPtr<ClearKeyDecryptionManager> mDecryptionManager;
 
   GMPDecryptorCallback* mCallback;
   GMPThread* mThread;

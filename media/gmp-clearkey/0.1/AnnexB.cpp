@@ -2,8 +2,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #include "AnnexB.h"
-#include "mozilla/Endian.h"
+#include "Endian.h"
 
 using mozilla::BigEndian;
 

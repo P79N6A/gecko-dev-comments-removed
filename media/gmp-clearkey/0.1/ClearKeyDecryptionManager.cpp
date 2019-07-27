@@ -2,18 +2,29 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #include <string.h>
 #include <vector>
 
 #include "ClearKeyDecryptionManager.h"
 #include "gmp-decryption.h"
-#include "mozilla/Assertions.h"
-#include "mozilla/Attributes.h"
+#include <assert.h>
 
 class ClearKeyDecryptor : public RefCounted
 {
 public:
-  MOZ_IMPLICIT ClearKeyDecryptor();
+  ClearKeyDecryptor();
 
   void InitKey(const Key& aKey);
   bool HasKey() const { return !!mKey.size(); }
@@ -84,7 +95,7 @@ ClearKeyDecryptionManager::HasKeyForKeyId(const KeyId& aKeyId) const
 const Key&
 ClearKeyDecryptionManager::GetDecryptionKey(const KeyId& aKeyId)
 {
-  MOZ_ASSERT(HasKeyForKeyId(aKeyId));
+  assert(HasKeyForKeyId(aKeyId));
   return mDecryptors[aKeyId]->DecryptionKey();
 }
 
@@ -111,7 +122,7 @@ void
 ClearKeyDecryptionManager::ReleaseKeyId(KeyId aKeyId)
 {
   CK_LOGD("ClearKeyDecryptionManager::ReleaseKeyId");
-  MOZ_ASSERT(HasKeyForKeyId(aKeyId));
+  assert(HasKeyForKeyId(aKeyId));
 
   ClearKeyDecryptor* decryptor = mDecryptors[aKeyId];
   if (!decryptor->Release()) {
@@ -178,7 +189,7 @@ ClearKeyDecryptor::Decrypt(uint8_t* aBuffer, uint32_t aBufferSize,
     memcpy(&tmp[0], aBuffer, aBufferSize);
   }
 
-  MOZ_ASSERT(aMetadata->IVSize() == 8 || aMetadata->IVSize() == 16);
+  assert(aMetadata->IVSize() == 8 || aMetadata->IVSize() == 16);
   std::vector<uint8_t> iv(aMetadata->IV(), aMetadata->IV() + aMetadata->IVSize());
   iv.insert(iv.end(), CLEARKEY_KEY_LEN - aMetadata->IVSize(), 0);
 

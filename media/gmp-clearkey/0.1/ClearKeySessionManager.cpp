@@ -2,6 +2,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,9 +28,8 @@
 #include "WMFUtils.h"
 #endif
 
-#include "mozilla/Assertions.h"
+#include <assert.h>
 
-using namespace mozilla;
 using namespace std;
 
 ClearKeySessionManager::ClearKeySessionManager()
@@ -36,7 +47,7 @@ ClearKeySessionManager::ClearKeySessionManager()
 ClearKeySessionManager::~ClearKeySessionManager()
 {
   CK_LOGD("ClearKeySessionManager dtor %p", this);
-   MOZ_ASSERT(!mRefCount);
+   assert(!mRefCount);
 }
 
 static bool
@@ -88,7 +99,7 @@ ClearKeySessionManager::CreateSession(uint32_t aCreateSessionToken,
   }
 
   string sessionId = ClearKeyPersistence::GetNewSessionId(aSessionType);
-  MOZ_ASSERT(mSessions.find(sessionId) == mSessions.end());
+  assert(mSessions.find(sessionId) == mSessions.end());
 
   ClearKeySession* session = new ClearKeySession(sessionId, mCallback, aSessionType);
   session->Init(aCreateSessionToken, aPromiseId, aInitData, aInitDataSize);
@@ -172,10 +183,10 @@ ClearKeySessionManager::PersistentSessionDataLoaded(GMPErr aStatus,
     const uint8_t* base = aKeyData + 2 * CLEARKEY_KEY_LEN * i;
 
     KeyId keyId(base, base + CLEARKEY_KEY_LEN);
-    MOZ_ASSERT(keyId.size() == CLEARKEY_KEY_LEN);
+    assert(keyId.size() == CLEARKEY_KEY_LEN);
 
     Key key(base + CLEARKEY_KEY_LEN, base + 2 * CLEARKEY_KEY_LEN);
-    MOZ_ASSERT(key.size() == CLEARKEY_KEY_LEN);
+    assert(key.size() == CLEARKEY_KEY_LEN);
 
     session->AddKeyId(keyId);
 
@@ -254,10 +265,10 @@ ClearKeySessionManager::Serialize(const ClearKeySession* aSession,
     if (!mDecryptionManager->HasKeyForKeyId(keyId)) {
       continue;
     }
-    MOZ_ASSERT(keyId.size() == CLEARKEY_KEY_LEN);
+    assert(keyId.size() == CLEARKEY_KEY_LEN);
     aOutKeyData.insert(aOutKeyData.end(), keyId.begin(), keyId.end());
     const Key& key = mDecryptionManager->GetDecryptionKey(keyId);
-    MOZ_ASSERT(key.size() == CLEARKEY_KEY_LEN);
+    assert(key.size() == CLEARKEY_KEY_LEN);
     aOutKeyData.insert(aOutKeyData.end(), key.begin(), key.end());
   }
 }
@@ -278,7 +289,7 @@ ClearKeySessionManager::CloseSession(uint32_t aPromiseId,
   }
 
   ClearKeySession* session = itr->second;
-  MOZ_ASSERT(session);
+  assert(session);
 
   ClearInMemorySessionData(session);
   mCallback->ResolvePromise(aPromiseId);
@@ -307,7 +318,7 @@ ClearKeySessionManager::RemoveSession(uint32_t aPromiseId,
   }
 
   ClearKeySession* session = itr->second;
-  MOZ_ASSERT(session);
+  assert(session);
   string sid = session->Id();
   bool isPersistent = session->Type() == kGMPPersistentSession;
   ClearInMemorySessionData(session);

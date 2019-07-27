@@ -2,13 +2,25 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #include "ClearKeyStorage.h"
 #include "ClearKeyUtils.h"
 
 #include "gmp-task-utils.h"
 
-#include "mozilla/Assertions.h"
-#include "mozilla/ArrayUtils.h"
+#include <assert.h>
+#include "ArrayUtils.h"
 
 #include <vector>
 
@@ -50,7 +62,7 @@ public:
   virtual void ReadComplete(GMPErr aStatus,
                             const uint8_t* aData,
                             uint32_t aDataSize) override {
-    MOZ_ASSERT(false, "Should not reach here.");
+    assert(false); 
   }
 
   virtual void WriteComplete(GMPErr aStatus) override {
@@ -115,7 +127,7 @@ public:
 
   static void Read(const std::string& aRecordName,
                    ReadContinuation* aContinuation) {
-    MOZ_ASSERT(aContinuation);
+    assert(aContinuation);
     (new ReadRecordClient(aContinuation))->Do(aRecordName);
   }
 
@@ -134,7 +146,7 @@ public:
   }
 
   virtual void WriteComplete(GMPErr aStatus) override {
-    MOZ_ASSERT(false, "Should not reach here.");
+    assert(false); 
   }
 
 private:

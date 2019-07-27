@@ -4,6 +4,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 template<typename M> class gmp_task_args_nm_0 : public gmp_task_args_base {
  public:
   explicit gmp_task_args_nm_0(M m) :
