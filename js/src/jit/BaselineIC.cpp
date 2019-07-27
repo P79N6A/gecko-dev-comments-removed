@@ -8817,6 +8817,20 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
             return true;
         }
 
+        if (fun->native() == intrinsic_IsSuspendedStarGenerator) {
+            
+            MOZ_ASSERT(argc == 1);
+            JitSpew(JitSpew_BaselineIC, "  Generating Call_IsSuspendedStarGenerator stub");
+
+            ICCall_IsSuspendedStarGenerator::Compiler compiler(cx);
+            ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+            if (!newStub)
+                return false;
+
+            stub->addNewStub(newStub);
+            return true;
+        }
+
         RootedNativeObject templateObject(cx);
         if (MOZ_LIKELY(!isSpread)) {
             CallArgs args = CallArgsFromVp(argc, vp);
@@ -9767,6 +9781,48 @@ ICCall_StringSplit::Compiler::generateStubCode(MacroAssembler &masm)
     masm.bind(&failureRestoreArgc);
     masm.move32(Imm32(1), R0.scratchReg());
     EmitStubGuardFailure(masm);
+    return true;
+}
+
+bool
+ICCall_IsSuspendedStarGenerator::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    
+    
+    
+
+    GeneralRegisterSet regs = availableGeneralRegs(0);
+
+    
+    Address argAddr(BaselineStackReg, ICStackValueOffset);
+    ValueOperand argVal = regs.takeAnyValue();
+    masm.loadValue(argAddr, argVal);
+
+    
+    Label returnFalse;
+    Register genObj = regs.takeAny();
+    masm.branchTestObject(Assembler::NotEqual, argVal, &returnFalse);
+    masm.unboxObject(argVal, genObj);
+
+    
+    Register scratch = regs.takeAny();
+    masm.branchTestObjClass(Assembler::NotEqual, genObj, scratch, &StarGeneratorObject::class_,
+                            &returnFalse);
+
+    
+    
+    masm.loadValue(Address(genObj, GeneratorObject::offsetOfYieldIndexSlot()), argVal);
+    masm.branchTestInt32(Assembler::NotEqual, argVal, &returnFalse);
+    masm.unboxInt32(argVal, scratch);
+    masm.branch32(Assembler::AboveOrEqual, scratch, Imm32(StarGeneratorObject::YIELD_INDEX_CLOSING),
+                  &returnFalse);
+
+    masm.moveValue(BooleanValue(true), R0);
+    EmitReturnFromIC(masm);
+
+    masm.bind(&returnFalse);
+    masm.moveValue(BooleanValue(false), R0);
+    EmitReturnFromIC(masm);
     return true;
 }
 
