@@ -39,5 +39,12 @@ struct cubeb_ops {
 
 };
 
-#endif 
+#define XASSERT(expr) do {                                              \
+    if (!(expr)) {                                                      \
+      fprintf(stderr, "%s:%d - fatal error: %s\n", __FILE__, __LINE__, #expr); \
+      *((volatile int *) NULL) = 0;                                     \
+      abort();                                                          \
+    }                                                                   \
+  } while (0)
 
+#endif 
