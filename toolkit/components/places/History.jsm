@@ -148,7 +148,7 @@ function ensureModuleIsOpen() {
 
 
 
-function notify(observers, notification, args) {
+function notify(observers, notification, args = []) {
   for (let observer of observers) {
     try {
       observer[notification](...args);
@@ -344,6 +344,28 @@ this.History = Object.freeze({
 
 
 
+
+  clear() {
+    ensureModuleIsOpen();
+
+    return Task.spawn(function* () {
+      let promise = clear();
+      operationsBarrier.client.addBlocker("History.clear", promise);
+
+      try {
+        return (yield promise);
+      } finally {
+        
+        operationsBarrier.client.removeBlocker(promise);
+      }
+    });
+  },
+
+  
+
+
+
+
   
 
 
@@ -453,6 +475,34 @@ let invalidateFrecencies = Task.async(function*(db, idList) {
   );
 });
 
+
+let clear = Task.async(function* () {
+  let db = yield DBConnPromised;
+
+  
+  yield db.execute("DELETE FROM moz_historyvisits");
+
+  
+  PlacesUtils.history.clearEmbedVisits();
+
+  
+  let observers = PlacesUtils.history.getObservers();
+  notify(observers, "onClearHistory");
+
+  
+  
+  yield db.execute(
+    `UPDATE moz_places SET frecency =
+     (CASE
+      WHEN url BETWEEN 'place:' AND 'place;'
+      THEN 0
+      ELSE -1
+      END)
+     WHERE frecency > 0`);
+
+  
+  notify(observers, "onManyFrecenciesChanged");
+});
 
 
 let remove = Task.async(function*({guids, urls}, onResult = null) {
