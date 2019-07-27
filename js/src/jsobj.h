@@ -757,28 +757,6 @@ GetOwnPropertyDescriptor(JSContext* cx, HandleObject obj, HandleId id,
                          MutableHandle<PropertyDescriptor> desc);
 
 
-
-
-
-
-
-
-
-
-
-
-extern bool
-StandardDefineProperty(JSContext* cx, HandleObject obj, HandleId id,
-                       Handle<PropertyDescriptor> descriptor, ObjectOpResult& result);
-
-
-
-
-
-extern bool
-StandardDefineProperty(JSContext* cx, HandleObject obj, HandleId id,
-                       Handle<PropertyDescriptor> desc);
-
 extern bool
 DefineProperty(JSContext* cx, HandleObject obj, HandleId id,
                Handle<PropertyDescriptor> desc, ObjectOpResult& result);
@@ -798,6 +776,9 @@ DefineElement(ExclusiveContext* cx, HandleObject obj, uint32_t index, HandleValu
 
 
 
+
+extern bool
+DefineProperty(JSContext* cx, HandleObject obj, HandleId id, Handle<PropertyDescriptor> desc);
 
 extern bool
 DefineProperty(ExclusiveContext* cx, HandleObject obj, HandleId id, HandleValue value,

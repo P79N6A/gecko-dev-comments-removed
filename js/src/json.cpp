@@ -719,7 +719,7 @@ Walk(JSContext* cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                     
                     Rooted<PropertyDescriptor> desc(cx);
                     desc.setDataDescriptor(newElement, JSPROP_ENUMERATE);
-                    if (!StandardDefineProperty(cx, obj, id, desc, ignored))
+                    if (!DefineProperty(cx, obj, id, desc, ignored))
                         return false;
                 }
             }
@@ -747,7 +747,7 @@ Walk(JSContext* cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                     
                     Rooted<PropertyDescriptor> desc(cx);
                     desc.setDataDescriptor(newElement, JSPROP_ENUMERATE);
-                    if (!StandardDefineProperty(cx, obj, id, desc, ignored))
+                    if (!DefineProperty(cx, obj, id, desc, ignored))
                         return false;
                 }
             }
