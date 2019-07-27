@@ -116,8 +116,9 @@ private:
     float           mFloat;
     int32_t         mInt32;
     uint32_t        mUint32;
-    nsDOMCSSRGBColor* mColor;
-    nsDOMCSSRect*     mRect;
+    
+    nsDOMCSSRGBColor* MOZ_OWNING_REF mColor;
+    nsDOMCSSRect* MOZ_OWNING_REF mRect;
     char16_t*      mString;
     nsIURI*         mURI;
     nsCSSKeyword    mKeyword;
