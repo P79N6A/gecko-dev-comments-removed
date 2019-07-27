@@ -206,11 +206,6 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
         return false;
     }
 
-     
-    static bool allowFloat32Optimizations() {
-       return false;
-    }
-
     
     static bool allowInlineForkJoinGetSlice() {
         return false;

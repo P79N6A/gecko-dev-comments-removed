@@ -954,11 +954,6 @@ TypeAnalyzer::tryEmitFloatOperations()
 {
     
     
-    if (!LIRGenerator::allowFloat32Optimizations())
-        return true;
-
-    
-    
     if (mir->compilingAsmJS())
         return true;
 
