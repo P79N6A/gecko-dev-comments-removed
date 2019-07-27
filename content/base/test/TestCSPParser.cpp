@@ -108,7 +108,6 @@ nsresult runTest(uint32_t aExpectedPolicyCount,
   
   csp->SetRequestContext(selfURI,
                          nullptr,  
-                         nullptr,  
                          dummyChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 

@@ -533,7 +533,7 @@ nsPrincipal::Read(nsIObjectInputStream* aStream)
   
   
   if (csp) {
-    csp->SetRequestContext(codebase, nullptr, this, nullptr);
+    csp->SetRequestContext(codebase, nullptr, nullptr);
   }
 
   SetDomain(domain);
