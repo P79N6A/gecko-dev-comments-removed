@@ -536,7 +536,7 @@ class TreeMetadataEmitter(LoggingMixin):
                                          '.manifest file.  See '
                                          'https://developer.mozilla.org/en/XPCOM/XPCOM_changes_in_Gecko_2.0 .',
                                          context);
-            
+
         
         
         
