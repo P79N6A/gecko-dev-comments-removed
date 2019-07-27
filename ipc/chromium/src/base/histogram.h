@@ -415,7 +415,7 @@ class Histogram {
 
   virtual void AddSampleSet(const SampleSet& sample);
 
-  void Clear();
+  virtual void Clear();
 
   
   virtual void SetRangeDescriptions(const DescriptionPair descriptions[]);
@@ -683,6 +683,8 @@ public:
   virtual void Accumulate(Sample value, Count count, size_t index);
 
   virtual void AddSampleSet(const SampleSet& sample);
+
+  virtual void Clear();
 
 private:
   explicit FlagHistogram(const std::string &name);
