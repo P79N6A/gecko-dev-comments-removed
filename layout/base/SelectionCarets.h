@@ -121,7 +121,7 @@ private:
 
 
 
-  void SetMouseDownState(bool aState);
+  void SetSelectionDragState(bool aState);
 
   void SetSelectionDirection(bool aForward);
 

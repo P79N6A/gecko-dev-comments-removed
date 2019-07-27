@@ -710,7 +710,7 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
     
     
     nsRefPtr<nsFrameSelection> frameSelection = presShell->FrameSelection();
-    frameSelection->SetMouseDownState(false);
+    frameSelection->SetDragState(false);
   }
 
   Focus(currentWindow, currentFocus, 0, true, false, true, true);

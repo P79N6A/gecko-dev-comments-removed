@@ -337,13 +337,13 @@ public:
 
 
   
-  void SetMouseDownState(bool aState);
+  void SetDragState(bool aState);
 
   
 
 
 
-  bool GetMouseDownState() const { return mMouseDownState; }
+  bool GetDragState() const { return mDragState; }
 
   
 
@@ -718,7 +718,7 @@ private:
   bool mChangesDuringBatching;
   bool mNotifyFrames;
   bool mDragSelectingCells;
-  bool mMouseDownState;   
+  bool mDragState;   
   bool mMouseDoubleDownState; 
   bool mDesiredXSet;
 
