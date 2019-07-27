@@ -7,6 +7,7 @@
 #include "nsContentUtils.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIEffectiveTLDService.h"
+#include "mozilla/BasePrincipal.h"
 
 
 
@@ -77,26 +78,52 @@ nsPermission::Matches(nsIPrincipal* aPrincipal, bool aExactHost, bool* aMatches)
   }
 
   
-  nsAutoCString theirSuffix;
-  nsresult rv = aPrincipal->GetOriginSuffix(theirSuffix);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsAutoCString ourSuffix;
-  rv = mPrincipal->GetOriginSuffix(ourSuffix);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (theirSuffix != ourSuffix) {
-    return NS_OK;
+  
+  if (aExactHost) {
+      return NS_OK;
   }
 
   
+  const mozilla::OriginAttributes& theirAttrs = mozilla::BasePrincipal::Cast(aPrincipal)->OriginAttributesRef();
+  const mozilla::OriginAttributes& ourAttrs = mozilla::BasePrincipal::Cast(mPrincipal)->OriginAttributesRef();
+
+  if (theirAttrs != ourAttrs) {
+      return NS_OK;
+  }
+
   nsCOMPtr<nsIURI> theirURI;
-  rv = aPrincipal->GetURI(getter_AddRefs(theirURI));
+  nsresult rv = aPrincipal->GetURI(getter_AddRefs(theirURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIURI> ourURI;
   rv = mPrincipal->GetURI(getter_AddRefs(ourURI));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsAutoCString theirScheme;
+  rv = theirURI->GetScheme(theirScheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoCString ourScheme;
+  rv = ourURI->GetScheme(ourScheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (theirScheme != ourScheme) {
+    return NS_OK;
+  }
+
+  
+  int32_t theirPort;
+  rv = theirURI->GetPort(&theirPort);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  int32_t ourPort;
+  rv = ourURI->GetPort(&ourPort);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (theirPort != ourPort) {
+    return NS_OK;
+  }
 
   
   nsAutoCString theirHost;
@@ -111,11 +138,6 @@ nsPermission::Matches(nsIPrincipal* aPrincipal, bool aExactHost, bool* aMatches)
     return NS_OK;
   }
 
-  if (aExactHost) { 
-    *aMatches = theirHost == ourHost;
-    return NS_OK;
-  }
-
   nsCOMPtr<nsIEffectiveTLDService> tldService =
     do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
   if (!tldService) {
@@ -123,7 +145,6 @@ nsPermission::Matches(nsIPrincipal* aPrincipal, bool aExactHost, bool* aMatches)
     return NS_ERROR_FAILURE;
   }
 
-  
   
   
   while (theirHost != ourHost) {
