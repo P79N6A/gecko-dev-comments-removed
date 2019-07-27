@@ -269,7 +269,7 @@ public:
     mImage(nullptr),
     mCommonClipCount(-1),
     mNewChildLayersIndex(-1),
-    mAllDrawingAbove(false)
+    mVisibleAboveRegionIsInfinite(false)
   {}
 
 #ifdef MOZ_DUMP_PAINTING
@@ -294,17 +294,10 @@ public:
 
 
 
-
-
-
-
-
-
   void Accumulate(ContainerState* aState,
                   nsDisplayItem* aItem,
                   const nsIntRegion& aClippedOpaqueRegion,
                   const nsIntRect& aVisibleRect,
-                  const nsIntRect& aDrawRect,
                   const DisplayItemClip& aClip);
   const nsIFrame* GetAnimatedGeometryRoot() { return mAnimatedGeometryRoot; }
 
@@ -328,17 +321,9 @@ public:
 
   already_AddRefed<ImageContainer> CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder);
 
-  void AddDrawAboveRegion(const nsIntRegion& aAbove)
-  {
-    if (!mAllDrawingAbove) {
-      mDrawAboveRegion.Or(mDrawAboveRegion, aAbove);
-      mDrawAboveRegion.SimplifyOutward(8);
-    }
-  }
-
   void AddVisibleAboveRegion(const nsIntRegion& aAbove)
   {
-    if (!mAllDrawingAbove) {
+    if (!mVisibleAboveRegionIsInfinite) {
       mVisibleAboveRegion.Or(mVisibleAboveRegion, aAbove);
       mVisibleAboveRegion.SimplifyOutward(8);
     }
@@ -346,6 +331,10 @@ public:
 
   void CopyAboveRegion(PaintedLayerData* aOther)
   {
+    if (mVisibleAboveRegionIsInfinite) {
+      return;
+    }
+
     
     
     
@@ -353,51 +342,39 @@ public:
     
     
     bool aOtherCanDrawAnywhere = aOther->IsSubjectToAsyncTransforms()
-                              && !aOther->mDrawRegion.IsEmpty();
+                              && !aOther->mVisibleRegion.IsEmpty();
 
-    if (aOther->mAllDrawingAbove || mAllDrawingAbove || aOtherCanDrawAnywhere) {
-      SetAllDrawingAbove();
+    if (aOther->mVisibleAboveRegionIsInfinite || aOtherCanDrawAnywhere) {
+      SetVisibleAboveRegionIsInfinite();
     } else {
       mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleAboveRegion);
       mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleRegion);
       mVisibleAboveRegion.SimplifyOutward(8);
-      mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawAboveRegion);
-      mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawRegion);
-      mDrawAboveRegion.SimplifyOutward(8);
     }
   }
 
-  void SetAllDrawingAbove()
+  void SetVisibleAboveRegionIsInfinite()
   {
-    mAllDrawingAbove = true;
-    mDrawAboveRegion.SetEmpty();
+    mVisibleAboveRegionIsInfinite = true;
     mVisibleAboveRegion.SetEmpty();
   }
 
-  bool DrawAboveRegionIntersects(const nsIntRect& aRect)
+  bool VisibleAboveRegionIntersects(const nsIntRect& aRect) const
   {
-    return mAllDrawingAbove || mDrawAboveRegion.Intersects(aRect);
+    return mVisibleAboveRegionIsInfinite || mVisibleAboveRegion.Intersects(aRect);
   }
 
-  bool DrawRegionIntersects(const nsIntRect& aRect)
+  bool VisibleAboveRegionIntersects(const nsIntRegion& aRegion) const
   {
-    return IsSubjectToAsyncTransforms() || mDrawRegion.Intersects(aRect);
+    return mVisibleAboveRegionIsInfinite || !mVisibleAboveRegion.Intersect(aRegion).IsEmpty();
   }
 
-  bool IntersectsVisibleAboveRegion(const nsIntRegion& aVisibleRegion)
+  bool VisibleRegionIntersects(const nsIntRect& aRect) const
   {
-    if (mAllDrawingAbove) {
-      return true;
-    }
-    nsIntRegion visibleAboveIntersection;
-    visibleAboveIntersection.And(mVisibleAboveRegion, aVisibleRegion);
-    if (visibleAboveIntersection.IsEmpty()) {
-      return false;
-    }
-    return true;
+    return IsSubjectToAsyncTransforms() || mVisibleRegion.Intersects(aRect);
   }
 
-  bool IsSubjectToAsyncTransforms()
+  bool IsSubjectToAsyncTransforms() const
   {
     return mFixedPosFrameForLayerData != nullptr
         || mIsAsyncScrollable;
@@ -409,13 +386,6 @@ public:
 
 
   nsIntRegion  mVisibleRegion;
-  
-
-
-
-
-
-  nsIntRegion  mDrawRegion;
   
 
 
@@ -546,16 +516,7 @@ private:
 
 
 
-
-
-
-
-  nsIntRegion  mDrawAboveRegion;
-  
-
-
-
-  bool mAllDrawingAbove;
+  bool mVisibleAboveRegionIsInfinite;
 
 };
 
@@ -787,14 +748,8 @@ protected:
 
 
 
-
-
   const nsIFrame* FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryRoot,
                                                 bool aDisplayItemFixedToViewport);
-  void AdjustLayerDataForFixedPositioning(const nsIFrame* aFixedPosFrame,
-                                          const nsIntRegion& aDrawRegion,
-                                          nsIntRegion* aVisibleRegion,
-                                          bool* aIsSolidColorInVisibleRegion = nullptr);
   
 
 
@@ -1891,7 +1846,7 @@ ContainerState::FindOpaqueBackgroundColorFor(int32_t aPaintedLayerIndex)
   PaintedLayerData* target = mPaintedLayerDataStack[aPaintedLayerIndex];
   for (int32_t i = aPaintedLayerIndex - 1; i >= 0; --i) {
     PaintedLayerData* candidate = mPaintedLayerDataStack[i];
-    if (candidate->IntersectsVisibleAboveRegion(target->mVisibleRegion)) {
+    if (candidate->VisibleAboveRegionIntersects(target->mVisibleRegion)) {
       
       
       break;
@@ -2017,52 +1972,6 @@ ContainerState::FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryR
 }
 
 void
-ContainerState::AdjustLayerDataForFixedPositioning(const nsIFrame* aFixedPosFrame,
-                                                   const nsIntRegion& aDrawRegion,
-                                                   nsIntRegion* aVisibleRegion,
-                                                   bool* aIsSolidColorInVisibleRegion)
-{
-  if (!aFixedPosFrame) {
-    return;
-  }
-
-  nsRect fixedVisibleRect;
-  nsPresContext* presContext = aFixedPosFrame->PresContext();
-  nsIPresShell* presShell = presContext->PresShell();
-  DebugOnly<bool> hasDisplayPort =
-    nsLayoutUtils::ViewportHasDisplayPort(presContext, &fixedVisibleRect);
-  NS_ASSERTION(hasDisplayPort, "No fixed-pos layer data if there's no displayport");
-  
-  
-  nsIFrame* viewport = presShell->GetRootFrame();
-  if (aFixedPosFrame != viewport) {
-    
-    
-    
-    
-    
-    NS_ASSERTION(aFixedPosFrame->StyleDisplay()->mPosition == NS_STYLE_POSITION_FIXED,
-      "should be position fixed items only");
-    fixedVisibleRect.MoveTo(0, 0);
-    if (presShell->IsScrollPositionClampingScrollPortSizeSet()) {
-      fixedVisibleRect.SizeTo(presShell->GetScrollPositionClampingScrollPortSize());
-    } else {
-      fixedVisibleRect.SizeTo(viewport->GetSize());
-    }
-  }
-  fixedVisibleRect += viewport->GetOffsetToCrossDoc(mContainerReferenceFrame);
-  nsIntRegion newVisibleRegion;
-  newVisibleRegion.And(ScaleToOutsidePixels(fixedVisibleRect, false),
-                       aDrawRegion);
-  if (!aVisibleRegion->Contains(newVisibleRegion)) {
-    if (aIsSolidColorInVisibleRegion) {
-      *aIsSolidColorInVisibleRegion = false;
-    }
-    *aVisibleRegion = newVisibleRegion;
-  }
-}
-
-void
 ContainerState::SetFixedPositionLayerData(Layer* aLayer,
                                           const nsIFrame* aFixedPosFrame)
 {
@@ -2140,11 +2049,6 @@ ContainerState::PopPaintedLayerData()
 
   int32_t lastIndex = mPaintedLayerDataStack.Length() - 1;
   PaintedLayerData* data = mPaintedLayerDataStack[lastIndex];
-
-  AdjustLayerDataForFixedPositioning(data->mFixedPosFrameForLayerData,
-                                     data->mDrawRegion,
-                                     &data->mVisibleRegion,
-                                     &data->mIsSolidColorInVisibleRegion);
 
   NewLayerEntry* newLayerEntry = &mNewChildLayers[data->mNewChildLayersIndex];
   nsRefPtr<Layer> layer;
@@ -2395,7 +2299,6 @@ PaintedLayerData::Accumulate(ContainerState* aState,
                             nsDisplayItem* aItem,
                             const nsIntRegion& aClippedOpaqueRegion,
                             const nsIntRect& aVisibleRect,
-                            const nsIntRect& aDrawRect,
                             const DisplayItemClip& aClip)
 {
   FLB_LOG_PAINTED_LAYER_DECISION(this, "Accumulating dp=%s(%p), f=%p against pld=%p\n", aItem->Name(), aItem, aItem->Frame(), this);
@@ -2417,7 +2320,7 @@ PaintedLayerData::Accumulate(ContainerState* aState,
   bool clipMatches = mItemClip == aClip;
   mItemClip = aClip;
 
-  if (!mIsSolidColorInVisibleRegion && mOpaqueRegion.Contains(aDrawRect) &&
+  if (!mIsSolidColorInVisibleRegion && mOpaqueRegion.Contains(aVisibleRect) &&
       mVisibleRegion.Contains(aVisibleRect) && !mImage) {
     
     
@@ -2427,7 +2330,6 @@ PaintedLayerData::Accumulate(ContainerState* aState,
     
     
     
-    NS_ASSERTION(mDrawRegion.Contains(aDrawRect), "Draw region not covered");
     return;
   }
 
@@ -2492,9 +2394,6 @@ PaintedLayerData::Accumulate(ContainerState* aState,
 
     mVisibleRegion.Or(mVisibleRegion, aVisibleRect);
     mVisibleRegion.SimplifyOutward(4);
-    mDrawRegion.Or(mDrawRegion, mVisibleRegion);
-    mDrawRegion.Or(mDrawRegion, aDrawRect);
-    mDrawRegion.SimplifyOutward(4);
   }
 
   if (!aClippedOpaqueRegion.IsEmpty()) {
@@ -2575,7 +2474,7 @@ ContainerState::FindPaintedLayerFor(nsDisplayItem* aItem,
     
     
     
-    if (data->DrawAboveRegionIntersects(aVisibleRect)) {
+    if (data->VisibleAboveRegionIntersects(aVisibleRect)) {
       ++i;
       break;
     }
@@ -2591,7 +2490,7 @@ ContainerState::FindPaintedLayerFor(nsDisplayItem* aItem,
     
     
     
-    if (data->DrawRegionIntersects(aVisibleRect))
+    if (data->VisibleRegionIntersects(aVisibleRect))
       break;
   }
   if (topmostLayerWithScrolledRoot < 0) {
@@ -2911,8 +2810,6 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
       aList->SetNeedsTransparentSurface();
     }
 
-    nsIntRect itemVisibleRect =
-      ScaleToOutsidePixels(item->GetVisibleRect(), false);
     bool snap;
     nsRect itemContent = item->GetBounds(mBuilder, &snap);
     if (itemType == nsDisplayItem::TYPE_LAYER_EVENT_REGIONS) {
@@ -2944,7 +2841,11 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
     }
     ((nsRect&)mAccumulatedChildBounds).UnionRect(mAccumulatedChildBounds, bounds);
 #endif
-    itemVisibleRect.IntersectRect(itemVisibleRect, itemDrawRect);
+    
+    
+    
+    nsIntRect itemVisibleRect = itemDrawRect.Intersect(
+      ScaleToOutsidePixels(item->GetVisibleRect(), false));
 
     LayerState layerState = item->GetLayerState(mBuilder, mManager, mParameters);
     if (layerState == LAYER_INACTIVE &&
@@ -3025,12 +2926,6 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
 
       const nsIFrame* fixedPosFrame =
         FindFixedPosFrameForLayerData(animatedGeometryRoot, shouldFixToViewport);
-      if (fixedPosFrame) {
-        nsIntRegion visibleRegion(itemVisibleRect);
-        AdjustLayerDataForFixedPositioning(fixedPosFrame,
-                                           nsIntRegion(itemDrawRect), &visibleRegion);
-        itemVisibleRect = visibleRegion.GetBounds();
-      }
       SetFixedPositionLayerData(ownLayer, fixedPosFrame);
 
       nsRect invalid;
@@ -3068,22 +2963,15 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
           if (!itemClip.HasClip()) {
             
             
-            data->SetAllDrawingAbove();
+            data->SetVisibleAboveRegionIsInfinite();
           } else {
             
             
             
             data->AddVisibleAboveRegion(clipRect);
-            data->AddDrawAboveRegion(clipRect);
           }
         } else {
           data->AddVisibleAboveRegion(itemVisibleRect);
-
-          
-          
-          
-          
-          data->AddDrawAboveRegion(itemDrawRect);
         }
       }
 
@@ -3174,8 +3062,10 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
             itemClip, aList,
             &paintedLayerData->mHideAllLayersBelow,
             &paintedLayerData->mOpaqueForAnimatedGeometryRootParent);
+        MOZ_ASSERT(nsIntRegion(itemDrawRect).Contains(opaquePixels));
+        opaquePixels.AndWith(itemVisibleRect);
         paintedLayerData->Accumulate(this, item, opaquePixels,
-            itemVisibleRect, itemDrawRect, itemClip);
+            itemVisibleRect, itemClip);
       }
     }
 
