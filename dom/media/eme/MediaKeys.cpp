@@ -169,6 +169,11 @@ MediaKeys::StorePromise(Promise* aPromise)
   static uint32_t sEMEPromiseCount = 1;
   MOZ_ASSERT(aPromise);
   uint32_t id = sEMEPromiseCount++;
+
+  
+  
+  AddRef();
+
   mPromises.Put(id, aPromise);
   return id;
 }
@@ -179,6 +184,7 @@ MediaKeys::RetrievePromise(PromiseId aId)
   MOZ_ASSERT(mPromises.Contains(aId));
   nsRefPtr<Promise> promise;
   mPromises.Remove(aId, getter_AddRefs(promise));
+  Release();
   return promise.forget();
 }
 
