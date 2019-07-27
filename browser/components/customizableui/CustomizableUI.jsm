@@ -376,6 +376,7 @@ let CustomizableUIInternal = {
           
           
           futurePlacedWidgets.delete(widget.id);
+          gDirty = true;
           break;
         }
         
@@ -386,6 +387,7 @@ let CustomizableUIInternal = {
           if (previousWidgetIndex != -1) {
             savedPlacements.splice(previousWidgetIndex + 1, 0, widget.id);
             futurePlacedWidgets.delete(widget.id);
+            gDirty = true;
             break;
           }
         }
@@ -394,6 +396,7 @@ let CustomizableUIInternal = {
       
       
     }
+    this.saveState();
   },
 
   wrapWidget: function(aWidgetId) {
