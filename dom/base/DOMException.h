@@ -72,6 +72,7 @@ public:
   void GetName(nsString& retval);
 
   
+  
 
   uint32_t LineNumber() const;
 

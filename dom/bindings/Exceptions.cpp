@@ -359,7 +359,9 @@ NS_IMETHODIMP JSStackFrame::GetLanguageName(nsACString& aLanguageName)
 
 NS_IMETHODIMP JSStackFrame::GetFilename(nsAString& aFilename)
 {
-  if (!mFilenameInitialized) {
+  
+  
+  if (!mFilenameInitialized && mStack) {
     ThreadsafeAutoJSContext cx;
     JS::Rooted<JSObject*> stack(cx, mStack);
     JS::ExposeObjectToActiveJS(mStack);
@@ -395,7 +397,9 @@ NS_IMETHODIMP StackFrame::GetFilename(nsAString& aFilename)
 
 NS_IMETHODIMP JSStackFrame::GetName(nsAString& aFunction)
 {
-  if (!mFunnameInitialized) {
+  
+  
+  if (!mFunnameInitialized && mStack) {
     ThreadsafeAutoJSContext cx;
     JS::Rooted<JSObject*> stack(cx, mStack);
     JS::ExposeObjectToActiveJS(mStack);
@@ -435,7 +439,9 @@ NS_IMETHODIMP StackFrame::GetName(nsAString& aFunction)
 nsresult
 JSStackFrame::GetLineno(int32_t* aLineNo)
 {
-  if (!mLinenoInitialized) {
+  
+  
+  if (!mLinenoInitialized && mStack) {
     ThreadsafeAutoJSContext cx;
     JS::Rooted<JSObject*> stack(cx, mStack);
     JS::ExposeObjectToActiveJS(mStack);
@@ -468,7 +474,9 @@ NS_IMETHODIMP StackFrame::GetSourceLine(nsACString& aSourceLine)
 
 NS_IMETHODIMP JSStackFrame::GetCaller(nsIStackFrame** aCaller)
 {
-  if (!mCallerInitialized) {
+  
+  
+  if (!mCallerInitialized && mStack) {
     ThreadsafeAutoJSContext cx;
     JS::Rooted<JSObject*> stack(cx, mStack);
     JS::ExposeObjectToActiveJS(mStack);
@@ -501,7 +509,9 @@ NS_IMETHODIMP StackFrame::GetCaller(nsIStackFrame** aCaller)
 
 NS_IMETHODIMP JSStackFrame::GetFormattedStack(nsAString& aStack)
 {
-  if (!mFormattedStackInitialized) {
+  
+  
+  if (!mFormattedStackInitialized && mStack) {
     ThreadsafeAutoJSContext cx;
     JS::Rooted<JS::Value> stack(cx, JS::ObjectValue(*mStack));
     JS::ExposeObjectToActiveJS(mStack);
