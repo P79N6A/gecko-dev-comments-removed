@@ -86,6 +86,23 @@ AddonPolicyService.prototype = {
 
 
 
+  extensionURIToAddonId(aURI) {
+    if (aURI.scheme != "moz-extension") {
+      throw new TypeError("non-extension URI passed");
+    }
+
+    let cb = this.extensionURIToAddonIdCallback;
+    if (!cb) {
+      throw new Error("no callback set to map extension URIs to addon Ids");
+    }
+    return cb(aURI);
+  },
+
+  
+
+
+
+
   setAddonLoadURICallback(aAddonId, aCallback) {
     this.mayLoadURICallbacks[aAddonId] = aCallback;
   },
@@ -98,6 +115,17 @@ AddonPolicyService.prototype = {
   setExtensionURILoadCallback(aCallback) {
     var old = this.extensionURILoadCallback;
     this.extensionURILoadCallback = aCallback;
+    return old;
+  },
+
+  
+
+
+
+
+  setExtensionURIToAddonIdCallback(aCallback) {
+    var old = this.extensionURIToAddonIdCallback;
+    this.extensionURIToAddonIdCallback = aCallback;
     return old;
   }
 };
