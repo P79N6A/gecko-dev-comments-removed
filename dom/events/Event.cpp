@@ -662,7 +662,7 @@ Event::GetEventPopupControlState(WidgetEvent* aEvent)
   PopupControlState abuse = openAbused;
 
   switch(aEvent->mClass) {
-  case NS_EVENT :
+  case eBasicEventClass:
     
     
     
