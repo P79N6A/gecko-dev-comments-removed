@@ -10,8 +10,6 @@
 
 
 
-
-
 namespace TestPLDHash {
 
 static bool test_pldhash_Init_capacity_ok()
@@ -106,6 +104,67 @@ static bool test_pldhash_Init_overflow()
   return true;
 }
 
+static bool test_pldhash_lazy_storage()
+{
+  PLDHashTable t;
+  PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(PLDHashEntryStub));
+
+  
+  
+  
+
+  if (!t.IsInitialized()) {
+    return false;
+  }
+
+  if (t.Capacity() != 0) {
+    return false;
+  }
+
+  if (t.EntrySize() != sizeof(PLDHashEntryStub)) {
+    return false;
+  }
+
+  if (t.EntryCount() != 0) {
+    return false;
+  }
+
+  if (t.Generation() != 0) {
+    return false;
+  }
+
+  if (PL_DHashTableSearch(&t, (const void*)1)) {
+    return false;   
+  }
+
+  
+  PL_DHashTableRemove(&t, (const void*)2);
+
+  
+  
+  PLDHashEnumerator enumerator = nullptr;
+  if (PL_DHashTableEnumerate(&t, enumerator, nullptr) != 0) {
+    return false;   
+  }
+
+  for (PLDHashTable::Iterator iter = t.Iterate();
+       iter.HasMoreEntries();
+       iter.NextEntry()) {
+    return false; 
+  }
+
+  
+  
+  mozilla::MallocSizeOf mallocSizeOf = nullptr;
+  if (PL_DHashTableSizeOfExcludingThis(&t, nullptr, mallocSizeOf) != 0) {
+    return false;   
+  }
+
+  PL_DHashTableFinish(&t);
+
+  return true;
+}
+
 
 #ifndef MOZ_WIDGET_ANDROID
 
@@ -168,6 +227,7 @@ static const struct Test {
   DECL_TEST(test_pldhash_Init_capacity_ok),
   DECL_TEST(test_pldhash_Init_capacity_too_large),
   DECL_TEST(test_pldhash_Init_overflow),
+  DECL_TEST(test_pldhash_lazy_storage),
 
 #ifndef MOZ_WIDGET_ANDROID
   DECL_TEST(test_pldhash_grow_to_max_capacity),
