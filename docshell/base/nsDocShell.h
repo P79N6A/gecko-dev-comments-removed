@@ -49,6 +49,7 @@
 #include "nsCRT.h"
 #include "prtime.h"
 #include "nsRect.h"
+#include "Units.h"
 
 namespace mozilla {
 namespace dom {
@@ -250,10 +251,10 @@ public:
 
     
     
-    void NotifyAsyncPanZoomStarted();
+    void NotifyAsyncPanZoomStarted(const mozilla::CSSIntPoint aScrollPos);
     
     
-    void NotifyAsyncPanZoomStopped();
+    void NotifyAsyncPanZoomStopped(const mozilla::CSSIntPoint aScrollPos);
 
     
     
