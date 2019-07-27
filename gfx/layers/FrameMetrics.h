@@ -76,7 +76,6 @@ public:
     : mCompositionBounds(0, 0, 0, 0)
     , mDisplayPort(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
-    , mViewport(0, 0, 0, 0)
     , mScrollableRect(0, 0, 0, 0)
     , mResolution(1)
     , mCumulativeResolution(1)
@@ -95,6 +94,7 @@ public:
     , mDisplayPortMargins(0, 0, 0, 0)
     , mUseDisplayPortMargins(false)
     , mPresShellId(-1)
+    , mViewport(0, 0, 0, 0)
   {}
 
   
@@ -296,17 +296,6 @@ public:
   
   
   
-  CSSRect mViewport;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   CSSRect mScrollableRect;
@@ -448,6 +437,16 @@ public:
     mPresShellId = aPresShellId;
   }
 
+  void SetViewport(const CSSRect& aViewport)
+  {
+    mViewport = aViewport;
+  }
+
+  const CSSRect& GetViewport() const
+  {
+    return mViewport;
+  }
+
 private:
   
   
@@ -499,6 +498,17 @@ private:
   bool mUseDisplayPortMargins;
 
   uint32_t mPresShellId;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  CSSRect mViewport;
 };
 
 
