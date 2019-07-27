@@ -145,6 +145,9 @@ private:
   bool IsBinaryFile();
 
   
+  ClientDownloadRequest::DownloadType GetDownloadType(const nsAString& aFilename);
+
+  
   
   nsresult OnComplete(bool shouldBlock, nsresult rv);
 
@@ -378,6 +381,7 @@ PendingLookup::IsBinaryFile()
     
     
     StringEndsWith(fileName, NS_LITERAL_STRING(".apk")) ||
+    
     StringEndsWith(fileName, NS_LITERAL_STRING(".bas")) ||
     StringEndsWith(fileName, NS_LITERAL_STRING(".bat")) ||
     StringEndsWith(fileName, NS_LITERAL_STRING(".cab")) ||
@@ -391,7 +395,32 @@ PendingLookup::IsBinaryFile()
     StringEndsWith(fileName, NS_LITERAL_STRING(".scr")) ||
     StringEndsWith(fileName, NS_LITERAL_STRING(".vb")) ||
     StringEndsWith(fileName, NS_LITERAL_STRING(".vbs")) ||
+    
+    StringEndsWith(fileName, NS_LITERAL_STRING(".app")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".dmg")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".osx")) ||
+    StringEndsWith(fileName, NS_LITERAL_STRING(".pkg")) ||
+    
     StringEndsWith(fileName, NS_LITERAL_STRING(".zip"));
+}
+
+ClientDownloadRequest::DownloadType
+PendingLookup::GetDownloadType(const nsAString& aFilename) {
+  MOZ_ASSERT(IsBinaryFile());
+
+  
+  if (StringEndsWith(aFilename, NS_LITERAL_STRING(".zip"))) {
+    return ClientDownloadRequest::ZIPPED_EXECUTABLE;
+  } else if (StringEndsWith(aFilename, NS_LITERAL_STRING(".apk"))) {
+    return ClientDownloadRequest::ANDROID_APK;
+  } else if (StringEndsWith(aFilename, NS_LITERAL_STRING(".app")) ||
+             StringEndsWith(aFilename, NS_LITERAL_STRING(".dmg")) ||
+             StringEndsWith(aFilename, NS_LITERAL_STRING(".osx")) ||
+             StringEndsWith(aFilename, NS_LITERAL_STRING(".pkg"))) {
+    return ClientDownloadRequest::MAC_EXECUTABLE;
+  }
+
+  return ClientDownloadRequest::WIN_EXECUTABLE; 
 }
 
 nsresult
@@ -876,6 +905,7 @@ PendingLookup::SendRemoteQueryInternal()
   rv = mQuery->GetSuggestedFileName(fileName);
   NS_ENSURE_SUCCESS(rv, rv);
   mRequest.set_file_basename(NS_ConvertUTF16toUTF8(fileName).get());
+  mRequest.set_download_type(GetDownloadType(fileName));
 
   if (mRequest.signature().trusted()) {
     LOG(("Got signed binary for remote application reputation check "
@@ -892,8 +922,8 @@ PendingLookup::SendRemoteQueryInternal()
   if (!mRequest.SerializeToString(&serialized)) {
     return NS_ERROR_UNEXPECTED;
   }
-  LOG(("Serialized protocol buffer [this = %p]: %s", this,
-       serialized.c_str()));
+  LOG(("Serialized protocol buffer [this = %p]: (length=%d) %s", this,
+       serialized.length(), serialized.c_str()));
 
   
   nsCOMPtr<nsIStringInputStream> sstream =

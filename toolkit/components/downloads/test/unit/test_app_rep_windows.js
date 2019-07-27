@@ -228,13 +228,13 @@ add_task(function test_setup()
     do_print("Request length: " + buf.length);
     
     
-    let blob = "this is not a serialized protocol buffer";
+    let blob = "this is not a serialized protocol buffer (the length doesn't match our hard-coded values)";
     
     
-    if (buf.length == 65) {
+    if (buf.length == 67) {
       
       blob = createVerdict(true);
-    } else if (buf.length == 71) {
+    } else if (buf.length == 73) {
       
       blob = createVerdict(false);
     }
