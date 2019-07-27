@@ -107,16 +107,36 @@ protected:
 #endif 
 
   
-  
+
+
+
+
+
+
+
+
+
+
   FlexItem* GenerateFlexItemForChild(nsPresContext* aPresContext,
                                      nsIFrame* aChildFrame,
                                      const nsHTMLReflowState& aParentReflowState,
                                      const FlexboxAxisTracker& aAxisTracker);
 
+  
+
+
+
+
+
   nscoord MeasureFlexItemContentHeight(nsPresContext* aPresContext,
                                        FlexItem& aFlexItem,
                                        bool aForceVerticalResizeForMeasuringReflow,
                                        const nsHTMLReflowState& aParentReflowState);
+
+  
+
+
+
 
   void ResolveAutoFlexBasisAndMinSize(nsPresContext* aPresContext,
                                       FlexItem& aFlexItem,
