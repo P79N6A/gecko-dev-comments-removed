@@ -12,6 +12,7 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/AppConstants.jsm", this);
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
@@ -50,6 +51,10 @@ const MAX_ARCHIVED_PINGS_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
 
 const ARCHIVE_QUOTA_BYTES = 120 * 1024 * 1024; 
 
+const PENDING_PINGS_QUOTA_BYTES_DESKTOP = 15 * 1024 * 1024; 
+
+const PENDING_PINGS_QUOTA_BYTES_MOBILE = 1024 * 1024; 
+
 
 const ARCHIVE_SIZE_PROBE_SPECIAL_VALUE = 300;
 
@@ -61,6 +66,9 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 let Policy = {
   now: () => new Date(),
   getArchiveQuota: () => ARCHIVE_QUOTA_BYTES,
+  getPendingPingsQuota: () => (AppConstants.platform in ["android", "gonk"])
+                                ? PENDING_PINGS_QUOTA_BYTES_MOBILE
+                                : PENDING_PINGS_QUOTA_BYTES_DESKTOP,
 };
 
 
@@ -139,6 +147,15 @@ this.TelemetryStorage = {
 
   runCleanPingArchiveTask: function() {
     return TelemetryStorageImpl.runCleanPingArchiveTask();
+  },
+
+  
+
+
+
+
+  runEnforcePendingPingsQuotaTask: function() {
+    return TelemetryStorageImpl.runEnforcePendingPingsQuotaTask();
   },
 
   
@@ -472,6 +489,9 @@ let TelemetryStorageImpl = {
   _pendingPings: new Map(),
 
   
+  _enforcePendingPingsQuotaTask: null,
+
+  
   _shutdown: false,
 
   get _log() {
@@ -493,6 +513,7 @@ let TelemetryStorageImpl = {
     
     
     yield this._cleanArchiveTask;
+    yield this._enforcePendingPingsQuotaTask;
   }),
 
   
@@ -791,6 +812,98 @@ let TelemetryStorageImpl = {
 
     
     yield this._enforceArchiveQuota();
+  }),
+
+  
+
+
+
+
+  runEnforcePendingPingsQuotaTask: Task.async(function*() {
+    
+    if (this._enforcePendingPingsQuotaTask) {
+      return this._enforcePendingPingsQuotaTask;
+    }
+
+    
+    try {
+      this._enforcePendingPingsQuotaTask = this._enforcePendingPingsQuota();
+      yield this._enforcePendingPingsQuotaTask;
+    } finally {
+      this._enforcePendingPingsQuotaTask = null;
+    }
+  }),
+
+  
+
+
+
+  _enforcePendingPingsQuota: Task.async(function*() {
+    this._log.trace("_enforcePendingPingsQuota");
+
+    
+    let pingList = [for (p of this._pendingPings) {
+      id: p[0],
+      lastModificationDate: p[1].lastModificationDate,
+    }];
+
+    pingList.sort((a, b) => b.lastModificationDate - a.lastModificationDate);
+
+    
+    const SAFE_QUOTA = Policy.getPendingPingsQuota() * 0.9;
+    
+    
+    let lastPingIndexToKeep = null;
+    let pendingPingsSizeInBytes = 0;
+
+    
+    for (let i = 0; i < pingList.length; i++) {
+      if (this._shutdown) {
+        this._log.trace("_enforcePendingPingsQuota - Terminating the clean up task due to shutdown");
+        return;
+      }
+
+      let ping = pingList[i];
+
+      
+      const fileSize = yield getPendingPingSize(ping.id);
+      if (!fileSize) {
+        this._log.warn("_enforcePendingPingsQuota - Unable to find the size of ping " + ping.id);
+        continue;
+      }
+
+      pendingPingsSizeInBytes += fileSize;
+      if (pendingPingsSizeInBytes < SAFE_QUOTA) {
+        
+        
+        lastPingIndexToKeep = i;
+      } else if (pendingPingsSizeInBytes > Policy.getPendingPingsQuota()) {
+        
+        break;
+      }
+    }
+
+    
+    if (pendingPingsSizeInBytes < Policy.getPendingPingsQuota()) {
+      return;
+    }
+
+    this._log.info("_enforcePendingPingsQuota - size: " + pendingPingsSizeInBytes + "bytes"
+                   + ", safety quota: " + SAFE_QUOTA + "bytes");
+
+    let pingsToPurge = pingList.slice(lastPingIndexToKeep + 1);
+
+    
+    for (let ping of pingsToPurge) {
+      if (this._shutdown) {
+        this._log.trace("_enforcePendingPingsQuota - Terminating the clean up task due to shutdown");
+        return;
+      }
+
+      
+      
+      yield this.removePendingPing(ping.id);
+    }
   }),
 
   
@@ -1287,6 +1400,20 @@ let getArchivedPingSize = Task.async(function*(aPingId, aDate, aType) {
       return (yield OS.File.stat(path)).size;
     } catch (e) {}
   }
+
+  
+  return 0;
+});
+
+
+
+
+
+let getPendingPingSize = Task.async(function*(aPingId) {
+  const path = OS.Path.join(TelemetryStorage.pingDirectoryPath, aPingId)
+  try {
+    return (yield OS.File.stat(path)).size;
+  } catch (e) {}
 
   
   return 0;

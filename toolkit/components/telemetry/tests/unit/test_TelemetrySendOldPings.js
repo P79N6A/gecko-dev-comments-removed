@@ -7,9 +7,6 @@
 
 
 
-
-
-
 "use strict"
 
 Cu.import("resource://gre/modules/osfile.jsm", this);
@@ -31,12 +28,10 @@ XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
 
 
 const ONE_MINUTE_MS = 60 * 1000;
-const EXPIRED_PING_FILE_AGE = TelemetrySend.MAX_PING_FILE_AGE + ONE_MINUTE_MS;
 const OVERDUE_PING_FILE_AGE = TelemetrySend.OVERDUE_PING_FILE_AGE + ONE_MINUTE_MS;
 
 const PING_SAVE_FOLDER = "saved-telemetry-pings";
 const PING_TIMEOUT_LENGTH = 5000;
-const EXPIRED_PINGS = 5;
 const OVERDUE_PINGS = 6;
 const OLD_FORMAT_PINGS = 4;
 const RECENT_PINGS = 4;
@@ -195,21 +190,6 @@ add_task(function* setupEnvironment() {
 
 
 
-
-add_task(function* test_expired_pings_are_deleted() {
-  let pingTypes = [{ num: EXPIRED_PINGS, age: EXPIRED_PING_FILE_AGE }];
-  let expiredPings = yield createSavedPings(pingTypes);
-
-  yield TelemetryController.reset();
-  assertReceivedPings(0);
-  yield assertNotSaved(expiredPings);
-
-  yield clearPendingPings();
-});
-
-
-
-
 add_task(function* test_recent_pings_sent() {
   let pingTypes = [{ num: RECENT_PINGS }];
   let recentPings = yield createSavedPings(pingTypes);
@@ -218,36 +198,6 @@ add_task(function* test_recent_pings_sent() {
   yield TelemetrySend.testWaitOnOutgoingPings();
   assertReceivedPings(RECENT_PINGS);
 
-  yield clearPendingPings();
-});
-
-
-
-
-add_task(function* test_most_recent_pings_kept() {
-  let pingTypes = [
-    { num: LRU_PINGS },
-    { num: 3, age: ONE_MINUTE_MS },
-  ];
-  let pings = yield createSavedPings(pingTypes);
-  let head = pings.slice(0, LRU_PINGS);
-  let tail = pings.slice(-3);
-
-  const evictedHistogram = Services.telemetry.getHistogramById('TELEMETRY_FILES_EVICTED');
-  evictedHistogram.clear();
-
-  yield TelemetryController.reset();
-  const pending = yield TelemetryStorage.loadPendingPingList();
-
-  for (let id of tail) {
-    const found = pending.some(p => p.id == id);
-    Assert.ok(!found, "Should have discarded the oldest pings");
-  }
-
-  assertNotSaved(tail);
-  Assert.equal(evictedHistogram.snapshot().sum, tail.length,
-               "Should have tracked the evicted ping count");
-  yield TelemetrySend.shutdown();
   yield clearPendingPings();
 });
 
@@ -324,17 +274,13 @@ add_task(function* test_overdue_old_format() {
 
 
 
-
-
 add_task(function* test_overdue_pings_trigger_send() {
   let pingTypes = [
     { num: RECENT_PINGS },
-    { num: EXPIRED_PINGS, age: EXPIRED_PING_FILE_AGE },
     { num: OVERDUE_PINGS, age: OVERDUE_PING_FILE_AGE },
   ];
   let pings = yield createSavedPings(pingTypes);
   let recentPings = pings.slice(0, RECENT_PINGS);
-  let expiredPings = pings.slice(RECENT_PINGS, RECENT_PINGS + EXPIRED_PINGS);
   let overduePings = pings.slice(-OVERDUE_PINGS);
 
   yield TelemetryController.reset();
@@ -342,13 +288,10 @@ add_task(function* test_overdue_pings_trigger_send() {
   assertReceivedPings(TOTAL_EXPECTED_PINGS);
 
   yield assertNotSaved(recentPings);
-  yield assertNotSaved(expiredPings);
   yield assertNotSaved(overduePings);
 
   Assert.equal(TelemetrySend.overduePingsCount, overduePings.length,
                "Should have tracked the correct amount of overdue pings");
-  Assert.equal(TelemetrySend.discardedPingsCount, expiredPings.length,
-               "Should have tracked the correct amount of expired pings");
 
   yield clearPendingPings();
 });

@@ -80,15 +80,7 @@ const SEND_TICK_DELAY = 1 * MS_IN_A_MINUTE;
 const SEND_MAXIMUM_BACKOFF_DELAY_MS = 120 * MS_IN_A_MINUTE;
 
 
-
-const MAX_PING_FILE_AGE = 14 * 24 * 60 * MS_IN_A_MINUTE; 
-
-
-
 const OVERDUE_PING_FILE_AGE = 7 * 24 * 60 * MS_IN_A_MINUTE; 
-
-
-const MAX_LRU_PINGS = 50;
 
 
 
@@ -154,25 +146,12 @@ function gzipCompressString(string) {
 
 
 this.TelemetrySend = {
-  
-
-
-  get MAX_PING_FILE_AGE() {
-    return MAX_PING_FILE_AGE;
-  },
 
   
 
 
   get OVERDUE_PING_FILE_AGE() {
     return OVERDUE_PING_FILE_AGE;
-  },
-
-  
-
-
-  get MAX_LRU_PINGS() {
-    return MAX_LRU_PINGS;
   },
 
   get pendingPingCount() {
@@ -210,13 +189,6 @@ this.TelemetrySend = {
 
   submitPing: function(ping) {
     return TelemetrySendImpl.submitPing(ping);
-  },
-
-  
-
-
-  get discardedPingsCount() {
-    return TelemetrySendImpl.discardedPingsCount;
   },
 
   
@@ -534,8 +506,6 @@ let TelemetrySendImpl = {
   _currentPings: new Map(),
 
   
-  _discardedPingsCount: 0,
-  
   _overduePingCount: 0,
 
   OBSERVER_TOPICS: [
@@ -548,10 +518,6 @@ let TelemetrySendImpl = {
     }
 
     return this._logger;
-  },
-
-  get discardedPingsCount() {
-    return this._discardedPingsCount;
   },
 
   get overduePingsCount() {
@@ -576,8 +542,6 @@ let TelemetrySendImpl = {
     this._testMode = testing;
     this._sendingEnabled = true;
 
-    this._discardedPingsCount = 0;
-
     Services.obs.addObserver(this, TOPIC_IDLE_DAILY, false);
 
     this._server = Preferences.get(PREF_SERVER, undefined);
@@ -588,6 +552,10 @@ let TelemetrySendImpl = {
     } catch (ex) {
       this._log.error("setup - _checkPendingPings rejected", ex);
     }
+
+    
+    
+    TelemetryStorage.runEnforcePendingPingsQuotaTask();
 
     
     SendScheduler.triggerSendingPings(true);
@@ -606,40 +574,7 @@ let TelemetrySendImpl = {
       return;
     }
 
-    
     const now = new Date();
-    const tooOld = (info) => (now.getTime() - info.lastModificationDate) > MAX_PING_FILE_AGE;
-
-    const oldPings = infos.filter((info) => tooOld(info));
-    infos = infos.filter((info) => !tooOld(info));
-    this._log.info("_checkPendingPings - clearing out " + oldPings.length + " old pings");
-
-    for (let info of oldPings) {
-      try {
-        yield TelemetryStorage.removePendingPing(info.id);
-        ++this._discardedPingsCount;
-      } catch(ex) {
-        this._log.error("_checkPendingPings - failed to remove old ping", ex);
-      }
-    }
-
-    
-    const shouldEvict = infos.splice(MAX_LRU_PINGS, infos.length);
-    let evictedCount = 0;
-    this._log.info("_checkPendingPings - evicting " + shouldEvict.length + " pings to " +
-                   "avoid overgrowing the backlog");
-
-    for (let info of shouldEvict) {
-      try {
-        yield TelemetryStorage.removePendingPing(info.id);
-        ++evictedCount;
-      } catch(ex) {
-        this._log.error("_checkPendingPings - failed to evict ping", ex);
-      }
-    }
-
-    Services.telemetry.getHistogramById('TELEMETRY_FILES_EVICTED')
-                      .add(evictedCount);
 
     
     const overduePings = infos.filter((info) =>
@@ -678,11 +613,9 @@ let TelemetrySendImpl = {
     this._currentPings = new Map();
 
     this._overduePingCount = 0;
-    this._discardedPingsCount = 0;
 
     const histograms = [
       "TELEMETRY_SUCCESS",
-      "TELEMETRY_FILES_EVICTED",
       "TELEMETRY_SEND",
       "TELEMETRY_PING",
     ];
