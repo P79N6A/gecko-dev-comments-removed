@@ -192,31 +192,48 @@ SystemMessageInternal.prototype = {
     
     let messageID = gUUIDGenerator.generateUUID().toString();
 
-    debug("Sending " + aType + " " + JSON.stringify(aMessage) +
-      " for " + aPageURI.spec + " @ " + aManifestURI.spec +
-      '; extra: ' + JSON.stringify(aExtra));
-
-    let result = this._sendMessageCommon(aType,
-                                         aMessage,
-                                         messageID,
-                                         aPageURI.spec,
-                                         aManifestURI.spec,
-                                         aExtra);
-    debug("Returned status of sending message: " + result);
-
-    
-    
-    if (result === MSG_SENT_FAILURE_PERM_DENIED) {
-      return;
-    }
-
-    let page = this._findPage(aType, aPageURI.spec, aManifestURI.spec);
-    if (page) {
+    let manifestURL = aManifestURI.spec;
+    let pageURLs = [];
+    if (aPageURI) {
+      pageURLs.push(aPageURI.spec);
+    } else {
       
-      this._queueMessage(page, aMessage, messageID);
-
-      this._openAppPage(page, aMessage, aExtra, result);
+      
+      for (let i = 0; i < this._pages.length; i++) {
+        let page = this._pages[i];
+        if (page.type === aType && page.manifestURL === manifestURL) {
+          pageURLs.push(page.pageURL);
+        }
+      }
     }
+
+    pageURLs.forEach(function(aPageURL) {
+      debug("Sending " + aType + " " + JSON.stringify(aMessage) +
+        " for " + aPageURL + " @ " + manifestURL +
+        '; extra: ' + JSON.stringify(aExtra));
+
+      let result = this._sendMessageCommon(aType,
+                                           aMessage,
+                                           messageID,
+                                           aPageURL,
+                                           manifestURL,
+                                           aExtra);
+      debug("Returned status of sending message: " + result);
+
+      
+      
+      if (result === MSG_SENT_FAILURE_PERM_DENIED) {
+        return;
+      }
+
+      let page = this._findPage(aType, aPageURL, manifestURL);
+      if (page) {
+        
+        this._queueMessage(page, aMessage, messageID);
+
+        this._openAppPage(page, aMessage, aExtra, result);
+      }
+    }, this);
   },
 
   broadcastMessage: function(aType, aMessage, aExtra) {
