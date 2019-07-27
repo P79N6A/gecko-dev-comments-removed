@@ -1460,10 +1460,7 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
         snapIter.settleOnFrame();
 
         if (frameNo > 0) {
-            
-            
-            
-            TraceLogStartEvent(logger, TraceLogCreateTextId(logger, TraceLogger_Scripts, scr));
+            TraceLogStartEvent(logger, TraceLogCreateTextId(logger, scr));
             TraceLogStartEvent(logger, TraceLogger_Baseline);
         }
 
