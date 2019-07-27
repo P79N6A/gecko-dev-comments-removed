@@ -35,6 +35,8 @@ public:
 
   nsresult SyncDispatch(TemporaryRef<nsIRunnable> aRunnable);
 
+  nsresult FlushAndDispatch(TemporaryRef<nsIRunnable> aRunnable);
+
   
   
   void Flush();
@@ -59,6 +61,11 @@ private:
   
   void AwaitIdleLocked();
 
+  enum DispatchMode { AbortIfFlushing, IgnoreFlushing };
+
+  nsresult DispatchLocked(TemporaryRef<nsIRunnable> aRunnable,
+                          DispatchMode aMode);
+
   RefPtr<SharedThreadPool> mPool;
 
   
@@ -78,6 +85,27 @@ private:
 
   
   bool mIsShutdown;
+
+  class MOZ_STACK_CLASS AutoSetFlushing
+  {
+  public:
+    AutoSetFlushing(MediaTaskQueue* aTaskQueue) : mTaskQueue(aTaskQueue)
+    {
+      mTaskQueue->mQueueMonitor.AssertCurrentThreadOwns();
+      mTaskQueue->mIsFlushing = true;
+    }
+    ~AutoSetFlushing()
+    {
+      mTaskQueue->mQueueMonitor.AssertCurrentThreadOwns();
+      mTaskQueue->mIsFlushing = false;
+    }
+
+  private:
+    MediaTaskQueue* mTaskQueue;
+  };
+
+  
+  bool mIsFlushing;
 
   class Runner : public nsRunnable {
   public:

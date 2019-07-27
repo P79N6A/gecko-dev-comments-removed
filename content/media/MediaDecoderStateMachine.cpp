@@ -2443,14 +2443,14 @@ MediaDecoderStateMachine::FlushDecoding()
                "Should be on state machine or decode thread.");
   mDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
 
-  
-  
-  
-  RefPtr<nsIRunnable> task;
-  task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::ResetDecode);
-  mDecodeTaskQueue->Dispatch(task);
-
   {
+    
+    
+    
+    RefPtr<nsIRunnable> task;
+    task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::ResetDecode);
+
+    
     
     
     
@@ -2459,7 +2459,7 @@ MediaDecoderStateMachine::FlushDecoding()
     
     
     ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-    mDecodeTaskQueue->Flush();
+    mDecodeTaskQueue->FlushAndDispatch(task);
   }
 
   
