@@ -18,6 +18,10 @@ import android.widget.TextView;
 
 import com.jayway.android.robotium.solo.Condition;
 import com.jayway.android.robotium.solo.Solo;
+import org.mozilla.gecko.util.HardwareUtils;
+
+import java.util.Arrays;
+import java.util.Enumeration;
 
 
 
@@ -37,22 +41,21 @@ public class AboutHomeComponent extends BaseComponent {
     
     
     
-    private enum PhonePanel {
-        RECENT_TABS,
-        HISTORY,
-        TOP_SITES,
-        BOOKMARKS,
-        READING_LIST
-    }
+    private static final PanelType[] PANEL_ORDERING_PHONE = {
+            PanelType.RECENT_TABS,
+            PanelType.HISTORY,
+            PanelType.TOP_SITES,
+            PanelType.BOOKMARKS,
+            PanelType.READING_LIST
+    };
 
-    
-    private enum TabletPanel {
-        TOP_SITES,
-        BOOKMARKS,
-        READING_LIST,
-        HISTORY,
-        RECENT_TABS
-    }
+    private static final PanelType[] PANEL_ORDERING_TABLET = {
+            PanelType.TOP_SITES,
+            PanelType.BOOKMARKS,
+            PanelType.READING_LIST,
+            PanelType.HISTORY,
+            PanelType.RECENT_TABS
+    };
 
     
     
@@ -77,7 +80,7 @@ public class AboutHomeComponent extends BaseComponent {
     public AboutHomeComponent assertCurrentPanel(final PanelType expectedPanel) {
         assertVisible();
 
-        final int expectedPanelIndex = getPanelIndexForDevice(expectedPanel.ordinal());
+        final int expectedPanelIndex = getPanelIndexForDevice(expectedPanel);
         fAssertEquals("The current HomePager panel is " + expectedPanel,
                      expectedPanelIndex, getHomePagerView().getCurrentItem());
         return this;
@@ -161,8 +164,7 @@ public class AboutHomeComponent extends BaseComponent {
 
         
         final int unboundedPanelIndex = panelIndex + (panelDirection == Solo.LEFT ? -1 : 1);
-        final int panelCount = DeviceHelper.isTablet() ?
-                TabletPanel.values().length : PhonePanel.values().length;
+        final int panelCount = getPanelOrderingForDevice().length;
         final int maxPanelIndex = panelCount - 1;
         final int expectedPanelIndex = Math.min(Math.max(0, unboundedPanelIndex), maxPanelIndex);
 
@@ -170,12 +172,7 @@ public class AboutHomeComponent extends BaseComponent {
     }
 
     private void waitForPanelIndex(final int expectedIndex) {
-        final String panelName;
-        if (DeviceHelper.isTablet()) {
-            panelName = TabletPanel.values()[expectedIndex].name();
-        } else {
-            panelName = PhonePanel.values()[expectedIndex].name();
-        }
+        final String panelName = getPanelOrderingForDevice()[expectedIndex].name();
 
         WaitHelper.waitFor("HomePager " + panelName + " panel", new Condition() {
             @Override
@@ -189,10 +186,16 @@ public class AboutHomeComponent extends BaseComponent {
 
 
 
-    private int getPanelIndexForDevice(final int panelIndex) {
-        final String panelName = PanelType.values()[panelIndex].name();
-        final Class devicePanelEnum =
-                DeviceHelper.isTablet() ? TabletPanel.class : PhonePanel.class;
-        return Enum.valueOf(devicePanelEnum, panelName).ordinal();
+    private int getPanelIndexForDevice(final PanelType panelType) {
+        PanelType[] panelOrdering = getPanelOrderingForDevice();
+
+        return Arrays.asList(panelOrdering).indexOf(panelType);
+    }
+
+    
+
+
+    public static PanelType[] getPanelOrderingForDevice() {
+        return HardwareUtils.isTablet() ? PANEL_ORDERING_TABLET : PANEL_ORDERING_PHONE;
     }
 }
