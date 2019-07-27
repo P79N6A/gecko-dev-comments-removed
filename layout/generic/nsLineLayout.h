@@ -155,8 +155,8 @@ public:
     return mBlockRS->AddFloat(this, aFloat, aAvailableWidth);
   }
 
-  void SetTrimmableWidth(nscoord aTrimmableWidth) {
-    mTrimmableWidth = aTrimmableWidth;
+  void SetTrimmableISize(nscoord aTrimmableISize) {
+    mTrimmableISize = aTrimmableISize;
   }
 
   
@@ -505,7 +505,8 @@ protected:
   nscoord mFinalLineBSize;
   
   
-  nscoord mTrimmableWidth;
+  
+  nscoord mTrimmableISize;
 
   nscoord mContainerWidth;
 
