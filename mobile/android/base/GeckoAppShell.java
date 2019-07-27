@@ -1142,24 +1142,16 @@ public class GeckoAppShell
 
         final String scheme = uri.getScheme();
 
-        final Intent intent;
+        
+        
+        
+        
+        final Intent intent = getIntentForActionString(action);
+        intent.setData(uri);
 
-        
-        
-        
-        
-        final Intent likelyIntent = getIntentForActionString(action);
-        likelyIntent.setData(uri);
-
-        if ("vnd.youtube".equals(scheme) && !hasHandlersForIntent(likelyIntent)) {
+        if ("vnd.youtube".equals(scheme) && !hasHandlersForIntent(intent)) {
             
             
-            intent = new Intent(VideoPlayer.VIDEO_ACTION);
-            intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME,
-                                "org.mozilla.gecko.VideoPlayer");
-            intent.setData(uri);
-        } else {
-            intent = likelyIntent;
         }
 
         
