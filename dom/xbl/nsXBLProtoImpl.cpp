@@ -22,6 +22,7 @@
 #include "js/CharacterEncoding.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using js::GetGlobalForObjectCrossCompartment;
 using js::AssertSameCompartment;
 
@@ -239,9 +240,12 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   
   
   
-  AutoSafeJSContext cx;
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(xpc::CompilationScope())))
+    return NS_ERROR_FAILURE;
+  jsapi.TakeOwnershipOfErrorReporting();
+  JSContext* cx = jsapi.cx();
   JS::Rooted<JSObject*> compilationGlobal(cx, xpc::CompilationScope());
-  JSAutoCompartment ac(cx, compilationGlobal);
 
   mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), compilationGlobal);
   if (!mPrecompiledMemberHolder)
@@ -253,7 +257,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   for (nsXBLProtoImplMember* curr = mMembers;
        curr;
        curr = curr->GetNext()) {
-    nsresult rv = curr->CompileMember(mClassName, rootedHolder);
+    nsresult rv = curr->CompileMember(jsapi, mClassName, rootedHolder);
     if (NS_FAILED(rv)) {
       DestroyMembers();
       return rv;
