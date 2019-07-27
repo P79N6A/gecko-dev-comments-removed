@@ -324,8 +324,6 @@ public:
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
 
-  void* GetUniqueStyleData(const nsStyleStructID& aSID);
-
   
 
 
@@ -435,6 +433,7 @@ private:
   void AddChild(nsStyleContext* aChild);
   void RemoveChild(nsStyleContext* aChild);
 
+  void* GetUniqueStyleData(const nsStyleStructID& aSID);
   void* CreateEmptyStyleData(const nsStyleStructID& aSID);
 
   void ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup);
