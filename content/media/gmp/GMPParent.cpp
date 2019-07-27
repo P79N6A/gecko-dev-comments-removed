@@ -171,10 +171,6 @@ GMPParent::CloseIfUnused()
         }
       }
     } else {
-      
-      for (size_t i = mStorage.Length(); i > 0; i--) {
-        mStorage[i - 1]->Shutdown();
-      }
       Shutdown();
     }
   }
@@ -222,14 +218,17 @@ GMPParent::CloseActive(bool aDieWhenUnloaded)
     mVideoDecoders[i - 1]->Shutdown();
   }
 
+  
   for (uint32_t i = mVideoEncoders.Length(); i > 0; i--) {
     mVideoEncoders[i - 1]->Shutdown();
   }
 
+  
   for (uint32_t i = mDecryptors.Length(); i > 0; i--) {
     mDecryptors[i - 1]->Shutdown();
   }
 
+  
   for (uint32_t i = mAudioDecoders.Length(); i > 0; i--) {
     mAudioDecoders[i - 1]->Shutdown();
   }
@@ -237,9 +236,6 @@ GMPParent::CloseActive(bool aDieWhenUnloaded)
   for (uint32_t i = mTimers.Length(); i > 0; i--) {
     mTimers[i - 1]->Shutdown();
   }
-
-  
-  
 
   
   
@@ -659,29 +655,6 @@ GMPParent::DeallocPGMPAudioDecoderParent(PGMPAudioDecoderParent* aActor)
 {
   GMPAudioDecoderParent* vdp = static_cast<GMPAudioDecoderParent*>(aActor);
   NS_RELEASE(vdp);
-  return true;
-}
-
-PGMPStorageParent*
-GMPParent::AllocPGMPStorageParent()
-{
-  GMPStorageParent* p = new GMPStorageParent(mOrigin, this);
-  mStorage.AppendElement(p); 
-  return p;
-}
-
-bool
-GMPParent::DeallocPGMPStorageParent(PGMPStorageParent* aActor)
-{
-  GMPStorageParent* p = static_cast<GMPStorageParent*>(aActor);
-  p->Shutdown();
-  mStorage.RemoveElement(p);
-  return true;
-}
-
-bool
-GMPParent::RecvPGMPStorageConstructor(PGMPStorageParent* actor)
-{
   return true;
 }
 
