@@ -2685,6 +2685,7 @@ public:
     : nsDisplayItem(aBuilder, aFrame), mOverrideZIndex(0), mHasZIndexOverride(false)
   {
     MOZ_COUNT_CTOR(nsDisplayWrapList);
+    mBaseVisibleRect = mVisibleRect;
   }
   virtual ~nsDisplayWrapList();
   
@@ -2693,6 +2694,14 @@ public:
   virtual void UpdateBounds(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE
   {
     mBounds = mList.GetBounds(aBuilder);
+    
+    
+    
+    
+    
+    
+    
+    mVisibleRect.UnionRect(mBaseVisibleRect, mList.GetVisibleRect());
   }
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
@@ -2787,6 +2796,9 @@ protected:
   
   nsTArray<nsIFrame*> mMergedFrames;
   nsRect mBounds;
+  
+  
+  nsRect mBaseVisibleRect;
   int32_t mOverrideZIndex;
   bool mHasZIndexOverride;
 };
