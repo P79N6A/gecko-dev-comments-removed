@@ -34,7 +34,6 @@ using JS::ubi::Node;
 
 using mozilla::Maybe;
 using mozilla::Move;
-using mozilla::Nothing;
 
  DebuggerMemory *
 DebuggerMemory::create(JSContext *cx, Debugger *dbg)
@@ -755,44 +754,34 @@ bool
 DebuggerMemory::takeCensus(JSContext *cx, unsigned argc, Value *vp)
 {
     THIS_DEBUGGER_MEMORY(cx, argc, vp, "Debugger.Memory.prototype.census", args, memory);
+    Debugger *debugger = memory->getDebugger();
 
     dbg::Census census(cx);
     if (!census.init())
         return false;
-
     dbg::DefaultCensusHandler handler(census);
     if (!handler.init(census))
         return false;
 
-    Debugger *dbg = memory->getDebugger();
-
-    
-    
-    JS::AutoObjectVector debuggees(cx);
-    for (GlobalObjectSet::Range r = dbg->allDebuggees(); !r.empty(); r.popFront()) {
-        if (!census.debuggeeZones.put(r.front()->zone()) ||
-            !debuggees.append(static_cast<JSObject *>(r.front())))
-        {
-            return false;
-        }
-    }
-
     {
-        Maybe<JS::AutoCheckCannotGC> maybeNoGC;
-        JS::ubi::RootList rootList(cx, maybeNoGC);
-        if (!rootList.init(cx, census.debuggeeZones))
-            return false;
+        JS::AutoCheckCannotGC noGC;
 
-        dbg::DefaultCensusTraversal traversal(cx, handler, maybeNoGC.ref());
+        dbg::DefaultCensusTraversal traversal(cx, handler, noGC);
         if (!traversal.init())
             return false;
         traversal.wantNames = false;
 
-        if (!traversal.addStart(JS::ubi::Node(&rootList)) ||
-            !traversal.traverse())
-        {
-            return false;
+        
+        
+        
+        for (GlobalObjectSet::Range r = debugger->debuggees.all(); !r.empty(); r.popFront()) {
+            if (!census.debuggeeZones.put(r.front()->zone()) ||
+                !traversal.addStart(static_cast<JSObject *>(r.front())))
+                return false;
         }
+
+        if (!traversal.traverse())
+            return false;
     }
 
     return handler.report(census, args.rval());
