@@ -248,12 +248,15 @@ public:
 
 
 
+
+
     bool TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
-                             nsCSSProperty aPropID,
-                             bool aIsImportant,
-                             bool aOverrideImportant,
-                             bool aMustCallValueAppended,
-                             mozilla::css::Declaration* aDeclaration);
+                           nsCSSProperty aPropID,
+                           nsCSSProps::EnabledState aEnabledState,
+                           bool aIsImportant,
+                           bool aOverrideImportant,
+                           bool aMustCallValueAppended,
+                           mozilla::css::Declaration* aDeclaration);
 
     
 
