@@ -441,6 +441,13 @@ public:
   bool HasLayerBeenComposited() { return mLayerComposited; }
   nsIntRect GetClearRect() { return mClearRect; }
 
+  
+
+
+
+
+  nsIntRegion GetFullyRenderedRegion();
+
 protected:
   gfx::Matrix4x4 mShadowTransform;
   nsIntRegion mShadowVisibleRegion;

@@ -233,7 +233,7 @@ LayerManagerComposite::ApplyOcclusionCulling(Layer* aLayer, nsIntRegion& aOpaque
       !aLayer->GetMaskLayer() &&
       aLayer->GetLocalOpacity() == 1.0f) {
     if (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) {
-      localOpaque.Or(localOpaque, composite->GetShadowVisibleRegion());
+      localOpaque.Or(localOpaque, composite->GetFullyRenderedRegion());
     }
     localOpaque.MoveBy(transform2d._31, transform2d._32);
     const nsIntRect* clip = aLayer->GetEffectiveClipRect();
@@ -1149,6 +1149,20 @@ LayerComposite::SetLayerManager(LayerManagerComposite* aManager)
 {
   mCompositeManager = aManager;
   mCompositor = aManager->GetCompositor();
+}
+
+nsIntRegion
+LayerComposite::GetFullyRenderedRegion() {
+  if (TiledLayerComposer* tiled = GetTiledLayerComposer()) {
+    nsIntRegion shadowVisibleRegion = GetShadowVisibleRegion();
+    
+    
+    
+    shadowVisibleRegion.And(shadowVisibleRegion, tiled->GetValidRegion());
+    return shadowVisibleRegion;
+  } else {
+    return GetShadowVisibleRegion();
+  }
 }
 
 #ifndef MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
