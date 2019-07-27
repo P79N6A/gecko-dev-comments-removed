@@ -502,8 +502,8 @@ public:
   }
 
   virtual bool
-  RecvVibrate(const InfallibleTArray<unsigned int>& pattern,
-              const InfallibleTArray<uint64_t> &id,
+  RecvVibrate(InfallibleTArray<unsigned int>&& pattern,
+              InfallibleTArray<uint64_t>&& id,
               PBrowserParent *browserParent) MOZ_OVERRIDE
   {
     
@@ -516,7 +516,7 @@ public:
   }
 
   virtual bool
-  RecvCancelVibrate(const InfallibleTArray<uint64_t> &id,
+  RecvCancelVibrate(InfallibleTArray<uint64_t> &&id,
                     PBrowserParent *browserParent) MOZ_OVERRIDE
   {
     TabParent *tabParent = static_cast<TabParent*>(browserParent);
