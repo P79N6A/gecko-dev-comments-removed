@@ -3314,16 +3314,14 @@ RadioInterface.prototype = {
 
 
   setClockAutoUpdateAvailable: function(value) {
-    gSettingsService.createLock().set(kSettingsClockAutoUpdateAvailable, value, null,
-                                      "fromInternalSetting");
+    gSettingsService.createLock().set(kSettingsClockAutoUpdateAvailable, value, null);
   },
 
   
 
 
   setTimezoneAutoUpdateAvailable: function(value) {
-    gSettingsService.createLock().set(kSettingsTimezoneAutoUpdateAvailable, value, null,
-                                      "fromInternalSetting");
+    gSettingsService.createLock().set(kSettingsTimezoneAutoUpdateAvailable, value, null);
   },
 
   
@@ -3499,7 +3497,7 @@ RadioInterface.prototype = {
     switch (topic) {
       case kMozSettingsChangedObserverTopic:
         let setting = JSON.parse(data);
-        this.handleSettingsChange(setting.key, setting.value, setting.message);
+        this.handleSettingsChange(setting.key, setting.value, setting.isInternalChange);
         break;
       case kSysClockChangeObserverTopic:
         let offset = parseInt(data, 10);
@@ -3580,11 +3578,11 @@ RadioInterface.prototype = {
   
   _lastKnownHomeNetwork: null,
 
-  handleSettingsChange: function(aName, aResult, aMessage) {
+  handleSettingsChange: function(aName, aResult, aIsInternalSetting) {
     
     
     if (aName === kSettingsClockAutoUpdateAvailable &&
-        aMessage !== "fromInternalSetting") {
+        !aIsInternalSetting) {
       let isClockAutoUpdateAvailable = this._lastNitzMessage !== null ||
                                        this._sntp.isAvailable();
       if (aResult !== isClockAutoUpdateAvailable) {
@@ -3600,7 +3598,7 @@ RadioInterface.prototype = {
     
     
     if (aName === kSettingsTimezoneAutoUpdateAvailable &&
-        aMessage !== "fromInternalSetting") {
+        !aIsInternalSetting) {
       let isTimezoneAutoUpdateAvailable = this._lastNitzMessage !== null;
       if (aResult !== isTimezoneAutoUpdateAvailable) {
         if (DEBUG) {
