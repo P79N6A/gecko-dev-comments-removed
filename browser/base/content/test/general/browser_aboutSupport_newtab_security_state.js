@@ -1,14 +1,6 @@
 
 
 
-
-
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: window.location is null");
-
-
 add_task(function* checkIdentityOfAboutSupport() {
   let tab = gBrowser.loadOneTab("about:support", {
     referrerURI: null,

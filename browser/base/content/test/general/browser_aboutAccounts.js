@@ -2,13 +2,6 @@
 
 
 
-
-
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: window.location is null");
-
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",

@@ -2,13 +2,6 @@
 
 
 
-
-
-
-
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("");
-
 var gTab = null;
 
 function load(url, cb) {
