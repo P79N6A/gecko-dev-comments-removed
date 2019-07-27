@@ -66,7 +66,9 @@ public class MenuPopup extends PopupWindow {
     @Override
     public void showAsDropDown(View anchor) {
         
-        setHeight(mPopupMinHeight);
+        
+        
+        setHeight(mPanel.getHeight());
 
         
         
