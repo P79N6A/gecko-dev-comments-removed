@@ -22,13 +22,13 @@ Ebml_Serialize(EbmlGlobal *glob, const void *buffer_in, int buffer_size, unsigne
     unsigned char x;
     if (buffer_size == 1) {
       x = (char)(*(const int8_t *)buffer_in >> (i * 8));
-	} else if (buffer_size == 2) {
+    } else if (buffer_size == 2) {
       x = (char)(*(const int16_t *)buffer_in >> (i * 8));
-	} else if (buffer_size == 4) {
+    } else if (buffer_size == 4) {
       x = (char)(*(const int32_t *)buffer_in >> (i * 8));
-	} else if (buffer_size == 8) {
+    } else if (buffer_size == 8) {
       x = (char)(*(const int64_t *)buffer_in >> (i * 8));
-	}
+    }
     Ebml_Write(glob, &x, 1);
   }
 }
