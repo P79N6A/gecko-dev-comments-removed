@@ -54,7 +54,12 @@
 
 namespace mozilla {
 class TimeStamp;
-}
+
+namespace dom {
+class Promise;
+} 
+
+} 
 
 enum TracingMetadata {
   TRACING_DEFAULT,
@@ -169,6 +174,10 @@ static inline JSObject* profiler_get_profile_jsobject(JSContext* aCx,
                                                       float aSinceTime = 0) {
   return nullptr;
 }
+
+
+static inline void profiler_get_profile_jsobject_async(float aSinceTime = 0,
+                                                       mozilla::dom::Promise* = 0) {}
 
 
 static inline void profiler_save_profile_to_file(char* aFilename) { }

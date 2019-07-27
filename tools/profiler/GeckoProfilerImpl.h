@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+// IWYU pragma: private, include "GeckoProfiler.h"
 
 #ifndef TOOLS_SPS_SAMPLER_H_
 #define TOOLS_SPS_SAMPLER_H_
@@ -24,14 +24,14 @@
 #include "GeckoTaskTracer.h"
 #endif
 
-
-
-
+/* QT has a #define for the word "slots" and jsfriendapi.h has a struct with
+ * this variable name, causing compilation problems. Alleviate this for now by
+ * removing this #define */
 #ifdef MOZ_WIDGET_QT
 #undef slots
 #endif
 
-
+// Make sure that we can use std::min here without the Windows headers messing with us.
 #ifdef min
 #undef min
 #endif
@@ -156,6 +156,13 @@ JSObject* profiler_get_profile_jsobject(JSContext* aCx, float aSinceTime = 0)
 }
 
 static inline
+void profiler_get_profile_jsobject_async(float aSinceTime = 0,
+                                         mozilla::dom::Promise* aPromise = 0)
+{
+  mozilla_sampler_get_profile_data_async(aSinceTime, aPromise);
+}
+
+static inline
 void profiler_save_profile_to_file(const char* aFilename)
 {
   return mozilla_sampler_save_profile_to_file(aFilename);
@@ -247,8 +254,8 @@ static inline void profiler_tracing(const char* aCategory, const char* aInfo,
                                     ProfilerBacktrace* aCause,
                                     TracingMetadata aMetaData = TRACING_DEFAULT)
 {
-  
-  
+  // Don't insert a marker if we're not profiling to avoid
+  // the heap copy (malloc).
   if (!stack_key_initialized || !profiler_is_active()) {
     delete aCause;
     return;
@@ -263,8 +270,8 @@ static inline void profiler_tracing(const char* aCategory, const char* aInfo,
   if (!stack_key_initialized)
     return;
 
-  
-  
+  // Don't insert a marker if we're not profiling to avoid
+  // the heap copy (malloc).
   if (!profiler_is_active()) {
     return;
   }
@@ -276,25 +283,25 @@ static inline void profiler_tracing(const char* aCategory, const char* aInfo,
 #define SAMPLER_APPEND_LINE_NUMBER_EXPAND(id, line) SAMPLER_APPEND_LINE_NUMBER_PASTE(id, line)
 #define SAMPLER_APPEND_LINE_NUMBER(id) SAMPLER_APPEND_LINE_NUMBER_EXPAND(id, __LINE__)
 
-
-
-
+// Uncomment this to turn on systrace or build with
+// ac_add_options --enable-systace
+//#define MOZ_USE_SYSTRACE
 #ifdef MOZ_USE_SYSTRACE
 #ifndef ATRACE_TAG
 # define ATRACE_TAG ATRACE_TAG_ALWAYS
 #endif
-
-
+// We need HAVE_ANDROID_OS to be defined for Trace.h.
+// If its not set we will set it temporary and remove it.
 # ifndef HAVE_ANDROID_OS
 #   define HAVE_ANDROID_OS
 #   define REMOVE_HAVE_ANDROID_OS
 # endif
-
-
-
-
-
-
+// Android source code will include <cutils/trace.h> before this. There is no
+// HAVE_ANDROID_OS defined in Firefox OS build at that time. Enabled it globally
+// will cause other build break. So atrace_begin and atrace_end are not defined.
+// It will cause a build-break when we include <utils/Trace.h>. Use undef
+// _LIBS_CUTILS_TRACE_H will force <cutils/trace.h> to define atrace_begin and
+// atrace_end with defined HAVE_ANDROID_OS again. Then there is no build-break.
 # undef _LIBS_CUTILS_TRACE_H
 # include <utils/Trace.h>
 # define MOZ_PLATFORM_TRACING(name) android::ScopedTrace SAMPLER_APPEND_LINE_NUMBER(scopedTrace)(ATRACE_TAG, name);
@@ -306,8 +313,8 @@ static inline void profiler_tracing(const char* aCategory, const char* aInfo,
 # define MOZ_PLATFORM_TRACING(name)
 #endif
 
-
-
+// we want the class and function name but can't easily get that using preprocessor macros
+// __func__ doesn't have the class name and __PRETTY_FUNCTION__ has the parameters
 
 #define PROFILER_LABEL(name_space, info, category) MOZ_PLATFORM_TRACING(name_space "::" info) mozilla::SamplerStackFrameRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, category, __LINE__)
 #define PROFILER_LABEL_FUNC(category) MOZ_PLATFORM_TRACING(SAMPLE_FUNCTION_NAME) mozilla::SamplerStackFrameRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(SAMPLE_FUNCTION_NAME, category, __LINE__)
@@ -321,9 +328,9 @@ static inline void profiler_tracing(const char* aCategory, const char* aInfo,
 #define PROFILER_MAIN_THREAD_LABEL_PRINTF(name_space, info, category, ...)  MOZ_ASSERT(NS_IsMainThread(), "This can only be called on the main thread"); mozilla::SamplerStackFramePrintfRAII SAMPLER_APPEND_LINE_NUMBER(sampler_raii)(name_space "::" info, category, __LINE__, __VA_ARGS__)
 
 
-
-
-
+/* FIXME/bug 789667: memory constraints wouldn't much of a problem for
+ * this small a sample buffer size, except that serializing the
+ * profile data is extremely, unnecessarily memory intensive. */
 #ifdef MOZ_WIDGET_GONK
 # define PLATFORM_LIKELY_MEMORY_CONSTRAINED
 #endif
@@ -334,27 +341,27 @@ static inline void profiler_tracing(const char* aCategory, const char* aInfo,
 # define PROFILE_DEFAULT_ENTRY 100000
 #endif
 
-
-
+// In the case of profiler_get_backtrace we know that we only need enough space
+// for a single backtrace.
 #define GET_BACKTRACE_DEFAULT_ENTRY 1000
 
 #if defined(PLATFORM_LIKELY_MEMORY_CONSTRAINED)
-
-
-
-
-
+/* A 1ms sampling interval has been shown to be a large perf hit
+ * (10fps) on memory-contrained (low-end) platforms, and additionally
+ * to yield different results from the profiler.  Where this is the
+ * important case, b2g, there are also many gecko processes which
+ * magnify these effects. */
 # define PROFILE_DEFAULT_INTERVAL 10
 #elif defined(ANDROID)
+// We use a lower frequency on Android, in order to make things work
+// more smoothly on phones.  This value can be adjusted later with
+// some libunwind optimizations.
+// In one sample measurement on Galaxy Nexus, out of about 700 backtraces,
+// 60 of them took more than 25ms, and the average and standard deviation
+// were 6.17ms and 9.71ms respectively.
 
-
-
-
-
-
-
-
-
+// For now since we don't support stackwalking let's use 1ms since it's fast
+// enough.
 #define PROFILE_DEFAULT_INTERVAL 1
 #else
 #define PROFILE_DEFAULT_INTERVAL 1
@@ -388,7 +395,7 @@ protected:
 
 class MOZ_STACK_CLASS SamplerStackFrameRAII {
 public:
-  
+  // we only copy the strings at save time, so to take multiple parameters we'd need to copy them then.
   SamplerStackFrameRAII(const char *aInfo,
     js::ProfileEntry::Category aCategory, uint32_t line)
   {
@@ -404,7 +411,7 @@ private:
 static const int SAMPLER_MAX_STRING = 128;
 class MOZ_STACK_CLASS SamplerStackFramePrintfRAII {
 public:
-  
+  // we only copy the strings at save time, so to take multiple parameters we'd need to copy them then.
   SamplerStackFramePrintfRAII(const char *aInfo,
     js::ProfileEntry::Category aCategory, uint32_t line, const char *aFormat, ...)
   {
@@ -413,8 +420,8 @@ public:
       va_start(args, aFormat);
       char buff[SAMPLER_MAX_STRING];
 
-      
-      
+      // We have to use seperate printf's because we're using
+      // the vargs.
 #if _MSC_VER
       _vsnprintf(buff, SAMPLER_MAX_STRING, aFormat, args);
       _snprintf(mDest, SAMPLER_MAX_STRING, "%s %s", aInfo, buff);
@@ -436,7 +443,7 @@ private:
   void* mHandle;
 };
 
-} 
+} //mozilla
 
 inline PseudoStack* mozilla_get_pseudo_stack(void)
 {
@@ -448,26 +455,26 @@ inline PseudoStack* mozilla_get_pseudo_stack(void)
 inline void* mozilla_sampler_call_enter(const char *aInfo,
   js::ProfileEntry::Category aCategory, void *aFrameAddress, bool aCopy, uint32_t line)
 {
-  
-  
+  // check if we've been initialized to avoid calling pthread_getspecific
+  // with a null tlsStack which will return undefined results.
   if (!stack_key_initialized)
     return nullptr;
 
   PseudoStack *stack = tlsPseudoStack.get();
-  
-  
-  
-  
+  // we can't infer whether 'stack' has been initialized
+  // based on the value of stack_key_intiailized because
+  // 'stack' is only intialized when a thread is being
+  // profiled.
   if (!stack) {
     return stack;
   }
   stack->push(aInfo, aCategory, aFrameAddress, aCopy, line);
 
-  
-  
-  
-  
-  
+  // The handle is meant to support future changes
+  // but for now it is simply use to save a call to
+  // pthread_getspecific on exit. It also supports the
+  // case where the sampler is initialized between
+  // enter and exit.
   return stack;
 }
 
@@ -494,4 +501,4 @@ void profiler_log(const char *fmt, va_list args)
   mozilla_sampler_log(fmt, args);
 }
 
-#endif 
+#endif /* ndef TOOLS_SPS_SAMPLER_H_ */

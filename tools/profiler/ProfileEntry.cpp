@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <ostream>
 #include "platform.h"
@@ -9,15 +9,12 @@
 #include "nsXULAppAPI.h"
 #include "mozilla/HashFunctions.h"
 
-
+// JS
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/TrackedOptimizationInfo.h"
 
-
-#include "ProfileJSONWriter.h"
-
-
+// Self
 #include "ProfileEntry.h"
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
@@ -32,15 +29,15 @@ using mozilla::Nothing;
 using mozilla::JSONWriter;
 
 
-
-
+////////////////////////////////////////////////////////////////////////
+// BEGIN ProfileEntry
 
 ProfileEntry::ProfileEntry()
   : mTagData(nullptr)
   , mTagName(0)
 { }
 
-
+// aTagData must not need release (i.e. be a string from the text segment)
 ProfileEntry::ProfileEntry(char aTagName, const char *aTagData)
   : mTagData(aTagData)
   , mTagName(aTagName)
@@ -94,16 +91,16 @@ bool ProfileEntry::is_ent(char tagChar) {
 }
 
 void* ProfileEntry::get_tagPtr() {
-  
+  // No consistency checking.  Oh well.
   return mTagPtr;
 }
 
+// END ProfileEntry
+////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-
+////////////////////////////////////////////////////////////////////////
+// BEGIN ProfileBuffer
 
 ProfileBuffer::ProfileBuffer(int aEntrySize)
   : mEntries(MakeUnique<ProfileEntry[]>(aEntrySize))
@@ -121,19 +118,19 @@ ProfileBuffer::~ProfileBuffer()
   }
 }
 
-
+// Called from signal, call only reentrant functions
 void ProfileBuffer::addTag(const ProfileEntry& aTag)
 {
   mEntries[mWritePos++] = aTag;
   if (mWritePos == mEntrySize) {
-    
-    
+    // Wrapping around may result in things referenced in the buffer (e.g.,
+    // JIT code addresses and markers) being incorrectly collected.
     MOZ_ASSERT(mGeneration != UINT32_MAX);
     mGeneration++;
     mWritePos = 0;
   }
   if (mWritePos == mReadPos) {
-    
+    // Keep one slot open.
     mEntries[mReadPos] = ProfileEntry();
     mReadPos = (mReadPos + 1) % mEntrySize;
   }
@@ -145,8 +142,8 @@ void ProfileBuffer::addStoredMarker(ProfilerMarker *aStoredMarker) {
 }
 
 void ProfileBuffer::deleteExpiredStoredMarkers() {
-  
-  
+  // Delete markers of samples that have been overwritten due to circular
+  // buffer wraparound.
   uint32_t generation = mGeneration;
   while (mStoredMarkers.peek() &&
          mStoredMarkers.peek()->HasExpired(generation)) {
@@ -167,7 +164,7 @@ char* ProfileBuffer::processDynamicTag(int readPos,
   int readAheadPos = (readPos + 1) % mEntrySize;
   int tagBuffPos = 0;
 
-  
+  // Read the string stored in mTagData until the null character is seen
   bool seenNullByte = false;
   while (readAheadPos != mWritePos && !seenNullByte) {
     (*tagsConsumed)++;
@@ -273,8 +270,8 @@ public:
   { }
 
   void operator()(JS::TrackedStrategy strategy, JS::TrackedOutcome outcome) override {
-    
-    
+    // Schema:
+    //   [strategy, outcome]
 
     mWriter.StartArrayElement();
     {
@@ -345,7 +342,7 @@ UniqueStacks::Stack::Stack(UniqueStacks& aUniqueStacks, const OnStackFrameKey& a
 
 void UniqueStacks::Stack::AppendFrame(const OnStackFrameKey& aFrame)
 {
-  
+  // Compute the prefix hash and index before mutating mStack.
   uint32_t prefixHash = mStack.Hash();
   uint32_t prefix = mUniqueStacks.GetOrAddStackIndex(mStack);
   mStack.mPrefixHash = Some(prefixHash);
@@ -422,7 +419,7 @@ uint32_t UniqueStacks::GetOrAddFrameIndex(const OnStackFrameKey& aFrame)
     return index;
   }
 
-  
+  // If aFrame isn't canonical, forward it to the canonical frame's index.
   if (aFrame.mJITFrameHandle) {
     void* canonicalAddr = aFrame.mJITFrameHandle->canonicalAddress();
     if (canonicalAddr != *aFrame.mJITAddress) {
@@ -433,8 +430,8 @@ uint32_t UniqueStacks::GetOrAddFrameIndex(const OnStackFrameKey& aFrame)
     }
   }
 
-  
-  
+  // A manual count is used instead of mFrameToIndexMap.Count() due to
+  // forwarding of canonical JIT frames above.
   index = mFrameCount++;
   mFrameToIndexMap.Put(aFrame, index);
   StreamFrame(aFrame);
@@ -470,8 +467,8 @@ void UniqueStacks::SpliceStackTableElements(SpliceableJSONWriter& aWriter)
 
 void UniqueStacks::StreamStack(const StackKey& aStack)
 {
-  
-  
+  // Schema:
+  //   [prefix, frame]
 
   mStackTableWriter.StartArrayElement();
   {
@@ -487,20 +484,20 @@ void UniqueStacks::StreamStack(const StackKey& aStack)
 
 void UniqueStacks::StreamFrame(const OnStackFrameKey& aFrame)
 {
-  
-  
+  // Schema:
+  //   [location, implementation, optimizations, line, category]
 
   mFrameTableWriter.StartArrayElement();
   if (!aFrame.mJITFrameHandle) {
     mUniqueStrings.WriteElement(mFrameTableWriter, aFrame.mLocation.get());
     if (aFrame.mLine.isSome()) {
-      mFrameTableWriter.NullElement(); 
-      mFrameTableWriter.NullElement(); 
+      mFrameTableWriter.NullElement(); // implementation
+      mFrameTableWriter.NullElement(); // optimizations
       mFrameTableWriter.IntElement(*aFrame.mLine);
     }
     if (aFrame.mCategory.isSome()) {
       if (aFrame.mLine.isNothing()) {
-        mFrameTableWriter.NullElement(); 
+        mFrameTableWriter.NullElement(); // line
       }
       mFrameTableWriter.IntElement(*aFrame.mCategory);
     }
@@ -576,14 +573,14 @@ struct ProfileSample
 
 static void WriteSample(SpliceableJSONWriter& aWriter, ProfileSample& aSample)
 {
-  
-  
+  // Schema:
+  //   [stack, time, responsiveness, rss, uss, frameNumber, power]
 
   aWriter.StartArrayElement();
   {
-    
-    
-    
+    // The last non-null index is tracked to save space in the JSON by avoid
+    // emitting 'null's at the end of the array, as they're only needed if
+    // followed by non-null elements.
     uint32_t index = 0;
     uint32_t lastNonNullIndex = 0;
 
@@ -686,18 +683,18 @@ void ProfileBuffer::StreamSamplesToJSON(SpliceableJSONWriter& aWriter, int aThre
         break;
       case 's':
         {
-          
+          // end the previous sample if there was one
           if (sample.isSome()) {
             WriteSample(aWriter, *sample);
             sample.reset();
           }
-          
+          // begin the next sample
           sample.emplace();
           sample->mTime = currentTime;
 
-          
-          
-          
+          // Seek forward through the entire sample, looking for frames
+          // this is an easier approach to reason about than adding more
+          // control variables and cases to the loop that goes through the buffer once
 
           UniqueStacks::Stack stack =
             aUniqueStacks.BeginStack(UniqueStacks::OnStackFrameKey("(root)"));
@@ -708,26 +705,26 @@ void ProfileBuffer::StreamSamplesToJSON(SpliceableJSONWriter& aWriter, int aThre
             int incBy = 1;
             frame = mEntries[framePos];
 
-            
+            // Read ahead to the next tag, if it's a 'd' tag process it now
             const char* tagStringData = frame.mTagData;
             int readAheadPos = (framePos + 1) % mEntrySize;
-            
-            
+            // Make sure the string is always null terminated if it fills up
+            // DYNAMIC_MAX_STRING-2
             tagBuff[DYNAMIC_MAX_STRING-1] = '\0';
 
             if (readAheadPos != mWritePos && mEntries[readAheadPos].mTagName == 'd') {
               tagStringData = processDynamicTag(framePos, &incBy, tagBuff.get());
             }
 
-            
-            
-            
-            
-            
+            // Write one frame. It can have either
+            // 1. only location - 'l' containing a memory address
+            // 2. location and line number - 'c' followed by 'd's,
+            // an optional 'n' and an optional 'y'
+            // 3. a JIT return address - 'j' containing native code address
             if (frame.mTagName == 'l') {
-              
-              
-              
+              // Bug 753041
+              // We need a double cast here to tell GCC that we don't want to sign
+              // extend 32-bit addresses starting with 0xFXXXXXX.
               unsigned long long pc = (unsigned long long)(uintptr_t)frame.mTagPtr;
               snprintf(tagBuff.get(), DYNAMIC_MAX_STRING, "%#llx", pc);
               stack.AppendFrame(UniqueStacks::OnStackFrameKey(tagBuff.get()));
@@ -747,7 +744,7 @@ void ProfileBuffer::StreamSamplesToJSON(SpliceableJSONWriter& aWriter, int aThre
               }
               stack.AppendFrame(frameKey);
             } else if (frame.mTagName == 'J') {
-              
+              // A JIT frame may expand to multiple frames due to inlining.
               void* pc = frame.mTagPtr;
               unsigned depth = aUniqueStacks.LookupJITFrameDepth(pc);
               if (depth == 0) {
@@ -797,8 +794,8 @@ void ProfileBuffer::StreamMarkersToJSON(SpliceableJSONWriter& aWriter, int aThre
 
 int ProfileBuffer::FindLastSampleOfThread(int aThreadId)
 {
-  
-  
+  // We search backwards from mWritePos-1 to mReadPos.
+  // Adding mEntrySize makes the result of the modulus positive.
   for (int readPos  = (mWritePos + mEntrySize - 1) % mEntrySize;
            readPos !=  (mReadPos + mEntrySize - 1) % mEntrySize;
            readPos  =   (readPos + mEntrySize - 1) % mEntrySize) {
@@ -822,23 +819,23 @@ void ProfileBuffer::DuplicateLastSample(int aThreadId)
 
   addTag(mEntries[lastSampleStartPos]);
 
-  
+  // Go through the whole entry and duplicate it, until we find the next one.
   for (int readPos = (lastSampleStartPos + 1) % mEntrySize;
        readPos != mWritePos;
        readPos = (readPos + 1) % mEntrySize) {
     switch (mEntries[readPos].mTagName) {
       case 'T':
-        
+        // We're done.
         return;
       case 't':
-        
+        // Copy with new time
         addTag(ProfileEntry('t', static_cast<float>((mozilla::TimeStamp::Now() - sStartTime).ToMilliseconds())));
         break;
       case 'm':
-        
+        // Don't copy markers
         break;
-      
-      
+      // Copy anything else we don't know about
+      // L, B, S, c, s, d, l, f, h, r, t, p
       default:
         addTag(mEntries[readPos]);
         break;
@@ -846,12 +843,12 @@ void ProfileBuffer::DuplicateLastSample(int aThreadId)
   }
 }
 
+// END ProfileBuffer
+////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-
+////////////////////////////////////////////////////////////////////////
+// BEGIN ThreadProfile
 
 ThreadProfile::ThreadProfile(ThreadInfo* aInfo, ProfileBuffer* aBuffer)
   : mThreadInfo(aInfo)
@@ -871,7 +868,7 @@ ThreadProfile::ThreadProfile(ThreadInfo* aInfo, ProfileBuffer* aBuffer)
   MOZ_COUNT_CTOR(ThreadProfile);
   MOZ_ASSERT(aBuffer);
 
-  
+  // I don't know if we can assert this. But we should warn.
   MOZ_ASSERT(aInfo->ThreadId() >= 0, "native thread ID is < 0");
   MOZ_ASSERT(aInfo->ThreadId() <= INT32_MAX, "native thread ID is > INT32_MAX");
 }
@@ -892,7 +889,7 @@ void ThreadProfile::addStoredMarker(ProfilerMarker *aStoredMarker) {
 
 void ThreadProfile::StreamJSON(SpliceableJSONWriter& aWriter, float aSinceTime)
 {
-  
+  // mUniqueStacks may already be emplaced from FlushSamplesAndMarkers.
   if (!mUniqueStacks.isSome()) {
     mUniqueStacks.emplace(mPseudoStack->mRuntime);
   }
@@ -950,13 +947,13 @@ void ThreadProfile::StreamJSON(SpliceableJSONWriter& aWriter, float aSinceTime)
 void ThreadProfile::StreamSamplesAndMarkers(SpliceableJSONWriter& aWriter, float aSinceTime,
                                             UniqueStacks& aUniqueStacks)
 {
-  
+  // Thread meta data
   if (XRE_GetProcessType() == GeckoProcessType_Plugin) {
-    
+    // TODO Add the proper plugin name
     aWriter.StringProperty("name", "Plugin");
   } else if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    
-    
+    // This isn't going to really help once we have multiple content
+    // processes, but it'll do for now.
     aWriter.StringProperty("name", "Content");
   } else {
     aWriter.StringProperty("name", Name());
@@ -979,9 +976,9 @@ void ThreadProfile::StreamSamplesAndMarkers(SpliceableJSONWriter& aWriter, float
     aWriter.StartArrayProperty("data");
     {
       if (mSavedStreamedSamples) {
-        
-        
-        
+        // We would only have saved streamed samples during shutdown
+        // streaming, which cares about dumping the entire buffer, and thus
+        // should have passed in 0 for aSinceTime.
         MOZ_ASSERT(aSinceTime == 0);
         aWriter.Splice(mSavedStreamedSamples.get());
         mSavedStreamedSamples.reset();
@@ -1018,24 +1015,24 @@ void ThreadProfile::StreamSamplesAndMarkers(SpliceableJSONWriter& aWriter, float
 
 void ThreadProfile::FlushSamplesAndMarkers()
 {
-  
-  
+  // This function is used to serialize the current buffer just before
+  // JSRuntime destruction.
   MOZ_ASSERT(mPseudoStack->mRuntime);
 
-  
-  
-  
-  
-  
-  
-  
+  // Unlike StreamJSObject, do not surround the samples in brackets by calling
+  // aWriter.{Start,End}BareList. The result string will be a comma-separated
+  // list of JSON object literals that will prepended by StreamJSObject into
+  // an existing array.
+  //
+  // Note that the UniqueStacks instance is persisted so that the frame-index
+  // mapping is stable across JS shutdown.
   mUniqueStacks.emplace(mPseudoStack->mRuntime);
 
   {
     SpliceableChunkedJSONWriter b;
     b.StartBareList();
     {
-      mBuffer->StreamSamplesToJSON(b, mThreadId,  0,
+      mBuffer->StreamSamplesToJSON(b, mThreadId, /* aSinceTime = */ 0,
                                    mPseudoStack->mRuntime, *mUniqueStacks);
     }
     b.EndBareList();
@@ -1046,14 +1043,14 @@ void ThreadProfile::FlushSamplesAndMarkers()
     SpliceableChunkedJSONWriter b;
     b.StartBareList();
     {
-      mBuffer->StreamMarkersToJSON(b, mThreadId,  0, *mUniqueStacks);
+      mBuffer->StreamMarkersToJSON(b, mThreadId, /* aSinceTime = */ 0, *mUniqueStacks);
     }
     b.EndBareList();
     mSavedStreamedMarkers = b.WriteFunc()->CopyData();
   }
 
-  
-  
+  // Reset the buffer. Attempting to symbolicate JS samples after mRuntime has
+  // gone away will crash.
   mBuffer->reset();
 }
 
@@ -1082,5 +1079,5 @@ void ThreadProfile::DuplicateLastSample()
   mBuffer->DuplicateLastSample(mThreadId);
 }
 
-
-
+// END ThreadProfile
+////////////////////////////////////////////////////////////////////////

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <string>
 #include <sstream>
@@ -17,7 +17,11 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "shared-libraries.h"
 #include "js/Value.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/dom/Promise.h"
 
+using mozilla::ErrorResult;
+using mozilla::dom::Promise;
 using std::string;
 
 NS_IMPL_ISUPPORTS(nsProfiler, nsIProfiler)
@@ -141,8 +145,8 @@ AddSharedLibraryInfoToStream(std::ostream& aStream, const SharedLibrary& aLib)
   const std::string &breakpadId = aLib.GetBreakpadId();
   aStream << ",\"breakpadId\":\"" << breakpadId << "\"";
 #ifdef XP_WIN
-  
-  
+  // FIXME: remove this XP_WIN code when the profiler plugin has switched to
+  // using breakpadId.
   std::string pdbSignature = breakpadId.substr(0, 32);
   std::string pdbAgeStr = breakpadId.substr(32,  breakpadId.size() - 1);
 
@@ -209,6 +213,34 @@ nsProfiler::GetProfileData(float aSinceTime, JSContext* aCx,
     return NS_ERROR_FAILURE;
   }
   aResult.setObject(*obj);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsProfiler::GetProfileDataAsync(float aSinceTime, JSContext* aCx,
+                                nsISupports** aPromise)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (NS_WARN_IF(!aCx)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsIGlobalObject* go = xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx));
+
+  if (NS_WARN_IF(!go)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ErrorResult result;
+  nsRefPtr<Promise> promise = Promise::Create(go, result);
+  if (NS_WARN_IF(result.Failed())) {
+    return result.StealNSResult();
+  }
+
+  profiler_get_profile_jsobject_async(aSinceTime, promise);
+
+  promise.forget(aPromise);
   return NS_OK;
 }
 
