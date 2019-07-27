@@ -3857,6 +3857,32 @@ bool CanvasRenderingContext2D::IsPointInStroke(const CanvasPath& mPath, double x
 
 
 
+static TemporaryRef<SourceSurface>
+ExtractSubrect(SourceSurface* aSurface, mgfx::Rect* aSourceRect, DrawTarget* aTargetDT)
+{
+  mgfx::Rect roundedOutSourceRect = *aSourceRect;
+  roundedOutSourceRect.RoundOut();
+  mgfx::IntRect roundedOutSourceRectInt;
+  if (!roundedOutSourceRect.ToIntRect(&roundedOutSourceRectInt)) {
+    return aSurface;
+  }
+
+  RefPtr<DrawTarget> subrectDT =
+    aTargetDT->CreateSimilarDrawTarget(roundedOutSourceRectInt.Size(), SurfaceFormat::B8G8R8A8);
+
+  if (!subrectDT) {
+    return aSurface;
+  }
+
+  *aSourceRect -= roundedOutSourceRect.TopLeft();
+
+  subrectDT->CopySurface(aSurface, roundedOutSourceRectInt, IntPoint());
+  return subrectDT->Snapshot();
+}
+
+
+
+
 
 
 
@@ -3999,10 +4025,19 @@ CanvasRenderingContext2D::DrawImage(const HTMLImageOrCanvasOrVideoElement& image
   }
 
   if (srcSurf) {
+    mgfx::Rect sourceRect(sx, sy, sw, sh);
+    if (element == mCanvasElement) {
+      
+      
+      
+      
+      
+      srcSurf = ExtractSubrect(srcSurf, &sourceRect, mTarget);
+    }
     AdjustedTarget(this, bounds.IsEmpty() ? nullptr : &bounds)->
       DrawSurface(srcSurf,
                   mgfx::Rect(dx, dy, dw, dh),
-                  mgfx::Rect(sx, sy, sw, sh),
+                  sourceRect,
                   DrawSurfaceOptions(filter),
                   DrawOptions(CurrentState().globalAlpha, UsedOperation()));
   } else {
