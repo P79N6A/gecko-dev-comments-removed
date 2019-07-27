@@ -11,8 +11,12 @@ from __future__ import print_function, division
 import argparse
 import collections
 import json
+import os
+import platform
 import re
+import shutil
 import sys
+import tempfile
 
 
 outputVersion = 1
@@ -96,6 +100,9 @@ def parseCommandLine():
 Analyze heap data produced by DMD.
 If no files are specified, read from stdin.
 Write to stdout unless -o/--output is specified.
+Stack traces are fixed to show function names, filenames and line numbers
+unless --no-fix-stacks is specified; stack fixing modifies the original file
+and may take some time.
 '''
     p = argparse.ArgumentParser(description=description)
 
@@ -119,13 +126,50 @@ Write to stdout unless -o/--output is specified.
     p.add_argument('-b', '--show-all-block-sizes', action='store_true',
                    help='show individual block sizes for each record')
 
+    p.add_argument('--no-fix-stacks', action='store_true',
+                   help='do not fix stacks')
+
     p.add_argument('input_file', type=argparse.FileType('r'))
 
     return p.parse_args(sys.argv[1:])
 
 
+
+
+def fixStackTraces(args):
+    
+    
+    sys.path.append(os.path.dirname(__file__))
+
+    
+    
+    sysname = platform.system()
+    if sysname == 'Linux':
+        import fix_linux_stack as fixModule
+        fix = lambda line: fixModule.fixSymbols(line)
+    elif sysname == 'Darwin':
+        import fix_macosx_stack as fixModule
+        fix = lambda line: fixModule.fixSymbols(line)
+    else:
+        fix = None  
+
+    if fix:
+        
+        
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            for line in args.input_file:
+                tmp.write(fix(line))
+            shutil.move(tmp.name, args.input_file.name)
+
+        args.input_file = open(args.input_file.name)
+
+
 def main():
     args = parseCommandLine()
+
+    
+    if not args.no_fix_stacks:
+        fixStackTraces(args)
 
     j = json.load(args.input_file)
 
