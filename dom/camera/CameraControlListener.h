@@ -38,7 +38,14 @@ public:
     kHardwareOpen,
     kHardwareOpenFailed
   };
-  virtual void OnHardwareStateChange(HardwareState aState) { }
+  
+  
+  
+  
+  
+  
+  
+  virtual void OnHardwareStateChange(HardwareState aState, nsresult aReason) { }
 
   enum PreviewState
   {

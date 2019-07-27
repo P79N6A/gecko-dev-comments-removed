@@ -268,18 +268,6 @@ GonkCameraHardware::~GonkCameraHardware()
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, (void*)this);
   mCamera.clear();
   mNativeWindow.clear();
-
-  if (mClosing) {
-    return;
-  }
-
-  
-
-
-
-  if (mTarget) {
-    OnClosed(mTarget);
-  }
 }
 
 int
