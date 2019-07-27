@@ -26,6 +26,10 @@ namespace layers {
 
 class ReadbackProcessor;
 
+namespace layerscope {
+class LayersPacket;
+}
+
 
 
 
@@ -171,6 +175,8 @@ protected:
   {}
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
 
   uint64_t mSequenceCounter;
   nsAutoPtr<ReadbackSink> mSink;

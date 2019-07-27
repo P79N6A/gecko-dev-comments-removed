@@ -100,6 +100,10 @@ class Compositor;
 struct TextureFactoryIdentifier;
 struct EffectMask;
 
+namespace layerscope {
+class LayersPacket;
+}
+
 #define MOZ_LAYER_DECL_NAME(n, e)                           \
   virtual const char* Name() const { return n; }            \
   virtual LayerType GetType() const { return e; }
@@ -594,6 +598,12 @@ public:
 
 
 
+  void Dump(layerscope::LayersPacket* aPacket);
+
+  
+
+
+
   void Log(const char* aPrefix="");
   
 
@@ -677,6 +687,10 @@ protected:
   
   
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+
+  
+  
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket);
 
   static void InitLog();
   static PRLogModuleInfo* sLog;
@@ -1369,6 +1383,12 @@ public:
 
 
 
+  void Dump(layerscope::LayersPacket* aPacket, const void* aParent);
+
+  
+
+
+
   void Log(const char* aPrefix="");
   
 
@@ -1382,6 +1402,10 @@ public:
   
   
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+
+  
+  
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
 
   static bool IsLogEnabled() { return LayerManager::IsLogEnabled(); }
 
@@ -1619,6 +1643,8 @@ protected:
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
 
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+
   
 
 
@@ -1838,6 +1864,8 @@ protected:
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
 
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+
   Layer* mFirstChild;
   Layer* mLastChild;
   FrameMetrics mFrameMetrics;
@@ -1912,6 +1940,8 @@ protected:
   {}
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
 
   nsIntRect mBounds;
   gfxRGBA mColor;
@@ -2072,6 +2102,8 @@ protected:
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
 
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
+
   void FireDidTransactionCallback()
   {
     if (mPostTransCallback) {
@@ -2188,6 +2220,8 @@ protected:
   {}
 
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
+
+  virtual void DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent);
 
   Layer* mTempReferent;
   

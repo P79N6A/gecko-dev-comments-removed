@@ -17,6 +17,7 @@
 #include "ImageLayerComposite.h"        
 #include "Layers.h"                     
 #include "LayerScope.h"                 
+#include "protobuf/LayerScopePacket.pb.h" 
 #include "ThebesLayerComposite.h"       
 #include "TiledLayerBuffer.h"           
 #include "Units.h"                      
@@ -421,15 +422,26 @@ LayerManagerComposite::Render()
     return;
   }
 
-  if (gfxPrefs::LayersDump()) {
-    this->Dump();
-  }
-
   
   nsRefPtr<Composer2D> composer2D = mCompositor->GetWidget()->GetComposer2D();
 
   
   LayerScopeAutoFrame frame(PR_Now());
+
+  
+  if (gfxPrefs::LayersDump()) {
+    this->Dump();
+  }
+
+  
+  if (LayerScope::CheckSendable()) {
+    
+    
+    auto packet = MakeUnique<layerscope::Packet>();
+    layerscope::LayersPacket* layersPacket = packet->mutable_layers();
+    this->Dump(layersPacket);
+    LayerScope::SendLayerDump(Move(packet));
+  }
 
   if (!mTarget && composer2D && composer2D->TryRender(mRoot, mWorldMatrix, mGeometryChanged)) {
     if (mFPS) {
