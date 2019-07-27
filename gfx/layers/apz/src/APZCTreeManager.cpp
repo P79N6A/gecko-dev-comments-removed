@@ -141,7 +141,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                 aCompositor ? aCompositor->RootLayerTreeId() : 0,
                                 gfx3DMatrix(), nullptr, nullptr,
                                 aIsFirstPaint, aOriginatingLayersId,
-                                paintLogger, &apzcsToDestroy, nsIntRegion());
+                                paintLogger, &apzcsToDestroy);
     mApzcTreeLog << "[end]\n";
   }
 
@@ -160,12 +160,9 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                              bool aIsFirstPaint,
                                              uint64_t aOriginatingLayersId,
                                              const APZPaintLogHelper& aPaintLogger,
-                                             nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy,
-                                             const nsIntRegion& aObscured)
+                                             nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy)
 {
   mTreeLock.AssertCurrentThreadOwns();
-
-  gfx3DMatrix transform = gfx::To3DMatrix(aLayer->GetTransform());
 
   ContainerLayer* container = aLayer->AsContainerLayer();
   AsyncPanZoomController* apzc = nullptr;
@@ -247,17 +244,9 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                       * metrics.mDevPixelsPerCSSPixel
                                       * metrics.GetParentResolution());
         }
+        gfx3DMatrix transform = gfx::To3DMatrix(aLayer->GetTransform());
 
-        
-        
-        
-        ParentLayerIntRect roundedVisible = RoundedIn(visible);
-        nsIntRegion unobscured;
-        unobscured.Sub(nsIntRect(roundedVisible.x, roundedVisible.y,
-                                 roundedVisible.width, roundedVisible.height),
-                       aObscured);
-
-        apzc->SetLayerHitTestData(unobscured, aTransform, transform);
+        apzc->SetLayerHitTestData(visible, aTransform, transform);
         APZCTM_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
                                                                               visible.width, visible.height,
                                                                               apzc);
@@ -322,28 +311,10 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
     aTransform = gfx3DMatrix();
   } else {
     
-    aTransform = transform * aTransform;
+    aTransform = gfx::To3DMatrix(aLayer->GetTransform()) * aTransform;
   }
 
   uint64_t childLayersId = (aLayer->AsRefLayer() ? aLayer->AsRefLayer()->GetReferentId() : aLayersId);
-
-  nsIntRegion obscured;
-  if (aLayersId == childLayersId) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    obscured = aObscured;
-    obscured.Transform(transform.Inverse());
-  }
-
   
   
   AsyncPanZoomController* next = apzc ? nullptr : aNextSibling;
@@ -351,17 +322,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
     gfx::TreeAutoIndent indent(mApzcTreeLog);
     next = UpdatePanZoomControllerTree(aCompositor, child, childLayersId, aTransform, aParent, next,
                                        aIsFirstPaint, aOriginatingLayersId,
-                                       aPaintLogger, aApzcsToDestroy, obscured);
-
-    
-    
-    nsIntRegion childRegion = child->GetVisibleRegion();
-    childRegion.Transform(gfx::To3DMatrix(child->GetTransform()));
-    if (child->GetClipRect()) {
-      childRegion.AndWith(*child->GetClipRect());
-    }
-
-    obscured.OrWith(childRegion);
+                                       aPaintLogger, aApzcsToDestroy);
   }
 
   

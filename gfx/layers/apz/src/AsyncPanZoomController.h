@@ -21,7 +21,6 @@
 #include "Axis.h"
 #include "TaskThrottler.h"
 #include "gfx3DMatrix.h"
-#include "nsRegion.h"
 
 #include "base/message_loop.h"
 
@@ -942,9 +941,9 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const nsIntRegion& aRegion, const gfx3DMatrix& aTransformToLayer,
+  void SetLayerHitTestData(const ParentLayerRect& aRect, const gfx3DMatrix& aTransformToLayer,
                            const gfx3DMatrix& aTransformForLayer) {
-    mVisibleRegion = aRegion;
+    mVisibleRect = aRect;
     mAncestorTransform = aTransformToLayer;
     mCSSTransform = aTransformForLayer;
     UpdateTransformScale();
@@ -959,8 +958,7 @@ public:
   }
 
   bool VisibleRegionContains(const ParentLayerPoint& aPoint) const {
-    ParentLayerIntPoint point = RoundedToInt(aPoint);
-    return mVisibleRegion.Contains(point.x, point.y);
+    return mVisibleRect.Contains(aPoint);
   }
 
   bool IsOverscrolled() const {
@@ -971,7 +969,7 @@ private:
   
 
 
-  nsIntRegion mVisibleRegion;
+  ParentLayerRect mVisibleRect;
   
 
   gfx3DMatrix mAncestorTransform;
