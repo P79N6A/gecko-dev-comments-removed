@@ -88,7 +88,7 @@ class MessageChannel : HasResultCodes
 
     void SetAbortOnError(bool abort)
     {
-        mAbortOnError = true;
+        mAbortOnError = abort;
     }
 
     

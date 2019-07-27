@@ -615,6 +615,14 @@ ContentChild::Init(MessageLoop* aIOLoop,
     
     GetIPCChannel()->BlockScripts();
 
+    
+    
+    bool abortOnError = true;
+#ifdef MOZ_NUWA_PROCESS
+    abortOnError &= !IsNuwaProcess();
+#endif
+    GetIPCChannel()->SetAbortOnError(abortOnError);
+
 #ifdef MOZ_X11
     
     
@@ -2570,6 +2578,8 @@ ContentChild::RecvShutdown()
     if (os) {
         os->NotifyObservers(this, "content-child-shutdown", nullptr);
     }
+
+    GetIPCChannel()->SetAbortOnError(false);
 
     
     
