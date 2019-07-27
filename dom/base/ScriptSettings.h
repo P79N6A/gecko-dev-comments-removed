@@ -122,7 +122,7 @@ private:
 
 
 
-class AutoJSAPI {
+class MOZ_STACK_CLASS AutoJSAPI {
 public:
   
   
