@@ -30,6 +30,7 @@ class nsXBLBinding;
 template<class E> class nsRefPtr;
 typedef nsTArray<nsRefPtr<nsXBLBinding> > nsBindingList;
 class nsIPrincipal;
+class nsITimer;
 
 namespace mozilla {
 class CSSStyleSheet;
@@ -161,6 +162,9 @@ protected:
 
   
   void PostProcessAttachedQueueEvent();
+
+  
+  static void PostPAQEventCallback(nsITimer* aTimer, void* aClosure);
 
 
 protected:

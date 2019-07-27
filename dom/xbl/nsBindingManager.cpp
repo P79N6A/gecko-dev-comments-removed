@@ -25,6 +25,7 @@
 #include "mozilla/dom/XMLDocument.h"
 #include "nsIStreamListener.h"
 #include "ChildIterator.h"
+#include "nsITimer.h"
 
 #include "nsXBLBinding.h"
 #include "nsXBLPrototypeBinding.h"
@@ -370,6 +371,16 @@ nsBindingManager::PostProcessAttachedQueueEvent()
   }
 }
 
+
+void
+nsBindingManager::PostPAQEventCallback(nsITimer* aTimer, void* aClosure)
+{
+  nsRefPtr<nsBindingManager> mgr = 
+    already_AddRefed<nsBindingManager>(static_cast<nsBindingManager*>(aClosure));
+  mgr->PostProcessAttachedQueueEvent();
+  NS_RELEASE(aTimer);
+}
+
 void
 nsBindingManager::DoProcessAttachedQueue()
 {
@@ -384,7 +395,19 @@ nsBindingManager::DoProcessAttachedQueue()
     
     
     
-    PostProcessAttachedQueueEvent();
+    
+    
+    
+    nsresult rv = NS_ERROR_FAILURE;
+    nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
+    if (timer) {
+      rv = timer->InitWithFuncCallback(PostPAQEventCallback, this,
+                                       100, nsITimer::TYPE_ONE_SHOT);
+    }
+    if (NS_SUCCEEDED(rv)) {
+      NS_ADDREF_THIS();
+      NS_ADDREF(timer);
+    }
   }
 
   
