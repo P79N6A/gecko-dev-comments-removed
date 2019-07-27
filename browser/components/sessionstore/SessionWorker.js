@@ -80,16 +80,23 @@ let Agent = {
   
 
 
+  maxUpgradeBackups: null,
+
+  
 
 
 
 
-  init: function (origin, paths) {
+
+
+
+  init: function (origin, paths, maxUpgradeBackups) {
     if (!(origin in paths || origin == STATE_EMPTY)) {
       throw new TypeError("Invalid origin: " + origin);
     }
     this.state = origin;
     this.Paths = paths;
+    this.maxUpgradeBackups = maxUpgradeBackups || 3;
     this.upgradeBackupNeeded = paths.nextUpgradeBackup != paths.upgradeBackup;
     return {result: true};
   },
@@ -180,6 +187,38 @@ let Agent = {
       } catch (ex) {
         
         exn = exn || ex;
+      }
+
+      
+      let iterator;
+      let backups = [];  
+      let upgradeBackupPrefix = this.Paths.upgradeBackupPrefix;  
+
+      try {
+        iterator = new File.DirectoryIterator(this.Paths.backups);
+        iterator.forEach(function (file) {
+          if (file.path.startsWith(upgradeBackupPrefix)) {
+            backups.push(file.path);
+          }
+        }, this);
+      } catch (ex) {
+          
+          exn = exn || ex;
+      } finally {
+        if (iterator) {
+          iterator.close();
+        }
+      }
+
+      
+      if (backups.length > this.maxUpgradeBackups) {
+        
+        backups.sort().forEach((file, i) => {
+          
+          if (i < backups.length - this.maxUpgradeBackups) {
+            File.remove(file);
+          }
+        });
       }
     }
 
