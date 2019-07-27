@@ -30,15 +30,15 @@ public class testAddSearchEngine extends AboutHomeTest {
     private final String ADD_SEARCHENGINE_OPTION_TEXT = "Add as Search Engine";
 
     public void testAddSearchEngine() {
-        String blankPageURL = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        String searchEngineURL = getAbsoluteUrl(mStringHelper.ROBOCOP_SEARCH_URL);
+        String blankPageURL = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        String searchEngineURL = getAbsoluteUrl(StringHelper.ROBOCOP_SEARCH_URL);
 
         blockForGeckoReady();
         int height = mDriver.getGeckoTop() + 150;
         int width = mDriver.getGeckoLeft() + 150;
 
         inputAndLoadUrl(blankPageURL);
-        waitForText(mStringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
+        waitForText(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
 
         
         
@@ -79,12 +79,12 @@ public class testAddSearchEngine extends AboutHomeTest {
         waitForText("Cancel");
         clickOnButton("OK");
         mAsserter.ok(!mSolo.searchText(ADD_SEARCHENGINE_OPTION_TEXT), "Adding the Search Engine", "The add Search Engine pop-up has been closed");
-        waitForText(mStringHelper.ROBOCOP_SEARCH_TITLE); 
+        waitForText(StringHelper.ROBOCOP_SEARCH_TITLE); 
 
         
         
         loadUrl(blankPageURL);
-        waitForText(mStringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
+        waitForText(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
 
         
         searchEngineDataEventExpector = mActions.expectGeckoEvent("SearchEngines:Data");
@@ -157,7 +157,7 @@ public class testAddSearchEngine extends AboutHomeTest {
 
         
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
-        waitForText(mStringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
+        waitForText(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
         mAsserter.ok(correctNumSearchEnginesDisplayed, expectedCount + " Search Engines should be displayed" , "The correct number of Search Engines has been displayed");
     }
 }
