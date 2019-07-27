@@ -13,6 +13,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 import org.mozilla.gecko.AboutPages;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.ReaderModeUtils;
 import org.mozilla.gecko.db.BrowserContract.ReadingListItems;
 import org.mozilla.gecko.mozglue.RobocopTarget;
@@ -103,8 +105,8 @@ public class LocalReadingListAccessor implements ReadingListAccessor {
         }
 
         
-        final String url = values.getAsString(ReadingListItems.URL);
-        values.put(ReadingListItems.URL, stripURI(url));
+        final String url = stripURI(values.getAsString(ReadingListItems.URL));
+        values.put(ReadingListItems.URL, url);
 
         
         values.put(ReadingListItems.ADDED_ON, System.currentTimeMillis());
@@ -112,7 +114,11 @@ public class LocalReadingListAccessor implements ReadingListAccessor {
 
         
         
-        return ContentUris.parseId(cr.insert(mReadingListUriWithProfile, values));
+        final long id = ContentUris.parseId(cr.insert(mReadingListUriWithProfile, values));
+
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Reader:Added", url));
+
+        return id;
     }
 
     @Override
@@ -155,10 +161,15 @@ public class LocalReadingListAccessor implements ReadingListAccessor {
         cr.delete(mReadingListUriWithProfile,
                   ReadingListItems.URL + " = ? OR " + ReadingListItems.RESOLVED_URL + " = ?",
                   new String[]{ uri, uri });
+
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Reader:Removed", uri));
     }
 
     @Override
     public void deleteItem(ContentResolver cr, long itemID) {
+        
+        
+        
         cr.delete(ContentUris.appendId(mReadingListUriWithProfile.buildUpon(), itemID).build(),
                   null, null);
     }
