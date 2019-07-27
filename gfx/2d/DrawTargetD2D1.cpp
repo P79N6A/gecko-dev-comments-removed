@@ -125,7 +125,7 @@ DrawTargetD2D1::DrawSurface(SourceSurface *aSurface,
   
   
   Matrix transform;
-  transform.PreTranslate(aDest.x, aDest.y);
+  transform.PreTranslate(aDest.x - aSource.x * xScale, aDest.y - aSource.y * yScale);
   transform.PreScale(xScale, yScale);
 
   mDC->CreateImageBrush(image, D2D1::ImageBrushProperties(samplingBounds),
