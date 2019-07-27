@@ -154,7 +154,7 @@ Sanitizer.prototype = {
       clear: function ()
       {
         return Messaging.sendRequestForResult({ type: "Sanitize:ClearHistory" })
-          .catch() 
+          .catch(e => Cu.reportError("Java-side history clearing failed: " + e))
           .then(function() {
             try {
               Services.obs.notifyObservers(null, "browser:purge-session-history", "");
