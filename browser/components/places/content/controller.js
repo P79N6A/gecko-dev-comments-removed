@@ -369,20 +369,6 @@ PlacesController.prototype = {
   
 
 
-  rootNodeIsSelected: function PC_rootNodeIsSelected() {
-    var nodes = this._view.selectedNodes;
-    var root = this._view.result.root;
-    for (var i = 0; i < nodes.length; ++i) {
-      if (nodes[i] == root)
-        return true;
-    }
-
-    return false;
-  },
-
-  
-
-
 
 
 
@@ -448,14 +434,9 @@ PlacesController.prototype = {
 
 
 
-
-
   _buildSelectionMetadata: function PC__buildSelectionMetadata() {
     var metadata = [];
-    var root = this._view.result.root;
     var nodes = this._view.selectedNodes;
-    if (nodes.length == 0)
-      nodes.push(root); 
 
     for (var i = 0; i < nodes.length; i++) {
       var nodeData = {};
@@ -536,10 +517,23 @@ PlacesController.prototype = {
 
   _shouldShowMenuItem: function PC__shouldShowMenuItem(aMenuItem, aMetaData) {
     var selectiontype = aMenuItem.getAttribute("selectiontype");
-    if (selectiontype == "multiple" && aMetaData.length == 1)
+    if (!selectiontype) {
+      selectiontype = "single|multiple";
+    }
+    var selectionTypes = selectiontype.split("|");
+    if (selectionTypes.indexOf("any") != -1) {
+      return true;
+    }
+    var count = aMetaData.length;
+    if (count > 1 && selectionTypes.indexOf("multiple") == -1)
       return false;
-    if (selectiontype == "single" && aMetaData.length != 1)
+    if (count == 1 && selectionTypes.indexOf("single") == -1)
       return false;
+    
+    
+    
+    if (count == 0)
+      return selectionTypes.indexOf("none") != -1;
 
     var forceHideAttr = aMenuItem.getAttribute("forcehideselection");
     if (forceHideAttr) {
@@ -612,6 +606,8 @@ PlacesController.prototype = {
 
 
 
+
+
   buildContextMenu: function PC_buildContextMenu(aPopup) {
     var metadata = this._buildSelectionMetadata();
     var ip = this._view.insertionPoint;
@@ -619,18 +615,19 @@ PlacesController.prototype = {
 
     var separator = null;
     var visibleItemsBeforeSep = false;
-    var anyVisible = false;
+    var usableItemCount = 0;
     for (var i = 0; i < aPopup.childNodes.length; ++i) {
       var item = aPopup.childNodes[i];
       if (item.localName != "menuseparator") {
         
         var hideIfNoIP = item.getAttribute("hideifnoinsertionpoint") == "true" &&
                          noIp && !(ip && ip.isTag && item.id == "placesContext_paste");
-        item.hidden = hideIfNoIP || !this._shouldShowMenuItem(item, metadata);
+        var shouldHideItem = hideIfNoIP || !this._shouldShowMenuItem(item, metadata);
+        item.hidden = item.disabled = shouldHideItem;
 
         if (!item.hidden) {
           visibleItemsBeforeSep = true;
-          anyVisible = true;
+          usableItemCount++;
 
           
           if (separator) {
@@ -654,21 +651,21 @@ PlacesController.prototype = {
     }
 
     
-    if (anyVisible) {
+    if (usableItemCount > 0) {
       var openContainerInTabsItem = document.getElementById("placesContext_openContainer:tabs");
-      if (!openContainerInTabsItem.hidden && this._view.selectedNode &&
-          PlacesUtils.nodeIsContainer(this._view.selectedNode)) {
-        openContainerInTabsItem.disabled =
-          !PlacesUtils.hasChildURIs(this._view.selectedNode);
-      }
-      else {
-        
-        var openLinksInTabsItem = document.getElementById("placesContext_openLinks:tabs");
-        openLinksInTabsItem.disabled = openLinksInTabsItem.hidden;
+      if (!openContainerInTabsItem.hidden) {
+        var containerToUse = this._view.selectedNode || this._view.result.root;
+        if (PlacesUtils.nodeIsContainer(containerToUse)) {
+          if (!PlacesUtils.hasChildURIs(containerToUse, true)) {
+            openContainerInTabsItem.disabled = true;
+            
+            usableItemCount--;
+          }
+        }
       }
     }
 
-    return anyVisible;
+    return usableItemCount > 0;
   },
 
   
@@ -734,10 +731,15 @@ PlacesController.prototype = {
 
   openSelectionInTabs: function PC_openLinksInTabs(aEvent) {
     var node = this._view.selectedNode;
+    var nodes = this._view.selectedNodes;
+    
+    if (!node && !nodes.length) {
+      node = this._view.result.root;
+    }
     if (node && PlacesUtils.nodeIsContainer(node))
-      PlacesUIUtils.openContainerNodeInTabs(this._view.selectedNode, aEvent, this._view);
+      PlacesUIUtils.openContainerNodeInTabs(node, aEvent, this._view);
     else
-      PlacesUIUtils.openURINodesInTabs(this._view.selectedNodes, aEvent, this._view);
+      PlacesUIUtils.openURINodesInTabs(nodes, aEvent, this._view);
   },
 
   
