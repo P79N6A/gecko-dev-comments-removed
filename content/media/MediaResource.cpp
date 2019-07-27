@@ -936,6 +936,7 @@ ChannelMediaResource::RecreateChannel()
                               element,
                               nsILoadInfo::SEC_NORMAL,
                               nsIContentPolicy::TYPE_MEDIA,
+                              nullptr,   
                               loadGroup,
                               nullptr,  
                               loadFlags);
@@ -1442,6 +1443,7 @@ already_AddRefed<MediaResource> FileMediaResource::CloneData(MediaDecoder* aDeco
                   element,
                   nsILoadInfo::SEC_NORMAL,
                   nsIContentPolicy::TYPE_MEDIA,
+                  nullptr,   
                   loadGroup);
 
   if (NS_FAILED(rv))

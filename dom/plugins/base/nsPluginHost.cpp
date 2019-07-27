@@ -2858,6 +2858,7 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
                              nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
                              nsIContentPolicy::TYPE_OBJECT_SUBREQUEST,
                              nullptr,  
+                             nullptr,  
                              listenerPeer);
 
   if (NS_FAILED(rv))

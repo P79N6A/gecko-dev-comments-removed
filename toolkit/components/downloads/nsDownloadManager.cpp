@@ -3535,6 +3535,7 @@ nsDownload::Resume()
                      nsILoadInfo::SEC_NORMAL,
                      nsIContentPolicy::TYPE_OTHER,
                      nullptr,  
+                     nullptr,  
                      ir);
 
   NS_ENSURE_SUCCESS(rv, rv);
