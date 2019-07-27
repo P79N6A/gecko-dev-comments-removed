@@ -164,17 +164,17 @@ BrowserElementChild.prototype = {
 
     addEventListener('mozselectionstatechanged',
                      this._selectionStateChangedHandler.bind(this),
-                      true,
+                      false,
                       false);
 
     addEventListener('scrollviewchange',
                      this._ScrollViewChangeHandler.bind(this),
-                      true,
+                      false,
                       false);
 
     addEventListener('touchcarettap',
                      this._touchCaretTapHandler.bind(this),
-                      true,
+                      false,
                       false);
 
 
@@ -662,13 +662,13 @@ BrowserElementChild.prototype = {
 
     
     let currentWindow = e.target.defaultView;
-    while (currentWindow.realFrameElement) {
-      let currentRect = currentWindow.realFrameElement.getBoundingClientRect();
+    while (currentWindow.top != currentWindow) {
+      let currentRect = currentWindow.frameElement.getBoundingClientRect();
       detail.rect.top += currentRect.top;
       detail.rect.bottom += currentRect.top;
       detail.rect.left += currentRect.left;
       detail.rect.right += currentRect.left;
-      currentWindow = currentWindow.realFrameElement.ownerDocument.defaultView;
+      currentWindow = currentWindow.parent;
     }
 
     sendAsyncMsg('selectionstatechanged', detail);
