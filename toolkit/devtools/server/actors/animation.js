@@ -95,6 +95,41 @@ let AnimationPlayerActor = ActorClass({
 
 
 
+  getPlayerIndex: function() {
+    let names = this.styles.animationName;
+
+    
+    
+    
+    
+    
+    
+    if (!names) {
+      return this.playerIndex;
+    }
+
+    
+    if (names.contains(",") === -1) {
+      return 0;
+    }
+
+    
+    
+    names = names.split(",").map(n => n.trim());
+    for (let i = 0; i < names.length; i ++) {
+      if (names[i] === this.player.source.effect.name) {
+        return i;
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
   getDuration: function() {
     let durationText;
     if (this.styles.animationDuration !== "0s") {
@@ -105,8 +140,10 @@ let AnimationPlayerActor = ActorClass({
       return null;
     }
 
+    
+    
     if (durationText.indexOf(",") !== -1) {
-      durationText = durationText.split(",")[this.playerIndex];
+      durationText = durationText.split(",")[this.getPlayerIndex()];
     }
 
     return parseFloat(durationText) * 1000;
@@ -130,7 +167,7 @@ let AnimationPlayerActor = ActorClass({
     }
 
     if (delayText.indexOf(",") !== -1) {
-      delayText = delayText.split(",")[this.playerIndex];
+      delayText = delayText.split(",")[this.getPlayerIndex()];
     }
 
     return parseFloat(delayText) * 1000;
@@ -148,7 +185,7 @@ let AnimationPlayerActor = ActorClass({
   getIterationCount: function() {
     let iterationText = this.styles.animationIterationCount;
     if (iterationText.indexOf(",") !== -1) {
-      iterationText = iterationText.split(",")[this.playerIndex];
+      iterationText = iterationText.split(",")[this.getPlayerIndex()];
     }
 
     return iterationText === "infinite"
