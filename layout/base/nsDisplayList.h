@@ -1433,14 +1433,12 @@ public:
   
 
 
-  nsDisplayList() :
-    mIsOpaque(false)
+  nsDisplayList()
+    : mIsOpaque(false)
+    , mForceTransparentSurface(false)
   {
     mTop = &mSentinel;
     mSentinel.mAbove = nullptr;
-#if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
-    mDidComputeVisibility = false;
-#endif
   }
   ~nsDisplayList() {
     if (mSentinel.mAbove) {
@@ -1626,16 +1624,13 @@ public:
 
 
   bool IsOpaque() const {
-    NS_ASSERTION(mDidComputeVisibility, "Need to have called ComputeVisibility");
     return mIsOpaque;
   }
 
   
 
 
-
   bool NeedsTransparentSurface() const {
-    NS_ASSERTION(mDidComputeVisibility, "Need to have called ComputeVisibility");
     return mForceTransparentSurface;
   }
   
@@ -1700,16 +1695,6 @@ public:
 
   nsRect GetVisibleRect() const;
 
-#if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
-  bool DidComputeVisibility() const { return mDidComputeVisibility; }
-#endif
-
-  void SetDidComputeVisibility()
-  {
-#if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
-    mDidComputeVisibility = true;
-#endif
-  }
   void SetIsOpaque()
   {
     mIsOpaque = true;
@@ -1739,9 +1724,6 @@ private:
   
   
   bool mForceTransparentSurface;
-#if defined(DEBUG) || defined(MOZ_DUMP_PAINTING)
-  bool mDidComputeVisibility;
-#endif
 };
 
 
