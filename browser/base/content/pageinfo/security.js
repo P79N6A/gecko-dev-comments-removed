@@ -3,6 +3,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
+
 var security = {
   
   viewCert : function () {
@@ -135,7 +137,7 @@ var security = {
                       getService(Components.interfaces.nsIEffectiveTLDService);
 
     var eTLD;
-    var uri = gDocument.documentURIObject;
+    var uri = BrowserUtils.makeURIFromCPOW(gDocument.documentURIObject);
     try {
       eTLD = eTLDService.getBaseDomain(uri);
     }
@@ -232,7 +234,7 @@ function securityOnLoad() {
   var yesStr = pageInfoBundle.getString("yes");
   var noStr = pageInfoBundle.getString("no");
 
-  var uri = gDocument.documentURIObject;
+  var uri = BrowserUtils.makeURIFromCPOW(gDocument.documentURIObject);
   setText("security-privacy-cookies-value",
           hostHasCookies(uri) ? yesStr : noStr);
   setText("security-privacy-passwords-value",
