@@ -238,7 +238,7 @@ namespace {
 
 
 
-class VibratorRunnable
+class VibratorRunnable MOZ_FINAL
   : public nsIRunnable
   , public nsIObserver
 {
