@@ -117,10 +117,17 @@ public:
   
   
   
-  void HandleChildReports(
-    const uint32_t& aGeneration,
-    const InfallibleTArray<mozilla::dom::MemoryReport>& aChildReports);
-  nsresult FinishReporting();
+  
+  
+  
+  
+  
+  
+  
+  
+  void HandleChildReport(uint32_t aGeneration,
+                         const mozilla::dom::MemoryReport& aChildReport);
+  void EndChildReport(uint32_t aGeneration, bool aSuccess);
 
   
   
@@ -175,6 +182,7 @@ private:
   nsresult RegisterReporterHelper(nsIMemoryReporter* aReporter,
                                   bool aForce, bool aStrongRef);
   nsresult StartGettingReports();
+  nsresult FinishReporting();
 
   static void TimeoutCallback(nsITimer* aTimer, void* aData);
   
@@ -234,6 +242,8 @@ private:
   
   
   GetReportsState* mGetReportsState;
+
+  GetReportsState* GetStateForGeneration(uint32_t aGeneration);
 };
 
 #define NS_MEMORY_REPORTER_MANAGER_CID \
