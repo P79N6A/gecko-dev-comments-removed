@@ -77,10 +77,12 @@ struct PLDHashTableOps;
 
 
 
-
 struct PLDHashEntryHdr
 {
-  PLDHashNumber keyHash;  
+private:
+  friend class PLDHashTable;
+
+  PLDHashNumber mKeyHash;
 };
 
 
@@ -293,7 +295,9 @@ public:
   Iterator Iterate() const { return Iterator(this); }
 
 private:
-  PLDHashNumber GetKeyHash(const void* aKey);
+  static bool EntryIsFree(PLDHashEntryHdr* aEntry);
+
+  PLDHashNumber ComputeKeyHash(const void* aKey);
 
   PLDHashEntryHdr* PL_DHASH_FASTCALL
     SearchTable(const void* aKey, PLDHashNumber aKeyHash, bool aIsAdd);
@@ -387,10 +391,9 @@ struct PLDHashTableOps
 PLDHashNumber PL_DHashStringKey(PLDHashTable* aTable, const void* aKey);
 
 
-struct PLDHashEntryStub
+struct PLDHashEntryStub : public PLDHashEntryHdr
 {
-  PLDHashEntryHdr hdr;
-  const void*     key;
+  const void* key;
 };
 
 PLDHashNumber PL_DHashVoidPtrKeyStub(PLDHashTable* aTable, const void* aKey);
@@ -472,6 +475,7 @@ void PL_DHashTableFinish(PLDHashTable* aTable);
 
 PLDHashEntryHdr* PL_DHASH_FASTCALL
 PL_DHashTableSearch(PLDHashTable* aTable, const void* aKey);
+
 
 
 
