@@ -6162,20 +6162,13 @@ var IndexedDBPromptHelper = {
 
     var requestor = subject.QueryInterface(Ci.nsIInterfaceRequestor);
 
-    var contentWindow = requestor.getInterface(Ci.nsIDOMWindow);
-    var contentDocument = contentWindow.document;
-    var browserWindow =
-      OfflineApps._getBrowserWindowForContentWindow(contentWindow);
-
-    if (browserWindow != window) {
+    var browser = requestor.getInterface(Ci.nsIDOMNode);
+    if (browser.ownerDocument.defaultView != window) {
       
       return;
     }
 
-    var browser =
-      OfflineApps._getBrowserForContentWindow(browserWindow, contentWindow);
-
-    var host = contentDocument.documentURIObject.asciiHost;
+    var host = browser.currentURI.asciiHost;
 
     var message;
     var responseTopic;
@@ -7302,6 +7295,14 @@ let gRemoteTabsUI = {
       
       return;
     }
+
+#ifdef XP_MACOSX
+    if (Services.prefs.getBoolPref("layers.acceleration.disabled")) {
+      
+      
+      return;
+    }
+#endif
 
     let newRemoteWindow = document.getElementById("menu_newRemoteWindow");
     let newNonRemoteWindow = document.getElementById("menu_newNonRemoteWindow");
