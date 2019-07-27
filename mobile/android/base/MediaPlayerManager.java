@@ -28,19 +28,6 @@ import java.util.Map;
 import java.util.Iterator;
 
 
-interface GeckoMediaPlayer {
-    public JSONObject toJSON();
-    public void load(String title, String url, String type, EventCallback callback);
-    public void play(EventCallback callback);
-    public void pause(EventCallback callback);
-    public void stop(EventCallback callback);
-    public void start(EventCallback callback);
-    public void end(EventCallback callback);
-    public void mirror(EventCallback callback);
-    public void message(String message, EventCallback callback);
-}
-
-
 
 
 class MediaPlayerManager implements NativeEventListener,
