@@ -368,7 +368,6 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
 
   bool directLoad = aTruncate || !mUseDisk;
   if (directLoad) {
-    mFileStatus = NS_OK;
     
     
     mLoadStart = TimeStamp::NowLoRes();
@@ -397,6 +396,7 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
 
   if (directLoad) {
     
+    mFileStatus = NS_OK;
     mState = EMPTY;
   }
 
