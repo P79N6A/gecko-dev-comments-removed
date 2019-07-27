@@ -1130,7 +1130,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (!(GetStateBits() & NS_FRAME_IS_DIRTY) && reflowState->IsHResize()) {
+  if (!(GetStateBits() & NS_FRAME_IS_DIRTY) && reflowState->IsIResize()) {
     PrepareResizeReflow(state);
   }
 
@@ -2026,7 +2026,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 #endif
 
   bool selfDirty = (GetStateBits() & NS_FRAME_IS_DIRTY) ||
-                     (aState.mReflowState.IsVResize() &&
+                     (aState.mReflowState.IsBResize() &&
                       (GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT));
 
   
@@ -2145,7 +2145,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
     
     if (!line->IsDirty() &&
         aState.mReflowState.AvailableBSize() != NS_UNCONSTRAINEDSIZE &&
-        (deltaBCoord != 0 || aState.mReflowState.IsVResize() ||
+        (deltaBCoord != 0 || aState.mReflowState.IsBResize() ||
          aState.mReflowState.mFlags.mMustReflowPlaceholders) &&
         (line->IsBlock() || line->HasFloats() || line->HadFloatPushed())) {
       line->MarkDirty();
