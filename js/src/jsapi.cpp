@@ -4548,6 +4548,12 @@ JS::AutoSetAsyncStackForNewCalls::AutoSetAsyncStackForNewCalls(
 {
     CHECK_REQUEST(cx);
 
+    
+    
+    
+    if (!cx->runtime()->options().asyncStack())
+        return;
+
     SavedFrame* asyncStack = &stack->as<SavedFrame>();
     MOZ_ASSERT(!asyncCause->empty());
 
