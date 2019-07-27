@@ -4803,6 +4803,18 @@ Tab.prototype = {
     
     
     
+    if (!this.contentDocumentIsDisplayed) {
+      return;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -4814,18 +4826,6 @@ Tab.prototype = {
     }
     this.setResolution(zoom, false);
     this.setScrollClampingSize(zoom);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!this.contentDocumentIsDisplayed) {
-      return;
-    }
 
     this.viewportExcludesHorizontalMargins = true;
     this.viewportExcludesVerticalMargins = true;
@@ -5861,10 +5861,9 @@ var FormAssistant = {
   
   _getAutoCompleteSuggestions: function _getAutoCompleteSuggestions(aSearchString, aElement, aCallback) {
     
-    if (!this._formAutoCompleteService) {
-      this._formAutoCompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"]
-          .getService(Ci.nsIFormAutoComplete);
-    }
+    if (!this._formAutoCompleteService)
+      this._formAutoCompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"].
+                                      getService(Ci.nsIFormAutoComplete);
 
     let resultsAvailable = function (results) {
       let suggestions = [];
@@ -6391,7 +6390,7 @@ var ViewportHandler = {
         let document = target.ownerDocument;
         let browser = BrowserApp.getBrowserForDocument(document);
         let tab = BrowserApp.getTabForBrowser(browser);
-        if (tab && tab.contentDocumentIsDisplayed)
+        if (tab)
           this.updateMetadata(tab, false);
         break;
     }
