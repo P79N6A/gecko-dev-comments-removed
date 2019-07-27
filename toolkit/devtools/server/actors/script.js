@@ -1221,7 +1221,7 @@ ThreadActor.prototype = {
         this.threadLifetimePool.addActor(actor);
         let scripts = this.scripts.getScriptsBySourceAndLine(script.source, line);
         let entryPoints = findEntryPointsForLine(scripts, line);
-        setBreakpointForActorAtEntryPoints(actor, entryPoints);
+        setBreakpointAtEntryPoints(actor, entryPoints);
         this._hiddenBreakpoints.set(actor.actorID, actor);
         break;
       }
@@ -2046,7 +2046,7 @@ ThreadActor.prototype = {
       let actor = _actor;
 
       if (actor.isPending) {
-        promises.push(sourceActor._setBreakpointForActor(actor));
+        promises.push(sourceActor._setBreakpoint(actor));
       } else {
         promises.push(this.sources.getGeneratedLocation(actor.originalLocation)
                                   .then((generatedLocation) => {
@@ -2054,7 +2054,10 @@ ThreadActor.prototype = {
           if (generatedLocation.generatedSourceActor.actorID === sourceActor.actorID &&
               generatedLocation.generatedLine >= aScript.startLine &&
               generatedLocation.generatedLine <= endLine) {
-            sourceActor._setBreakpointForActorAtLocation(actor, generatedLocation);
+            sourceActor._setBreakpointAtGeneratedLocation(
+              actor,
+              generatedLocation
+            );
           }
         }));
       }
@@ -2300,6 +2303,7 @@ SourceActor.prototype = {
   },
 
   get threadActor() { return this._threadActor; },
+  get sources() { return this._threadActor.sources; },
   get dbg() { return this.threadActor.dbg; },
   get scripts() { return this.threadActor.scripts; },
   get source() { return this._source; },
@@ -2743,7 +2747,10 @@ SourceActor.prototype = {
 
     let { location: { line, column }, condition } = request;
     let location = new OriginalLocation(this, line, column);
-    return this._setBreakpoint(location, condition).then((actor) => {
+    return this._getOrCreateBreakpointActor(
+      location,
+      condition
+    ).then((actor) => {
       if (actor.isPending) {
         return {
           error: "noCodeAtLocation",
@@ -2779,7 +2786,7 @@ SourceActor.prototype = {
 
 
 
-  _setBreakpoint: function (originalLocation, condition) {
+  _getOrCreateBreakpointActor: function (originalLocation, condition) {
     let actor = this.breakpointActorMap.getActor(originalLocation);
     if (!actor) {
       actor = new BreakpointActor(this.threadActor, originalLocation);
@@ -2789,7 +2796,7 @@ SourceActor.prototype = {
 
     actor.condition = condition;
 
-    return this._setBreakpointForActor(actor);
+    return this._setBreakpoint(actor);
   },
 
   
@@ -2812,127 +2819,163 @@ SourceActor.prototype = {
 
 
 
-  _setBreakpointForActor: function (actor) {
+  _setBreakpoint: function (actor) {
     let { originalLocation } = actor;
+    let { originalColumn } = originalLocation;
 
-    if (this.isSourceMapped) {
-      
-      return this.threadActor.sources.getGeneratedLocation(originalLocation)
-                                     .then((generatedLocation) => {
-        return generatedLocation.generatedSourceActor
-                                ._setBreakpointForActorAtLocationWithSliding(
-          actor,
-          generatedLocation
-        );
-      });
-    } else {
-      
-      
-      let generatedLocation = GeneratedLocation.fromOriginalLocation(originalLocation);
-      let { generatedColumn } = generatedLocation;
-
-      
-      
-      
-      if (this._setBreakpointForActorAtLocation(actor, generatedLocation)) {
-        return Promise.resolve(actor);
+    return this._setBreakpointAtOriginalLocation(actor, originalLocation)
+               .then((actualLocation) => {
+      if (actualLocation) {
+        return actualLocation;
       }
 
-      
-      
-      if (generatedColumn === undefined) {
+      if (!this.isSourceMapped) {
         
         
-        
-        
-        
-        let lineToEntryPointsMap = [];
-
-        
-        let scripts = this.scripts.getScriptsBySourceActor(this);
-        for (let script of scripts) {
+        if (originalColumn === undefined) {
           
           
           
-          let lineToOffsetsMap = script.getAllOffsets();
+          
+          
+          let lineToEntryPointsMap = [];
 
           
-          
-          
-          
-          for (let line = 0; line < lineToOffsetsMap.length; ++line) {
-            let offsets = lineToOffsetsMap[line];
-            if (offsets) {
-              let entryPoints = lineToEntryPointsMap[line];
-              if (!entryPoints) {
-                
-                
-                entryPoints = [];
-                lineToEntryPointsMap[line] = entryPoints;
+          let scripts = this.scripts.getScriptsBySourceActor(this);
+          for (let script of scripts) {
+            
+            
+            
+            let lineToOffsetsMap = script.getAllOffsets();
+
+            
+            
+            
+            
+            for (let line = 0; line < lineToOffsetsMap.length; ++line) {
+              let offsets = lineToOffsetsMap[line];
+              if (offsets) {
+                let entryPoints = lineToEntryPointsMap[line];
+                if (!entryPoints) {
+                  
+                  
+                  entryPoints = [];
+                  lineToEntryPointsMap[line] = entryPoints;
+                }
+                entryPoints.push({ script, offsets });
               }
-              entryPoints.push({ script, offsets });
             }
           }
-        }
 
-        let {
-          originalSourceActor,
-          originalLine,
-          originalColumn
-        } = originalLocation;
+          let {
+            originalSourceActor,
+            originalLine,
+            originalColumn
+          } = originalLocation;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        let actualLine = originalLine;
-        while (actualLine < lineToEntryPointsMap.length) {
-          let entryPoints = lineToEntryPointsMap[actualLine];
-          if (entryPoints) {
-            setBreakpointForActorAtEntryPoints(actor, entryPoints);
-            break;
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          let actualLine = originalLine;
+          while (actualLine < lineToEntryPointsMap.length) {
+            let entryPoints = lineToEntryPointsMap[actualLine];
+            if (entryPoints) {
+              setBreakpointAtEntryPoints(actor, entryPoints);
+              break;
+            }
+            ++actualLine;
           }
-          ++actualLine;
-        }
-        if (actualLine === lineToEntryPointsMap.length) {
-          
-          
-          
-          
-          return Promise.resolve(actor);
-        }
+          if (actualLine === lineToEntryPointsMap.length) {
+            
+            
+            
+            
+            return originalLocation;
+          }
 
-        
-        
-        
-        if (actualLine !== originalLine) {
-          let actualLocation = new OriginalLocation(
+          return new OriginalLocation(
             originalSourceActor,
             actualLine
           );
-          let existingActor = this.breakpointActorMap.getActor(actualLocation);
-          if (existingActor) {
-            actor.onDelete();
-            this.breakpointActorMap.deleteActor(originalLocation);
-            actor = existingActor;
-          } else {
-            this.breakpointActorMap.deleteActor(originalLocation);
-            actor.originalLocation = actualLocation;
-            this.breakpointActorMap.setActor(actualLocation, actor);
-          }
+        } else {
+          
+          return originalLocation;
         }
-
-        return Promise.resolve(actor);
       } else {
         
-        return Promise.resolve(actor);
+        return this.threadActor.sources.getGeneratedLocation(originalLocation)
+                                       .then((generatedLocation) => {
+          return generatedLocation.generatedSourceActor
+                                  ._setBreakpointAtLocationWithSliding(
+            actor,
+            generatedLocation
+          );
+        });
+      }
+    }).then((actualLocation) => {
+      
+      
+      
+      
+      if (!actualLocation.equals(originalLocation)) {
+        let existingActor = this.breakpointActorMap.getActor(actualLocation);
+        if (existingActor) {
+          actor.onDelete();
+          this.breakpointActorMap.deleteActor(originalLocation);
+          actor = existingActor;
+        } else {
+          this.breakpointActorMap.deleteActor(originalLocation);
+          actor.originalLocation = actualLocation;
+          this.breakpointActorMap.setActor(actualLocation, actor);
+        }
+      }
+
+      return actor;
+    });
+  },
+
+  _setBreakpointAtOriginalLocation: function (actor, originalLocation) {
+    if (!this.isSourceMapped) {
+      if (!this._setBreakpointAtGeneratedLocation(
+        actor,
+        GeneratedLocation.fromOriginalLocation(originalLocation)
+      )) {
+        return Promise.resolve(null);
+      }
+
+      return Promise.resolve(originalLocation);
+    } else {
+      return this.sources.getAllGeneratedLocations(originalLocation)
+                         .then((generatedLocations) => {
+        if (!this._setBreakpointAtAllGeneratedLocations(
+          actor,
+          generatedLocations
+        )) {
+          return null;
+        }
+
+        return this.threadActor.sources.getOriginalLocation(generatedLocations[0]);
+      });
+    }
+  },
+
+  _setBreakpointAtAllGeneratedLocations: function (actor, generatedLocations) {
+    let success = false;
+    for (let generatedLocation of generatedLocations) {
+      if (this._setBreakpointAtGeneratedLocation(
+        actor,
+        generatedLocation
+      )) {
+        success = true;
       }
     }
+    return success;
   },
 
   
@@ -2949,7 +2992,7 @@ SourceActor.prototype = {
 
 
 
-  _setBreakpointForActorAtLocation: function (actor, generatedLocation) {
+  _setBreakpointAtGeneratedLocation: function (actor, generatedLocation) {
     let { generatedLine, generatedColumn } = generatedLocation;
 
     
@@ -2990,7 +3033,7 @@ SourceActor.prototype = {
     if (entryPoints.length === 0) {
       return false;
     }
-    setBreakpointForActorAtEntryPoints(actor, entryPoints);
+    setBreakpointAtEntryPoints(actor, entryPoints);
     return true;
   },
 
@@ -3017,7 +3060,7 @@ SourceActor.prototype = {
 
 
 
-  _setBreakpointForActorAtLocationWithSliding: function (actor, generatedLocation) {
+  _setBreakpointAtLocationWithSliding: function (actor, generatedLocation) {
     let originalLocation = actor.originalLocation;
     let { generatedLine, generatedColumn } = generatedLocation;
 
@@ -3082,7 +3125,7 @@ SourceActor.prototype = {
         actualGeneratedLocation = generatedLocation;
       }
 
-      setBreakpointForActorAtEntryPoints(actor, result.entryPoints);
+      setBreakpointAtEntryPoints(actor, result.entryPoints);
     }
 
     return Promise.resolve().then(() => {
@@ -3091,26 +3134,6 @@ SourceActor.prototype = {
       } else {
         return OriginalLocation.fromGeneratedLocation(actualGeneratedLocation);
       }
-    }).then((actualOriginalLocation) => {
-      if (!actualOriginalLocation.equals(originalLocation)) {
-        
-        
-        
-        
-
-        let existingActor = this.breakpointActorMap.getActor(actualOriginalLocation);
-        if (existingActor) {
-          actor.onDelete();
-          this.breakpointActorMap.deleteActor(originalLocation);
-          actor = existingActor;
-        } else {
-          actor.originalLocation = actualOriginalLocation;
-          this.breakpointActorMap.deleteActor(originalLocation);
-          this.breakpointActorMap.setActor(actualOriginalLocation, actor);
-        }
-      }
-
-      return actor;
     });
   },
 
@@ -5432,7 +5455,7 @@ function findEntryPointsForLine(scripts, line) {
 
 
 
-function setBreakpointForActorAtEntryPoints(actor, entryPoints) {
+function setBreakpointAtEntryPoints(actor, entryPoints) {
   for (let { script, offsets } of entryPoints) {
     actor.addScript(script);
     for (let offset of offsets) {
