@@ -703,7 +703,8 @@ let MessageQueue = {
     
     sendMessage("SessionStore:update", {
       id: this._id, data, telemetry,
-      isFinal: options.isFinal || false
+      isFinal: options.isFinal || false,
+      epoch: gCurrentEpoch
     });
 
     

@@ -90,6 +90,16 @@ const NOTAB_MESSAGES = new Set([
 
 
 
+const NOEPOCH_MESSAGES = new Set([
+  
+  "SessionStore:setupSyncHandler",
+
+  
+  "SessionStore:crashedTabRevived",
+]);
+
+
+
 
 const CLOSED_MESSAGES = new Set([
   
@@ -329,9 +339,6 @@ let SessionStoreInternal = {
   
   
   _restoreCount: -1,
-
-  
-  _nextRestoreEpoch: 1,
 
   
   _browserEpochs: new WeakMap(),
@@ -616,6 +623,19 @@ let SessionStoreInternal = {
                       `from a browser that has no tab`);
     }
 
+    let data = aMessage.data || {};
+    let hasEpoch = data.hasOwnProperty("epoch");
+
+    
+    if (!hasEpoch && !NOEPOCH_MESSAGES.has(aMessage.name)) {
+      throw new Error(`received message '${aMessage.name}' without an epoch`);
+    }
+
+    
+    if (hasEpoch && !this.isCurrentEpoch(browser, data.epoch)) {
+      return;
+    }
+
     switch (aMessage.name) {
       case "SessionStore:setupSyncHandler":
         TabState.setSyncHandler(browser, aMessage.objects.handler);
@@ -681,77 +701,69 @@ let SessionStoreInternal = {
         }
         break;
       case "SessionStore:restoreHistoryComplete":
-        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          
-          let tabData = browser.__SS_data;
+        
+        let tabData = browser.__SS_data;
 
-          
-          
-          let activePageData = tabData.entries[tabData.index - 1] || null;
-          let uri = activePageData ? activePageData.url || null : null;
-          browser.userTypedValue = uri;
+        
+        
+        let activePageData = tabData.entries[tabData.index - 1] || null;
+        let uri = activePageData ? activePageData.url || null : null;
+        browser.userTypedValue = uri;
 
-          
-          if (activePageData) {
-            if (activePageData.title) {
-              tab.label = activePageData.title;
-              tab.crop = "end";
-            } else if (activePageData.url != "about:blank") {
-              tab.label = activePageData.url;
-              tab.crop = "center";
-            }
+        
+        if (activePageData) {
+          if (activePageData.title) {
+            tab.label = activePageData.title;
+            tab.crop = "end";
+          } else if (activePageData.url != "about:blank") {
+            tab.label = activePageData.url;
+            tab.crop = "center";
           }
-
-          
-          if ("image" in tabData) {
-            win.gBrowser.setIcon(tab, tabData.image);
-          }
-
-          let event = win.document.createEvent("Events");
-          event.initEvent("SSTabRestoring", true, false);
-          tab.dispatchEvent(event);
         }
+
+        
+        if ("image" in tabData) {
+          win.gBrowser.setIcon(tab, tabData.image);
+        }
+
+        let event = win.document.createEvent("Events");
+        event.initEvent("SSTabRestoring", true, false);
+        tab.dispatchEvent(event);
         break;
       case "SessionStore:restoreTabContentStarted":
-        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          if (browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
-            
-            
-            this.markTabAsRestoring(tab);
-          } else {
-            
-            
-            
-            
-            let tabData = browser.__SS_data;
-            if (tabData.userTypedValue && !tabData.userTypedClear) {
-              browser.userTypedValue = tabData.userTypedValue;
-              win.URLBarSetURI();
-            }
+        if (browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+          
+          
+          this.markTabAsRestoring(tab);
+        } else {
+          
+          
+          
+          
+          let tabData = browser.__SS_data;
+          if (tabData.userTypedValue && !tabData.userTypedClear) {
+            browser.userTypedValue = tabData.userTypedValue;
+            win.URLBarSetURI();
           }
         }
         break;
       case "SessionStore:restoreTabContentComplete":
-        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          
-          
-          if (gDebuggingEnabled) {
-            Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
-          }
-
-          delete browser.__SS_data;
-
-          SessionStoreInternal._resetLocalTabRestoringState(tab);
-          SessionStoreInternal.restoreNextTab();
-
-          this._sendTabRestoredNotification(tab);
+        
+        
+        if (gDebuggingEnabled) {
+          Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
         }
+
+        delete browser.__SS_data;
+
+        SessionStoreInternal._resetLocalTabRestoringState(tab);
+        SessionStoreInternal.restoreNextTab();
+
+        this._sendTabRestoredNotification(tab);
         break;
       case "SessionStore:reloadPendingTab":
-        if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
-          if (browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
-            this.restoreTabContent(tab);
-          }
+        if (browser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+          this.restoreTabContent(tab);
         }
         break;
       case "SessionStore:crashedTabRevived":
@@ -2795,11 +2807,6 @@ let SessionStoreInternal = {
     delete tabData.closedAt;
 
     
-    
-    
-    TabState.flush(browser);
-
-    
     let activeIndex = (tabData.index || tabData.entries.length) - 1;
     activeIndex = Math.min(activeIndex, tabData.entries.length - 1);
     activeIndex = Math.max(activeIndex, 0);
@@ -2819,8 +2826,7 @@ let SessionStoreInternal = {
     
     
     
-    let epoch = this._nextRestoreEpoch++;
-    this._browserEpochs.set(browser.permanentKey, epoch);
+    let epoch = this.startNextEpoch(browser);
 
     
     
@@ -3607,7 +3613,6 @@ let SessionStoreInternal = {
 
     
     delete browser.__SS_restoreState;
-    this._browserEpochs.delete(browser.permanentKey);
 
     aTab.removeAttribute("pending");
     browser.removeAttribute("pending");
@@ -3638,9 +3643,29 @@ let SessionStoreInternal = {
 
 
 
+  startNextEpoch(browser) {
+    let next = this.getCurrentEpoch(browser) + 1;
+    this._browserEpochs.set(browser.permanentKey, next);
+    return next;
+  },
+
+  
+
+
+
+  getCurrentEpoch(browser) {
+    return this._browserEpochs.get(browser.permanentKey) || 0;
+  },
+
+  
+
+
+
+
+
 
   isCurrentEpoch: function (browser, epoch) {
-    return (this._browserEpochs.get(browser.permanentKey) || 0) == epoch;
+    return this.getCurrentEpoch(browser) == epoch;
   },
 
 };
