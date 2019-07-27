@@ -95,6 +95,9 @@ exports.UI_REQUEST_SIGN_IN_FLOW = "signInFlow";
 exports.UI_REQUEST_REFRESH_AUTH = "refreshAuthentication";
 
 
+exports.FX_OAUTH_CLIENT_ID = "5882386c6d801776";
+
+
 
 exports.ERRNO_ACCOUNT_ALREADY_EXISTS         = 101;
 exports.ERRNO_ACCOUNT_DOES_NOT_EXIST         = 102;

@@ -1757,6 +1757,12 @@ pref("identity.fxaccounts.remote.signin.uri", "https://accounts.firefox.com/sign
 pref("identity.fxaccounts.settings.uri", "https://accounts.firefox.com/settings");
 
 
+pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox.com/v1");
+
+
+pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com/v1");
+
+
 
 #ifdef MOZ_DEV_EDITION
 pref("identity.fxaccounts.migrateToDevEdition", true);
