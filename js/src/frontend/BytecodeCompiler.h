@@ -31,10 +31,15 @@ CompileScript(ExclusiveContext *cx, LifoAlloc *alloc,
 bool
 CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const char16_t *chars, size_t length);
 
+
+
+
+
 bool
 CompileFunctionBody(JSContext *cx, MutableHandleFunction fun,
                     const ReadOnlyCompileOptions &options,
-                    const AutoNameVector &formals, JS::SourceBufferHolder &srcBuf);
+                    const AutoNameVector &formals, JS::SourceBufferHolder &srcBuf,
+                    HandleObject enclosingStaticScope);
 bool
 CompileStarGeneratorBody(JSContext *cx, MutableHandleFunction fun,
                          const ReadOnlyCompileOptions &options,
