@@ -596,7 +596,6 @@ NS_NewInputStreamChannelInternal(nsIChannel**        outChannel,
                                  const nsACString&   aContentCharset,
                                  nsILoadInfo*        aLoadInfo)
 {
-  MOZ_ASSERT(aLoadInfo, "can not create channel without a loadinfo");
   nsresult rv;
   nsCOMPtr<nsIInputStreamChannel> isc =
     do_CreateInstance(NS_INPUTSTREAMCHANNEL_CONTRACTID, &rv);
@@ -623,7 +622,7 @@ NS_NewInputStreamChannelInternal(nsIChannel**        outChannel,
 
   
   
-  if (aLoadInfo->GetLoadingSandboxed()) {
+  if (aLoadInfo && aLoadInfo->GetLoadingSandboxed()) {
     channel->SetOwner(nullptr);
   }
 
