@@ -335,14 +335,14 @@ RecordingModel.prototype = {
         if (!config.withMarkers) { break; }
         let [markers] = data;
         RecordingUtils.offsetMarkerTimes(markers, this._timelineStartTime);
-        Array.prototype.push.apply(this._markers, markers);
+        pushAll(this._markers, markers);
         break;
       }
       
       case "frames": {
         if (!config.withMarkers) { break; }
         let [, frames] = data;
-        Array.prototype.push.apply(this._frames, frames);
+        pushAll(this._frames, frames);
         break;
       }
       
@@ -372,10 +372,10 @@ RecordingModel.prototype = {
         let timeOffset = this._memoryStartTime * 1000;
         let timeScale = 1000;
         RecordingUtils.offsetAndScaleTimestamps(timestamps, timeOffset, timeScale);
-        Array.prototype.push.apply(this._allocations.sites, sites);
-        Array.prototype.push.apply(this._allocations.timestamps, timestamps);
-        Array.prototype.push.apply(this._allocations.frames, frames);
-        Array.prototype.push.apply(this._allocations.counts, counts);
+        pushAll(this._allocations.sites, sites);
+        pushAll(this._allocations.timestamps, timestamps);
+        pushAll(this._allocations.frames, frames);
+        pushAll(this._allocations.counts, counts);
         break;
       }
     }
@@ -383,5 +383,24 @@ RecordingModel.prototype = {
 
   toString: () => "[object RecordingModel]"
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+function pushAll (dest, src) {
+  let length = src.length;
+  for (let i = 0; i < length; i++) {
+    dest.push(src[i]);
+  }
+}
 
 exports.RecordingModel = RecordingModel;
