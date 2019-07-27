@@ -27,8 +27,8 @@ class nsIDOMWindow;
 class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x274840b6, 0x7349, 0x4798, \
-  { 0xbe, 0x24, 0xbd, 0x75, 0xa6, 0x46, 0x99, 0xb7 } }
+{ 0x901f0d5e, 0x217a, 0x45fa, \
+  { 0x9a, 0xca, 0x45, 0x0f, 0xe7, 0x2f, 0x10, 0x9a } }
 
 class nsIOffThreadScriptReceiver;
 
@@ -66,14 +66,6 @@ public:
 
 
   virtual bool IsContextInitialized() = 0;
-
-  
-
-
-
-
-
-  virtual void GC(JS::gcreason::Reason aReason) = 0;
 
   
   
@@ -134,4 +126,3 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIOffThreadScriptReceiver, NS_IOFFTHREADSCRIPTRECEIVER_IID)
 
 #endif 
-
