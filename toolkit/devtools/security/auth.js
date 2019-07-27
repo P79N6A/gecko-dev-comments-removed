@@ -6,6 +6,7 @@
 
 "use strict";
 
+let { Ci } = require("chrome");
 let Services = require("Services");
 loader.lazyRequireGetter(this, "prompt",
   "devtools/toolkit/security/prompt");
@@ -97,6 +98,16 @@ Prompt.Server.prototype = {
 
 
   validateOptions() {},
+
+  
+
+
+
+
+
+
+
+  augmentSocketOptions() {},
 
   
 
@@ -220,15 +231,26 @@ OOBCert.Server.prototype = {
 
 
 
+  augmentSocketOptions(listener, socket) {
+    let requestCert = Ci.nsITLSServerSocket.REQUIRE_ALWAYS;
+    socket.setRequestClientCertificate(requestCert);
+  },
+
+  
+
+
+
+
+
+
+
 
   augmentAdvertisement(listener, advertisement) {
     advertisement.authentication = OOBCert.mode;
     
     
     
-    advertisement.cert = {
-      sha256: listener._socket.serverCert.sha256Fingerprint
-    };
+    advertisement.cert = listener.cert;
   },
 
   
