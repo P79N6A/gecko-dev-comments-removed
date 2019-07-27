@@ -26,6 +26,8 @@
 #include "SourceBufferDecoder.h"
 #include "mozilla/Preferences.h"
 
+#include "WebMBufferedParser.h"
+
 struct JSContext;
 class JSObject;
 
@@ -59,11 +61,21 @@ public:
     return false;
   }
 
+  virtual bool ParseStartAndEndTimestamps(const uint8_t* aData, uint32_t aLength,
+                                          double& aStart, double& aEnd)
+  {
+    return false;
+  }
+
   static ContainerParser* CreateForMIMEType(const nsACString& aType);
 };
 
 class WebMContainerParser : public ContainerParser {
 public:
+  WebMContainerParser()
+    : mTimecodeScale(0)
+  {}
+
   bool IsInitSegmentPresent(const uint8_t* aData, uint32_t aLength)
   {
     ContainerParser::IsInitSegmentPresent(aData, aLength);
@@ -83,6 +95,37 @@ public:
     }
     return false;
   }
+
+  virtual bool ParseStartAndEndTimestamps(const uint8_t* aData, uint32_t aLength,
+                                          double& aStart, double& aEnd)
+  {
+    
+    
+    
+
+    WebMBufferedParser parser(0);
+    if (mTimecodeScale != 0) {
+      parser.SetTimecodeScale(mTimecodeScale);
+    }
+
+    nsTArray<WebMTimeDataOffset> mapping;
+    ReentrantMonitor dummy("dummy");
+    parser.Append(aData, aLength, mapping, dummy);
+
+    mTimecodeScale = parser.GetTimecodeScale();
+
+    if (mapping.IsEmpty()) {
+      return false;
+    }
+
+    static const double NS_PER_S = 1e9;
+    aStart = mapping[0].mTimecode / NS_PER_S;
+    aEnd = mapping.LastElement().mTimecode / NS_PER_S;
+    return true;
+  }
+
+private:
+  uint32_t mTimecodeScale;
 };
 
 class MP4ContainerParser : public ContainerParser {
@@ -352,6 +395,7 @@ SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
   : DOMEventTargetHelper(aMediaSource->GetParentObject())
   , mMediaSource(aMediaSource)
   , mType(aType)
+  , mLastParsedTimestamp(UnspecifiedNaN<double>())
   , mAppendWindowStart(0)
   , mAppendWindowEnd(PositiveInfinity<double>())
   , mTimestampOffset(0)
@@ -364,13 +408,6 @@ SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
   mParser = ContainerParser::CreateForMIMEType(aType);
   MSE_DEBUG("SourceBuffer(%p)::SourceBuffer: Creating initial decoder.", this);
   InitNewDecoder();
-}
-
-already_AddRefed<SourceBuffer>
-SourceBuffer::Create(MediaSource* aMediaSource, const nsACString& aType)
-{
-  nsRefPtr<SourceBuffer> sourceBuffer = new SourceBuffer(aMediaSource, aType);
-  return sourceBuffer.forget();
 }
 
 SourceBuffer::~SourceBuffer()
@@ -504,6 +541,26 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
+  double start, end;
+  if (mParser->ParseStartAndEndTimestamps(aData, aLength, start, end)) {
+    if (start <= mLastParsedTimestamp) {
+      
+      
+      DiscardDecoder();
+
+      
+      
+      if (!InitNewDecoder()) {
+        aRv.Throw(NS_ERROR_FAILURE); 
+        return;
+      }
+      MSE_DEBUG("SourceBuffer(%p)::AppendData: Decoder marked as initialized (%f, %f).",
+                this, start, end);
+      mDecoderInitialized = true;
+    }
+    mLastParsedTimestamp = end;
+    MSE_DEBUG("SourceBuffer(%p)::AppendData: Segment start=%f end=%f", this, start, end);
+  }
   
   mDecoder->NotifyDataArrived(reinterpret_cast<const char*>(aData),
                               aLength,
@@ -520,7 +577,7 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   const uint32_t evict_threshold = 75 * (1 << 20);
   bool evicted = mDecoder->GetResource()->EvictData(evict_threshold);
   if (evicted) {
-    MSE_DEBUG("SourceBuffer(%p)::AppendBuffer Evict; current buffered start=%f",
+    MSE_DEBUG("SourceBuffer(%p)::AppendData Evict; current buffered start=%f",
               this, GetBufferedStart());
 
     
