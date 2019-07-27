@@ -305,7 +305,9 @@ let Scheduler = this.Scheduler = {
         let message = ["Meta_shutdown", [reset]];
 
         Scheduler.latestReceived = [];
-        Scheduler.latestSent = [Date.now(), ...message];
+        Scheduler.latestSent = [Date.now(),
+          Task.Debugging.generateReadableStack(new Error().stack),
+          ...message];
 
         
         let resources;
