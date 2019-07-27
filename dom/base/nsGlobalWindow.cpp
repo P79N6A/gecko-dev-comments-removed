@@ -2266,12 +2266,7 @@ CreateNativeGlobalForInner(JSContext* aCx,
     top = aNewInner->GetTop();
   }
   JS::CompartmentOptions options;
-
-  
-  
-  
   options.setAddonId(MapURIToAddonID(aURI));
-
   if (top) {
     if (top->GetGlobalJSObject()) {
       options.setSameZoneAs(top->GetGlobalJSObject());
