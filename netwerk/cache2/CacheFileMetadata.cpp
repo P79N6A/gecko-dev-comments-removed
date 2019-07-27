@@ -285,7 +285,7 @@ CacheFileMetadata::WriteMetadata(uint32_t aOffset,
   }
 
   rv = CacheFileIOManager::Write(mHandle, aOffset, writeBuffer, p - writeBuffer,
-                                 true, aListener ? this : nullptr);
+                                 true, true, aListener ? this : nullptr);
   if (NS_FAILED(rv)) {
     LOG(("CacheFileMetadata::WriteMetadata() - CacheFileIOManager::Write() "
          "failed synchronously. [this=%p, rv=0x%08x]", this, rv));
@@ -773,6 +773,11 @@ CacheFileMetadata::InitEmptyMetadata()
   mMetaHdr.mKeySize = mKey.Length();
 
   DoMemoryReport(MemoryUsage());
+
+  
+  if (mHandle && mHandle->FileExists() && mHandle->FileSize()) {
+    CacheFileIOManager::TruncateSeekSetEOF(mHandle, 0, 0, nullptr);
+  }
 }
 
 nsresult
