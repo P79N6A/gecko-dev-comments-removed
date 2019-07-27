@@ -1020,6 +1020,8 @@ class JSScript : public js::gc::TenuredCell
     
     bool doNotRelazify_:1;
 
+    bool needsHomeObject_:1;
+
     
     
   protected:
@@ -1283,6 +1285,14 @@ class JSScript : public js::gc::TenuredCell
         MOZ_ASSERT(!isGenerator());
         generatorKindBits_ = GeneratorKindAsBits(kind);
     }
+
+    void setNeedsHomeObject() {
+        needsHomeObject_ = true;
+    }
+    bool needsHomeObject() const {
+        return needsHomeObject_;
+    }
+
 
     
 
