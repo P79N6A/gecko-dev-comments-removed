@@ -23,15 +23,6 @@ public:
                   bool aAuth,
                   bool aEncrypt);
 
-  
-
-
-
-
-
-
-
-
   bool Connect(const nsAString& aDeviceAddress, int aChannel);
 
   
@@ -63,6 +54,11 @@ public:
   inline void GetAddress(nsAString& aDeviceAddress)
   {
     aDeviceAddress = mDeviceAddress;
+  }
+
+  inline void SetAddress(const nsAString& aDeviceAddress)
+  {
+    mDeviceAddress = aDeviceAddress;
   }
 
   void CloseDroidSocket();
