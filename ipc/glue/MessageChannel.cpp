@@ -731,11 +731,19 @@ MessageChannel::SendAndWait(Message* aMsg, Message* aReply)
                 return false;
         }
 
-        if (mPendingUrgentRequest && !ProcessPendingUrgentRequest())
-            return false;
+        
+        
+        
+        
+        while (mPendingUrgentRequest) {
+            if (!ProcessPendingUrgentRequest())
+                return false;
+        }
 
-        if (mPendingRPCCall && !ProcessPendingRPCCall())
-            return false;
+        while (mPendingRPCCall) {
+            if (!ProcessPendingRPCCall())
+                return false;
+        }
 
         if (mRecvd) {
             NS_ABORT_IF_FALSE(mRecvd->is_reply(), "expected reply");
