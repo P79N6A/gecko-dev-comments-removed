@@ -310,7 +310,9 @@ let withBookmarksDialog = Task.async(function* (openFn, taskFn) {
   });
 
   info("withBookmarksDialog: opening the dialog");
-  yield openFn();
+  
+  executeSoon(openFn);
+
   info("withBookmarksDialog: waiting for the dialog");
   let dialogWin = yield dialogPromise;
 

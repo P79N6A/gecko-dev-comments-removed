@@ -10,9 +10,7 @@ add_task(function* () {
     
     yield openContextMenuForContentSelector(browser, 'form > input[name="search"]');
 
-    yield withBookmarksDialog(function*() {
-      AddKeywordForSearchField();
-    }, function* (dialogWin) {
+    yield withBookmarksDialog(AddKeywordForSearchField, function* (dialogWin) {
       let acceptBtn = dialogWin.document.documentElement.getButton("accept");
       ok(acceptBtn.disabled, "Accept button is disabled");
 
