@@ -256,6 +256,10 @@ public:
   
   virtual bool IsAsync() const { return false; }
 
+  
+  
+  virtual bool VideoIsHardwareAccelerated() const { return false; }
+
 protected:
   virtual ~MediaDecoderReader();
 

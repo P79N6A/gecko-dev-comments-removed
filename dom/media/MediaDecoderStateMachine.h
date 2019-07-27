@@ -922,7 +922,8 @@ protected:
   
   
   
-  uint32_t mAmpleVideoFrames;
+  
+  uint32_t GetAmpleVideoFrames() const;
 
   
   
@@ -961,7 +962,11 @@ protected:
     MOZ_ASSERT(result <= mAmpleAudioThresholdUsecs, "Prerolling will never finish");
     return result;
   }
-  uint32_t VideoPrerollFrames() const { return mScheduler->IsRealTime() ? 0 : mAmpleVideoFrames / 2; }
+
+  uint32_t VideoPrerollFrames() const
+  {
+    return mScheduler->IsRealTime() ? 0 : GetAmpleVideoFrames() / 2;
+  }
 
   bool DonePrerollingAudio()
   {
