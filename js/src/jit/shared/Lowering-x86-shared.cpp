@@ -156,8 +156,8 @@ void
 LIRGeneratorX86Shared::lowerMulI(MMul *mul, MDefinition *lhs, MDefinition *rhs)
 {
     
-    
-    LMulI *lir = new(alloc()) LMulI(useRegisterAtStart(lhs), useOrConstant(rhs), use(lhs));
+    LAllocation lhsCopy = mul->canBeNegativeZero() ? use(lhs) : LAllocation();
+    LMulI *lir = new(alloc()) LMulI(useRegisterAtStart(lhs), useOrConstant(rhs), lhsCopy);
     if (mul->fallible())
         assignSnapshot(lir, Bailout_DoubleOutput);
     defineReuseInput(lir, mul, 0);
