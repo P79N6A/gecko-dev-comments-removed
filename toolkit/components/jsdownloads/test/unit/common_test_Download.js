@@ -194,7 +194,8 @@ add_task(function test_basic_tryToKeepPartialData()
 add_task(function test_unix_permissions()
 {
   
-  if (Services.appinfo.OS != "Darwin" && Services.appinfo.OS != "Linux") {
+  if (Services.appinfo.OS != "Darwin" && Services.appinfo.OS != "Linux" &&
+      Services.appinfo.OS != "WINNT") {
     do_print("Skipping test.");
     return;
   }
@@ -228,12 +229,20 @@ add_task(function test_unix_permissions()
           yield promiseDownloadStopped(download);
         }
 
-        
-        
-        
         let isTemporary = launchWhenSucceeded && (autoDelete || isPrivate);
-        do_check_eq((yield OS.File.stat(download.target.path)).unixMode,
-                    isTemporary ? 0o400 : (0o666 & ~OS.Constants.Sys.umask));
+        let stat = yield OS.File.stat(download.target.path);
+        if (Services.appinfo.OS == "WINNT") {
+          
+          
+          do_check_eq(stat.winAttributes.readOnly, isTemporary ? true : false);
+        } else {
+          
+          
+          
+          
+          do_check_eq(stat.unixMode,
+                      isTemporary ? 0o400 : (0o666 & ~OS.Constants.Sys.umask));
+        }
       }
     }
   }

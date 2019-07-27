@@ -645,10 +645,15 @@ this.DownloadIntegration = {
           Services.prefs.getBoolPref("browser.helperApps.deleteTempFileOnExit"));
         
         
-        let unixMode = isTemporaryDownload ? 0o400 : 0o666;
+        let options = {};
+        if (isTemporaryDownload) {
+          options.unixMode = 0o400;
+          options.winAttributes = {readOnly: true};
+        } else {
+          options.unixMode = 0o666;
+        }
         
-        
-        yield OS.File.setPermissions(aDownload.target.path, { unixMode });
+        yield OS.File.setPermissions(aDownload.target.path, options);
       } catch (ex) {
         
         
