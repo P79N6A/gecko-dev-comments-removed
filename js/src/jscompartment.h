@@ -234,7 +234,6 @@ struct JSCompartment
                                 size_t *compartmentTables,
                                 size_t *crossCompartmentWrappers,
                                 size_t *regexpCompartment,
-                                size_t *debuggeesSet,
                                 size_t *savedStacksSet);
 
     
@@ -295,14 +294,11 @@ struct JSCompartment
 
   private:
     enum {
-        DebugFromC = 1 << 0,
-        DebugFromJS = 1 << 1,
-        DebugNeedDelazification = 1 << 2
+        DebugMode = 1 << 0,
+        DebugNeedDelazification = 1 << 1
     };
 
-    static const unsigned DebugModeFromMask = DebugFromC | DebugFromJS;
-
-    unsigned                     debugModeBits;  
+    unsigned                     debugModeBits;
 
   public:
     JSCompartment(JS::Zone *zone, const JS::CompartmentOptions &options);
@@ -382,30 +378,23 @@ struct JSCompartment
     uint64_t rngState;
 
   private:
-    
-
-
-
-    js::GlobalObjectSet              debuggees;
-
-  private:
     JSCompartment *thisForCtor() { return this; }
+
+    
+    bool updateJITForDebugMode(JSContext *maybecx, js::AutoDebugModeInvalidation &invalidate);
 
   public:
     
-
-
-
-
-
-
-
-
-
-
+    
     bool debugMode() const {
-        return !!(debugModeBits & DebugModeFromMask);
+        return !!(debugModeBits & DebugMode);
     }
+
+    bool enterDebugMode(JSContext *cx);
+    bool enterDebugMode(JSContext *cx, js::AutoDebugModeInvalidation &invalidate);
+    bool leaveDebugMode(JSContext *cx);
+    bool leaveDebugMode(JSContext *cx, js::AutoDebugModeInvalidation &invalidate);
+    void leaveDebugModeUnderGC();
 
     
     bool hasScriptsOnStack();
@@ -423,29 +412,6 @@ struct JSCompartment
 
 
     bool ensureDelazifyScriptsForDebugMode(JSContext *cx);
-
-  private:
-
-    
-    bool updateJITForDebugMode(JSContext *maybecx, js::AutoDebugModeInvalidation &invalidate);
-
-  public:
-    js::GlobalObjectSet &getDebuggees() { return debuggees; }
-    bool addDebuggee(JSContext *cx, JS::Handle<js::GlobalObject *> global);
-    bool addDebuggee(JSContext *cx, JS::Handle<js::GlobalObject *> global,
-                     js::AutoDebugModeInvalidation &invalidate);
-    bool removeDebuggee(JSContext *cx, js::GlobalObject *global,
-                        js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
-    bool removeDebuggee(JSContext *cx, js::GlobalObject *global,
-                        js::AutoDebugModeInvalidation &invalidate,
-                        js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
-    void removeDebuggeeUnderGC(js::FreeOp *fop, js::GlobalObject *global,
-                               js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
-    void removeDebuggeeUnderGC(js::FreeOp *fop, js::GlobalObject *global,
-                               js::AutoDebugModeInvalidation &invalidate,
-                               js::GlobalObjectSet::Enum *debuggeesEnum = nullptr);
-    bool setDebugModeFromC(JSContext *cx, bool b,
-                           js::AutoDebugModeInvalidation &invalidate);
 
     void clearBreakpointsIn(js::FreeOp *fop, js::Debugger *dbg, JS::HandleObject handler);
 

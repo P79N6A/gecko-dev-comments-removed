@@ -17,7 +17,7 @@ js::Debugger::onLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool ok)
     
     bool evalTraps = frame.isEvalFrame() &&
                      frame.script()->hasAnyBreakpointsOrStepMode();
-    if (!cx->compartment()->getDebuggees().empty() || evalTraps)
+    if (cx->compartment()->debugMode() || evalTraps)
         ok = slowPathOnLeaveFrame(cx, frame, ok);
     return ok;
 }

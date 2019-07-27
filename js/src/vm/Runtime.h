@@ -1015,9 +1015,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 #endif
 
     
-    bool                debugMode;
-
-    
     js::SPSProfiler     spsProfiler;
 
     
