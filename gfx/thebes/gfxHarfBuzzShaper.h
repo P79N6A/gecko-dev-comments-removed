@@ -130,6 +130,10 @@ protected:
     
     mutable hb_blob_t *mVmtxTable;
     mutable hb_blob_t *mVORGTable;
+    
+    
+    mutable hb_blob_t *mLocaTable;
+    mutable hb_blob_t *mGlyfTable;
 
     
     
@@ -157,6 +161,7 @@ protected:
 
     bool mInitialized;
     bool mVerticalInitialized;
+    bool mLocaLongOffsets;
 };
 
 #endif 
