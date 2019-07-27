@@ -89,8 +89,8 @@ GetJSValFromKeyPathString(JSContext* aCx,
 
   nsString targetObjectPropName;
   JS::Rooted<JSObject*> targetObject(aCx, nullptr);
-  JS::Rooted<JSObject*> obj(aCx,
-    aValue.isPrimitive() ? nullptr : aValue.toObjectOrNull());
+  JS::Rooted<JS::Value> currentVal(aCx, aValue);
+  JS::Rooted<JSObject*> obj(aCx);
 
   while (tokenizer.hasMoreTokens()) {
     const nsDependentSubstring& token = tokenizer.nextToken();
@@ -103,9 +103,18 @@ GetJSValFromKeyPathString(JSContext* aCx,
     bool hasProp;
     if (!targetObject) {
       
-      if (!obj) {
+      
+      
+      if (currentVal.isString() && !tokenizer.hasMoreTokens() &&
+          token.EqualsLiteral("length") && aOptions == DoNotCreateProperties) {
+        aKeyJSVal->setNumber(double(JS_GetStringLength(currentVal.toString())));
+        break;
+      }
+
+      if (!currentVal.isObject()) {
         return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
       }
+      obj = &currentVal.toObject();
 
       bool ok = JS_HasUCProperty(aCx, obj, keyPathChars, keyPathLen,
                                  &hasProp);
@@ -123,10 +132,7 @@ GetJSValFromKeyPathString(JSContext* aCx,
         }
         if (tokenizer.hasMoreTokens()) {
           
-          if (intermediate.isPrimitive()) {
-            return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
-          }
-          obj = intermediate.toObjectOrNull();
+          currentVal = intermediate;
         }
         else {
           
