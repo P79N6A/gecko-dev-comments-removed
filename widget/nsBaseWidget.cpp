@@ -46,6 +46,8 @@
 #include "mozilla/VsyncDispatcher.h"
 #include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/ChromeProcessController.h"
+#include "mozilla/layers/InputAPZContext.h"
+#include "mozilla/dom/TabParent.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -938,6 +940,27 @@ void nsBaseWidget::ConfigureAPZCTreeManager()
   if (controller) {
     CompositorParent::SetControllerForLayerTree(rootLayerTreeId, controller);
   }
+}
+
+nsEventStatus
+nsBaseWidget::DispatchEventForAPZ(WidgetGUIEvent* aEvent,
+                                  const ScrollableLayerGuid& aGuid,
+                                  uint64_t aInputBlockId)
+{
+  InputAPZContext context(aGuid, aInputBlockId);
+
+  nsEventStatus status;
+  DispatchEvent(aEvent, status);
+
+  if (mAPZC && !context.WasRoutedToChildProcess()) {
+    
+    
+    
+    mAPZC->SetTargetAPZC(aInputBlockId, aGuid);
+    mAPZC->ContentReceivedInputBlock(aInputBlockId, aEvent->mFlags.mDefaultPrevented);
+  }
+
+  return status;
 }
 
 void

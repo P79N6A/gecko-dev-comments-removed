@@ -2150,6 +2150,11 @@ TabParent::MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
     if (aOutInputBlockId) {
       *aOutInputBlockId = InputAPZContext::GetInputBlockId();
     }
+
+    
+    
+    InputAPZContext::SetRoutedToChildProcess();
+
     return nsEventStatus_eIgnore;
   }
 
