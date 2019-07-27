@@ -75,7 +75,7 @@ public:
 
 private:
   
-  BackgroundFactoryChild(IDBFactory* aFactory);
+  explicit BackgroundFactoryChild(IDBFactory* aFactory);
 
   
   ~BackgroundFactoryChild();
@@ -143,7 +143,7 @@ public:
   }
 
 protected:
-  BackgroundRequestChildBase(IDBRequest* aRequest);
+  explicit BackgroundRequestChildBase(IDBRequest* aRequest);
 
   virtual
   ~BackgroundRequestChildBase();
@@ -354,7 +354,7 @@ public:
 
 protected:
   BackgroundTransactionBase();
-  BackgroundTransactionBase(IDBTransaction* aTransaction);
+  explicit BackgroundTransactionBase(IDBTransaction* aTransaction);
 
   virtual
   ~BackgroundTransactionBase();
@@ -389,7 +389,7 @@ public:
 
 private:
   
-  BackgroundTransactionChild(IDBTransaction* aTransaction);
+  explicit BackgroundTransactionChild(IDBTransaction* aTransaction);
 
   
   ~BackgroundTransactionChild();
@@ -438,7 +438,7 @@ public:
 
 private:
   
-  BackgroundVersionChangeTransactionChild(IDBOpenDBRequest* aOpenDBRequest);
+  explicit BackgroundVersionChangeTransactionChild(IDBOpenDBRequest* aOpenDBRequest);
 
   
   ~BackgroundVersionChangeTransactionChild();
@@ -486,7 +486,7 @@ class BackgroundRequestChild MOZ_FINAL
   nsTArray<nsRefPtr<FileInfo>> mFileInfos;
 
 public:
-  BackgroundRequestChild(IDBRequest* aRequest);
+  explicit BackgroundRequestChild(IDBRequest* aRequest);
 
   void
   HoldFileInfosUntilComplete(nsTArray<nsRefPtr<FileInfo>>& aFileInfos);

@@ -68,7 +68,7 @@ struct StructuredCloneReadInfo
 
   
   inline
-  StructuredCloneReadInfo(SerializedStructuredCloneReadInfo&& aOther);
+  MOZ_IMPLICIT StructuredCloneReadInfo(SerializedStructuredCloneReadInfo&& aOther);
 };
 
 } 

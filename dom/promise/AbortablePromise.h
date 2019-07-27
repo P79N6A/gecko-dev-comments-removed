@@ -38,7 +38,7 @@ protected:
 
   
   
-  AbortablePromise(nsIGlobalObject* aGlobal);
+  explicit AbortablePromise(nsIGlobalObject* aGlobal);
 
   virtual ~AbortablePromise();
 
