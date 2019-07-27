@@ -49,7 +49,6 @@ public:
     , mIsDetached(false)
     , mMaySpanAnonymousSubtrees(false)
     , mInSelection(false)
-    , mIsGenerated(false)
     , mStartOffsetWasIncremented(false)
     , mEndOffsetWasIncremented(false)
     , mEnableGravitationOnElementRemoval(true)
@@ -152,27 +151,6 @@ public:
     } else {
       UnregisterCommonAncestor(commonAncestor);
     }
-  }
-
-  
-
-
-
-  bool IsGenerated() const
-  {
-    return mIsGenerated;
-  }
-
-  
-
-
-
-
-
-
-  void SetIsGenerated(bool aIsGenerated)
-  {
-    mIsGenerated = aIsGenerated;
   }
 
   nsINode* GetCommonAncestor() const;
@@ -355,7 +333,6 @@ protected:
   bool mIsDetached;
   bool mMaySpanAnonymousSubtrees;
   bool mInSelection;
-  bool mIsGenerated;
   bool mStartOffsetWasIncremented;
   bool mEndOffsetWasIncremented;
   bool mEnableGravitationOnElementRemoval;
