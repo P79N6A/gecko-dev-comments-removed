@@ -18,6 +18,7 @@
 #include "jit/ExecutableAllocator.h"
 #include "jit/IonOptimizationLevels.h"
 #include "jit/IonTypes.h"
+#include "js/UbiNode.h"
 
 namespace js {
 
@@ -811,5 +812,14 @@ IsMarked(const jit::VMFunction *)
 } 
 
 } 
+
+namespace JS {
+namespace ubi {
+
+
+
+template<> struct Concrete<js::jit::JitCode> : TracerConcrete<js::jit::JitCode> { };
+}
+}
 
 #endif 
