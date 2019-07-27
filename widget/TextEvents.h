@@ -190,7 +190,20 @@ public:
 
   static void Shutdown();
 
+  
+
+
+
+
   static uint32_t ComputeLocationFromCodeValue(CodeNameIndex aCodeNameIndex);
+
+  
+
+
+
+
+
+  static uint32_t ComputeKeyCodeFromKeyNameIndex(KeyNameIndex aKeyNameIndex);
 
   static void GetDOMKeyName(KeyNameIndex aKeyNameIndex,
                             nsAString& aKeyName);

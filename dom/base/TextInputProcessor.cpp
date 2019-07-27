@@ -448,6 +448,38 @@ TextInputProcessor::PrepareKeyboardEventToDispatch(
     aKeyboardEvent.GetDOMKeyName(aKeyboardEvent.mKeyValue);
     aKeyboardEvent.mKeyNameIndex = KEY_NAME_INDEX_USE_STRING;
   }
+  if (aKeyFlags & KEY_KEEP_KEY_LOCATION_STANDARD) {
+    
+    
+    
+    if (NS_WARN_IF(aKeyboardEvent.location)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+  } else if (!aKeyboardEvent.location) {
+    
+    
+    aKeyboardEvent.location =
+      WidgetKeyboardEvent::ComputeLocationFromCodeValue(
+        aKeyboardEvent.mCodeNameIndex);
+  }
+
+  if (aKeyFlags & KEY_KEEP_KEYCODE_ZERO) {
+    
+    
+    
+    if (NS_WARN_IF(aKeyboardEvent.keyCode)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+  } else if (!aKeyboardEvent.keyCode &&
+             aKeyboardEvent.mKeyNameIndex > KEY_NAME_INDEX_Unidentified &&
+             aKeyboardEvent.mKeyNameIndex < KEY_NAME_INDEX_USE_STRING) {
+    
+    
+    
+    aKeyboardEvent.keyCode =
+      WidgetKeyboardEvent::ComputeKeyCodeFromKeyNameIndex(
+        aKeyboardEvent.mKeyNameIndex);
+  }
   return NS_OK;
 }
 
