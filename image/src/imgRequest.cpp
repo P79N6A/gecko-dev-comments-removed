@@ -589,34 +589,6 @@ imgRequest::CacheChanged(nsIRequest* aNewRequest)
   return true;
 }
 
-nsresult
-imgRequest::RequestDecode()
-{
-  
-  if (mImage) {
-    return mImage->RequestDecode();
-  }
-
-  
-  mDecodeRequested = true;
-
-  return NS_OK;
-}
-
-nsresult
-imgRequest::StartDecoding()
-{
-  
-  if (mImage) {
-    return mImage->StartDecoding();
-  }
-
-  
-  mDecodeRequested = true;
-
-  return NS_OK;
-}
-
 
 
 
