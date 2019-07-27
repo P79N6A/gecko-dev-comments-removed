@@ -97,6 +97,13 @@ public:
 
     
 
+    static void ApplyCallbackTransform(WidgetTouchEvent& aEvent,
+                                       const ScrollableLayerGuid& aGuid,
+                                       const CSSToLayoutDeviceScale& aScale,
+                                       float aPresShellResolution);
+
+    
+
 
     static nsEventStatus DispatchWidgetEvent(WidgetGUIEvent& aEvent);
 
