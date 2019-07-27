@@ -126,7 +126,8 @@ GMPParent::VideoDecoderDestroyed(GMPVideoDecoderParent* aDecoder)
 {
   MOZ_ASSERT(GMPThread() == NS_GetCurrentThread());
 
-  MOZ_ALWAYS_TRUE(mVideoDecoders.RemoveElement(aDecoder));
+  
+  NS_WARN_IF(!mVideoDecoders.RemoveElement(aDecoder));
 
   
   
@@ -139,7 +140,8 @@ GMPParent::VideoEncoderDestroyed(GMPVideoEncoderParent* aEncoder)
 {
   MOZ_ASSERT(GMPThread() == NS_GetCurrentThread());
 
-  MOZ_ALWAYS_TRUE(mVideoEncoders.RemoveElement(aEncoder));
+  
+  NS_WARN_IF(!mVideoEncoders.RemoveElement(aEncoder));
 
   
   
