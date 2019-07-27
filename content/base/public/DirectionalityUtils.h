@@ -82,9 +82,17 @@ void WalkDescendantsClearAncestorDirAuto(mozilla::dom::Element* aElement);
 
 
 
-void SetDirectionFromChangedTextNode(nsIContent* aTextNode, uint32_t aOffset,
-                                     const char16_t* aBuffer, uint32_t aLength,
-                                     bool aNotify);
+
+
+bool TextNodeWillChangeDirection(nsIContent* aTextNode, Directionality* aOldDir,
+                                 uint32_t aOffset);
+
+
+
+
+
+void TextNodeChangedDirection(nsIContent* aTextNode, Directionality aOldDir,
+                              bool aNotify);
 
 
 
