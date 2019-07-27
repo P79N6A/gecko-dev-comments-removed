@@ -22,7 +22,6 @@
 
 
 
-#include "pkix/bind.h"
 #include "pkixutil.h"
 
 namespace mozilla { namespace pkix {
@@ -140,9 +139,12 @@ BackCert::Init()
     }
   }
 
-  rv = der::OptionalExtensions(tbsCertificate, CSC | 3,
-                               bind(&BackCert::RememberExtension, *this, _1,
-                                    _2, _3, _4));
+  rv = der::OptionalExtensions(
+         tbsCertificate, CSC | 3,
+         [this](Reader& extnID, const Input& extnValue, bool critical,
+                 bool& understood) {
+           return RememberExtension(extnID, extnValue, critical, understood);
+         });
   if (rv != Success) {
     return rv;
   }
@@ -178,10 +180,8 @@ BackCert::Init()
   return der::End(tbsCertificate);
 }
 
-
-
 Result
-BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
+BackCert::RememberExtension(Reader& extnID, Input extnValue,
                             bool critical,  bool& understood)
 {
   understood = false;
