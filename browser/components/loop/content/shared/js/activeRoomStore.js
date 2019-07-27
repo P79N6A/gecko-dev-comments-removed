@@ -140,7 +140,7 @@ loop.store.ActiveRoomStore = (function() {
         "remotePeerConnected",
         "windowUnload",
         "leaveRoom",
-        "resetRoom"
+        "feedbackComplete"
       ]);
     },
 
@@ -455,7 +455,9 @@ loop.store.ActiveRoomStore = (function() {
     
 
 
-    resetRoom: function() {
+    feedbackComplete: function() {
+      
+      
       this.setStoreState(this.getInitialStoreState());
     }
   });
