@@ -697,7 +697,6 @@ CompareRangeWithContentOffset(nsRange* aRange,
                          true,
                          true,  
                          false,
-                         false,
                          false);
   nsresult rv = theFrame->PeekOffset(&pos);
   if (NS_FAILED(rv)) {
