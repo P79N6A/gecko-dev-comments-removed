@@ -129,6 +129,11 @@ class MessageChannel : HasResultCodes
 
     bool CanSend() const;
 
+    
+    ChannelState GetChannelState__TotallyRacy() const {
+        return mChannelState;
+    }
+
     void SetReplyTimeoutMs(int32_t aTimeoutMs);
 
     bool IsOnCxxStack() const {

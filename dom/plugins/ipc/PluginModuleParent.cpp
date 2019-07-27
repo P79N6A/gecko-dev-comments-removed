@@ -135,7 +135,7 @@ mozilla::plugins::SetupBridge(uint32_t aPluginId,
         
         
         nsAutoCString error;
-        error.AppendPrintf("%X", *rv);
+        error.AppendPrintf("%X %d", *rv, chromeParent->GetIPCChannel()->GetChannelState__TotallyRacy());
         CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("BridgePluginError"), error);
 #endif
       return false;
