@@ -1173,7 +1173,9 @@ toolbarpaletteitem[dragover] {
 
 toolbarpaletteitem[place="palette"] {
   width: 10em;
-  height: calc(40px + 2em);
+  
+
+  height: calc(50px + 1.5em);
   margin-bottom: 5px;
   overflow: hidden;
   display: inline-block;
