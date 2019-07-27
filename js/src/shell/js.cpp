@@ -72,6 +72,7 @@
 #include "vm/HelperThreads.h"
 #include "vm/Monitor.h"
 #include "vm/Shape.h"
+#include "vm/SharedArrayObject.h"
 #include "vm/TypedArrayObject.h"
 #include "vm/WrapperObject.h"
 
@@ -4252,6 +4253,93 @@ IsLatin1(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static PRLock *sharedArrayBufferMailboxLock;
+static SharedArrayRawBuffer *sharedArrayBufferMailbox;
+
+static bool
+InitSharedArrayBufferMailbox()
+{
+    sharedArrayBufferMailboxLock = PR_NewLock();
+    return sharedArrayBufferMailboxLock != nullptr;
+}
+
+static void
+DestructSharedArrayBufferMailbox()
+{
+    
+    if (sharedArrayBufferMailbox)
+        sharedArrayBufferMailbox->dropReference();
+    PR_DestroyLock(sharedArrayBufferMailboxLock);
+}
+
+static bool
+GetSharedArrayBuffer(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JSObject *newObj = nullptr;
+    bool rval = true;
+
+    PR_Lock(sharedArrayBufferMailboxLock);
+    SharedArrayRawBuffer *buf = sharedArrayBufferMailbox;
+    if (buf) {
+        buf->addReference();
+        newObj = SharedArrayBufferObject::New(cx, buf);
+        if (!newObj) {
+            buf->dropReference();
+            rval = false;
+        }
+    }
+    PR_Unlock(sharedArrayBufferMailboxLock);
+
+    args.rval().setObjectOrNull(newObj);
+    return rval;
+}
+
+static bool
+SetSharedArrayBuffer(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    SharedArrayRawBuffer *newBuffer = nullptr;
+
+    if (argc == 0 || args.get(0).isNullOrUndefined()) {
+        
+    }
+    else if (args.get(0).isObject() && args[0].toObject().is<SharedArrayBufferObject>()) {
+        newBuffer = args[0].toObject().as<SharedArrayBufferObject>().rawBufferObject();
+        newBuffer->addReference();
+    } else {
+        JS_ReportError(cx, "Only a SharedArrayBuffer can be installed in the global mailbox");
+        return false;
+    }
+
+    PR_Lock(sharedArrayBufferMailboxLock);
+    SharedArrayRawBuffer *oldBuffer = sharedArrayBufferMailbox;
+    if (oldBuffer)
+        oldBuffer->dropReference();
+    sharedArrayBufferMailbox = newBuffer;
+    PR_Unlock(sharedArrayBufferMailboxLock);
+
+    args.rval().setUndefined();
+    return true;
+}
+
 static const JSFunctionSpecWithHelp shell_functions[] = {
     JS_FN_HELP("version", Version, 0, 0,
 "version([number])",
@@ -4444,6 +4532,18 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
     JS_FN_HELP("evalInWorker", EvalInWorker, 1, 0,
 "evalInWorker(str)",
 "  Evaluate 'str' in a separate thread with its own runtime.\n"),
+
+    JS_FN_HELP("getSharedArrayBuffer", GetSharedArrayBuffer, 0, 0,
+"getSharedArrayBuffer()",
+"  Retrieve the SharedArrayBuffer object from the cross-worker mailbox.\n"
+"  The object retrieved may not be identical to the object that was\n"
+"  installed, but it references the same shared memory.\n"
+"  getSharedArrayBuffer performs an ordering memory barrier.\n"),
+
+    JS_FN_HELP("setSharedArrayBuffer", SetSharedArrayBuffer, 0, 0,
+"setSharedArrayBuffer()",
+"  Install the SharedArrayBuffer object in the cross-worker mailbox.\n"
+"  setSharedArrayBuffer performs an ordering memory barrier.\n"),
 
     JS_FN_HELP("shapeOf", ShapeOf, 1, 0,
 "shapeOf(obj)",
@@ -6014,6 +6114,9 @@ main(int argc, char **argv, char **envp)
     if (!JS_Init())
         return 1;
 
+    if (!InitSharedArrayBufferMailbox())
+        return 1;
+
     
     
     int32_t threadCount = op.getIntOption("thread-count");
@@ -6096,6 +6199,8 @@ main(int argc, char **argv, char **envp)
     MOZ_ASSERT_IF(!CanUseExtraThreads(), workerThreads.empty());
     for (size_t i = 0; i < workerThreads.length(); i++)
         PR_JoinThread(workerThreads[i]);
+
+    DestructSharedArrayBufferMailbox();
 
     JS_DestroyRuntime(rt);
     JS_ShutDown();
