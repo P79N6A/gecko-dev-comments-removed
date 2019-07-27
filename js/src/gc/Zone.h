@@ -24,24 +24,6 @@ namespace jit {
 class JitZone;
 }
 
-
-
-class Allocator
-{
-  public:
-    explicit Allocator(JS::Zone *zone);
-
-    js::gc::ArenaLists arenas;
-
-  private:
-    
-    
-    
-    friend class js::gc::GCRuntime;
-
-    JS::Zone *zone_;
-};
-
 namespace gc {
 
 
@@ -255,7 +237,7 @@ struct Zone : public JS::shadow::Zone,
     }
 
   public:
-    js::Allocator allocator;
+    js::gc::ArenaLists arenas;
 
     js::types::TypeZone types;
 
