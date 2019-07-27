@@ -7480,7 +7480,7 @@ CodeGenerator::link(JSContext *cx, CompilerConstraintList *constraints)
     } else {
         
         JitcodeGlobalEntry::DummyEntry entry;
-        entry.init(code, code->raw(), code->rawEnd());
+        entry.init(code->raw(), code->rawEnd());
 
         
         JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();

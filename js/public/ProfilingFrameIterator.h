@@ -34,7 +34,6 @@ namespace JS {
 class JS_PUBLIC_API(ProfilingFrameIterator)
 {
     JSRuntime *rt_;
-    uint32_t sampleBufferGen_;
     js::Activation *activation_;
 
     
@@ -69,10 +68,6 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
 
     void settle();
 
-    bool hasSampleBufferGen() const {
-        return sampleBufferGen_ != UINT32_MAX;
-    }
-
   public:
     struct RegisterState
     {
@@ -82,8 +77,7 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
         void *lr;
     };
 
-    ProfilingFrameIterator(JSRuntime *rt, const RegisterState &state,
-                           uint32_t sampleBufferGen = UINT32_MAX);
+    ProfilingFrameIterator(JSRuntime *rt, const RegisterState &state);
     ~ProfilingFrameIterator();
     void operator++();
     bool done() const { return !activation_; }
@@ -122,18 +116,6 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     bool isAsmJS() const;
     bool isJit() const;
 };
-
-
-
-
-
-
-
-
-
-JS_FRIEND_API(void)
-UpdateJSRuntimeProfilerSampleBufferGen(JSRuntime *runtime, uint32_t generation,
-                                       uint32_t lapCount);
 
 } 
 
