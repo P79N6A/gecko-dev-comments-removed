@@ -30,8 +30,8 @@ const kTestURL = 'data:application/json,' + JSON.stringify(kURLData);
 
 const kLocalePref = DirectoryLinksProvider._observedPrefs.prefSelectedLocale;
 const kSourceUrlPref = DirectoryLinksProvider._observedPrefs.linksURL;
-const kReportClickUrlPref = "browser.newtabpage.directory.reportClickEndPoint";
-const kTelemetryEnabledPref = "toolkit.telemetry.enabled";
+const kPingUrlPref = "browser.newtabpage.directory.ping";
+const kNewtabEnhancedPref = "browser.newtabpage.enhanced";
 
 
 var server;
@@ -39,16 +39,16 @@ const kDefaultServerPort = 9000;
 const kBaseUrl = "http://localhost:" + kDefaultServerPort;
 const kExamplePath = "/exampleTest/";
 const kFailPath = "/fail/";
-const kReportClickPath = "/reportClick/";
+const kPingPath = "/ping/";
 const kExampleURL = kBaseUrl + kExamplePath;
 const kFailURL = kBaseUrl + kFailPath;
-const kReportClickUrl = kBaseUrl + kReportClickPath;
+const kPingUrl = kBaseUrl + kPingPath;
 
 
 Services.prefs.setCharPref(kLocalePref, "en-US");
 Services.prefs.setCharPref(kSourceUrlPref, kTestURL);
-Services.prefs.setCharPref(kReportClickUrlPref, kReportClickUrl);
-Services.prefs.setBoolPref(kTelemetryEnabledPref, true);
+Services.prefs.setCharPref(kPingUrlPref, kPingUrl);
+Services.prefs.setBoolPref(kNewtabEnhancedPref, true);
 
 const kHttpHandlerData = {};
 kHttpHandlerData[kExamplePath] = {"en-US": [{"url":"http://example.com","title":"RemoteSource"}]};
@@ -171,29 +171,116 @@ function run_test() {
     DirectoryLinksProvider.reset();
     Services.prefs.clearUserPref(kLocalePref);
     Services.prefs.clearUserPref(kSourceUrlPref);
-    Services.prefs.clearUserPref(kReportClickUrlPref);
-    Services.prefs.clearUserPref(kTelemetryEnabledPref);
+    Services.prefs.clearUserPref(kPingUrlPref);
+    Services.prefs.clearUserPref(kNewtabEnhancedPref);
   });
 }
 
-add_task(function test_reportLinkAction() {
-  let link = 1;
-  let action = "click";
-  let tile = 2;
-  let score = 3;
-  let pin = 1;
-  let expectedQuery = "list=&link=1&action=click&tile=2&score=3&pin=1"
-  let expectedPath = kReportClickPath;
+add_task(function test_reportSitesAction() {
+  yield DirectoryLinksProvider.init();
+  let deferred, expectedPath, expectedPost;
+  let done = false;
+  server.registerPrefixHandler(kPingPath, (aRequest, aResponse) => {
+    if (done) {
+      return;
+    }
 
-  let deferred = Promise.defer();
-  server.registerPrefixHandler(kReportClickPath, (aRequest, aResponse) => {
     do_check_eq(aRequest.path, expectedPath);
-    do_check_eq(aRequest.queryString, expectedQuery);
+
+    let bodyStream = new BinaryInputStream(aRequest.bodyInputStream);
+    let bodyObject = JSON.parse(NetUtil.readInputStreamToString(bodyStream, bodyStream.available()));
+    isIdentical(bodyObject, expectedPost);
+
     deferred.resolve();
   });
 
-  DirectoryLinksProvider.reportLinkAction({directoryIndex: link, frecency: score}, action, tile, pin);
-  return deferred.promise;
+  function sendPingAndTest(path, action, index) {
+    deferred = Promise.defer();
+    expectedPath = kPingPath + path;
+    DirectoryLinksProvider.reportSitesAction(sites, action, index);
+    return deferred.promise;
+  }
+
+  
+  let sites = [,,{
+    isPinned: _ => true,
+    link: {
+      directoryId: 1,
+      frecency: 30000,
+      url: "http://directory1/",
+    },
+  }];
+
+  
+  
+  expectedPost = JSON.parse(JSON.stringify({
+    click: 0,
+    locale: "en-US",
+    tiles: [{
+      id: 1,
+      pin: 1,
+      pos: 2,
+      score: 3,
+      url: undefined,
+    }],
+  }));
+  yield sendPingAndTest("click", "click", 2);
+
+  
+  delete expectedPost.click;
+  expectedPost.pin = 0;
+  yield sendPingAndTest("click", "pin", 2);
+
+  
+  delete expectedPost.pin;
+  expectedPost.block = 0;
+  yield sendPingAndTest("click", "block", 2);
+
+  
+  delete expectedPost.block;
+  expectedPost.view = 0;
+  yield sendPingAndTest("view", "view", 2);
+
+  
+  delete sites[2].link.directoryId;
+  delete expectedPost.tiles[0].id;
+  yield sendPingAndTest("view", "view", 2);
+
+  
+  sites[0] = {
+    isPinned: _ => false,
+    link: {
+      directoryId: 1234,
+      frecency: 1000,
+      url: "http://directory/",
+    }
+  };
+  expectedPost.tiles.unshift(JSON.parse(JSON.stringify({
+    id: 1234,
+    pin: undefined,
+    pos: undefined,
+    score: undefined,
+    url: undefined,
+  })));
+  expectedPost.view = 1;
+  yield sendPingAndTest("view", "view", 2);
+
+  
+  sites[2].enhancedId = "id from enhanced";
+  expectedPost.tiles[1].id = "id from enhanced";
+  expectedPost.tiles[1].url = sites[2].link.url;
+  yield sendPingAndTest("view", "view", 2);
+
+  
+  delete expectedPost.view;
+  expectedPost.click = 0;
+  yield sendPingAndTest("click", "click", 0);
+
+  
+  expectedPost.click = 1;
+  yield sendPingAndTest("click", "click", 2);
+
+  done = true;
 });
 
 add_task(function test_fetchAndCacheLinks_local() {
@@ -287,7 +374,7 @@ add_task(function test_linksURL_locale() {
 
   links = yield fetchData();
   do_check_eq(links.length, 1);
-  expected_data = [{url: "http://example.com", title: "US", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1, directoryIndex: 0}];
+  expected_data = [{url: "http://example.com", title: "US", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1}];
   isIdentical(links, expected_data);
 
   yield promiseDirectoryDownloadOnPrefChange("general.useragent.locale", "zh-CN");
@@ -295,8 +382,8 @@ add_task(function test_linksURL_locale() {
   links = yield fetchData();
   do_check_eq(links.length, 2)
   expected_data = [
-    {url: "http://example.net", title: "CN", frecency: DIRECTORY_FRECENCY, lastVisitDate: 2, directoryIndex: 0},
-    {url: "http://example.net/2", title: "CN2", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1, directoryIndex: 1}
+    {url: "http://example.net", title: "CN", frecency: DIRECTORY_FRECENCY, lastVisitDate: 2},
+    {url: "http://example.net/2", title: "CN2", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1}
   ];
   isIdentical(links, expected_data);
 
@@ -308,7 +395,7 @@ add_task(function test_DirectoryLinksProvider__prefObserver_url() {
 
   let links = yield fetchData();
   do_check_eq(links.length, 1);
-  let expectedData =  [{url: "http://example.com", title: "LocalSource", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1, directoryIndex: 0}];
+  let expectedData =  [{url: "http://example.com", title: "LocalSource", frecency: DIRECTORY_FRECENCY, lastVisitDate: 1}];
   isIdentical(links, expectedData);
 
   
@@ -412,7 +499,7 @@ add_task(function test_DirectoryLinksProvider_fetchDirectoryOnPrefChange() {
   yield promiseCleanDirectoryLinksProvider();
 });
 
-add_task(function test_DirectoryLinksProvider_fetchDirectoryOnShowCount() {
+add_task(function test_DirectoryLinksProvider_fetchDirectoryOnShow() {
   yield promiseSetupDirectoryLinksProvider();
 
   
@@ -420,23 +507,8 @@ add_task(function test_DirectoryLinksProvider_fetchDirectoryOnShowCount() {
   do_check_true(DirectoryLinksProvider._needsDownload);
 
   
-  let directoryCount = {sponsored: 0};
-  yield DirectoryLinksProvider.reportShownCount(directoryCount);
-  
-  do_check_eq(DirectoryLinksProvider._lastDownloadMS, 0);
-
-  
-  directoryCount.sponsored = 1;
-  yield DirectoryLinksProvider.reportShownCount(directoryCount);
+  yield DirectoryLinksProvider.reportSitesAction([], "view");
   do_check_true(DirectoryLinksProvider._lastDownloadMS != 0);
-
-  
-  expectedBodyObject.directoryCount = directoryCount;
-  
-  
-  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, kExampleURL);
-  
-  delete expectedBodyObject.directoryCount;
 
   yield promiseCleanDirectoryLinksProvider();
 });
@@ -516,4 +588,31 @@ add_task(function test_DirectoryLinksProvider_getEnhancedLink() {
   do_check_eq(links.length, 1);
   checkEnhanced("http://example.net", undefined);
   checkEnhanced("http://example.com", "fresh");
+});
+
+add_task(function test_DirectoryLinksProvider_setDefaultEnhanced() {
+  function checkDefault(expected) {
+    Services.prefs.clearUserPref(kNewtabEnhancedPref);
+    do_check_eq(Services.prefs.getBoolPref(kNewtabEnhancedPref), expected);
+  }
+
+  
+  Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
+  Services.prefs.clearUserPref("privacy.donottrackheader.value");
+  checkDefault(true);
+
+  
+  Services.prefs.setBoolPref("privacy.donottrackheader.enabled", true);
+  checkDefault(false);
+
+  
+  Services.prefs.setIntPref("privacy.donottrackheader.value", 0);
+  checkDefault(true);
+
+  
+  Services.prefs.clearUserPref("privacy.donottrackheader.enabled");
+  checkDefault(true);
+
+  
+  Services.prefs.clearUserPref("privacy.donottrackheader.value");
 });

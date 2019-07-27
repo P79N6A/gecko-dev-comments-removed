@@ -26,6 +26,7 @@ let gWindow = window;
 
 
 let gDirectorySource = 'data:application/json,{"test":1}';
+let gOrigDirectorySource;
 
 
 
@@ -88,7 +89,7 @@ registerCleanupFunction(function () {
   }
 
   Services.prefs.clearUserPref(PREF_NEWTAB_ENABLED);
-  Services.prefs.clearUserPref(PREF_NEWTAB_DIRECTORYSOURCE);
+  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gOrigDirectorySource);
 
   return watchLinksChangeOnce();
 });
@@ -119,6 +120,9 @@ function test() {
     
     whenPagesUpdated(() => TestRunner.run(), true);
   });
+
+  
+  gOrigDirectorySource = Services.prefs.getCharPref(PREF_NEWTAB_DIRECTORYSOURCE);
   Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gDirectorySource);
 }
 

@@ -15,37 +15,39 @@ gDirectorySource = "data:application/json," + JSON.stringify({
 
 function runTests() {
   Services.prefs.setBoolPref(PRELOAD_PREF, false);
-  yield addNewTabPageTab();
 
-  let originalReportLinkAction  = DirectoryLinksProvider.reportLinkAction;
+  let originalReportSitesAction  = DirectoryLinksProvider.reportSitesAction;
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref(PRELOAD_PREF);
-    DirectoryLinksProvider.reportLinkAction = originalReportLinkAction;
+    DirectoryLinksProvider.reportSitesAction = originalReportSitesAction;
   });
 
   let expected = {};
-  DirectoryLinksProvider.reportLinkAction = function(link, action, tileIndex, pinned) {
+  DirectoryLinksProvider.reportSitesAction = function(sites, action, siteIndex) {
+    let {link} = sites[siteIndex];
     is(link.type, expected.type, "got expected type");
-    is(link.directoryIndex, expected.link, "got expected link index");
     is(action, expected.action, "got expected action");
-    is(tileIndex, expected.tile, "got expected tile index");
-    is(pinned, expected.pinned, "got expected pinned");
+    is(NewTabUtils.pinnedLinks.isPinned(link), expected.pinned, "got expected pinned");
     executeSoon(TestRunner.next);
   }
 
   
+  expected.type = "sponsored";
+  expected.action = "view";
+  expected.pinned = false;
+  yield addNewTabPageTab();
+  yield null; 
+
+  
   let siteNode = getCell(1).node.querySelector(".newtab-site");
   let pinButton = siteNode.querySelector(".newtab-control-pin");
-  expected.type = "sponsored";
-  expected.link = 1;
   expected.action = "pin";
-  expected.tile = 1;
-  expected.pinned = false;
+  expected.pinned = true;
   yield EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
 
   
   expected.action = "unpin";
-  expected.pinned = true;
+  expected.pinned = false;
   yield EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
   yield whenPagesUpdated();
 
@@ -53,16 +55,13 @@ function runTests() {
   let blockedSite = getCell(0).node.querySelector(".newtab-site");
   let blockButton = blockedSite.querySelector(".newtab-control-block");
   expected.type = "organic";
-  expected.link = 0;
   expected.action = "block";
-  expected.tile = 0;
   expected.pinned = false;
   yield EventUtils.synthesizeMouseAtCenter(blockButton, {}, getContentWindow());
   yield whenPagesUpdated();
 
   
   expected.type = "sponsored";
-  expected.link = 1;
   expected.action = "click";
   yield EventUtils.synthesizeMouseAtCenter(siteNode, {}, getContentWindow());
 }

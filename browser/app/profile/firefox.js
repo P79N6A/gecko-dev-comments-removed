@@ -1522,9 +1522,6 @@ pref("browser.newtab.preload", true);
 pref("browser.newtabpage.enabled", true);
 
 
-pref("browser.newtabpage.enhanced", false);
-
-
 pref("browser.newtabpage.rows", 3);
 
 
@@ -1534,7 +1531,7 @@ pref("browser.newtabpage.columns", 5);
 pref("browser.newtabpage.directory.source", "chrome://global/content/directoryLinks.json");
 
 
-pref("browser.newtabpage.directory.reportClickEndPoint", "https://tiles.up.mozillalabs.com/ping/click");
+pref("browser.newtabpage.directory.ping", "https://tiles.up.mozillalabs.com/v2/links/");
 
 
 pref("full-screen-api.enabled", true);
