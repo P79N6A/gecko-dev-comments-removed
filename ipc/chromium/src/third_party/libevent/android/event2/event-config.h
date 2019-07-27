@@ -124,7 +124,7 @@
 #define _EVENT_HAVE_INTTYPES_H 1
 
 
-#define _EVENT_HAVE_ISSETUGID 1
+
 
 
 
