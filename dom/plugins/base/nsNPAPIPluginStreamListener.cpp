@@ -149,6 +149,8 @@ nsNPAPIPluginStreamListener::nsNPAPIPluginStreamListener(nsNPAPIPluginInstance* 
                                           sizeof("javascript:") - 1) == 0)
   , mRedirectDenied(false)
   , mResponseHeaderBuf(nullptr)
+  , mStreamStopMode(eNormalStop)
+  , mPendingStopBindingStatus(NS_OK)
 {
   mNPStreamWrapper = new nsNPAPIStreamWrapper(nullptr, this);
   mNPStreamWrapper->mNPStream.notifyData = notifyData;
@@ -334,9 +336,6 @@ nsNPAPIPluginStreamListener::OnStartBinding(nsPluginStreamListenerPeer* streamPe
 
   mStreamState = eNewStreamCalled;
 
-  if (streamType == nsPluginStreamListenerPeer::STREAM_TYPE_UNKNOWN) {
-    SuspendRequest();
-  }
   if (!SetStreamType(streamType, false)) {
     return NS_ERROR_FAILURE;
   }
@@ -370,7 +369,8 @@ nsNPAPIPluginStreamListener::SetStreamType(uint16_t aType, bool aNeedsResume)
     case nsPluginStreamListenerPeer::STREAM_TYPE_UNKNOWN:
       MOZ_ASSERT(!aNeedsResume);
       mStreamType = nsPluginStreamListenerPeer::STREAM_TYPE_UNKNOWN;
-      
+      SuspendRequest();
+      mStreamStopMode = eDoDeferredStop;
       
       return true;
     default:
@@ -766,8 +766,6 @@ nsresult
 nsNPAPIPluginStreamListener::OnStopBinding(nsPluginStreamListenerPeer* streamPeer, 
                                            nsresult status)
 {
-  StopDataPump();
-  
   if (NS_FAILED(status)) {
     
     
@@ -775,9 +773,24 @@ nsNPAPIPluginStreamListener::OnStopBinding(nsPluginStreamListenerPeer* streamPee
       mStreamListenerPeer->CancelRequests(status);
     }
   }
-  
-  if (!mInst || !mInst->CanFireNotifications())
+
+  if (!mInst || !mInst->CanFireNotifications()) {
+    StopDataPump();
     return NS_ERROR_FAILURE;
+  }
+
+  
+  if (mStreamStopMode == eDoDeferredStop) {
+    
+    mStreamStopMode = eStopPending;
+    mPendingStopBindingStatus = status;
+    if (!mDataPumpTimer) {
+      StartDataPump();
+    }
+    return NS_OK;
+  }
+
+  StopDataPump();
 
   NPReason reason = NS_FAILED(status) ? NPRES_NETWORK_ERR : NPRES_DONE;
   if (mRedirectDenied || status == NS_BINDING_ABORTED) {
@@ -807,6 +820,17 @@ nsNPAPIPluginStreamListener::GetStreamType(int32_t *result)
   return NS_OK;
 }
 
+bool
+nsNPAPIPluginStreamListener::MaybeRunStopBinding()
+{
+  if (mIsSuspended || mStreamStopMode != eStopPending) {
+    return false;
+  }
+  OnStopBinding(mStreamListenerPeer, mPendingStopBindingStatus);
+  mStreamStopMode = eNormalStop;
+  return true;
+}
+
 NS_IMETHODIMP
 nsNPAPIPluginStreamListener::Notify(nsITimer *aTimer)
 {
@@ -818,7 +842,8 @@ nsNPAPIPluginStreamListener::Notify(nsITimer *aTimer)
   
   if (NS_FAILED(rv)) {
     
-    aTimer->Cancel();
+    StopDataPump();
+    MaybeRunStopBinding();
     return NS_OK;
   }
   
@@ -833,7 +858,8 @@ nsNPAPIPluginStreamListener::Notify(nsITimer *aTimer)
         
         StopDataPump();
       }
-  
+
+  MaybeRunStopBinding();
   return NS_OK;
 }
 
