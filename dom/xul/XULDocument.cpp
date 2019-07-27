@@ -135,14 +135,15 @@ PRLogModuleInfo* XULDocument::gXULLog;
 
 
 
-struct BroadcasterMapEntry : public PLDHashEntryHdr {
-    Element*         mBroadcaster; 
-    nsSmallVoidArray mListeners;   
-};
-
 struct BroadcastListener {
     nsWeakPtr mListener;
     nsCOMPtr<nsIAtom> mAttribute;
+};
+
+struct BroadcasterMapEntry : public PLDHashEntryHdr
+{
+    Element* mBroadcaster;  
+    nsTArray<BroadcastListener*> mListeners;  
 };
 
 Element*
@@ -619,13 +620,14 @@ ClearBroadcasterMapEntry(PLDHashTable* aTable, PLDHashEntryHdr* aEntry)
 {
     BroadcasterMapEntry* entry =
         static_cast<BroadcasterMapEntry*>(aEntry);
-    for (int32_t i = entry->mListeners.Count() - 1; i >= 0; --i) {
-        delete (BroadcastListener*)entry->mListeners[i];
+    for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
+        delete entry->mListeners[i];
     }
+    entry->mListeners.Clear();
 
     
     
-    entry->mListeners.~nsSmallVoidArray();
+    entry->mListeners.~nsTArray<BroadcastListener*>();
 }
 
 static bool
@@ -788,25 +790,21 @@ XULDocument::AddBroadcastListenerFor(Element& aBroadcaster, Element& aListener,
         entry->mBroadcaster = &aBroadcaster;
 
         
-        
-        new (&entry->mListeners) nsSmallVoidArray();
+        new (&entry->mListeners) nsTArray<BroadcastListener*>();
     }
 
     
     nsCOMPtr<nsIAtom> attr = do_GetAtom(aAttr);
 
-    BroadcastListener* bl;
-    for (int32_t i = entry->mListeners.Count() - 1; i >= 0; --i) {
-        bl = static_cast<BroadcastListener*>(entry->mListeners[i]);
-
+    for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
+        BroadcastListener* bl = entry->mListeners[i];
         nsCOMPtr<Element> blListener = do_QueryReferent(bl->mListener);
 
         if (blListener == &aListener && bl->mAttribute == attr)
             return;
     }
 
-    bl = new BroadcastListener;
-
+    BroadcastListener* bl = new BroadcastListener;
     bl->mListener  = do_GetWeakReference(&aListener);
     bl->mAttribute = attr;
 
@@ -843,17 +841,15 @@ XULDocument::RemoveBroadcastListenerFor(Element& aBroadcaster,
 
     if (entry) {
         nsCOMPtr<nsIAtom> attr = do_GetAtom(aAttr);
-        for (int32_t i = entry->mListeners.Count() - 1; i >= 0; --i) {
-            BroadcastListener* bl =
-                static_cast<BroadcastListener*>(entry->mListeners[i]);
-
+        for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
+            BroadcastListener* bl = entry->mListeners[i];
             nsCOMPtr<Element> blListener = do_QueryReferent(bl->mListener);
 
             if (blListener == &aListener && bl->mAttribute == attr) {
                 entry->mListeners.RemoveElementAt(i);
                 delete bl;
 
-                if (entry->mListeners.Count() == 0)
+                if (entry->mListeners.IsEmpty())
                     PL_DHashTableRemove(mBroadcasterMap, &aBroadcaster);
 
                 break;
@@ -968,11 +964,8 @@ XULDocument::AttributeChanged(nsIDocument* aDocument,
             nsAutoString value;
             bool attrSet = aElement->GetAttr(kNameSpaceID_None, aAttribute, value);
 
-            int32_t i;
-            for (i = entry->mListeners.Count() - 1; i >= 0; --i) {
-                BroadcastListener* bl =
-                    static_cast<BroadcastListener*>(entry->mListeners[i]);
-
+            for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
+                BroadcastListener* bl = entry->mListeners[i];
                 if ((bl->mAttribute == aAttribute) ||
                     (bl->mAttribute == nsGkAtoms::_asterisk)) {
                     nsCOMPtr<Element> listenerEl
@@ -4158,10 +4151,8 @@ XULDocument::BroadcastAttributeChangeFromOverlay(nsIContent* aNode,
         return rv;
 
     
-    int32_t i;
-    for (i = entry->mListeners.Count() - 1; i >= 0; --i) {
-        BroadcastListener* bl = static_cast<BroadcastListener*>
-            (entry->mListeners[i]);
+    for (size_t i = entry->mListeners.Length() - 1; i != (size_t)-1; --i) {
+        BroadcastListener* bl = entry->mListeners[i];
 
         if ((bl->mAttribute != aAttribute) &&
             (bl->mAttribute != nsGkAtoms::_asterisk))
