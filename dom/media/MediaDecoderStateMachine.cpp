@@ -2177,6 +2177,15 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
   if (!mStartTimeRendezvous) {
     mStartTimeRendezvous = new StartTimeRendezvous(TaskQueue(), HasAudio(), HasVideo(),
                                                    mReader->ForceZeroStartTime() || IsRealTime());
+
+    mStartTimeRendezvous->AwaitStartTime()->Then(TaskQueue(), __func__,
+      [self] () -> void {
+        NS_ENSURE_TRUE_VOID(!self->IsShutdown());
+        ReentrantMonitorAutoEnter mon(self->mDecoder->GetReentrantMonitor());
+        self->mReader->SetStartTime(self->StartTime());
+      },
+      [] () -> void { NS_WARNING("Setting start time on reader failed"); }
+    );
   }
 
   if (mInfo.mMetadataDuration.isSome()) {
@@ -3175,10 +3184,6 @@ void MediaDecoderStateMachine::SetStartTime(int64_t aStartTimeUsecs)
       mEndTime = mStartTime + mEndTime;
     }
   }
-
-  
-  
-  mReader->SetStartTime(mStartTime);
 
   
   
