@@ -39,6 +39,13 @@ public:
 
 
 
+
+  UserDataType LookupOrAdd(KeyType aKey);
+
+  
+
+
+
   bool Get(KeyType aKey, UserDataType* aData) const;
 
   
@@ -64,6 +71,17 @@ public:
 
 
 
+
+template<class KeyClass, class T>
+T*
+nsClassHashtable<KeyClass, T>::LookupOrAdd(KeyType aKey)
+{
+  typename base_type::EntryType* ent = this->PutEntry(aKey);
+  if (!ent->mData) {
+    ent->mData = new T();
+  }
+  return ent->mData;
+}
 
 template<class KeyClass, class T>
 bool
