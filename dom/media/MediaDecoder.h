@@ -806,7 +806,21 @@ public:
   void PlaybackEnded();
 
   void OnSeekRejected() { mSeekRequest.Complete(); }
-  void OnSeekResolved(SeekResolveValue aVal);
+  void OnSeekResolvedInternal(bool aAtEnd, MediaDecoderEventVisibility aEventVisibility);
+
+  void OnSeekResolved(SeekResolveValue aVal)
+  {
+    mSeekRequest.Complete();
+    OnSeekResolvedInternal(aVal.mAtEnd, aVal.mEventVisibility);
+  }
+
+#ifdef MOZ_AUDIO_OFFLOAD
+  
+  void SimulateSeekResolvedForAudioOffload(MediaDecoderEventVisibility aEventVisibility)
+  {
+    OnSeekResolvedInternal(false, aEventVisibility);
+  }
+#endif
 
   
   
