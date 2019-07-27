@@ -1129,6 +1129,7 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this._onToggleOrigSources = this._onToggleOrigSources.bind(this);
   this._onShowMdnDocs = this._onShowMdnDocs.bind(this);
   this._onFilterStyles = this._onFilterStyles.bind(this);
+  this._onFilterKeyPress = this._onFilterKeyPress.bind(this);
   this._onClearSearch = this._onClearSearch.bind(this);
   this._onFilterTextboxContextMenu = this._onFilterTextboxContextMenu.bind(this);
 
@@ -1141,6 +1142,7 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this.element.addEventListener("copy", this._onCopy);
   this.element.addEventListener("contextmenu", this._onContextMenu);
   this.searchField.addEventListener("input", this._onFilterStyles);
+  this.searchField.addEventListener("keypress", this._onFilterKeyPress);
   this.searchField.addEventListener("contextmenu", this._onFilterTextboxContextMenu);
   this.searchClearButton.addEventListener("click", this._onClearSearch);
 
@@ -1650,6 +1652,18 @@ CssRuleView.prototype = {
   
 
 
+
+  _onFilterKeyPress: function(event) {
+    if (event.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE &&
+        this._onClearSearch()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  },
+
+  
+
+
   _onFilterTextboxContextMenu: function(event) {
     try {
       this.doc.defaultView.focus();
@@ -1665,9 +1679,14 @@ CssRuleView.prototype = {
 
 
   _onClearSearch: function() {
-    this.searchField.value = "";
-    this.searchField.focus();
-    this._onFilterStyles();
+    if (this.searchField.value) {
+      this.searchField.value = "";
+      this.searchField.focus();
+      this._onFilterStyles();
+      return true;
+    }
+
+    return false;
   },
 
   destroy: function() {
@@ -1721,6 +1740,7 @@ CssRuleView.prototype = {
     this.element.removeEventListener("copy", this._onCopy);
     this.element.removeEventListener("contextmenu", this._onContextMenu);
     this.searchField.removeEventListener("input", this._onFilterStyles);
+    this.searchField.removeEventListener("keypress", this._onFilterKeyPress);
     this.searchField.removeEventListener("contextmenu",
       this._onFilterTextboxContextMenu);
     this.searchClearButton.removeEventListener("click", this._onClearSearch);

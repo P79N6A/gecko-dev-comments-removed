@@ -152,6 +152,7 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._onCopy = this._onCopy.bind(this);
   this._onCopyColor = this._onCopyColor.bind(this);
   this._onFilterStyles = this._onFilterStyles.bind(this);
+  this._onFilterKeyPress = this._onFilterKeyPress.bind(this);
   this._onClearSearch = this._onClearSearch.bind(this);
   this._onIncludeBrowserStyles = this._onIncludeBrowserStyles.bind(this);
   this._onFilterTextboxContextMenu = this._onFilterTextboxContextMenu.bind(this);
@@ -168,6 +169,7 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this.element.addEventListener("copy", this._onCopy);
   this.element.addEventListener("contextmenu", this._onContextMenu);
   this.searchField.addEventListener("input", this._onFilterStyles);
+  this.searchField.addEventListener("keypress", this._onFilterKeyPress);
   this.searchField.addEventListener("contextmenu", this._onFilterTextboxContextMenu);
   this.searchClearButton.addEventListener("click", this._onClearSearch);
   this.includeBrowserStylesCheckbox.addEventListener("command",
@@ -548,6 +550,46 @@ CssHtmlTree.prototype = {
 
 
 
+  _onFilterKeyPress: function(aEvent) {
+    if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE &&
+        this._onClearSearch()) {
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
+    }
+  },
+
+  
+
+
+  _onFilterTextboxContextMenu: function(event) {
+    try {
+      this.styleDocument.defaultView.focus();
+      let contextmenu = this.inspector.toolbox.textboxContextMenuPopup;
+      contextmenu.openPopupAtScreen(event.screenX, event.screenY, true);
+    } catch(e) {
+      console.error(e);
+    }
+  },
+
+  
+
+
+
+  _onClearSearch: function() {
+    if (this.searchField.value) {
+      this.searchField.value = "";
+      this.searchField.focus();
+      this._onFilterStyles();
+      return true;
+    }
+
+    return false;
+  },
+
+  
+
+
+
 
   _onIncludeBrowserStyles: function(aEvent)
   {
@@ -831,29 +873,6 @@ CssHtmlTree.prototype = {
     Services.prefs.setBoolPref(PREF_ORIG_SOURCES, !isEnabled);
   },
 
-   
-
-
-  _onFilterTextboxContextMenu: function(event) {
-    try {
-      this.styleDocument.defaultView.focus();
-      let contextmenu = this.inspector.toolbox.textboxContextMenuPopup;
-      contextmenu.openPopupAtScreen(event.screenX, event.screenY, true);
-    } catch(e) {
-      console.error(e);
-    }
-  },
-
-  
-
-
-
-  _onClearSearch: function() {
-    this.searchField.value = "";
-    this.searchField.focus();
-    this._onFilterStyles();
-  },
-
   
 
 
@@ -906,6 +925,7 @@ CssHtmlTree.prototype = {
     this.element.removeEventListener("copy", this._onCopy);
     this.element.removeEventListener("contextmenu", this._onContextMenu);
     this.searchField.removeEventListener("input", this._onFilterStyles);
+    this.searchField.removeEventListener("keypress", this._onFilterKeyPress);
     this.searchField.removeEventListener("contextmenu", this._onFilterTextboxContextMenu);
     this.searchClearButton.removeEventListener("click", this._onClearSearch);
     this.includeBrowserStylesCheckbox.removeEventListener("command",
