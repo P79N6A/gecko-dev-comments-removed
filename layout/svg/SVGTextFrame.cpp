@@ -3662,7 +3662,7 @@ SVGTextFrame::PaintSVG(nsRenderingContext* aContext,
     
     gfx->SetMatrix(initialMatrix);
     gfxTextContextPaint *outerContextPaint =
-      (gfxTextContextPaint*)aContext->GetUserData(&gfxTextContextPaint::sUserDataKey);
+      (gfxTextContextPaint*)aContext->GetDrawTarget()->GetUserData(&gfxTextContextPaint::sUserDataKey);
 
     nsAutoPtr<gfxTextContextPaint> contextPaint;
     DrawMode drawMode =
