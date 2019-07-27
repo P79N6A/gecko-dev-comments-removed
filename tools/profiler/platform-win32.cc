@@ -129,7 +129,7 @@ class SamplerThread : public Thread {
           ThreadInfo* info = threads[i];
 
           
-          if (!info->Profile())
+          if (!info->Profile() || info->IsPendingDelete())
             continue;
 
           PseudoStack::SleepState sleeping = info->Stack()->observeSleeping();
@@ -316,7 +316,7 @@ bool Sampler::RegisterCurrentThread(const char* aName,
 
   for (uint32_t i = 0; i < sRegisteredThreads->size(); i++) {
     ThreadInfo* info = sRegisteredThreads->at(i);
-    if (info->ThreadId() == id) {
+    if (info->ThreadId() == id && !info->IsPendingDelete()) {
       
       
       ASSERT(false);
@@ -352,10 +352,18 @@ void Sampler::UnregisterCurrentThread()
 
   for (uint32_t i = 0; i < sRegisteredThreads->size(); i++) {
     ThreadInfo* info = sRegisteredThreads->at(i);
-    if (info->ThreadId() == id) {
-      delete info;
-      sRegisteredThreads->erase(sRegisteredThreads->begin() + i);
-      break;
+    if (info->ThreadId() == id && !info->IsPendingDelete()) {
+      if (profiler_is_active()) {
+        
+        
+        
+        info->SetPendingDelete();
+        break;
+      } else {
+        delete info;
+        sRegisteredThreads->erase(sRegisteredThreads->begin() + i);
+        break;
+      }
     }
   }
 }
