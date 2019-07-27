@@ -9,6 +9,7 @@ const { Promise } = require("resource://gre/modules/Promise.jsm");
 const { Task } = require("resource://gre/modules/Task.jsm");
 const { getColor } = require("devtools/shared/theme");
 const EventEmitter = require("devtools/toolkit/event-emitter");
+const FrameUtils = require("devtools/shared/profiler/frame-utils");
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const GRAPH_SRC = "chrome://browser/content/devtools/graphs-frame.xhtml";
@@ -1021,10 +1022,11 @@ let FlameGraphUtils = {
 
       
       if (options.showIdleBlocks && frames.length == 0) {
-        frames = [{ location: options.showIdleBlocks || "" }];
+        frames = [{ location: options.showIdleBlocks || "", idle: true }];
       }
 
-      for (let { location } of frames) {
+      for (let frame of frames) {
+        let { location } = frame;
         let prevFrame = prevFrames[frameIndex];
 
         
@@ -1045,7 +1047,7 @@ let FlameGraphUtils = {
             y: frameIndex * FLAME_GRAPH_BLOCK_HEIGHT,
             width: time - prevTime,
             height: FLAME_GRAPH_BLOCK_HEIGHT,
-            text: location
+            text: this._formatLabel(frame)
           });
         }
 
@@ -1115,6 +1117,30 @@ let FlameGraphUtils = {
     }
 
     return hash;
+  },
+
+  
+
+
+
+
+
+
+  _formatLabel: function (frame) {
+    
+    
+    if (frame.idle) {
+      return frame.location;
+    }
+
+    let { functionName, fileName, line } = FrameUtils.parseLocation(frame);
+    let label = functionName;
+
+    if (fileName) {
+      label += ` (${fileName}${line != null ? (":" + line) : ""})`;
+    }
+
+    return label;
   }
 };
 

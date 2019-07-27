@@ -4,9 +4,7 @@
 "use strict";
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
-const {extend} = require("sdk/util/object");
 
-loader.lazyRequireGetter(this, "Services");
 loader.lazyRequireGetter(this, "L10N",
   "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
@@ -17,15 +15,12 @@ loader.lazyRequireGetter(this, "CATEGORY_JIT",
   "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "JITOptimizations",
   "devtools/shared/profiler/jit", true);
-loader.lazyRequireGetter(this, "CATEGORY_OTHER",
-  "devtools/shared/profiler/global", true);
-
-const CHROME_SCHEMES = ["chrome://", "resource://", "jar:file://"];
-const CONTENT_SCHEMES = ["http://", "https://", "file://", "app://"];
+loader.lazyRequireGetter(this, "FrameUtils",
+  "devtools/shared/profiler/frame-utils");
 
 exports.ThreadNode = ThreadNode;
 exports.FrameNode = FrameNode;
-exports.FrameNode.isContent = isContent;
+exports.FrameNode.isContent = FrameUtils.isContent;
 
 
 
@@ -102,7 +97,7 @@ ThreadNode.prototype = {
     
     if (options.contentOnly) {
       
-      sampleFrames = filterPlatformData(sampleFrames);
+      sampleFrames = FrameUtils.filterPlatformData(sampleFrames);
     } else {
       
       sampleFrames = sampleFrames.slice(1);
@@ -253,42 +248,13 @@ FrameNode.prototype = {
     
     let categoryData = CATEGORY_MAPPINGS[this.category] || {};
 
-    
-    let lineAndColumn = this.location.match(/((:\d+)*)\)?$/)[1];
-    let [, line, column] = lineAndColumn.split(":");
-    line = line || this.line;
-    column = column || this.column;
+    let parsedData = FrameUtils.parseLocation(this);
+    parsedData.nodeType = "Frame";
+    parsedData.categoryData = categoryData;
+    parsedData.isContent = FrameUtils.isContent(this);
+    parsedData.isMetaCategory = this.isMetaCategory;
 
-    let firstParenIndex = this.location.indexOf("(");
-    let lineAndColumnIndex = this.location.indexOf(lineAndColumn);
-    let resource = this.location.substring(firstParenIndex + 1, lineAndColumnIndex);
-
-    let url = resource.split(" -> ").pop();
-    let uri = nsIURL(url);
-    let functionName, fileName, hostName;
-
-    
-    if (uri) {
-      functionName = this.location.substring(0, firstParenIndex - 1);
-      fileName = (uri.fileName + (uri.ref ? "#" + uri.ref : "")) || "/";
-      hostName = url.indexOf("jar:") == 0 ? "" : uri.host;
-    } else {
-      functionName = this.location;
-      url = null;
-    }
-
-    return this._data = {
-      nodeType: "Frame",
-      functionName: functionName,
-      fileName: fileName,
-      hostName: hostName,
-      url: url,
-      line: line,
-      column: column,
-      categoryData: categoryData,
-      isContent: !!isContent(this),
-      isMetaCategory: this.isMetaCategory
-    };
+    return this._data = parsedData;
   },
 
   
@@ -310,83 +276,3 @@ FrameNode.prototype = {
     return this._optimizations;
   }
 };
-
-
-
-
-
-
-
-
-
-function isContent({ category, location }) {
-  
-  return !category &&
-    !CHROME_SCHEMES.find(e => location.contains(e)) &&
-    CONTENT_SCHEMES.find(e => location.contains(e));
-}
-
-
-
-
-function nsIURL(url) {
-  let cached = gNSURLStore.get(url);
-  if (cached) {
-    return cached;
-  }
-  let uri = null;
-  try {
-    uri = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
-  } catch(e) {
-    
-  }
-  gNSURLStore.set(url, uri);
-  return uri;
-}
-
-
-let gNSURLStore = new Map();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function filterPlatformData (frames) {
-  let result = [];
-  let last = frames.length - 1;
-  let frame;
-
-  for (let i = 0; i < frames.length; i++) {
-    frame = frames[i];
-    if (isContent(frame)) {
-      result.push(frame);
-    } else if (last === i) {
-      
-      
-      
-      
-      result.push(extend({ isMetaCategory: true, category: CATEGORY_OTHER }, frame));
-    }
-  }
-
-  return result;
-}
