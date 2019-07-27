@@ -58,6 +58,17 @@ pref("browser.cache.memory.enable",         true);
 
 
 pref("browser.cache.memory.max_entry_size",  5120);
+
+
+
+
+
+
+
+
+pref("browser.cache.disk.max_chunks_memory_usage", 10240);
+pref("browser.cache.disk.max_priority_chunks_memory_usage", 10240);
+
 pref("browser.cache.disk_cache_ssl",        true);
 
 pref("browser.cache.check_doc_frequency",   3);

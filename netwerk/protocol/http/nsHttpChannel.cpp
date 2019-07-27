@@ -76,9 +76,10 @@ namespace {
         (loadFlags & (nsIRequest::LOAD_BYPASS_CACHE | \
                       nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE))
 
-#define CACHE_FILE_GONE(result) \
+#define RECOVER_FROM_CACHE_FILE_ERROR(result) \
         ((result) == NS_ERROR_FILE_NOT_FOUND || \
-         (result) == NS_ERROR_FILE_CORRUPTED)
+         (result) == NS_ERROR_FILE_CORRUPTED || \
+         (result) == NS_ERROR_OUT_OF_MEMORY)
 
 static NS_DEFINE_CID(kStreamListenerTeeCID, NS_STREAMLISTENERTEE_CID);
 static NS_DEFINE_CID(kStreamTransportServiceCID,
@@ -4928,8 +4929,9 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     }
 
     
-    if (mCacheEntry && mCachePump && CACHE_FILE_GONE(mStatus)) {
-        LOG(("  cache file gone, reloading from server"));
+    
+    if (mCacheEntry && mCachePump && RECOVER_FROM_CACHE_FILE_ERROR(mStatus)) {
+        LOG(("  cache file error, reloading from server"));
         mCacheEntry->AsyncDoom(nullptr);
         nsresult rv = StartRedirectChannelToURI(mURI, nsIChannelEventSink::REDIRECT_INTERNAL);
         if (NS_SUCCEEDED(rv))
