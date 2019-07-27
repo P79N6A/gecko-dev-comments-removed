@@ -12,7 +12,6 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
@@ -718,10 +717,15 @@ let Links = {
   
 
 
+  _providers: new Set(),
+
+  
 
 
 
-  _providers: new Map(),
+
+
+  _providerLinks: new Map(),
 
   
 
@@ -742,7 +746,7 @@ let Links = {
 
 
   addProvider: function Links_addProvider(aProvider) {
-    this._providers.set(aProvider, null);
+    this._providers.add(aProvider);
     aProvider.addObserver(this);
   },
 
@@ -753,6 +757,7 @@ let Links = {
   removeProvider: function Links_removeProvider(aProvider) {
     if (!this._providers.delete(aProvider))
       throw new Error("Unknown provider");
+    this._providerLinks.delete(aProvider);
   },
 
   
@@ -785,7 +790,7 @@ let Links = {
     }
 
     let numProvidersRemaining = this._providers.size;
-    for (let [provider, links] of this._providers) {
+    for (let provider of this._providers) {
       this._populateProviderCache(provider, () => {
         if (--numProvidersRemaining == 0)
           executeCallbacks();
@@ -835,9 +840,7 @@ let Links = {
 
 
   resetCache: function Links_resetCache() {
-    for (let provider of this._providers.keys()) {
-      this._providers.set(provider, null);
-    }
+    this._providerLinks.clear();
   },
 
   
@@ -875,14 +878,6 @@ let Links = {
     }
   },
 
-  populateProviderCache: function(provider, callback) {
-    if (!this._providers.has(provider)) {
-      throw new Error("Can only populate provider cache for existing provider.");
-    }
-
-    return this._populateProviderCache(provider, callback, false);
-  },
-
   
 
 
@@ -890,42 +885,28 @@ let Links = {
 
 
 
-  _populateProviderCache: function (aProvider, aCallback, aForce) {
-    let cache = this._providers.get(aProvider);
-    let createCache = !cache;
-    if (createCache) {
-      cache = {
+  _populateProviderCache: function Links_populateProviderCache(aProvider, aCallback, aForce) {
+    if (this._providerLinks.has(aProvider) && !aForce) {
+      aCallback();
+    } else {
+      aProvider.getLinks(links => {
         
-        populatePromise: new Promise(resolve => resolve()),
-      };
-      this._providers.set(aProvider, cache);
-    }
-    
-    cache.populatePromise = cache.populatePromise.then(() => {
-      return new Promise(resolve => {
-        if (!createCache && !aForce) {
-          aCallback();
-          resolve();
-          return;
-        }
-        aProvider.getLinks(links => {
-          
-          
-          links = links.filter((link) => !!link);
-          cache.sortedLinks = links;
-          cache.siteMap = links.reduce((map, link) => {
+        
+        links = links.filter((link) => !!link);
+        this._providerLinks.set(aProvider, {
+          sortedLinks: links,
+          siteMap: links.reduce((map, link) => {
             this._incrementSiteMap(map, link);
             return map;
-          }, new Map());
-          cache.linkMap = links.reduce((map, link) => {
+          }, new Map()),
+          linkMap: links.reduce((map, link) => {
             map.set(link.url, link);
             return map;
-          }, new Map());
-          aCallback();
-          resolve();
+          }, new Map()),
         });
+        aCallback();
       });
-    });
+    }
   },
 
   
@@ -935,10 +916,8 @@ let Links = {
   _getMergedProviderLinks: function Links__getMergedProviderLinks() {
     
     let linkLists = [];
-    for (let links of this._providers.values()) {
-      if (links && links.sortedLinks) {
-        linkLists.push(links.sortedLinks.slice());
-      }
+    for (let links of this._providerLinks.values()) {
+      linkLists.push(links.sortedLinks.slice());
     }
 
     function getNextLink() {
@@ -968,14 +947,11 @@ let Links = {
 
 
 
-
-
-
-  onLinkChanged: function Links_onLinkChanged(aProvider, aLink, aIndex=-1, aDeleted=false) {
+  onLinkChanged: function Links_onLinkChanged(aProvider, aLink) {
     if (!("url" in aLink))
       throw new Error("Changed links must have a url property");
 
-    let links = this._providers.get(aProvider);
+    let links = this._providerLinks.get(aProvider);
     if (!links)
       
       
@@ -991,33 +967,19 @@ let Links = {
       
       
       if (this._sortProperties.some(prop => prop in aLink)) {
-        let idx = aIndex;
-        if (idx < 0) {
-          idx = this._indexOf(sortedLinks, existingLink);
-        } else if (this.compareLinks(aLink, sortedLinks[idx]) != 0) {
-          throw new Error("aLink should be the same as sortedLinks[idx]");
-        }
-
+        let idx = this._indexOf(sortedLinks, existingLink);
         if (idx < 0) {
           throw new Error("Link should be in _sortedLinks if in _linkMap");
         }
         sortedLinks.splice(idx, 1);
-
-        if (aDeleted) {
-          updatePages = true;
-          linkMap.delete(existingLink.url);
-          this._decrementSiteMap(siteMap, existingLink);
-        } else {
-          
-          for (let prop of this._sortProperties) {
-            if (prop in aLink) {
-              existingLink[prop] = aLink[prop];
-            }
+        
+        for (let prop of this._sortProperties) {
+          if (prop in aLink) {
+            existingLink[prop] = aLink[prop];
           }
-
-          
-          insertionLink = existingLink;
         }
+        
+        insertionLink = existingLink;
       }
       
       if ("title" in aLink && aLink.title != existingLink.title) {
@@ -1247,12 +1209,8 @@ this.NewTabUtils = {
     return false;
   },
 
-  getProviderLinks: function(aProvider) {
-    return Links._providers.get(aProvider).sortedLinks;
-  },
-
   isTopSiteGivenProvider: function(aSite, aProvider) {
-    return Links._providers.get(aProvider).siteMap.has(aSite);
+    return Links._providerLinks.get(aProvider).siteMap.has(aSite);
   },
 
   isTopPlacesSite: function(aSite) {
@@ -1290,6 +1248,5 @@ this.NewTabUtils = {
   linkChecker: LinkChecker,
   pinnedLinks: PinnedLinks,
   blockedLinks: BlockedLinks,
-  gridPrefs: GridPrefs,
-  placesProvider: PlacesProvider
+  gridPrefs: GridPrefs
 };
