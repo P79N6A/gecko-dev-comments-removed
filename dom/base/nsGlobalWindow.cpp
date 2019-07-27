@@ -1095,7 +1095,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     mHadOriginalOpener(false),
     mIsPopupSpam(false),
     mBlockScriptedClosingFlag(false),
-    mFireOfflineStatusChangeEventOnThaw(false),
+    mWasOffline(false),
     mNotifyIdleObserversIdleOnThaw(false),
     mNotifyIdleObserversActiveOnThaw(false),
     mCreatingInnerWindow(false),
@@ -2459,11 +2459,11 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       newInnerGlobal = newInnerWindow->GetWrapperPreserveColor();
     } else {
       if (thisChrome) {
-        newInnerWindow = new nsGlobalChromeWindow(this);
+        newInnerWindow = nsGlobalChromeWindow::Create(this);
       } else if (mIsModalContentWindow) {
-        newInnerWindow = new nsGlobalModalWindow(this);
+        newInnerWindow = nsGlobalModalWindow::Create(this);
       } else {
-        newInnerWindow = new nsGlobalWindow(this);
+        newInnerWindow = nsGlobalWindow::Create(this);
       }
 
       
@@ -10738,12 +10738,22 @@ nsGlobalWindow::GetInterface(JSContext* aCx, nsIJSID* aIID,
 }
 
 void
-nsGlobalWindow::FireOfflineStatusEvent()
+nsGlobalWindow::FireOfflineStatusEventIfChanged()
 {
   if (!IsCurrentInnerWindow())
     return;
+
+  bool isOffline = NS_IsOffline() || NS_IsAppOffline(GetPrincipal());
+
+  
+  if (mWasOffline == isOffline) {
+    return;
+  }
+
+  mWasOffline = isOffline;
+
   nsAutoString name;
-  if (NS_IsOffline() || NS_IsAppOffline(GetPrincipal())) {
+  if (isOffline) {
     name.AssignLiteral("offline");
   } else {
     name.AssignLiteral("online");
@@ -11301,12 +11311,9 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
 {
   if (!nsCRT::strcmp(aTopic, NS_IOSERVICE_OFFLINE_STATUS_TOPIC) ||
       !nsCRT::strcmp(aTopic, NS_IOSERVICE_APP_OFFLINE_STATUS_TOPIC)) {
-    if (IsFrozen()) {
-      
-      
-      mFireOfflineStatusChangeEventOnThaw = !mFireOfflineStatusChangeEventOnThaw;
-    } else {
-      FireOfflineStatusEvent();
+    if (!IsFrozen()) {
+        
+        FireOfflineStatusEventIfChanged();
     }
     return NS_OK;
   }
@@ -11581,10 +11588,8 @@ nsGlobalWindow::FireDelayedDOMEvents()
     static_cast<nsDOMOfflineResourceList*>(mApplicationCache.get())->FirePendingEvents();
   }
 
-  if (mFireOfflineStatusChangeEventOnThaw) {
-    mFireOfflineStatusChangeEventOnThaw = false;
-    FireOfflineStatusEvent();
-  }
+  
+  FireOfflineStatusEventIfChanged();
 
   if (mNotifyIdleObserversIdleOnThaw) {
     mNotifyIdleObserversIdleOnThaw = false;
@@ -13362,6 +13367,14 @@ NS_INTERFACE_MAP_END_INHERITING(nsGlobalWindow)
 NS_IMPL_ADDREF_INHERITED(nsGlobalChromeWindow, nsGlobalWindow)
 NS_IMPL_RELEASE_INHERITED(nsGlobalChromeWindow, nsGlobalWindow)
 
+ already_AddRefed<nsGlobalChromeWindow>
+nsGlobalChromeWindow::Create(nsGlobalWindow *aOuterWindow)
+{
+  nsRefPtr<nsGlobalChromeWindow> window = new nsGlobalChromeWindow(aOuterWindow);
+  window->InitWasOffline();
+  return window.forget();
+}
+
 NS_IMETHODIMP
 nsGlobalChromeWindow::GetWindowState(uint16_t* aWindowState)
 {
@@ -13786,6 +13799,14 @@ nsGlobalWindow::GetDialogArguments(JSContext* aCx,
                         aRetval, aError);
 }
 
+ already_AddRefed<nsGlobalModalWindow>
+nsGlobalModalWindow::Create(nsGlobalWindow *aOuterWindow)
+{
+  nsRefPtr<nsGlobalModalWindow> window = new nsGlobalModalWindow(aOuterWindow);
+  window->InitWasOffline();
+  return window.forget();
+}
+
 NS_IMETHODIMP
 nsGlobalModalWindow::GetDialogArguments(nsIVariant **aArguments)
 {
@@ -13795,6 +13816,20 @@ nsGlobalModalWindow::GetDialogArguments(nsIVariant **aArguments)
   
   
   return mDialogArguments->Get(nsContentUtils::SubjectPrincipal(), aArguments);
+}
+
+ already_AddRefed<nsGlobalWindow>
+nsGlobalWindow::Create(nsGlobalWindow *aOuterWindow)
+{
+  nsRefPtr<nsGlobalWindow> window = new nsGlobalWindow(aOuterWindow);
+  window->InitWasOffline();
+  return window.forget();
+}
+
+void
+nsGlobalWindow::InitWasOffline()
+{
+  mWasOffline = NS_IsOffline() || NS_IsAppOffline(GetPrincipal());
 }
 
 void
