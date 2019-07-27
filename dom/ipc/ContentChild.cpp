@@ -498,17 +498,15 @@ ContentChild* ContentChild::sSingleton;
 
 
 static void
-InitOnContentProcessCreated(bool aAfterNuwaFork)
+InitOnContentProcessCreated()
 {
 #ifdef MOZ_NUWA_PROCESS
     
-    if (!aAfterNuwaFork &&
-        Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
+    if (IsNuwaProcess()) {
         return;
     }
-#else
-    unused << aAfterNuwaFork;
 #endif
+
     
     mozilla::dom::time::InitializeDateCacheCleaner();
 }
@@ -702,7 +700,7 @@ ContentChild::InitXPCOM()
         new SystemMessageHandledObserver();
     sysMsgObserver->Init();
 
-    InitOnContentProcessCreated(false);
+    InitOnContentProcessCreated();
 }
 
 PMemoryReportRequestChild*
@@ -2058,7 +2056,7 @@ public:
         }
 
         
-        InitOnContentProcessCreated(true);
+        InitOnContentProcessCreated();
 
         return NS_OK;
     }
