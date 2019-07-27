@@ -1525,6 +1525,13 @@ public:
 
 
 
+  static void WarnScriptWasIgnored(nsIDocument* aDocument);
+
+  
+
+
+
+
 
 
 

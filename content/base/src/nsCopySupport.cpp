@@ -634,8 +634,10 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
   }
 
   
-  if (!nsContentUtils::IsSafeToRunScript())
+  if (!nsContentUtils::IsSafeToRunScript()) {
+    nsContentUtils::WarnScriptWasIgnored(doc);
     return false;
+  }
 
   nsCOMPtr<nsIDocShell> docShell = piWindow->GetDocShell();
   const bool chromeShell =

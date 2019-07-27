@@ -6896,6 +6896,7 @@ PresShell::HandleEvent(nsIFrame* aFrame,
       NS_WARNING(warning.get());
     }
 #endif
+    nsContentUtils::WarnScriptWasIgnored(GetDocument());
     return NS_OK;
   }
 
@@ -8386,13 +8387,6 @@ PresShell::WillPaintWindow()
 void
 PresShell::DidPaintWindow()
 {
-  if (mDocument) {
-    nsCOMPtr<nsPIDOMWindow> window = mDocument->GetWindow();
-    if (window) {
-      window->SendAfterRemotePaintIfRequested();
-    }
-  }
-
   nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
   if (rootPresContext != mPresContext) {
     
