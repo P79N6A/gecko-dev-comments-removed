@@ -283,6 +283,7 @@ public:
     }
     static nsCString GetAsDataURI(SourceSurface* aSourceSurface);
     static nsCString GetAsDataURI(DrawTarget* aDT);
+    static nsCString GetAsLZ4Base64Str(DataSourceSurface* aSourceSurface);
 
     
 
