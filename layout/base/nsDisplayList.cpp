@@ -531,7 +531,8 @@ nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(Layer* aLayer,
   if (aProperty == eCSSProperty_transform) {
     nsRect bounds = nsDisplayTransform::GetFrameBoundsForTransform(aFrame);
     
-    float scale = nsDeviceContext::AppUnitsPerCSSPixel();
+    int32_t devPixelsToAppUnits = aFrame->PresContext()->AppUnitsPerDevPixel();
+    float scale = devPixelsToAppUnits;
     Point3D offsetToTransformOrigin =
       nsDisplayTransform::GetDeltaToTransformOrigin(aFrame, scale, &bounds);
     Point3D offsetToPerspectiveOrigin =
@@ -557,7 +558,7 @@ nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(Layer* aLayer,
 
     data = TransformData(origin, offsetToTransformOrigin,
                          offsetToPerspectiveOrigin, bounds, perspective,
-                         aFrame->PresContext()->AppUnitsPerDevPixel());
+                         devPixelsToAppUnits);
   } else if (aProperty == eCSSProperty_opacity) {
     data = null_t();
   }
