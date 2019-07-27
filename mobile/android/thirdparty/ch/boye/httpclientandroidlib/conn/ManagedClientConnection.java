@@ -34,10 +34,10 @@ import javax.net.ssl.SSLSession;
 
 import ch.boye.httpclientandroidlib.HttpClientConnection;
 import ch.boye.httpclientandroidlib.HttpHost;
+import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
-import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
 
@@ -45,8 +45,10 @@ import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
 
+
+@Deprecated
 public interface ManagedClientConnection extends
-    HttpClientConnection, HttpRoutedConnection, ConnectionReleaseTrigger {
+    HttpClientConnection, HttpRoutedConnection, ManagedHttpClientConnection, ConnectionReleaseTrigger {
 
     
 

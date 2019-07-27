@@ -46,6 +46,6 @@ public interface ReasonPhraseCatalog {
 
 
 
-    public String getReason(int status, Locale loc);
+    String getReason(int status, Locale loc);
 
 }

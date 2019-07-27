@@ -27,13 +27,16 @@
 
 package ch.boye.httpclientandroidlib.auth.params;
 
-import ch.boye.httpclientandroidlib.auth.AuthScheme;
 
 
 
 
 
 
+
+
+
+@Deprecated
 public interface AuthPNames {
 
     
@@ -53,9 +56,11 @@ public interface AuthPNames {
 
 
 
+
     public static final String TARGET_AUTH_PREF = "http.auth.target-scheme-pref";
 
     
+
 
 
 

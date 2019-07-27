@@ -32,6 +32,8 @@ import java.util.NoSuchElementException;
 import ch.boye.httpclientandroidlib.HeaderIterator;
 import ch.boye.httpclientandroidlib.ParseException;
 import ch.boye.httpclientandroidlib.TokenIterator;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -41,6 +43,7 @@ import ch.boye.httpclientandroidlib.TokenIterator;
 
 
 
+@NotThreadSafe
 public class BasicTokenIterator implements TokenIterator {
 
     
@@ -78,12 +81,8 @@ public class BasicTokenIterator implements TokenIterator {
 
 
     public BasicTokenIterator(final HeaderIterator headerIterator) {
-        if (headerIterator == null) {
-            throw new IllegalArgumentException
-                ("Header iterator must not be null.");
-        }
-
-        this.headerIt = headerIterator;
+        super();
+        this.headerIt = Args.notNull(headerIterator, "Header iterator");
         this.searchPos = findNext(-1);
     }
 
@@ -161,9 +160,8 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected int findNext(int from)
-        throws ParseException {
-
+    protected int findNext(final int pos) throws ParseException {
+        int from = pos;
         if (from < 0) {
             
             if (!this.headerIt.hasNext()) {
@@ -176,13 +174,13 @@ public class BasicTokenIterator implements TokenIterator {
             from = findTokenSeparator(from);
         }
 
-        int start = findTokenStart(from);
+        final int start = findTokenStart(from);
         if (start < 0) {
             this.currentToken = null;
             return -1; 
         }
 
-        int end = findTokenEnd(start);
+        final int end = findTokenEnd(start);
         this.currentToken = createToken(this.currentHeader, start, end);
         return end;
     }
@@ -208,7 +206,7 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected String createToken(String value, int start, int end) {
+    protected String createToken(final String value, final int start, final int end) {
         return value.substring(start, end);
     }
 
@@ -223,12 +221,8 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected int findTokenStart(int from) {
-        if (from < 0) {
-            throw new IllegalArgumentException
-                ("Search position must not be negative: " + from);
-        }
-
+    protected int findTokenStart(final int pos) {
+        int from = Args.notNegative(pos, "Search position");
         boolean found = false;
         while (!found && (this.currentHeader != null)) {
 
@@ -279,12 +273,8 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected int findTokenSeparator(int from) {
-        if (from < 0) {
-            throw new IllegalArgumentException
-                ("Search position must not be negative: " + from);
-        }
-
+    protected int findTokenSeparator(final int pos) {
+        int from = Args.notNegative(pos, "Search position");
         boolean found = false;
         final int to = this.currentHeader.length();
         while (!found && (from < to)) {
@@ -319,12 +309,8 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected int findTokenEnd(int from) {
-        if (from < 0) {
-            throw new IllegalArgumentException
-                ("Token start position must not be negative: " + from);
-        }
-
+    protected int findTokenEnd(final int from) {
+        Args.notNegative(from, "Search position");
         final int to = this.currentHeader.length();
         int end = from+1;
         while ((end < to) && isTokenChar(this.currentHeader.charAt(end))) {
@@ -346,7 +332,7 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected boolean isTokenSeparator(char ch) {
+    protected boolean isTokenSeparator(final char ch) {
         return (ch == ',');
     }
 
@@ -362,7 +348,7 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected boolean isWhitespace(char ch) {
+    protected boolean isWhitespace(final char ch) {
 
         
         
@@ -382,19 +368,22 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected boolean isTokenChar(char ch) {
+    protected boolean isTokenChar(final char ch) {
 
         
-        if (Character.isLetterOrDigit(ch))
+        if (Character.isLetterOrDigit(ch)) {
             return true;
+        }
 
         
-        if (Character.isISOControl(ch))
+        if (Character.isISOControl(ch)) {
             return false;
+        }
 
         
-        if (isHttpSeparator(ch))
+        if (isHttpSeparator(ch)) {
             return false;
+        }
 
         
         
@@ -416,7 +405,7 @@ public class BasicTokenIterator implements TokenIterator {
 
 
 
-    protected boolean isHttpSeparator(char ch) {
+    protected boolean isHttpSeparator(final char ch) {
         return (HTTP_SEPARATORS.indexOf(ch) >= 0);
     }
 

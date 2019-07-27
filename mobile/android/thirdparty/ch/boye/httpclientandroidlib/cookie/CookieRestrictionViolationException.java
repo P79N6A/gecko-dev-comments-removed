@@ -54,7 +54,7 @@ public class CookieRestrictionViolationException extends MalformedCookieExceptio
 
 
 
-    public CookieRestrictionViolationException(String message) {
+    public CookieRestrictionViolationException(final String message) {
         super(message);
     }
 

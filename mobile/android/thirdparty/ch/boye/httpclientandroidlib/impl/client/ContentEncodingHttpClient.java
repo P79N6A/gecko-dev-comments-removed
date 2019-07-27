@@ -39,6 +39,17 @@ import ch.boye.httpclientandroidlib.protocol.BasicHttpProcessor;
 
 
 
+
+
+
+
+
+
+
+
+
+
+@Deprecated
 @ThreadSafe 
 public class ContentEncodingHttpClient extends DefaultHttpClient {
 
@@ -48,14 +59,14 @@ public class ContentEncodingHttpClient extends DefaultHttpClient {
 
 
 
-    public ContentEncodingHttpClient(ClientConnectionManager conman, HttpParams params) {
+    public ContentEncodingHttpClient(final ClientConnectionManager conman, final HttpParams params) {
         super(conman, params);
     }
 
     
 
 
-    public ContentEncodingHttpClient(HttpParams params) {
+    public ContentEncodingHttpClient(final HttpParams params) {
         this(null, params);
     }
 
@@ -71,7 +82,7 @@ public class ContentEncodingHttpClient extends DefaultHttpClient {
 
     @Override
     protected BasicHttpProcessor createHttpProcessor() {
-        BasicHttpProcessor result = super.createHttpProcessor();
+        final BasicHttpProcessor result = super.createHttpProcessor();
 
         result.addRequestInterceptor(new RequestAcceptEncoding());
         result.addResponseInterceptor(new ResponseContentEncoding());

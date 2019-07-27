@@ -37,7 +37,7 @@ import java.util.Iterator;
 
 
 
-public interface TokenIterator extends Iterator {
+public interface TokenIterator extends Iterator<Object> {
 
     
 

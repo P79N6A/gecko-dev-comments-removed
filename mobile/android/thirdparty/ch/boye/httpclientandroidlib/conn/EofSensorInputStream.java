@@ -26,16 +26,11 @@
 
 package ch.boye.httpclientandroidlib.conn;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-
-
-
-
-
-
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -86,14 +81,18 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
 
     public EofSensorInputStream(final InputStream in,
                                 final EofSensorWatcher watcher) {
-        if (in == null) {
-            throw new IllegalArgumentException
-                ("Wrapped stream may not be null.");
-        }
-
+        Args.notNull(in, "Wrapped stream");
         wrappedStream = in;
         selfClosed = false;
         eofWatcher = watcher;
+    }
+
+    boolean isSelfClosed() {
+        return selfClosed;
+    }
+
+    InputStream getWrappedStream() {
+        return wrappedStream;
     }
 
     
@@ -120,7 +119,7 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
             try {
                 l = wrappedStream.read();
                 checkEOF(l);
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 checkAbort();
                 throw ex;
             }
@@ -130,14 +129,14 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         int l = -1;
 
         if (isReadAllowed()) {
             try {
                 l = wrappedStream.read(b,  off,  len);
                 checkEOF(l);
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 checkAbort();
                 throw ex;
             }
@@ -147,19 +146,8 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
-        int l = -1;
-
-        if (isReadAllowed()) {
-            try {
-                l = wrappedStream.read(b);
-                checkEOF(l);
-            } catch (IOException ex) {
-                checkAbort();
-                throw ex;
-            }
-        }
-        return l;
+    public int read(final byte[] b) throws IOException {
+        return read(b, 0, b.length);
     }
 
     @Override
@@ -170,7 +158,7 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
             try {
                 a = wrappedStream.available();
                 
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 checkAbort();
                 throw ex;
             }
@@ -202,15 +190,17 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
 
 
 
-    protected void checkEOF(int eof) throws IOException {
+    protected void checkEOF(final int eof) throws IOException {
 
         if ((wrappedStream != null) && (eof < 0)) {
             try {
                 boolean scws = true; 
-                if (eofWatcher != null)
+                if (eofWatcher != null) {
                     scws = eofWatcher.eofDetected(wrappedStream);
-                if (scws)
+                }
+                if (scws) {
                     wrappedStream.close();
+                }
             } finally {
                 wrappedStream = null;
             }
@@ -233,10 +223,12 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
         if (wrappedStream != null) {
             try {
                 boolean scws = true; 
-                if (eofWatcher != null)
+                if (eofWatcher != null) {
                     scws = eofWatcher.streamClosed(wrappedStream);
-                if (scws)
+                }
+                if (scws) {
                     wrappedStream.close();
+                }
             } finally {
                 wrappedStream = null;
             }
@@ -261,10 +253,12 @@ public class EofSensorInputStream extends InputStream implements ConnectionRelea
         if (wrappedStream != null) {
             try {
                 boolean scws = true; 
-                if (eofWatcher != null)
+                if (eofWatcher != null) {
                     scws = eofWatcher.streamAbort(wrappedStream);
-                if (scws)
+                }
+                if (scws) {
                     wrappedStream.close();
+                }
             } finally {
                 wrappedStream = null;
             }

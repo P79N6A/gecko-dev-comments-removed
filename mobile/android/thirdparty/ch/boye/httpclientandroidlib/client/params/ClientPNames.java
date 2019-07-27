@@ -31,21 +31,12 @@ package ch.boye.httpclientandroidlib.client.params;
 
 
 
+
+
+@Deprecated
 public interface ClientPNames {
 
-    
-
-
-
-
-
     public static final String CONNECTION_MANAGER_FACTORY_CLASS_NAME = "http.connection-manager.factory-class-name";
-
-    
-
-
-    @Deprecated
-    public static final String CONNECTION_MANAGER_FACTORY = "http.connection-manager.factory-object";
 
     
 
@@ -126,6 +117,17 @@ public interface ClientPNames {
 
 
     public static final String DEFAULT_HOST = "http.default-host";
+
+    
+
+
+
+
+
+
+
+
+    public static final String CONN_MANAGER_TIMEOUT = "http.conn-manager.timeout";
 
 }
 

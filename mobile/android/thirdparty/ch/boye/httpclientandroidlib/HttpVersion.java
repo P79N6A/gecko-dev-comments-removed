@@ -29,6 +29,7 @@ package ch.boye.httpclientandroidlib;
 
 import java.io.Serializable;
 
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
@@ -42,6 +43,8 @@ import java.io.Serializable;
 
 
 
+
+@Immutable
 public final class HttpVersion extends ProtocolVersion
     implements Serializable {
 
@@ -68,7 +71,7 @@ public final class HttpVersion extends ProtocolVersion
 
 
 
-    public HttpVersion(int major, int minor) {
+    public HttpVersion(final int major, final int minor) {
         super(HTTP, major, minor);
     }
 
@@ -81,7 +84,8 @@ public final class HttpVersion extends ProtocolVersion
 
 
 
-    public ProtocolVersion forVersion(int major, int minor) {
+    @Override
+    public ProtocolVersion forVersion(final int major, final int minor) {
 
         if ((major == this.major) && (minor == this.minor)) {
             return this;

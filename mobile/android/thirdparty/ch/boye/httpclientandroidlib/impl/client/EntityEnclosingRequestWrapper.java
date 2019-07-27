@@ -31,13 +31,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-import ch.boye.httpclientandroidlib.entity.HttpEntityWrapper;
-
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HttpEntity;
 import ch.boye.httpclientandroidlib.HttpEntityEnclosingRequest;
 import ch.boye.httpclientandroidlib.ProtocolException;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.entity.HttpEntityWrapper;
 import ch.boye.httpclientandroidlib.protocol.HTTP;
 
 
@@ -51,6 +50,8 @@ import ch.boye.httpclientandroidlib.protocol.HTTP;
 
 
 
+
+@Deprecated
 @NotThreadSafe 
 public class EntityEnclosingRequestWrapper extends RequestWrapper
     implements HttpEntityEnclosingRequest {
@@ -74,7 +75,7 @@ public class EntityEnclosingRequestWrapper extends RequestWrapper
     }
 
     public boolean expectContinue() {
-        Header expect = getFirstHeader(HTTP.EXPECT_DIRECTIVE);
+        final Header expect = getFirstHeader(HTTP.EXPECT_DIRECTIVE);
         return expect != null && HTTP.EXPECT_CONTINUE.equalsIgnoreCase(expect.getValue());
     }
 
@@ -89,7 +90,6 @@ public class EntityEnclosingRequestWrapper extends RequestWrapper
             super(entity);
         }
 
-        @Deprecated
         @Override
         public void consumeContent() throws IOException {
             consumed = true;

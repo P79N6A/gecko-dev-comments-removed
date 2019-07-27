@@ -32,6 +32,10 @@ package ch.boye.httpclientandroidlib.cookie.params;
 
 
 
+
+
+
+@Deprecated
 public interface CookieSpecPNames {
 
     

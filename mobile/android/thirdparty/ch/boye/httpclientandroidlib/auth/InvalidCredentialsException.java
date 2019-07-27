@@ -52,7 +52,7 @@ public class InvalidCredentialsException extends AuthenticationException {
 
 
 
-    public InvalidCredentialsException(String message) {
+    public InvalidCredentialsException(final String message) {
         super(message);
     }
 
@@ -63,7 +63,7 @@ public class InvalidCredentialsException extends AuthenticationException {
 
 
 
-    public InvalidCredentialsException(String message, Throwable cause) {
+    public InvalidCredentialsException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

@@ -50,7 +50,7 @@ public class ProtocolException extends HttpException {
 
 
 
-    public ProtocolException(String message) {
+    public ProtocolException(final String message) {
         super(message);
     }
 
@@ -61,7 +61,7 @@ public class ProtocolException extends HttpException {
 
 
 
-    public ProtocolException(String message, Throwable cause) {
+    public ProtocolException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

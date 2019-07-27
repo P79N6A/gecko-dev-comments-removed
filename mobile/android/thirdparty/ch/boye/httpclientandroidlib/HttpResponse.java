@@ -93,18 +93,10 @@ public interface HttpResponse extends HttpMessage {
 
 
 
-
-
-
-
-
-
     void setStatusCode(int code)
         throws IllegalStateException;
 
     
-
-
 
 
 
@@ -134,6 +126,13 @@ public interface HttpResponse extends HttpMessage {
 
 
 
+
+
+
+
+
+
+
     void setEntity(HttpEntity entity);
 
     
@@ -151,10 +150,6 @@ public interface HttpResponse extends HttpMessage {
 
 
 
-
-
-
-
-
     void setLocale(Locale loc);
+
 }

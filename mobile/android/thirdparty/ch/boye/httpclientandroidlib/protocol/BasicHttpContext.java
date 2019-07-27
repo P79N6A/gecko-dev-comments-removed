@@ -27,8 +27,11 @@
 
 package ch.boye.httpclientandroidlib.protocol;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -38,10 +41,11 @@ import java.util.Map;
 
 
 
+@ThreadSafe
 public class BasicHttpContext implements HttpContext {
 
     private final HttpContext parentContext;
-    private Map map = null;
+    private final Map<String, Object> map;
 
     public BasicHttpContext() {
         this(null);
@@ -49,17 +53,13 @@ public class BasicHttpContext implements HttpContext {
 
     public BasicHttpContext(final HttpContext parentContext) {
         super();
+        this.map = new ConcurrentHashMap<String, Object>();
         this.parentContext = parentContext;
     }
 
     public Object getAttribute(final String id) {
-        if (id == null) {
-            throw new IllegalArgumentException("Id may not be null");
-        }
-        Object obj = null;
-        if (this.map != null) {
-            obj = this.map.get(id);
-        }
+        Args.notNull(id, "Id");
+        Object obj = this.map.get(id);
         if (obj == null && this.parentContext != null) {
             obj = this.parentContext.getAttribute(id);
         }
@@ -67,24 +67,29 @@ public class BasicHttpContext implements HttpContext {
     }
 
     public void setAttribute(final String id, final Object obj) {
-        if (id == null) {
-            throw new IllegalArgumentException("Id may not be null");
+        Args.notNull(id, "Id");
+        if (obj != null) {
+            this.map.put(id, obj);
+        } else {
+            this.map.remove(id);
         }
-        if (this.map == null) {
-            this.map = new HashMap();
-        }
-        this.map.put(id, obj);
     }
 
     public Object removeAttribute(final String id) {
-        if (id == null) {
-            throw new IllegalArgumentException("Id may not be null");
-        }
-        if (this.map != null) {
-            return this.map.remove(id);
-        } else {
-            return null;
-        }
+        Args.notNull(id, "Id");
+        return this.map.remove(id);
+    }
+
+    
+
+
+    public void clear() {
+        this.map.clear();
+    }
+
+    @Override
+    public String toString() {
+        return this.map.toString();
     }
 
 }

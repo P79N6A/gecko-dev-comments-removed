@@ -27,6 +27,7 @@
 
 package ch.boye.httpclientandroidlib;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 
@@ -34,7 +35,7 @@ import java.io.IOException;
 
 
 
-public interface HttpConnection {
+public interface HttpConnection extends Closeable {
 
     
 
@@ -43,13 +44,13 @@ public interface HttpConnection {
 
 
 
-    public void close() throws IOException;
+    void close() throws IOException;
 
     
 
 
 
-    public boolean isOpen();
+    boolean isOpen();
 
     
 
@@ -66,7 +67,7 @@ public interface HttpConnection {
 
 
 
-    public boolean isStale();
+    boolean isStale();
 
     
 
@@ -91,7 +92,7 @@ public interface HttpConnection {
 
 
 
-    public void shutdown() throws IOException;
+    void shutdown() throws IOException;
 
     
 

@@ -43,7 +43,7 @@ public class NoHttpResponseException extends IOException {
 
 
 
-    public NoHttpResponseException(String message) {
+    public NoHttpResponseException(final String message) {
         super(message);
     }
 

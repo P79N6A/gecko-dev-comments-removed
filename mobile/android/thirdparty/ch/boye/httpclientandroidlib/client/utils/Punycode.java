@@ -24,10 +24,6 @@
 
 
 
-
-
-
-
 package ch.boye.httpclientandroidlib.client.utils;
 
 import ch.boye.httpclientandroidlib.annotation.Immutable;
@@ -45,13 +41,13 @@ public class Punycode {
         Idn _impl;
         try {
             _impl = new JdkIdn();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             _impl = new Rfc3492Idn();
         }
         impl = _impl;
     }
 
-    public static String toUnicode(String punycode) {
+    public static String toUnicode(final String punycode) {
         return impl.toUnicode(punycode);
     }
 

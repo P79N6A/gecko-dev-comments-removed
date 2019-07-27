@@ -52,7 +52,7 @@ public class UnsupportedDigestAlgorithmException extends RuntimeException {
 
 
 
-    public UnsupportedDigestAlgorithmException(String message) {
+    public UnsupportedDigestAlgorithmException(final String message) {
         super(message);
     }
 
@@ -63,7 +63,7 @@ public class UnsupportedDigestAlgorithmException extends RuntimeException {
 
 
 
-    public UnsupportedDigestAlgorithmException(String message, Throwable cause) {
+    public UnsupportedDigestAlgorithmException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

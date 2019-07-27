@@ -29,18 +29,14 @@ package ch.boye.httpclientandroidlib.impl.client;
 
 import ch.boye.httpclientandroidlib.HttpVersion;
 import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
-import ch.boye.httpclientandroidlib.client.HttpClient;
 import ch.boye.httpclientandroidlib.client.protocol.RequestAddCookies;
 import ch.boye.httpclientandroidlib.client.protocol.RequestAuthCache;
 import ch.boye.httpclientandroidlib.client.protocol.RequestClientConnControl;
 import ch.boye.httpclientandroidlib.client.protocol.RequestDefaultHeaders;
 import ch.boye.httpclientandroidlib.client.protocol.RequestProxyAuthentication;
 import ch.boye.httpclientandroidlib.client.protocol.RequestTargetAuthentication;
-import ch.boye.httpclientandroidlib.client.protocol.ResponseAuthCache;
 import ch.boye.httpclientandroidlib.client.protocol.ResponseProcessCookies;
 import ch.boye.httpclientandroidlib.conn.ClientConnectionManager;
-import ch.boye.httpclientandroidlib.params.CoreConnectionPNames;
-import ch.boye.httpclientandroidlib.params.CoreProtocolPNames;
 import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
 import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
@@ -51,7 +47,6 @@ import ch.boye.httpclientandroidlib.protocol.RequestContent;
 import ch.boye.httpclientandroidlib.protocol.RequestExpectContinue;
 import ch.boye.httpclientandroidlib.protocol.RequestTargetHost;
 import ch.boye.httpclientandroidlib.protocol.RequestUserAgent;
-import ch.boye.httpclientandroidlib.util.VersionInfo;
 
 
 
@@ -117,6 +112,7 @@ import ch.boye.httpclientandroidlib.util.VersionInfo;
 
 
 @ThreadSafe
+@Deprecated
 public class DefaultHttpClient extends AbstractHttpClient {
 
     
@@ -158,7 +154,7 @@ public class DefaultHttpClient extends AbstractHttpClient {
 
     @Override
     protected HttpParams createHttpParams() {
-        HttpParams params = new SyncBasicHttpParams();
+        final HttpParams params = new SyncBasicHttpParams();
         setDefaultHttpParams(params);
         return params;
     }
@@ -174,25 +170,40 @@ public class DefaultHttpClient extends AbstractHttpClient {
 
 
 
-    public static void setDefaultHttpParams(HttpParams params) {
+
+
+
+
+
+    public static void setDefaultHttpParams(final HttpParams params) {
         HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-        HttpProtocolParams.setContentCharset(params, HTTP.DEFAULT_CONTENT_CHARSET);
+        HttpProtocolParams.setContentCharset(params, HTTP.DEF_CONTENT_CHARSET.name());
         HttpConnectionParams.setTcpNoDelay(params, true);
         HttpConnectionParams.setSocketBufferSize(params, 8192);
-
-        
-        final VersionInfo vi = VersionInfo.loadVersionInfo
-            ("ch.boye.httpclientandroidlib.client", DefaultHttpClient.class.getClassLoader());
-        final String release = (vi != null) ?
-            vi.getRelease() : VersionInfo.UNAVAILABLE;
-        HttpProtocolParams.setUserAgent(params,
-                "Apache-HttpClient/" + release + " (java 1.5)");
+        HttpProtocolParams.setUserAgent(params, HttpClientBuilder.DEFAULT_USER_AGENT);
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     @Override
     protected BasicHttpProcessor createHttpProcessor() {
-        BasicHttpProcessor httpproc = new BasicHttpProcessor();
+        final BasicHttpProcessor httpproc = new BasicHttpProcessor();
         httpproc.addInterceptor(new RequestDefaultHeaders());
         
         httpproc.addInterceptor(new RequestContent());
@@ -206,7 +217,6 @@ public class DefaultHttpClient extends AbstractHttpClient {
         httpproc.addInterceptor(new ResponseProcessCookies());
         
         httpproc.addInterceptor(new RequestAuthCache());
-        httpproc.addInterceptor(new ResponseAuthCache());
         httpproc.addInterceptor(new RequestTargetAuthentication());
         httpproc.addInterceptor(new RequestProxyAuthentication());
         return httpproc;

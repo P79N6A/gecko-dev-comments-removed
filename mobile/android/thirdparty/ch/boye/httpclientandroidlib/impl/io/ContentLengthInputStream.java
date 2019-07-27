@@ -31,8 +31,10 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import ch.boye.httpclientandroidlib.ConnectionClosedException;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.io.BufferInfo;
 import ch.boye.httpclientandroidlib.io.SessionInputBuffer;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -50,6 +52,7 @@ import ch.boye.httpclientandroidlib.io.SessionInputBuffer;
 
 
 
+@NotThreadSafe
 public class ContentLengthInputStream extends InputStream {
 
     private static final int BUFFER_SIZE = 2048;
@@ -57,7 +60,7 @@ public class ContentLengthInputStream extends InputStream {
 
 
 
-    private long contentLength;
+    private final long contentLength;
 
     
     private long pos = 0;
@@ -78,16 +81,10 @@ public class ContentLengthInputStream extends InputStream {
 
 
 
-    public ContentLengthInputStream(final SessionInputBuffer in, long contentLength) {
+    public ContentLengthInputStream(final SessionInputBuffer in, final long contentLength) {
         super();
-        if (in == null) {
-            throw new IllegalArgumentException("Input stream may not be null");
-        }
-        if (contentLength < 0) {
-            throw new IllegalArgumentException("Content length may not be negative");
-        }
-        this.in = in;
-        this.contentLength = contentLength;
+        this.in = Args.notNull(in, "Session input buffer");
+        this.contentLength = Args.notNegative(contentLength, "Content length");
     }
 
     
@@ -97,11 +94,12 @@ public class ContentLengthInputStream extends InputStream {
 
 
 
+    @Override
     public void close() throws IOException {
         if (!closed) {
             try {
                 if (pos < contentLength) {
-                    byte buffer[] = new byte[BUFFER_SIZE];
+                    final byte buffer[] = new byte[BUFFER_SIZE];
                     while (read(buffer) >= 0) {
                     }
                 }
@@ -113,9 +111,10 @@ public class ContentLengthInputStream extends InputStream {
         }
     }
 
+    @Override
     public int available() throws IOException {
         if (this.in instanceof BufferInfo) {
-            int len = ((BufferInfo) this.in).length();
+            final int len = ((BufferInfo) this.in).length();
             return Math.min(len, (int) (this.contentLength - this.pos));
         } else {
             return 0;
@@ -128,6 +127,7 @@ public class ContentLengthInputStream extends InputStream {
 
 
 
+    @Override
     public int read() throws IOException {
         if (closed) {
             throw new IOException("Attempted read from closed stream.");
@@ -136,7 +136,7 @@ public class ContentLengthInputStream extends InputStream {
         if (pos >= contentLength) {
             return -1;
         }
-        int b = this.in.read();
+        final int b = this.in.read();
         if (b == -1) {
             if (pos < contentLength) {
                 throw new ConnectionClosedException(
@@ -161,7 +161,8 @@ public class ContentLengthInputStream extends InputStream {
 
 
 
-    public int read (byte[] b, int off, int len) throws java.io.IOException {
+    @Override
+    public int read (final byte[] b, final int off, final int len) throws java.io.IOException {
         if (closed) {
             throw new IOException("Attempted read from closed stream.");
         }
@@ -170,10 +171,11 @@ public class ContentLengthInputStream extends InputStream {
             return -1;
         }
 
+        int chunk = len;
         if (pos + len > contentLength) {
-            len = (int) (contentLength - pos);
+            chunk = (int) (contentLength - pos);
         }
-        int count = this.in.read(b, off, len);
+        final int count = this.in.read(b, off, chunk);
         if (count == -1 && pos < contentLength) {
             throw new ConnectionClosedException(
                     "Premature end of Content-Length delimited message body (expected: "
@@ -193,7 +195,8 @@ public class ContentLengthInputStream extends InputStream {
 
 
 
-    public int read(byte[] b) throws IOException {
+    @Override
+    public int read(final byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 
@@ -205,18 +208,19 @@ public class ContentLengthInputStream extends InputStream {
 
 
 
-    public long skip(long n) throws IOException {
+    @Override
+    public long skip(final long n) throws IOException {
         if (n <= 0) {
             return 0;
         }
-        byte[] buffer = new byte[BUFFER_SIZE];
+        final byte[] buffer = new byte[BUFFER_SIZE];
         
         
         long remaining = Math.min(n, this.contentLength - this.pos);
         
         long count = 0;
         while (remaining > 0) {
-            int l = read(buffer, 0, (int)Math.min(BUFFER_SIZE, remaining));
+            final int l = read(buffer, 0, (int)Math.min(BUFFER_SIZE, remaining));
             if (l == -1) {
                 break;
             }

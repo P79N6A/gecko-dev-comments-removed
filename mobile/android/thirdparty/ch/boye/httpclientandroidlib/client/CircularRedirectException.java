@@ -51,7 +51,7 @@ public class CircularRedirectException extends RedirectException {
 
 
 
-    public CircularRedirectException(String message) {
+    public CircularRedirectException(final String message) {
         super(message);
     }
 
@@ -62,7 +62,7 @@ public class CircularRedirectException extends RedirectException {
 
 
 
-    public CircularRedirectException(String message, Throwable cause) {
+    public CircularRedirectException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

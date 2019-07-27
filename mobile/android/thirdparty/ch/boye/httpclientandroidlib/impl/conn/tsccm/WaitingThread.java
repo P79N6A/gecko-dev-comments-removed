@@ -30,7 +30,7 @@ package ch.boye.httpclientandroidlib.impl.conn.tsccm;
 import java.util.Date;
 import java.util.concurrent.locks.Condition;
 
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -45,7 +45,9 @@ import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 
 
 
-@NotThreadSafe
+
+
+@Deprecated
 public class WaitingThread {
 
     
@@ -69,11 +71,9 @@ public class WaitingThread {
 
 
 
-    public WaitingThread(Condition cond, RouteSpecificPool pool) {
+    public WaitingThread(final Condition cond, final RouteSpecificPool pool) {
 
-        if (cond == null) {
-            throw new IllegalArgumentException("Condition must not be null.");
-        }
+        Args.notNull(cond, "Condition");
 
         this.cond = cond;
         this.pool = pool;
@@ -133,7 +133,7 @@ public class WaitingThread {
 
 
 
-    public boolean await(Date deadline)
+    public boolean await(final Date deadline)
         throws InterruptedException {
 
         
@@ -145,8 +145,9 @@ public class WaitingThread {
                  "\nwaiter: " + this.waiter);
         }
 
-        if (aborted)
+        if (aborted) {
             throw new InterruptedException("Operation interrupted");
+        }
 
         this.waiter = Thread.currentThread();
 
@@ -158,8 +159,9 @@ public class WaitingThread {
                 this.cond.await();
                 success = true;
             }
-            if (aborted)
+            if (aborted) {
                 throw new InterruptedException("Operation interrupted");
+            }
         } finally {
             this.waiter = null;
         }

@@ -24,9 +24,6 @@
 
 
 
-
-
-
 package ch.boye.httpclientandroidlib.client.utils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -42,33 +39,42 @@ import ch.boye.httpclientandroidlib.annotation.Immutable;
 @Immutable
 public class CloneUtils {
 
-    public static Object clone(final Object obj) throws CloneNotSupportedException {
+    
+
+
+    public static <T> T cloneObject(final T obj) throws CloneNotSupportedException {
         if (obj == null) {
             return null;
         }
         if (obj instanceof Cloneable) {
-            Class<?> clazz = obj.getClass ();
-            Method m;
+            final Class<?> clazz = obj.getClass ();
+            final Method m;
             try {
                 m = clazz.getMethod("clone", (Class[]) null);
-            } catch (NoSuchMethodException ex) {
+            } catch (final NoSuchMethodException ex) {
                 throw new NoSuchMethodError(ex.getMessage());
             }
             try {
-                return m.invoke(obj, (Object []) null);
-            } catch (InvocationTargetException ex) {
-                Throwable cause = ex.getCause();
+                @SuppressWarnings("unchecked") 
+                final T result = (T) m.invoke(obj, (Object []) null);
+                return result;
+            } catch (final InvocationTargetException ex) {
+                final Throwable cause = ex.getCause();
                 if (cause instanceof CloneNotSupportedException) {
                     throw ((CloneNotSupportedException) cause);
                 } else {
                     throw new Error("Unexpected exception", cause);
                 }
-            } catch (IllegalAccessException ex) {
+            } catch (final IllegalAccessException ex) {
                 throw new IllegalAccessError(ex.getMessage());
             }
         } else {
             throw new CloneNotSupportedException();
         }
+    }
+
+    public static Object clone(final Object obj) throws CloneNotSupportedException {
+        return cloneObject(obj);
     }
 
     

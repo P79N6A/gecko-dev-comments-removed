@@ -30,8 +30,10 @@ package ch.boye.httpclientandroidlib.impl;
 import java.io.IOException;
 import java.net.Socket;
 
-import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.params.CoreConnectionPNames;
 import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -40,49 +42,30 @@ import ch.boye.httpclientandroidlib.params.HttpParams;
 
 
 
-
-
-
-
-
-
-
-
-
+@NotThreadSafe
+@Deprecated
 public class DefaultHttpServerConnection extends SocketHttpServerConnection {
 
     public DefaultHttpServerConnection() {
         super();
     }
 
+    @Override
     public void bind(final Socket socket, final HttpParams params) throws IOException {
-        if (socket == null) {
-            throw new IllegalArgumentException("Socket may not be null");
-        }
-        if (params == null) {
-            throw new IllegalArgumentException("HTTP parameters may not be null");
-        }
+        Args.notNull(socket, "Socket");
+        Args.notNull(params, "HTTP parameters");
         assertNotOpen();
-        socket.setTcpNoDelay(HttpConnectionParams.getTcpNoDelay(params));
-        socket.setSoTimeout(HttpConnectionParams.getSoTimeout(params));
-
-        int linger = HttpConnectionParams.getLinger(params);
+        socket.setTcpNoDelay(params.getBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true));
+        socket.setSoTimeout(params.getIntParameter(CoreConnectionPNames.SO_TIMEOUT, 0));
+        socket.setKeepAlive(params.getBooleanParameter(CoreConnectionPNames.SO_KEEPALIVE, false));
+        final int linger = params.getIntParameter(CoreConnectionPNames.SO_LINGER, -1);
+        if (linger >= 0) {
+            socket.setSoLinger(linger > 0, linger);
+        }
         if (linger >= 0) {
             socket.setSoLinger(linger > 0, linger);
         }
         super.bind(socket, params);
-    }
-
-    public String toString() {
-        StringBuffer buffer = new StringBuffer();
-        buffer.append("[");
-        if (isOpen()) {
-            buffer.append(getRemotePort());
-        } else {
-            buffer.append("closed");
-        }
-        buffer.append("]");
-        return buffer.toString();
     }
 
 }

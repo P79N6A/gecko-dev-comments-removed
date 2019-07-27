@@ -34,7 +34,7 @@ import java.util.Iterator;
 
 
 
-public interface HeaderIterator extends Iterator {
+public interface HeaderIterator extends Iterator<Object> {
 
     
 

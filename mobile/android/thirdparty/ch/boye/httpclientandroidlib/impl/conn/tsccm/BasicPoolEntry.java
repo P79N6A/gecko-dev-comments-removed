@@ -29,37 +29,33 @@ package ch.boye.httpclientandroidlib.impl.conn.tsccm;
 import java.lang.ref.ReferenceQueue;
 import java.util.concurrent.TimeUnit;
 
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-import ch.boye.httpclientandroidlib.conn.OperatedClientConnection;
 import ch.boye.httpclientandroidlib.conn.ClientConnectionOperator;
+import ch.boye.httpclientandroidlib.conn.OperatedClientConnection;
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 import ch.boye.httpclientandroidlib.impl.conn.AbstractPoolEntry;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
 
 
 
-@NotThreadSafe
+
+
+@Deprecated
 public class BasicPoolEntry extends AbstractPoolEntry {
 
     private final long created;
 
     private long updated;
-    private long validUntil;
+    private final long validUntil;
     private long expiry;
 
-    
-
-
-    @Deprecated
-    public BasicPoolEntry(ClientConnectionOperator op,
-                          HttpRoute route,
-                          ReferenceQueue<Object> queue) {
+    public BasicPoolEntry(final ClientConnectionOperator op,
+                          final HttpRoute route,
+                          final ReferenceQueue<Object> queue) {
         super(op, route);
-        if (route == null) {
-            throw new IllegalArgumentException("HTTP route may not be null");
-        }
+        Args.notNull(route, "HTTP route");
         this.created = System.currentTimeMillis();
         this.validUntil = Long.MAX_VALUE;
         this.expiry = this.validUntil;
@@ -71,8 +67,8 @@ public class BasicPoolEntry extends AbstractPoolEntry {
 
 
 
-    public BasicPoolEntry(ClientConnectionOperator op,
-                          HttpRoute route) {
+    public BasicPoolEntry(final ClientConnectionOperator op,
+                          final HttpRoute route) {
         this(op, route, -1, TimeUnit.MILLISECONDS);
     }
 
@@ -86,12 +82,10 @@ public class BasicPoolEntry extends AbstractPoolEntry {
 
 
 
-    public BasicPoolEntry(ClientConnectionOperator op,
-                          HttpRoute route, long connTTL, TimeUnit timeunit) {
+    public BasicPoolEntry(final ClientConnectionOperator op,
+                          final HttpRoute route, final long connTTL, final TimeUnit timeunit) {
         super(op, route);
-        if (route == null) {
-            throw new IllegalArgumentException("HTTP route may not be null");
-        }
+        Args.notNull(route, "HTTP route");
         this.created = System.currentTimeMillis();
         if (connTTL > 0) {
             this.validUntil = this.created + timeunit.toMillis(connTTL);
@@ -109,7 +103,6 @@ public class BasicPoolEntry extends AbstractPoolEntry {
         return super.route;
     }
 
-    @Deprecated
     protected final BasicPoolEntryRef getWeakRef() {
         return null;
     }
@@ -147,9 +140,9 @@ public class BasicPoolEntry extends AbstractPoolEntry {
     
 
 
-    public void updateExpiry(long time, TimeUnit timeunit) {
+    public void updateExpiry(final long time, final TimeUnit timeunit) {
         this.updated = System.currentTimeMillis();
-        long newExpiry;
+        final long newExpiry;
         if (time > 0) {
             newExpiry = this.updated + timeunit.toMillis(time);
         } else {
@@ -161,7 +154,7 @@ public class BasicPoolEntry extends AbstractPoolEntry {
     
 
 
-    public boolean isExpired(long now) {
+    public boolean isExpired(final long now) {
         return now >= this.expiry;
     }
 

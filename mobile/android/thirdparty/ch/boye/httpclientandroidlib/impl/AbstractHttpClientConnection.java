@@ -28,6 +28,7 @@
 package ch.boye.httpclientandroidlib.impl;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 
 import ch.boye.httpclientandroidlib.HttpClientConnection;
 import ch.boye.httpclientandroidlib.HttpConnectionMetrics;
@@ -37,22 +38,22 @@ import ch.boye.httpclientandroidlib.HttpException;
 import ch.boye.httpclientandroidlib.HttpRequest;
 import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.HttpResponseFactory;
-import ch.boye.httpclientandroidlib.entity.ContentLengthStrategy;
+import ch.boye.httpclientandroidlib.HttpStatus;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.impl.entity.EntityDeserializer;
 import ch.boye.httpclientandroidlib.impl.entity.EntitySerializer;
 import ch.boye.httpclientandroidlib.impl.entity.LaxContentLengthStrategy;
 import ch.boye.httpclientandroidlib.impl.entity.StrictContentLengthStrategy;
+import ch.boye.httpclientandroidlib.impl.io.DefaultHttpResponseParser;
 import ch.boye.httpclientandroidlib.impl.io.HttpRequestWriter;
-import ch.boye.httpclientandroidlib.impl.io.HttpResponseParser;
 import ch.boye.httpclientandroidlib.io.EofSensor;
 import ch.boye.httpclientandroidlib.io.HttpMessageParser;
 import ch.boye.httpclientandroidlib.io.HttpMessageWriter;
 import ch.boye.httpclientandroidlib.io.HttpTransportMetrics;
 import ch.boye.httpclientandroidlib.io.SessionInputBuffer;
 import ch.boye.httpclientandroidlib.io.SessionOutputBuffer;
-import ch.boye.httpclientandroidlib.message.LineFormatter;
-import ch.boye.httpclientandroidlib.message.LineParser;
 import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -68,6 +69,11 @@ import ch.boye.httpclientandroidlib.params.HttpParams;
 
 
 
+
+
+
+@NotThreadSafe
+@Deprecated
 public abstract class AbstractHttpClientConnection implements HttpClientConnection {
 
     private final EntitySerializer entityserializer;
@@ -76,8 +82,8 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
     private SessionInputBuffer inbuffer = null;
     private SessionOutputBuffer outbuffer = null;
     private EofSensor eofSensor = null;
-    private HttpMessageParser responseParser = null;
-    private HttpMessageWriter requestWriter = null;
+    private HttpMessageParser<HttpResponse> responseParser = null;
+    private HttpMessageWriter<HttpRequest> requestWriter = null;
     private HttpConnectionMetricsImpl metrics = null;
 
     
@@ -142,7 +148,7 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
 
 
     protected HttpResponseFactory createHttpResponseFactory() {
-        return new DefaultHttpResponseFactory();
+        return DefaultHttpResponseFactory.INSTANCE;
     }
 
     
@@ -159,11 +165,12 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
 
 
 
-    protected HttpMessageParser createResponseParser(
+
+    protected HttpMessageParser<HttpResponse> createResponseParser(
             final SessionInputBuffer buffer,
             final HttpResponseFactory responseFactory,
             final HttpParams params) {
-        return new HttpResponseParser(buffer, null, responseFactory, params);
+        return new DefaultHttpResponseParser(buffer, null, responseFactory, params);
     }
 
     
@@ -179,7 +186,8 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
 
 
 
-    protected HttpMessageWriter createRequestWriter(
+
+    protected HttpMessageWriter<HttpRequest> createRequestWriter(
             final SessionOutputBuffer buffer,
             final HttpParams params) {
         return new HttpRequestWriter(buffer, null, params);
@@ -214,14 +222,8 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
             final SessionInputBuffer inbuffer,
             final SessionOutputBuffer outbuffer,
             final HttpParams params) {
-        if (inbuffer == null) {
-            throw new IllegalArgumentException("Input session buffer may not be null");
-        }
-        if (outbuffer == null) {
-            throw new IllegalArgumentException("Output session buffer may not be null");
-        }
-        this.inbuffer = inbuffer;
-        this.outbuffer = outbuffer;
+        this.inbuffer = Args.notNull(inbuffer, "Input session buffer");
+        this.outbuffer = Args.notNull(outbuffer, "Output session buffer");
         if (inbuffer instanceof EofSensor) {
             this.eofSensor = (EofSensor) inbuffer;
         }
@@ -236,16 +238,18 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
                 outbuffer.getMetrics());
     }
 
-    public boolean isResponseAvailable(int timeout) throws IOException {
+    public boolean isResponseAvailable(final int timeout) throws IOException {
         assertOpen();
-        return this.inbuffer.isDataAvailable(timeout);
+        try {
+            return this.inbuffer.isDataAvailable(timeout);
+        } catch (final SocketTimeoutException ex) {
+            return false;
+        }
     }
 
     public void sendRequestHeader(final HttpRequest request)
             throws HttpException, IOException {
-        if (request == null) {
-            throw new IllegalArgumentException("HTTP request may not be null");
-        }
+        Args.notNull(request, "HTTP request");
         assertOpen();
         this.requestWriter.write(request);
         this.metrics.incrementRequestCount();
@@ -253,9 +257,7 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
 
     public void sendRequestEntity(final HttpEntityEnclosingRequest request)
             throws HttpException, IOException {
-        if (request == null) {
-            throw new IllegalArgumentException("HTTP request may not be null");
-        }
+        Args.notNull(request, "HTTP request");
         assertOpen();
         if (request.getEntity() == null) {
             return;
@@ -278,8 +280,8 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
     public HttpResponse receiveResponseHeader()
             throws HttpException, IOException {
         assertOpen();
-        HttpResponse response = (HttpResponse) this.responseParser.parse();
-        if (response.getStatusLine().getStatusCode() >= 200) {
+        final HttpResponse response = this.responseParser.parse();
+        if (response.getStatusLine().getStatusCode() >= HttpStatus.SC_OK) {
             this.metrics.incrementResponseCount();
         }
         return response;
@@ -287,11 +289,9 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
 
     public void receiveResponseEntity(final HttpResponse response)
             throws HttpException, IOException {
-        if (response == null) {
-            throw new IllegalArgumentException("HTTP response may not be null");
-        }
+        Args.notNull(response, "HTTP response");
         assertOpen();
-        HttpEntity entity = this.entitydeserializer.deserialize(this.inbuffer, response);
+        final HttpEntity entity = this.entitydeserializer.deserialize(this.inbuffer, response);
         response.setEntity(entity);
     }
 
@@ -309,7 +309,9 @@ public abstract class AbstractHttpClientConnection implements HttpClientConnecti
         try {
             this.inbuffer.isDataAvailable(1);
             return isEof();
-        } catch (IOException ex) {
+        } catch (final SocketTimeoutException ex) {
+            return false;
+        } catch (final IOException ex) {
             return true;
         }
     }

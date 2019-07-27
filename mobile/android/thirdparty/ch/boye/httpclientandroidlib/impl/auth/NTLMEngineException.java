@@ -27,7 +27,6 @@
 package ch.boye.httpclientandroidlib.impl.auth;
 
 import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.auth.AuthenticationException;
 
 
@@ -50,7 +49,7 @@ public class NTLMEngineException extends AuthenticationException {
 
 
 
-    public NTLMEngineException(String message) {
+    public NTLMEngineException(final String message) {
         super(message);
     }
 
@@ -61,7 +60,7 @@ public class NTLMEngineException extends AuthenticationException {
 
 
 
-    public NTLMEngineException(String message, Throwable cause) {
+    public NTLMEngineException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

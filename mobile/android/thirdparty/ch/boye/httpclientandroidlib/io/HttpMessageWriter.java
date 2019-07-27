@@ -38,7 +38,7 @@ import ch.boye.httpclientandroidlib.HttpMessage;
 
 
 
-public interface HttpMessageWriter {
+public interface HttpMessageWriter<T extends HttpMessage> {
 
     
 
@@ -48,7 +48,7 @@ public interface HttpMessageWriter {
 
 
 
-    void write(HttpMessage message)
+    void write(T message)
         throws IOException, HttpException;
 
 }

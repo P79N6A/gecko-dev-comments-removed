@@ -26,8 +26,7 @@
 
 package ch.boye.httpclientandroidlib.conn.params;
 
-import ch.boye.httpclientandroidlib.impl.conn.tsccm.ThreadSafeClientConnManager;
-import ch.boye.httpclientandroidlib.params.CoreConnectionPNames;
+
 
 
 
@@ -44,9 +43,6 @@ public interface ConnManagerPNames {
 
 
 
-
-
-    @Deprecated
     public static final String TIMEOUT = "http.conn-manager.timeout";
 
     
@@ -57,9 +53,6 @@ public interface ConnManagerPNames {
 
 
 
-
-
-    @Deprecated
     public static final String MAX_CONNECTIONS_PER_ROUTE = "http.conn-manager.max-per-route";
 
     
@@ -69,10 +62,6 @@ public interface ConnManagerPNames {
 
 
 
-
-
-
-    @Deprecated
     public static final String MAX_TOTAL_CONNECTIONS = "http.conn-manager.max-total";
 
 }

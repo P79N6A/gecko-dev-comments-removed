@@ -27,7 +27,8 @@
 
 package ch.boye.httpclientandroidlib.protocol;
 
-import java.util.HashMap;
+
+
 
 
 

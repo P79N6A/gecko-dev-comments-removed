@@ -31,17 +31,21 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.net.ssl.SSLException;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.HttpEntityEnclosingRequest;
 import ch.boye.httpclientandroidlib.HttpRequest;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
+import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
+import ch.boye.httpclientandroidlib.client.protocol.HttpClientContext;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
-import ch.boye.httpclientandroidlib.protocol.ExecutionContext;
-
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -51,22 +55,66 @@ import ch.boye.httpclientandroidlib.protocol.ExecutionContext;
 @Immutable
 public class DefaultHttpRequestRetryHandler implements HttpRequestRetryHandler {
 
+    public static final DefaultHttpRequestRetryHandler INSTANCE = new DefaultHttpRequestRetryHandler();
+
     
     private final int retryCount;
 
     
     private final boolean requestSentRetryEnabled;
 
+    private final Set<Class<? extends IOException>> nonRetriableClasses;
+
     
 
 
-    public DefaultHttpRequestRetryHandler(int retryCount, boolean requestSentRetryEnabled) {
+
+
+
+
+
+    protected DefaultHttpRequestRetryHandler(
+            final int retryCount,
+            final boolean requestSentRetryEnabled,
+            final Collection<Class<? extends IOException>> clazzes) {
         super();
         this.retryCount = retryCount;
         this.requestSentRetryEnabled = requestSentRetryEnabled;
+        this.nonRetriableClasses = new HashSet<Class<? extends IOException>>();
+        for (final Class<? extends IOException> clazz: clazzes) {
+            this.nonRetriableClasses.add(clazz);
+        }
     }
 
     
+
+
+
+
+
+
+
+
+
+
+
+    @SuppressWarnings("unchecked")
+    public DefaultHttpRequestRetryHandler(final int retryCount, final boolean requestSentRetryEnabled) {
+        this(retryCount, requestSentRetryEnabled, Arrays.asList(
+                InterruptedIOException.class,
+                UnknownHostException.class,
+                ConnectException.class,
+                SSLException.class));
+    }
+
+    
+
+
+
+
+
+
+
 
 
     public DefaultHttpRequestRetryHandler() {
@@ -78,47 +126,36 @@ public class DefaultHttpRequestRetryHandler implements HttpRequestRetryHandler {
 
     public boolean retryRequest(
             final IOException exception,
-            int executionCount,
+            final int executionCount,
             final HttpContext context) {
-        if (exception == null) {
-            throw new IllegalArgumentException("Exception parameter may not be null");
-        }
-        if (context == null) {
-            throw new IllegalArgumentException("HTTP context may not be null");
-        }
+        Args.notNull(exception, "Exception parameter");
+        Args.notNull(context, "HTTP context");
         if (executionCount > this.retryCount) {
             
             return false;
         }
-        if (exception instanceof InterruptedIOException) {
-            
+        if (this.nonRetriableClasses.contains(exception.getClass())) {
             return false;
+        } else {
+            for (final Class<? extends IOException> rejectException : this.nonRetriableClasses) {
+                if (rejectException.isInstance(exception)) {
+                    return false;
+                }
+            }
         }
-        if (exception instanceof UnknownHostException) {
-            
-            return false;
-        }
-        if (exception instanceof ConnectException) {
-            
-            return false;
-        }
-        if (exception instanceof SSLException) {
-            
+        final HttpClientContext clientContext = HttpClientContext.adapt(context);
+        final HttpRequest request = clientContext.getRequest();
+
+        if(requestIsAborted(request)){
             return false;
         }
 
-        HttpRequest request = (HttpRequest)
-            context.getAttribute(ExecutionContext.HTTP_REQUEST);
         if (handleAsIdempotent(request)) {
             
             return true;
         }
 
-        Boolean b = (Boolean)
-            context.getAttribute(ExecutionContext.HTTP_REQ_SENT);
-        boolean sent = (b != null && b.booleanValue());
-
-        if (!sent || this.requestSentRetryEnabled) {
+        if (!clientContext.isRequestSent() || this.requestSentRetryEnabled) {
             
             
             return true;
@@ -142,8 +179,25 @@ public class DefaultHttpRequestRetryHandler implements HttpRequestRetryHandler {
         return retryCount;
     }
 
-    private boolean handleAsIdempotent(final HttpRequest request) {
+    
+
+
+    protected boolean handleAsIdempotent(final HttpRequest request) {
         return !(request instanceof HttpEntityEnclosingRequest);
+    }
+
+    
+
+
+
+
+    @Deprecated
+    protected boolean requestIsAborted(final HttpRequest request) {
+        HttpRequest req = request;
+        if (request instanceof RequestWrapper) { 
+            req = ((RequestWrapper) request).getOriginal();
+        }
+        return (req instanceof HttpUriRequest && ((HttpUriRequest)req).isAborted());
     }
 
 }

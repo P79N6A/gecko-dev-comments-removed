@@ -27,6 +27,10 @@
 
 package ch.boye.httpclientandroidlib.protocol;
 
+import java.nio.charset.Charset;
+
+import ch.boye.httpclientandroidlib.Consts;
+
 
 
 
@@ -62,26 +66,66 @@ public final class HTTP {
     public static final String CHUNK_CODING = "chunked";
     public static final String IDENTITY_CODING = "identity";
 
+    public static final Charset DEF_CONTENT_CHARSET = Consts.ISO_8859_1;
+    public static final Charset DEF_PROTOCOL_CHARSET = Consts.ASCII;
+
     
+
+
+    @Deprecated
     public static final String UTF_8 = "UTF-8";
+    
+
+
+    @Deprecated
     public static final String UTF_16 = "UTF-16";
+    
+
+
+    @Deprecated
     public static final String US_ASCII = "US-ASCII";
+    
+
+
+    @Deprecated
     public static final String ASCII = "ASCII";
+    
+
+
+    @Deprecated
     public static final String ISO_8859_1 = "ISO-8859-1";
-
     
+
+
+    @Deprecated
     public static final String DEFAULT_CONTENT_CHARSET = ISO_8859_1;
+    
+
+
+    @Deprecated
     public static final String DEFAULT_PROTOCOL_CHARSET = US_ASCII;
-
     
+
+
+    @Deprecated
     public final static String OCTET_STREAM_TYPE = "application/octet-stream";
-    public final static String PLAIN_TEXT_TYPE = "text/plain";
-    public final static String CHARSET_PARAM = "; charset=";
-
     
+
+
+    @Deprecated
+    public final static String PLAIN_TEXT_TYPE = "text/plain";
+    
+
+
+    @Deprecated
+    public final static String CHARSET_PARAM = "; charset=";
+    
+
+
+    @Deprecated
     public final static String DEFAULT_CONTENT_TYPE = OCTET_STREAM_TYPE;
 
-    public static boolean isWhitespace(char ch) {
+    public static boolean isWhitespace(final char ch) {
         return ch == SP || ch == HT || ch == CR || ch == LF;
     }
 

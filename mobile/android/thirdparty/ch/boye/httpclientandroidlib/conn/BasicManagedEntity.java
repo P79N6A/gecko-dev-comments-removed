@@ -24,17 +24,17 @@
 
 
 
-
 package ch.boye.httpclientandroidlib.conn;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import java.net.SocketException;
 
 import ch.boye.httpclientandroidlib.HttpEntity;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.entity.HttpEntityWrapper;
+import ch.boye.httpclientandroidlib.util.Args;
 import ch.boye.httpclientandroidlib.util.EntityUtils;
 
 
@@ -45,6 +45,9 @@ import ch.boye.httpclientandroidlib.util.EntityUtils;
 
 
 
+
+
+@Deprecated
 @NotThreadSafe
 public class BasicManagedEntity extends HttpEntityWrapper
     implements ConnectionReleaseTrigger, EofSensorWatcher {
@@ -65,15 +68,11 @@ public class BasicManagedEntity extends HttpEntityWrapper
 
 
 
-    public BasicManagedEntity(HttpEntity entity,
-                              ManagedClientConnection conn,
-                              boolean reuse) {
+    public BasicManagedEntity(final HttpEntity entity,
+                              final ManagedClientConnection conn,
+                              final boolean reuse) {
         super(entity);
-
-        if (conn == null)
-            throw new IllegalArgumentException
-                ("Connection may not be null.");
-
+        Args.notNull(conn, "Connection");
         this.managedConn = conn;
         this.attemptReuse = reuse;
     }
@@ -89,19 +88,25 @@ public class BasicManagedEntity extends HttpEntityWrapper
     }
 
     private void ensureConsumed() throws IOException {
-        if (managedConn == null)
+        if (managedConn == null) {
             return;
+        }
 
         try {
             if (attemptReuse) {
                 
                 EntityUtils.consume(wrappedEntity);
                 managedConn.markReusable();
+            } else {
+                managedConn.unmarkReusable();
             }
         } finally {
             releaseManagedConnection();
         }
     }
+
+    
+
 
     @Deprecated
     @Override
@@ -130,13 +135,17 @@ public class BasicManagedEntity extends HttpEntityWrapper
         }
     }
 
-    public boolean eofDetected(InputStream wrapped) throws IOException {
+    public boolean eofDetected(final InputStream wrapped) throws IOException {
         try {
-            if (attemptReuse && (managedConn != null)) {
-                
-                
-                wrapped.close();
-                managedConn.markReusable();
+            if (managedConn != null) {
+                if (attemptReuse) {
+                    
+                    
+                    wrapped.close();
+                    managedConn.markReusable();
+                } else {
+                    managedConn.unmarkReusable();
+                }
             }
         } finally {
             releaseManagedConnection();
@@ -144,13 +153,24 @@ public class BasicManagedEntity extends HttpEntityWrapper
         return false;
     }
 
-    public boolean streamClosed(InputStream wrapped) throws IOException {
+    public boolean streamClosed(final InputStream wrapped) throws IOException {
         try {
-            if (attemptReuse && (managedConn != null)) {
-                
-                
-                wrapped.close();
-                managedConn.markReusable();
+            if (managedConn != null) {
+                if (attemptReuse) {
+                    final boolean valid = managedConn.isOpen();
+                    
+                    
+                    try {
+                        wrapped.close();
+                        managedConn.markReusable();
+                    } catch (final SocketException ex) {
+                        if (valid) {
+                            throw ex;
+                        }
+                    }
+                } else {
+                    managedConn.unmarkReusable();
+                }
             }
         } finally {
             releaseManagedConnection();
@@ -158,7 +178,7 @@ public class BasicManagedEntity extends HttpEntityWrapper
         return false;
     }
 
-    public boolean streamAbort(InputStream wrapped) throws IOException {
+    public boolean streamAbort(final InputStream wrapped) throws IOException {
         if (managedConn != null) {
             managedConn.abortConnection();
         }

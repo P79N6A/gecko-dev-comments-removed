@@ -28,6 +28,7 @@
 package ch.boye.httpclientandroidlib.impl.client;
 
 import java.net.URI;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,8 +42,9 @@ import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 
 
 
+
 @NotThreadSafe 
-public class RedirectLocations {
+public class RedirectLocations extends AbstractList<Object> {
 
     private final Set<URI> unique;
     private final List<URI> all;
@@ -72,11 +74,11 @@ public class RedirectLocations {
 
 
     public boolean remove(final URI uri) {
-        boolean removed = this.unique.remove(uri);
+        final boolean removed = this.unique.remove(uri);
         if (removed) {
-            Iterator<URI> it = this.all.iterator();
+            final Iterator<URI> it = this.all.iterator();
             while (it.hasNext()) {
-                URI current = it.next();
+                final URI current = it.next();
                 if (current.equals(uri)) {
                     it.remove();
                 }
@@ -94,6 +96,132 @@ public class RedirectLocations {
 
     public List<URI> getAll() {
         return new ArrayList<URI>(this.all);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public URI get(final int index) {
+        return this.all.get(index);
+    }
+
+    
+
+
+
+
+
+
+
+    @Override
+    public int size() {
+        return this.all.size();
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public Object set(final int index, final Object element) {
+        final URI removed = this.all.set(index, (URI) element);
+        this.unique.remove(removed);
+        this.unique.add((URI) element);
+        if (this.all.size() != this.unique.size()) {
+            this.unique.addAll(this.all);
+        }
+        return removed;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public void add(final int index, final Object element) {
+        this.all.add(index, (URI) element);
+        this.unique.add((URI) element);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public URI remove(final int index) {
+        final URI removed = this.all.remove(index);
+        this.unique.remove(removed);
+        if (this.all.size() != this.unique.size()) {
+            this.unique.addAll(this.all);
+        }
+        return removed;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    @Override
+    public boolean contains(final Object o) {
+        return this.unique.contains(o);
     }
 
 }

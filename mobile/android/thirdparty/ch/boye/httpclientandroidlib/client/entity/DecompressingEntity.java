@@ -23,6 +23,7 @@
 
 
 
+
 package ch.boye.httpclientandroidlib.client.entity;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.io.OutputStream;
 
 import ch.boye.httpclientandroidlib.HttpEntity;
 import ch.boye.httpclientandroidlib.entity.HttpEntityWrapper;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -60,7 +62,12 @@ abstract class DecompressingEntity extends HttpEntityWrapper {
         super(wrapped);
     }
 
-    abstract InputStream getDecompressingInputStream(final InputStream wrapped) throws IOException;
+    abstract InputStream decorate(final InputStream wrapped) throws IOException;
+
+    private InputStream getDecompressingStream() throws IOException {
+        final InputStream in = wrappedEntity.getContent();
+        return new LazyDecompressingInputStream(in, this);
+    }
 
     
 
@@ -69,11 +76,11 @@ abstract class DecompressingEntity extends HttpEntityWrapper {
     public InputStream getContent() throws IOException {
         if (wrappedEntity.isStreaming()) {
             if (content == null) {
-                content = getDecompressingInputStream(wrappedEntity.getContent());
+                content = getDecompressingStream();
             }
             return content;
         } else {
-            return getDecompressingInputStream(wrappedEntity.getContent());
+            return getDecompressingStream();
         }
     }
 
@@ -81,16 +88,12 @@ abstract class DecompressingEntity extends HttpEntityWrapper {
 
 
     @Override
-    public void writeTo(OutputStream outstream) throws IOException {
-        if (outstream == null) {
-            throw new IllegalArgumentException("Output stream may not be null");
-        }
-        InputStream instream = getContent();
+    public void writeTo(final OutputStream outstream) throws IOException {
+        Args.notNull(outstream, "Output stream");
+        final InputStream instream = getContent();
         try {
-            byte[] buffer = new byte[BUFFER_SIZE];
-
+            final byte[] buffer = new byte[BUFFER_SIZE];
             int l;
-
             while ((l = instream.read(buffer)) != -1) {
                 outstream.write(buffer, 0, l);
             }

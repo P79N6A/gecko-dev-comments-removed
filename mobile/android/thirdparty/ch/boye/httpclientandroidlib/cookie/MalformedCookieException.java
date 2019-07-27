@@ -27,9 +27,8 @@
 
 package ch.boye.httpclientandroidlib.cookie;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.ProtocolException;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
@@ -55,7 +54,7 @@ public class MalformedCookieException extends ProtocolException {
 
 
 
-    public MalformedCookieException(String message) {
+    public MalformedCookieException(final String message) {
         super(message);
     }
 
@@ -66,7 +65,7 @@ public class MalformedCookieException extends ProtocolException {
 
 
 
-    public MalformedCookieException(String message, Throwable cause) {
+    public MalformedCookieException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

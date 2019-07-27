@@ -26,18 +26,21 @@
 
 package ch.boye.httpclientandroidlib.impl.auth;
 
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import java.util.Locale;
 
 import ch.boye.httpclientandroidlib.FormattedHeader;
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HttpRequest;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.auth.AUTH;
 import ch.boye.httpclientandroidlib.auth.AuthenticationException;
+import ch.boye.httpclientandroidlib.auth.ChallengeState;
 import ch.boye.httpclientandroidlib.auth.ContextAwareAuthScheme;
 import ch.boye.httpclientandroidlib.auth.Credentials;
 import ch.boye.httpclientandroidlib.auth.MalformedChallengeException;
 import ch.boye.httpclientandroidlib.protocol.HTTP;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
+import ch.boye.httpclientandroidlib.util.Args;
 import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
 
 
@@ -50,13 +53,24 @@ import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
 
 
 
-@NotThreadSafe 
+@NotThreadSafe
 public abstract class AuthSchemeBase implements ContextAwareAuthScheme {
+
+    private ChallengeState challengeState;
 
     
 
 
-    private boolean proxy;
+
+
+
+
+
+    @Deprecated
+    public AuthSchemeBase(final ChallengeState challengeState) {
+        super();
+        this.challengeState = challengeState;
+    }
 
     public AuthSchemeBase() {
         super();
@@ -73,25 +87,23 @@ public abstract class AuthSchemeBase implements ContextAwareAuthScheme {
 
 
     public void processChallenge(final Header header) throws MalformedChallengeException {
-        if (header == null) {
-            throw new IllegalArgumentException("Header may not be null");
-        }
-        String authheader = header.getName();
+        Args.notNull(header, "Header");
+        final String authheader = header.getName();
         if (authheader.equalsIgnoreCase(AUTH.WWW_AUTH)) {
-            this.proxy = false;
+            this.challengeState = ChallengeState.TARGET;
         } else if (authheader.equalsIgnoreCase(AUTH.PROXY_AUTH)) {
-            this.proxy = true;
+            this.challengeState = ChallengeState.PROXY;
         } else {
             throw new MalformedChallengeException("Unexpected header name: " + authheader);
         }
 
-        CharArrayBuffer buffer;
+        final CharArrayBuffer buffer;
         int pos;
         if (header instanceof FormattedHeader) {
             buffer = ((FormattedHeader) header).getBuffer();
             pos = ((FormattedHeader) header).getValuePos();
         } else {
-            String s = header.getValue();
+            final String s = header.getValue();
             if (s == null) {
                 throw new MalformedChallengeException("Header value is null");
             }
@@ -102,12 +114,12 @@ public abstract class AuthSchemeBase implements ContextAwareAuthScheme {
         while (pos < buffer.length() && HTTP.isWhitespace(buffer.charAt(pos))) {
             pos++;
         }
-        int beginIndex = pos;
+        final int beginIndex = pos;
         while (pos < buffer.length() && !HTTP.isWhitespace(buffer.charAt(pos))) {
             pos++;
         }
-        int endIndex = pos;
-        String s = buffer.substring(beginIndex, endIndex);
+        final int endIndex = pos;
+        final String s = buffer.substring(beginIndex, endIndex);
         if (!s.equalsIgnoreCase(getSchemeName())) {
             throw new MalformedChallengeException("Invalid scheme identifier: " + s);
         }
@@ -131,16 +143,27 @@ public abstract class AuthSchemeBase implements ContextAwareAuthScheme {
 
 
 
-
-
-
     public boolean isProxy() {
-        return this.proxy;
+        return this.challengeState != null && this.challengeState == ChallengeState.PROXY;
+    }
+
+    
+
+
+
+
+    public ChallengeState getChallengeState() {
+        return this.challengeState;
     }
 
     @Override
     public String toString() {
-        return getSchemeName();
+        final String name = getSchemeName();
+        if (name != null) {
+            return name.toUpperCase(Locale.ENGLISH);
+        } else {
+            return super.toString();
+        }
     }
 
 }

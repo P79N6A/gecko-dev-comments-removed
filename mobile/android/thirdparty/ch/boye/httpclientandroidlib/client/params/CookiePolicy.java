@@ -34,6 +34,9 @@ import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
+
+
+@Deprecated
 @Immutable
 public final class CookiePolicy {
 
@@ -69,7 +72,7 @@ public final class CookiePolicy {
 
 
     public static final String IGNORE_COOKIES = "ignoreCookies";
-    
+
     private CookiePolicy() {
         super();
     }

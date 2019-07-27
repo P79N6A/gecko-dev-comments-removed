@@ -26,13 +26,11 @@
 
 package ch.boye.httpclientandroidlib.impl.conn.tsccm;
 
-
-import java.lang.ref.WeakReference;
 import java.lang.ref.ReferenceQueue;
-
-import ch.boye.httpclientandroidlib.annotation.Immutable;
+import java.lang.ref.WeakReference;
 
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -43,7 +41,7 @@ import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
 
-@Immutable
+@Deprecated
 public class BasicPoolEntryRef extends WeakReference<BasicPoolEntry> {
 
     
@@ -56,13 +54,10 @@ public class BasicPoolEntryRef extends WeakReference<BasicPoolEntry> {
 
 
 
-    public BasicPoolEntryRef(BasicPoolEntry entry,
-                             ReferenceQueue<Object> queue) {
+    public BasicPoolEntryRef(final BasicPoolEntry entry,
+                             final ReferenceQueue<Object> queue) {
         super(entry, queue);
-        if (entry == null) {
-            throw new IllegalArgumentException
-                ("Pool entry must not be null.");
-        }
+        Args.notNull(entry, "Pool entry");
         route = entry.getPlannedRoute();
     }
 

@@ -27,8 +27,6 @@
 
 package ch.boye.httpclientandroidlib;
 
-import ch.boye.httpclientandroidlib.util.ExceptionUtils;
-
 
 
 
@@ -63,7 +61,7 @@ public class HttpException extends Exception {
 
     public HttpException(final String message, final Throwable cause) {
         super(message);
-        ExceptionUtils.initCause(this, cause);
+        initCause(cause);
     }
 
 }

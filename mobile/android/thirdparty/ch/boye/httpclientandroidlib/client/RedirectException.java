@@ -26,9 +26,8 @@
 
 package ch.boye.httpclientandroidlib.client;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.ProtocolException;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
@@ -53,7 +52,7 @@ public class RedirectException extends ProtocolException {
 
 
 
-    public RedirectException(String message) {
+    public RedirectException(final String message) {
         super(message);
     }
 
@@ -64,7 +63,7 @@ public class RedirectException extends ProtocolException {
 
 
 
-    public RedirectException(String message, Throwable cause) {
+    public RedirectException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

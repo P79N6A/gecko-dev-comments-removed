@@ -32,18 +32,21 @@ import java.util.concurrent.TimeUnit;
 import ch.boye.httpclientandroidlib.androidextra.HttpClientAndroidLog;
 
 import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
-import ch.boye.httpclientandroidlib.conn.params.ConnPerRouteBean;
-import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
-import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
 import ch.boye.httpclientandroidlib.conn.ClientConnectionManager;
 import ch.boye.httpclientandroidlib.conn.ClientConnectionOperator;
 import ch.boye.httpclientandroidlib.conn.ClientConnectionRequest;
 import ch.boye.httpclientandroidlib.conn.ConnectionPoolTimeoutException;
 import ch.boye.httpclientandroidlib.conn.ManagedClientConnection;
-import ch.boye.httpclientandroidlib.conn.OperatedClientConnection;
-import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.conn.params.ConnPerRouteBean;
+import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
+import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
 import ch.boye.httpclientandroidlib.impl.conn.DefaultClientConnectionOperator;
 import ch.boye.httpclientandroidlib.impl.conn.SchemeRegistryFactory;
+import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.util.Args;
+import ch.boye.httpclientandroidlib.util.Asserts;
+
+
 
 
 
@@ -64,6 +67,7 @@ import ch.boye.httpclientandroidlib.impl.conn.SchemeRegistryFactory;
 
 
 @ThreadSafe
+@Deprecated
 public class ThreadSafeClientConnManager implements ClientConnectionManager {
 
     public HttpClientAndroidLog log;
@@ -71,7 +75,6 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
     
     protected final SchemeRegistry schemeRegistry; 
 
-    @Deprecated
     protected final AbstractConnPool connectionPool;
 
     
@@ -108,14 +111,29 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
 
 
     public ThreadSafeClientConnManager(final SchemeRegistry schreg,
-            long connTTL, TimeUnit connTTLTimeUnit) {
+            final long connTTL, final TimeUnit connTTLTimeUnit) {
+        this(schreg, connTTL, connTTLTimeUnit, new ConnPerRouteBean());
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    public ThreadSafeClientConnManager(final SchemeRegistry schreg,
+            final long connTTL, final TimeUnit connTTLTimeUnit, final ConnPerRouteBean connPerRoute) {
         super();
-        if (schreg == null) {
-            throw new IllegalArgumentException("Scheme registry may not be null");
-        }
+        Args.notNull(schreg, "Scheme registry");
         this.log = new HttpClientAndroidLog(getClass());
         this.schemeRegistry = schreg;
-        this.connPerRoute = new ConnPerRouteBean();
+        this.connPerRoute = connPerRoute;
         this.connOperator = createConnectionOperator(schreg);
         this.pool = createConnectionPool(connTTL, connTTLTimeUnit) ;
         this.connectionPool = this.pool;
@@ -130,11 +148,9 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
 
 
     @Deprecated
-    public ThreadSafeClientConnManager(HttpParams params,
-                                       SchemeRegistry schreg) {
-        if (schreg == null) {
-            throw new IllegalArgumentException("Scheme registry may not be null");
-        }
+    public ThreadSafeClientConnManager(final HttpParams params,
+                                       final SchemeRegistry schreg) {
+        Args.notNull(schreg, "Scheme registry");
         this.log = new HttpClientAndroidLog(getClass());
         this.schemeRegistry = schreg;
         this.connPerRoute = new ConnPerRouteBean();
@@ -171,7 +187,7 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
 
 
 
-    protected ConnPoolByRoute createConnectionPool(long connTTL, TimeUnit connTTLTimeUnit) {
+    protected ConnPoolByRoute createConnectionPool(final long connTTL, final TimeUnit connTTLTimeUnit) {
         return new ConnPoolByRoute(connOperator, connPerRoute, 20, connTTL, connTTLTimeUnit);
     }
 
@@ -188,7 +204,7 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
 
 
     protected ClientConnectionOperator
-        createConnectionOperator(SchemeRegistry schreg) {
+        createConnectionOperator(final SchemeRegistry schreg) {
 
         return new DefaultClientConnectionOperator(schreg);
     }
@@ -211,17 +227,15 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
             }
 
             public ManagedClientConnection getConnection(
-                    long timeout, TimeUnit tunit) throws InterruptedException,
+                    final long timeout, final TimeUnit tunit) throws InterruptedException,
                     ConnectionPoolTimeoutException {
-                if (route == null) {
-                    throw new IllegalArgumentException("Route may not be null.");
-                }
+                Args.notNull(route, "Route");
 
                 if (log.isDebugEnabled()) {
                     log.debug("Get connection: " + route + ", timeout = " + timeout);
                 }
 
-                BasicPoolEntry entry = poolRequest.getPoolEntry(timeout, tunit);
+                final BasicPoolEntry entry = poolRequest.getPoolEntry(timeout, tunit);
                 return new BasicPooledConnAdapter(ThreadSafeClientConnManager.this, entry);
             }
 
@@ -229,20 +243,15 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
 
     }
 
-    public void releaseConnection(ManagedClientConnection conn, long validDuration, TimeUnit timeUnit) {
-
-        if (!(conn instanceof BasicPooledConnAdapter)) {
-            throw new IllegalArgumentException
-                ("Connection class mismatch, " +
-                 "connection not obtained from this manager.");
-        }
-        BasicPooledConnAdapter hca = (BasicPooledConnAdapter) conn;
-        if ((hca.getPoolEntry() != null) && (hca.getManager() != this)) {
-            throw new IllegalArgumentException
-                ("Connection not obtained from this manager.");
+    public void releaseConnection(final ManagedClientConnection conn, final long validDuration, final TimeUnit timeUnit) {
+        Args.check(conn instanceof BasicPooledConnAdapter, "Connection class mismatch, " +
+                "connection not obtained from this manager");
+        final BasicPooledConnAdapter hca = (BasicPooledConnAdapter) conn;
+        if (hca.getPoolEntry() != null) {
+            Asserts.check(hca.getManager() == this, "Connection not obtained from this manager");
         }
         synchronized (hca) {
-            BasicPoolEntry entry = (BasicPoolEntry) hca.getPoolEntry();
+            final BasicPoolEntry entry = (BasicPoolEntry) hca.getPoolEntry();
             if (entry == null) {
                 return;
             }
@@ -259,12 +268,13 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
                     
                     hca.shutdown();
                 }
-            } catch (IOException iox) {
-                if (log.isDebugEnabled())
+            } catch (final IOException iox) {
+                if (log.isDebugEnabled()) {
                     log.debug("Exception shutting down released connection.",
                               iox);
+                }
             } finally {
-                boolean reusable = hca.isMarkedReusable();
+                final boolean reusable = hca.isMarkedReusable();
                 if (log.isDebugEnabled()) {
                     if (reusable) {
                         log.debug("Released connection is reusable.");
@@ -309,7 +319,7 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
         return pool.getConnectionsInPool();
     }
 
-    public void closeIdleConnections(long idleTimeout, TimeUnit tunit) {
+    public void closeIdleConnections(final long idleTimeout, final TimeUnit tunit) {
         if (log.isDebugEnabled()) {
             log.debug("Closing connections idle longer than " + idleTimeout + " " + tunit);
         }
@@ -331,7 +341,7 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
     
 
 
-    public void setMaxTotal(int max) {
+    public void setMaxTotal(final int max) {
         pool.setMaxTotalConnections(max);
     }
 
@@ -345,7 +355,7 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
     
 
 
-    public void setDefaultMaxPerRoute(int max) {
+    public void setDefaultMaxPerRoute(final int max) {
         connPerRoute.setDefaultMaxPerRoute(max);
     }
 
@@ -359,7 +369,7 @@ public class ThreadSafeClientConnManager implements ClientConnectionManager {
     
 
 
-    public void setMaxForRoute(final HttpRoute route, int max) {
+    public void setMaxForRoute(final HttpRoute route, final int max) {
         connPerRoute.setMaxForRoute(route, max);
     }
 

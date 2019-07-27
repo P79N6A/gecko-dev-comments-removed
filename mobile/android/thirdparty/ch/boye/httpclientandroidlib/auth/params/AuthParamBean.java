@@ -37,6 +37,11 @@ import ch.boye.httpclientandroidlib.params.HttpParams;
 
 
 
+
+
+
+
+@Deprecated
 public class AuthParamBean extends HttpAbstractParamBean {
 
     public AuthParamBean (final HttpParams params) {

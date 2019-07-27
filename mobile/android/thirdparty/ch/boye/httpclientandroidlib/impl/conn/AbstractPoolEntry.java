@@ -27,15 +27,17 @@
 package ch.boye.httpclientandroidlib.impl.conn;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 
 import ch.boye.httpclientandroidlib.HttpHost;
-import ch.boye.httpclientandroidlib.params.HttpParams;
-import ch.boye.httpclientandroidlib.protocol.HttpContext;
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
-import ch.boye.httpclientandroidlib.conn.routing.RouteTracker;
 import ch.boye.httpclientandroidlib.conn.ClientConnectionOperator;
 import ch.boye.httpclientandroidlib.conn.OperatedClientConnection;
+import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
+import ch.boye.httpclientandroidlib.conn.routing.RouteTracker;
+import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.protocol.HttpContext;
+import ch.boye.httpclientandroidlib.util.Args;
+import ch.boye.httpclientandroidlib.util.Asserts;
 
 
 
@@ -53,7 +55,9 @@ import ch.boye.httpclientandroidlib.conn.OperatedClientConnection;
 
 
 
-@NotThreadSafe
+
+
+@Deprecated
 public abstract class AbstractPoolEntry {
 
     
@@ -82,12 +86,10 @@ public abstract class AbstractPoolEntry {
 
 
 
-    protected AbstractPoolEntry(ClientConnectionOperator connOperator,
-                                HttpRoute route) {
+    protected AbstractPoolEntry(final ClientConnectionOperator connOperator,
+                                final HttpRoute route) {
         super();
-        if (connOperator == null) {
-            throw new IllegalArgumentException("Connection operator may not be null");
-        }
+        Args.notNull(connOperator, "Connection operator");
         this.connOperator = connOperator;
         this.connection = connOperator.createConnection();
         this.route = route;
@@ -121,22 +123,15 @@ public abstract class AbstractPoolEntry {
 
 
 
-    public void open(HttpRoute route,
-                     HttpContext context, HttpParams params)
+    public void open(final HttpRoute route,
+                     final HttpContext context, final HttpParams params)
         throws IOException {
 
-        if (route == null) {
-            throw new IllegalArgumentException
-                ("Route must not be null.");
+        Args.notNull(route, "Route");
+        Args.notNull(params, "HTTP parameters");
+        if (this.tracker != null) {
+            Asserts.check(!this.tracker.isConnected(), "Connection already open");
         }
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("Parameters must not be null.");
-        }
-        if ((this.tracker != null) && this.tracker.isConnected()) {
-            throw new IllegalStateException("Connection already open.");
-        }
-
         
         
         
@@ -152,12 +147,12 @@ public abstract class AbstractPoolEntry {
              route.getLocalAddress(),
              context, params);
 
-        RouteTracker localTracker = tracker; 
+        final RouteTracker localTracker = tracker; 
 
         
         
         if (localTracker == null) {
-            throw new IOException("Request aborted");
+            throw new InterruptedIOException("Request aborted");
         }
 
         if (proxy == null) {
@@ -179,21 +174,13 @@ public abstract class AbstractPoolEntry {
 
 
 
-    public void tunnelTarget(boolean secure, HttpParams params)
+    public void tunnelTarget(final boolean secure, final HttpParams params)
         throws IOException {
 
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("Parameters must not be null.");
-        }
-
-        if ((this.tracker == null) || !this.tracker.isConnected()) {
-            throw new IllegalStateException("Connection not open.");
-        }
-        if (this.tracker.isTunnelled()) {
-            throw new IllegalStateException
-                ("Connection is already tunnelled.");
-        }
+        Args.notNull(params, "HTTP parameters");
+        Asserts.notNull(this.tracker, "Route tracker");
+        Asserts.check(this.tracker.isConnected(), "Connection not open");
+        Asserts.check(!this.tracker.isTunnelled(), "Connection is already tunnelled");
 
         this.connection.update(null, tracker.getTargetHost(),
                                secure, params);
@@ -215,22 +202,14 @@ public abstract class AbstractPoolEntry {
 
 
 
-    public void tunnelProxy(HttpHost next, boolean secure, HttpParams params)
+    public void tunnelProxy(final HttpHost next, final boolean secure, final HttpParams params)
         throws IOException {
 
-        if (next == null) {
-            throw new IllegalArgumentException
-                ("Next proxy must not be null.");
-        }
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("Parameters must not be null.");
-        }
+        Args.notNull(next, "Next proxy");
+        Args.notNull(params, "Parameters");
 
-        
-        if ((this.tracker == null) || !this.tracker.isConnected()) {
-            throw new IllegalStateException("Connection not open.");
-        }
+        Asserts.notNull(this.tracker, "Route tracker");
+        Asserts.check(this.tracker.isConnected(), "Connection not open");
 
         this.connection.update(null, next, secure, params);
         this.tracker.tunnelProxy(next, secure);
@@ -244,28 +223,15 @@ public abstract class AbstractPoolEntry {
 
 
 
-    public void layerProtocol(HttpContext context, HttpParams params)
+    public void layerProtocol(final HttpContext context, final HttpParams params)
         throws IOException {
 
         
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("Parameters must not be null.");
-        }
-
-        if ((this.tracker == null) || !this.tracker.isConnected()) {
-            throw new IllegalStateException("Connection not open.");
-        }
-        if (!this.tracker.isTunnelled()) {
-            
-            throw new IllegalStateException
-                ("Protocol layering without a tunnel not supported.");
-        }
-        if (this.tracker.isLayered()) {
-            throw new IllegalStateException
-                ("Multiple protocol layering not supported.");
-        }
-
+        Args.notNull(params, "HTTP parameters");
+        Asserts.notNull(this.tracker, "Route tracker");
+        Asserts.check(this.tracker.isConnected(), "Connection not open");
+        Asserts.check(this.tracker.isTunnelled(), "Protocol layering without a tunnel not supported");
+        Asserts.check(!this.tracker.isLayered(), "Multiple protocol layering not supported");
         
         
         

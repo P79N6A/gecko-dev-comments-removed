@@ -32,6 +32,10 @@ package ch.boye.httpclientandroidlib.params;
 
 
 
+
+
+
+@Deprecated
 public interface CoreConnectionPNames {
 
     
@@ -149,5 +153,18 @@ public interface CoreConnectionPNames {
 
 
     public static final String MIN_CHUNK_LIMIT = "http.connection.min-chunk-limit";
+
+
+    
+
+
+
+
+
+
+
+
+
+    public static final String SO_KEEPALIVE = "http.socket.keepalive";
 
 }

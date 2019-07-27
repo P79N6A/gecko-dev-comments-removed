@@ -22,6 +22,8 @@
 
 
 
+
+
 package ch.boye.httpclientandroidlib.client.protocol;
 
 import java.io.IOException;
@@ -52,7 +54,9 @@ public class RequestAcceptEncoding implements HttpRequestInterceptor {
             final HttpContext context) throws HttpException, IOException {
 
         
-        request.addHeader("Accept-Encoding", "gzip,deflate");
+        if (!request.containsHeader("Accept-Encoding")) {
+            request.addHeader("Accept-Encoding", "gzip,deflate");
+        }
     }
 
 }

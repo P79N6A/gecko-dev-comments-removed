@@ -27,17 +27,22 @@
 
 package ch.boye.httpclientandroidlib.params;
 
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
+
+
+
+
+@Deprecated
 public abstract class HttpAbstractParamBean {
 
     protected final HttpParams params;
 
     public HttpAbstractParamBean (final HttpParams params) {
-        if (params == null)
-            throw new IllegalArgumentException("HTTP parameters may not be null");
-        this.params = params;
+        super();
+        this.params = Args.notNull(params, "HTTP parameters");
     }
 
 }

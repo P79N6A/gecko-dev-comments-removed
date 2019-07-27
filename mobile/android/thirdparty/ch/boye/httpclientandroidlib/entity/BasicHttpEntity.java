@@ -31,12 +31,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
+import ch.boye.httpclientandroidlib.util.Asserts;
 
 
 
 
 
 
+
+@NotThreadSafe
 public class BasicHttpEntity extends AbstractHttpEntity {
 
     private InputStream content;
@@ -66,11 +71,8 @@ public class BasicHttpEntity extends AbstractHttpEntity {
 
 
     public InputStream getContent() throws IllegalStateException {
-        if (this.content == null) {
-            throw new IllegalStateException("Content has not been provided");
-        }
+        Asserts.check(this.content != null, "Content has not been provided");
         return this.content;
-
     }
 
     
@@ -88,7 +90,7 @@ public class BasicHttpEntity extends AbstractHttpEntity {
 
 
 
-    public void setContentLength(long len) {
+    public void setContentLength(final long len) {
         this.length = len;
     }
 
@@ -103,13 +105,11 @@ public class BasicHttpEntity extends AbstractHttpEntity {
     }
 
     public void writeTo(final OutputStream outstream) throws IOException {
-        if (outstream == null) {
-            throw new IllegalArgumentException("Output stream may not be null");
-        }
-        InputStream instream = getContent();
+        Args.notNull(outstream, "Output stream");
+        final InputStream instream = getContent();
         try {
             int l;
-            byte[] tmp = new byte[2048];
+            final byte[] tmp = new byte[OUTPUT_BUFFER_SIZE];
             while ((l = instream.read(tmp)) != -1) {
                 outstream.write(tmp, 0, l);
             }
@@ -120,18 +120,6 @@ public class BasicHttpEntity extends AbstractHttpEntity {
 
     public boolean isStreaming() {
         return this.content != null;
-    }
-
-    
-
-
-
-
-
-    public void consumeContent() throws IOException {
-        if (content != null) {
-            content.close(); 
-        }
     }
 
 }

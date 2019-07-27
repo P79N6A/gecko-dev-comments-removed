@@ -29,6 +29,8 @@ package ch.boye.httpclientandroidlib.protocol;
 
 import java.util.Map;
 
+import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -46,12 +48,16 @@ import java.util.Map;
 
 
 
+
+
+@ThreadSafe 
+@Deprecated
 public class HttpRequestHandlerRegistry implements HttpRequestHandlerResolver {
 
-    private final UriPatternMatcher matcher;
+    private final UriPatternMatcher<HttpRequestHandler> matcher;
 
     public HttpRequestHandlerRegistry() {
-        matcher = new UriPatternMatcher();
+        matcher = new UriPatternMatcher<HttpRequestHandler>();
     }
 
     
@@ -62,12 +68,8 @@ public class HttpRequestHandlerRegistry implements HttpRequestHandlerResolver {
 
 
     public void register(final String pattern, final HttpRequestHandler handler) {
-        if (pattern == null) {
-            throw new IllegalArgumentException("URI request pattern may not be null");
-        }
-        if (handler == null) {
-            throw new IllegalArgumentException("Request handler may not be null");
-        }
+        Args.notNull(pattern, "URI request pattern");
+        Args.notNull(handler, "Request handler");
         matcher.register(pattern, handler);
     }
 
@@ -84,19 +86,22 @@ public class HttpRequestHandlerRegistry implements HttpRequestHandlerResolver {
 
 
 
-    public void setHandlers(final Map map) {
+    public void setHandlers(final Map<String, HttpRequestHandler> map) {
         matcher.setObjects(map);
-    }
-
-    public HttpRequestHandler lookup(final String requestURI) {
-        return (HttpRequestHandler) matcher.lookup(requestURI);
     }
 
     
 
 
-    protected boolean matchUriRequestPattern(final String pattern, final String requestUri) {
-        return matcher.matchUriRequestPattern(pattern, requestUri);
+
+
+
+    public Map<String, HttpRequestHandler> getHandlers() {
+        return matcher.getObjects();
+    }
+
+    public HttpRequestHandler lookup(final String requestURI) {
+        return matcher.lookup(requestURI);
     }
 
 }

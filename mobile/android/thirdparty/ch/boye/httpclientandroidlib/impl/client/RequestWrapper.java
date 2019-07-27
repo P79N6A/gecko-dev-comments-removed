@@ -30,16 +30,17 @@ package ch.boye.httpclientandroidlib.impl.client;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-
 import ch.boye.httpclientandroidlib.HttpRequest;
 import ch.boye.httpclientandroidlib.ProtocolException;
 import ch.boye.httpclientandroidlib.ProtocolVersion;
 import ch.boye.httpclientandroidlib.RequestLine;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
 import ch.boye.httpclientandroidlib.message.AbstractHttpMessage;
 import ch.boye.httpclientandroidlib.message.BasicRequestLine;
 import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
+import ch.boye.httpclientandroidlib.util.Args;
+
 
 
 
@@ -53,6 +54,7 @@ import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
 
 
 @NotThreadSafe
+@Deprecated
 public class RequestWrapper extends AbstractHttpMessage implements HttpUriRequest {
 
     private final HttpRequest original;
@@ -64,9 +66,7 @@ public class RequestWrapper extends AbstractHttpMessage implements HttpUriReques
 
     public RequestWrapper(final HttpRequest request) throws ProtocolException {
         super();
-        if (request == null) {
-            throw new IllegalArgumentException("HTTP request may not be null");
-        }
+        Args.notNull(request, "HTTP request");
         this.original = request;
         setParams(request.getParams());
         setHeaders(request.getAllHeaders());
@@ -76,10 +76,10 @@ public class RequestWrapper extends AbstractHttpMessage implements HttpUriReques
             this.method = ((HttpUriRequest) request).getMethod();
             this.version = null;
         } else {
-            RequestLine requestLine = request.getRequestLine();
+            final RequestLine requestLine = request.getRequestLine();
             try {
                 this.uri = new URI(requestLine.getUri());
-            } catch (URISyntaxException ex) {
+            } catch (final URISyntaxException ex) {
                 throw new ProtocolException("Invalid request URI: "
                         + requestLine.getUri(), ex);
             }
@@ -100,9 +100,7 @@ public class RequestWrapper extends AbstractHttpMessage implements HttpUriReques
     }
 
     public void setMethod(final String method) {
-        if (method == null) {
-            throw new IllegalArgumentException("Method name may not be null");
-        }
+        Args.notNull(method, "Method name");
         this.method = method;
     }
 
@@ -127,8 +125,8 @@ public class RequestWrapper extends AbstractHttpMessage implements HttpUriReques
     }
 
     public RequestLine getRequestLine() {
-        String method = getMethod();
-        ProtocolVersion ver = getProtocolVersion();
+        final String method = getMethod();
+        final ProtocolVersion ver = getProtocolVersion();
         String uritext = null;
         if (uri != null) {
             uritext = uri.toASCIIString();

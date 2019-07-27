@@ -28,7 +28,6 @@
 package ch.boye.httpclientandroidlib.impl.client;
 
 import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
@@ -36,6 +35,9 @@ import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
 
+
+
+@Deprecated
 @NotThreadSafe 
 public class RoutedRequest {
 

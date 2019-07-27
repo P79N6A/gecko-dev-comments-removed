@@ -34,6 +34,9 @@ import java.util.concurrent.TimeUnit;
 
 
 
+
+
+@Deprecated
 public interface ClientConnectionRequest {
 
     

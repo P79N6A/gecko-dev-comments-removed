@@ -37,12 +37,13 @@ import ch.boye.httpclientandroidlib.HttpRequest;
 import ch.boye.httpclientandroidlib.HttpRequestFactory;
 import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.HttpServerConnection;
-import ch.boye.httpclientandroidlib.entity.ContentLengthStrategy;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.impl.entity.DisallowIdentityContentLengthStrategy;
 import ch.boye.httpclientandroidlib.impl.entity.EntityDeserializer;
 import ch.boye.httpclientandroidlib.impl.entity.EntitySerializer;
 import ch.boye.httpclientandroidlib.impl.entity.LaxContentLengthStrategy;
 import ch.boye.httpclientandroidlib.impl.entity.StrictContentLengthStrategy;
-import ch.boye.httpclientandroidlib.impl.io.HttpRequestParser;
+import ch.boye.httpclientandroidlib.impl.io.DefaultHttpRequestParser;
 import ch.boye.httpclientandroidlib.impl.io.HttpResponseWriter;
 import ch.boye.httpclientandroidlib.io.EofSensor;
 import ch.boye.httpclientandroidlib.io.HttpMessageParser;
@@ -50,9 +51,8 @@ import ch.boye.httpclientandroidlib.io.HttpMessageWriter;
 import ch.boye.httpclientandroidlib.io.HttpTransportMetrics;
 import ch.boye.httpclientandroidlib.io.SessionInputBuffer;
 import ch.boye.httpclientandroidlib.io.SessionOutputBuffer;
-import ch.boye.httpclientandroidlib.message.LineFormatter;
-import ch.boye.httpclientandroidlib.message.LineParser;
 import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -68,6 +68,11 @@ import ch.boye.httpclientandroidlib.params.HttpParams;
 
 
 
+
+
+
+@NotThreadSafe
+@Deprecated
 public abstract class AbstractHttpServerConnection implements HttpServerConnection {
 
     private final EntitySerializer entityserializer;
@@ -76,8 +81,8 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
     private SessionInputBuffer inbuffer = null;
     private SessionOutputBuffer outbuffer = null;
     private EofSensor eofSensor = null;
-    private HttpMessageParser requestParser = null;
-    private HttpMessageWriter responseWriter = null;
+    private HttpMessageParser<HttpRequest> requestParser = null;
+    private HttpMessageWriter<HttpResponse> responseWriter = null;
     private HttpConnectionMetricsImpl metrics = null;
 
     
@@ -113,7 +118,8 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
 
 
     protected EntityDeserializer createEntityDeserializer() {
-        return new EntityDeserializer(new LaxContentLengthStrategy());
+        return new EntityDeserializer(new DisallowIdentityContentLengthStrategy(
+                new LaxContentLengthStrategy(0)));
     }
 
     
@@ -142,7 +148,7 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
 
 
     protected HttpRequestFactory createHttpRequestFactory() {
-        return new DefaultHttpRequestFactory();
+        return DefaultHttpRequestFactory.INSTANCE;
     }
 
     
@@ -159,11 +165,12 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
 
 
 
-    protected HttpMessageParser createRequestParser(
+
+    protected HttpMessageParser<HttpRequest> createRequestParser(
             final SessionInputBuffer buffer,
             final HttpRequestFactory requestFactory,
             final HttpParams params) {
-        return new HttpRequestParser(buffer, null, requestFactory, params);
+        return new DefaultHttpRequestParser(buffer, null, requestFactory, params);
     }
 
     
@@ -179,7 +186,8 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
 
 
 
-    protected HttpMessageWriter createResponseWriter(
+
+    protected HttpMessageWriter<HttpResponse> createResponseWriter(
             final SessionOutputBuffer buffer,
             final HttpParams params) {
         return new HttpResponseWriter(buffer, null, params);
@@ -214,14 +222,8 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
             final SessionInputBuffer inbuffer,
             final SessionOutputBuffer outbuffer,
             final HttpParams params) {
-        if (inbuffer == null) {
-            throw new IllegalArgumentException("Input session buffer may not be null");
-        }
-        if (outbuffer == null) {
-            throw new IllegalArgumentException("Output session buffer may not be null");
-        }
-        this.inbuffer = inbuffer;
-        this.outbuffer = outbuffer;
+        this.inbuffer = Args.notNull(inbuffer, "Input session buffer");
+        this.outbuffer = Args.notNull(outbuffer, "Output session buffer");
         if (inbuffer instanceof EofSensor) {
             this.eofSensor = (EofSensor) inbuffer;
         }
@@ -239,18 +241,16 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
     public HttpRequest receiveRequestHeader()
             throws HttpException, IOException {
         assertOpen();
-        HttpRequest request = (HttpRequest) this.requestParser.parse();
+        final HttpRequest request = this.requestParser.parse();
         this.metrics.incrementRequestCount();
         return request;
     }
 
     public void receiveRequestEntity(final HttpEntityEnclosingRequest request)
             throws HttpException, IOException {
-        if (request == null) {
-            throw new IllegalArgumentException("HTTP request may not be null");
-        }
+        Args.notNull(request, "HTTP request");
         assertOpen();
-        HttpEntity entity = this.entitydeserializer.deserialize(this.inbuffer, request);
+        final HttpEntity entity = this.entitydeserializer.deserialize(this.inbuffer, request);
         request.setEntity(entity);
     }
 
@@ -265,9 +265,7 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
 
     public void sendResponseHeader(final HttpResponse response)
             throws HttpException, IOException {
-        if (response == null) {
-            throw new IllegalArgumentException("HTTP response may not be null");
-        }
+        Args.notNull(response, "HTTP response");
         assertOpen();
         this.responseWriter.write(response);
         if (response.getStatusLine().getStatusCode() >= 200) {
@@ -300,7 +298,7 @@ public abstract class AbstractHttpServerConnection implements HttpServerConnecti
         try {
             this.inbuffer.isDataAvailable(1);
             return isEof();
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             return true;
         }
     }

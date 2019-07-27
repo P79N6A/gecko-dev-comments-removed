@@ -24,10 +24,6 @@
 
 
 
-
-
-
-
 package ch.boye.httpclientandroidlib.client.utils;
 
 

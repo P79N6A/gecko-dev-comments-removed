@@ -28,9 +28,11 @@
 package ch.boye.httpclientandroidlib;
 
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.util.Locale;
 
-import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
+import ch.boye.httpclientandroidlib.util.Args;
 import ch.boye.httpclientandroidlib.util.LangUtils;
 
 
@@ -40,7 +42,7 @@ import ch.boye.httpclientandroidlib.util.LangUtils;
 
 
 
-
+@Immutable
 public final class HttpHost implements Cloneable, Serializable {
 
     private static final long serialVersionUID = -7529410654042457626L;
@@ -61,6 +63,7 @@ public final class HttpHost implements Cloneable, Serializable {
     
     protected final String schemeName;
 
+    protected final InetAddress address;
 
     
 
@@ -73,12 +76,9 @@ public final class HttpHost implements Cloneable, Serializable {
 
 
 
-    public HttpHost(final String hostname, int port, final String scheme) {
+    public HttpHost(final String hostname, final int port, final String scheme) {
         super();
-        if (hostname == null) {
-            throw new IllegalArgumentException("Host name may not be null");
-        }
-        this.hostname   = hostname;
+        this.hostname   = Args.notBlank(hostname, "Host name");
         this.lcHostname = hostname.toLowerCase(Locale.ENGLISH);
         if (scheme != null) {
             this.schemeName = scheme.toLowerCase(Locale.ENGLISH);
@@ -86,6 +86,7 @@ public final class HttpHost implements Cloneable, Serializable {
             this.schemeName = DEFAULT_SCHEME_NAME;
         }
         this.port = port;
+        this.address = null;
     }
 
     
@@ -95,7 +96,7 @@ public final class HttpHost implements Cloneable, Serializable {
 
 
 
-    public HttpHost(final String hostname, int port) {
+    public HttpHost(final String hostname, final int port) {
         this(hostname, port, null);
     }
 
@@ -113,8 +114,64 @@ public final class HttpHost implements Cloneable, Serializable {
 
 
 
+
+
+
+
+
+
+
+
+    public HttpHost(final InetAddress address, final int port, final String scheme) {
+        super();
+        this.address = Args.notNull(address, "Inet address");
+        this.hostname = address.getHostAddress();
+        this.lcHostname = this.hostname.toLowerCase(Locale.ENGLISH);
+        if (scheme != null) {
+            this.schemeName = scheme.toLowerCase(Locale.ENGLISH);
+        } else {
+            this.schemeName = DEFAULT_SCHEME_NAME;
+        }
+        this.port = port;
+    }
+
+    
+
+
+
+
+
+
+
+
+    public HttpHost(final InetAddress address, final int port) {
+        this(address, port, null);
+    }
+
+    
+
+
+
+
+
+
+    public HttpHost(final InetAddress address) {
+        this(address, -1, null);
+    }
+
+    
+
+
+
+
     public HttpHost (final HttpHost httphost) {
-        this(httphost.hostname, httphost.port, httphost.schemeName);
+        super();
+        Args.notNull(httphost, "HTTP host");
+        this.hostname   = httphost.hostname;
+        this.lcHostname = httphost.lcHostname;
+        this.schemeName = httphost.schemeName;
+        this.port = httphost.port;
+        this.address = httphost.address;
     }
 
     
@@ -149,8 +206,19 @@ public final class HttpHost implements Cloneable, Serializable {
 
 
 
+
+
+    public InetAddress getAddress() {
+        return this.address;
+    }
+
+    
+
+
+
+
     public String toURI() {
-        CharArrayBuffer buffer = new CharArrayBuffer(32);
+        final StringBuilder buffer = new StringBuilder();
         buffer.append(this.schemeName);
         buffer.append("://");
         buffer.append(this.hostname);
@@ -170,7 +238,7 @@ public final class HttpHost implements Cloneable, Serializable {
     public String toHostString() {
         if (this.port != -1) {
             
-            CharArrayBuffer buffer = new CharArrayBuffer(this.hostname.length() + 6);
+            final StringBuilder buffer = new StringBuilder(this.hostname.length() + 6);
             buffer.append(this.hostname);
             buffer.append(":");
             buffer.append(Integer.toString(this.port));
@@ -181,15 +249,19 @@ public final class HttpHost implements Cloneable, Serializable {
     }
 
 
+    @Override
     public String toString() {
         return toURI();
     }
 
 
+    @Override
     public boolean equals(final Object obj) {
-        if (this == obj) return true;
+        if (this == obj) {
+            return true;
+        }
         if (obj instanceof HttpHost) {
-            HttpHost that = (HttpHost) obj;
+            final HttpHost that = (HttpHost) obj;
             return this.lcHostname.equals(that.lcHostname)
                 && this.port == that.port
                 && this.schemeName.equals(that.schemeName);
@@ -201,6 +273,7 @@ public final class HttpHost implements Cloneable, Serializable {
     
 
 
+    @Override
     public int hashCode() {
         int hash = LangUtils.HASH_SEED;
         hash = LangUtils.hashCode(hash, this.lcHostname);
@@ -209,6 +282,7 @@ public final class HttpHost implements Cloneable, Serializable {
         return hash;
     }
 
+    @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
     }

@@ -35,6 +35,9 @@ import ch.boye.httpclientandroidlib.conn.ConnectionPoolTimeoutException;
 
 
 
+
+
+@Deprecated
 public interface PoolEntryRequest {
 
     

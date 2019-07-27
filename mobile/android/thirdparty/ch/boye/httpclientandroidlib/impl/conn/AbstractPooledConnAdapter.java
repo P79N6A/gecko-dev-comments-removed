@@ -29,11 +29,11 @@ package ch.boye.httpclientandroidlib.impl.conn;
 import java.io.IOException;
 
 import ch.boye.httpclientandroidlib.HttpHost;
-import ch.boye.httpclientandroidlib.params.HttpParams;
-import ch.boye.httpclientandroidlib.protocol.HttpContext;
-import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 import ch.boye.httpclientandroidlib.conn.ClientConnectionManager;
 import ch.boye.httpclientandroidlib.conn.OperatedClientConnection;
+import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
+import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
 
 
@@ -47,6 +47,9 @@ import ch.boye.httpclientandroidlib.conn.OperatedClientConnection;
 
 
 
+
+
+@Deprecated
 public abstract class AbstractPooledConnAdapter extends AbstractClientConnAdapter {
 
     
@@ -58,10 +61,14 @@ public abstract class AbstractPooledConnAdapter extends AbstractClientConnAdapte
 
 
 
-    protected AbstractPooledConnAdapter(ClientConnectionManager manager,
-                                        AbstractPoolEntry entry) {
+    protected AbstractPooledConnAdapter(final ClientConnectionManager manager,
+                                        final AbstractPoolEntry entry) {
         super(manager, entry.connection);
         this.poolEntry = entry;
+    }
+
+    public String getId() {
+        return null;
     }
 
     
@@ -69,6 +76,9 @@ public abstract class AbstractPooledConnAdapter extends AbstractClientConnAdapte
 
 
 
+
+
+    @Deprecated
     protected AbstractPoolEntry getPoolEntry() {
         return this.poolEntry;
     }
@@ -108,70 +118,72 @@ public abstract class AbstractPooledConnAdapter extends AbstractClientConnAdapte
     }
 
     public HttpRoute getRoute() {
-        AbstractPoolEntry entry = getPoolEntry();
+        final AbstractPoolEntry entry = getPoolEntry();
         assertValid(entry);
         return (entry.tracker == null) ? null : entry.tracker.toRoute();
     }
 
-    public void open(HttpRoute route,
-                     HttpContext context, HttpParams params)
+    public void open(final HttpRoute route,
+                     final HttpContext context, final HttpParams params)
         throws IOException {
-        AbstractPoolEntry entry = getPoolEntry();
+        final AbstractPoolEntry entry = getPoolEntry();
         assertValid(entry);
         entry.open(route, context, params);
     }
 
-    public void tunnelTarget(boolean secure, HttpParams params)
+    public void tunnelTarget(final boolean secure, final HttpParams params)
         throws IOException {
-        AbstractPoolEntry entry = getPoolEntry();
+        final AbstractPoolEntry entry = getPoolEntry();
         assertValid(entry);
         entry.tunnelTarget(secure, params);
     }
 
-    public void tunnelProxy(HttpHost next, boolean secure, HttpParams params)
+    public void tunnelProxy(final HttpHost next, final boolean secure, final HttpParams params)
         throws IOException {
-        AbstractPoolEntry entry = getPoolEntry();
+        final AbstractPoolEntry entry = getPoolEntry();
         assertValid(entry);
         entry.tunnelProxy(next, secure, params);
     }
 
-    public void layerProtocol(HttpContext context, HttpParams params)
+    public void layerProtocol(final HttpContext context, final HttpParams params)
         throws IOException {
-        AbstractPoolEntry entry = getPoolEntry();
+        final AbstractPoolEntry entry = getPoolEntry();
         assertValid(entry);
         entry.layerProtocol(context, params);
     }
 
     public void close() throws IOException {
-        AbstractPoolEntry entry = getPoolEntry();
-        if (entry != null)
+        final AbstractPoolEntry entry = getPoolEntry();
+        if (entry != null) {
             entry.shutdownEntry();
+        }
 
-        OperatedClientConnection conn = getWrappedConnection();
+        final OperatedClientConnection conn = getWrappedConnection();
         if (conn != null) {
             conn.close();
         }
     }
 
     public void shutdown() throws IOException {
-        AbstractPoolEntry entry = getPoolEntry();
-        if (entry != null)
+        final AbstractPoolEntry entry = getPoolEntry();
+        if (entry != null) {
             entry.shutdownEntry();
+        }
 
-        OperatedClientConnection conn = getWrappedConnection();
+        final OperatedClientConnection conn = getWrappedConnection();
         if (conn != null) {
             conn.shutdown();
         }
     }
 
     public Object getState() {
-        AbstractPoolEntry entry = getPoolEntry();
+        final AbstractPoolEntry entry = getPoolEntry();
         assertValid(entry);
         return entry.getState();
     }
 
     public void setState(final Object state) {
-        AbstractPoolEntry entry = getPoolEntry();
+        final AbstractPoolEntry entry = getPoolEntry();
         assertValid(entry);
         entry.setState(state);
     }

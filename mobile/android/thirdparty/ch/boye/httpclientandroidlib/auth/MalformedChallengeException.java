@@ -26,9 +26,8 @@
 
 package ch.boye.httpclientandroidlib.auth;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.ProtocolException;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
@@ -54,7 +53,7 @@ public class MalformedChallengeException extends ProtocolException {
 
 
 
-    public MalformedChallengeException(String message) {
+    public MalformedChallengeException(final String message) {
         super(message);
     }
 
@@ -65,7 +64,7 @@ public class MalformedChallengeException extends ProtocolException {
 
 
 
-    public MalformedChallengeException(String message, Throwable cause) {
+    public MalformedChallengeException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

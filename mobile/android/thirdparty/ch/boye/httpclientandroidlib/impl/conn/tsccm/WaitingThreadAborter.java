@@ -26,7 +26,6 @@
 
 package ch.boye.httpclientandroidlib.impl.conn.tsccm;
 
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 
 
 
@@ -36,7 +35,7 @@ import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 
 
 
-@NotThreadSafe
+@Deprecated
 public class WaitingThreadAborter {
 
     private WaitingThread waitingThread;
@@ -48,8 +47,9 @@ public class WaitingThreadAborter {
     public void abort() {
         aborted = true;
 
-        if (waitingThread != null)
+        if (waitingThread != null) {
             waitingThread.interrupt();
+        }
 
     }
 
@@ -59,10 +59,11 @@ public class WaitingThreadAborter {
 
 
 
-    public void setWaitingThread(WaitingThread waitingThread) {
+    public void setWaitingThread(final WaitingThread waitingThread) {
         this.waitingThread = waitingThread;
-        if (aborted)
+        if (aborted) {
             waitingThread.interrupt();
+        }
     }
 
 }

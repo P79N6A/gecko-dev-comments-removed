@@ -38,8 +38,6 @@ import ch.boye.httpclientandroidlib.HttpRequest;
 
 
 
-
-
 public interface HttpUriRequest extends HttpRequest {
 
     

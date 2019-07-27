@@ -27,12 +27,9 @@
 package ch.boye.httpclientandroidlib.conn.params;
 
 import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
-import ch.boye.httpclientandroidlib.impl.conn.tsccm.ThreadSafeClientConnManager;
-import ch.boye.httpclientandroidlib.params.CoreConnectionPNames;
-import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
 import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -60,16 +57,11 @@ public final class ConnManagerParams implements ConnManagerPNames {
 
 
 
+
     @Deprecated
     public static long getTimeout(final HttpParams params) {
-        if (params == null) {
-            throw new IllegalArgumentException("HTTP parameters may not be null");
-        }
-        Long param = (Long) params.getParameter(TIMEOUT);
-        if (param != null) {
-            return param.longValue();
-        }
-        return params.getIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, 0);
+        Args.notNull(params, "HTTP parameters");
+        return params.getLongParameter(TIMEOUT, 0);
     }
 
     
@@ -81,18 +73,17 @@ public final class ConnManagerParams implements ConnManagerPNames {
 
 
 
+
     @Deprecated
-    public static void setTimeout(final HttpParams params, long timeout) {
-        if (params == null) {
-            throw new IllegalArgumentException("HTTP parameters may not be null");
-        }
+    public static void setTimeout(final HttpParams params, final long timeout) {
+        Args.notNull(params, "HTTP parameters");
         params.setLongParameter(TIMEOUT, timeout);
     }
 
     
     private static final ConnPerRoute DEFAULT_CONN_PER_ROUTE = new ConnPerRoute() {
 
-        public int getMaxForRoute(HttpRoute route) {
+        public int getMaxForRoute(final HttpRoute route) {
             return ConnPerRouteBean.DEFAULT_MAX_CONNECTIONS_PER_ROUTE;
         }
 
@@ -105,15 +96,9 @@ public final class ConnManagerParams implements ConnManagerPNames {
 
 
 
-
-
-    @Deprecated
     public static void setMaxConnectionsPerRoute(final HttpParams params,
                                                 final ConnPerRoute connPerRoute) {
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("HTTP parameters must not be null.");
-        }
+        Args.notNull(params, "HTTP parameters");
         params.setParameter(MAX_CONNECTIONS_PER_ROUTE, connPerRoute);
     }
 
@@ -124,14 +109,8 @@ public final class ConnManagerParams implements ConnManagerPNames {
 
 
 
-
-
-    @Deprecated
     public static ConnPerRoute getMaxConnectionsPerRoute(final HttpParams params) {
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("HTTP parameters must not be null.");
-        }
+        Args.notNull(params, "HTTP parameters");
         ConnPerRoute connPerRoute = (ConnPerRoute) params.getParameter(MAX_CONNECTIONS_PER_ROUTE);
         if (connPerRoute == null) {
             connPerRoute = DEFAULT_CONN_PER_ROUTE;
@@ -145,16 +124,10 @@ public final class ConnManagerParams implements ConnManagerPNames {
 
 
 
-
-
-    @Deprecated
     public static void setMaxTotalConnections(
             final HttpParams params,
-            int maxTotalConnections) {
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("HTTP parameters must not be null.");
-        }
+            final int maxTotalConnections) {
+        Args.notNull(params, "HTTP parameters");
         params.setIntParameter(MAX_TOTAL_CONNECTIONS, maxTotalConnections);
     }
 
@@ -165,15 +138,9 @@ public final class ConnManagerParams implements ConnManagerPNames {
 
 
 
-
-
-    @Deprecated
     public static int getMaxTotalConnections(
             final HttpParams params) {
-        if (params == null) {
-            throw new IllegalArgumentException
-                ("HTTP parameters must not be null.");
-        }
+        Args.notNull(params, "HTTP parameters");
         return params.getIntParameter(MAX_TOTAL_CONNECTIONS, DEFAULT_MAX_TOTAL_CONNECTIONS);
     }
 

@@ -33,13 +33,26 @@ package ch.boye.httpclientandroidlib.client.protocol;
 
 
 
+
+
+@Deprecated
 public interface ClientContext {
 
     
 
 
 
+
+
+    public static final String ROUTE   = "http.route";
+
+    
+
+
+
+    @Deprecated
     public static final String SCHEME_REGISTRY   = "http.scheme-registry";
+
     
 
 
@@ -63,12 +76,6 @@ public interface ClientContext {
 
 
     public static final String COOKIE_STORE          = "http.cookie-store";
-
-    
-
-
-
-    public static final String AUTHSCHEME_REGISTRY   = "http.authscheme-registry";
 
     
 
@@ -105,5 +112,21 @@ public interface ClientContext {
 
 
     public static final String USER_TOKEN            = "http.user-token";
+
+    
+
+
+
+    public static final String AUTHSCHEME_REGISTRY   = "http.authscheme-registry";
+
+    public static final String SOCKET_FACTORY_REGISTRY = "http.socket-factory-registry";
+
+    
+
+
+
+
+
+    public static final String REQUEST_CONFIG = "http.request-config";
 
 }

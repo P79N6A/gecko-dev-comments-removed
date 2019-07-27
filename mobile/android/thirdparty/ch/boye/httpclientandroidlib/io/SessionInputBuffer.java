@@ -136,6 +136,10 @@ public interface SessionInputBuffer {
 
 
 
+
+
+
+    @Deprecated
     boolean isDataAvailable(int timeout) throws IOException;
 
     

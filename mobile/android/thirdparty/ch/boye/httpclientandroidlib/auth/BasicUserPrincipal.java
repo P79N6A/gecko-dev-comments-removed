@@ -30,7 +30,7 @@ import java.io.Serializable;
 import java.security.Principal;
 
 import ch.boye.httpclientandroidlib.annotation.Immutable;
-
+import ch.boye.httpclientandroidlib.util.Args;
 import ch.boye.httpclientandroidlib.util.LangUtils;
 
 
@@ -47,9 +47,7 @@ public final class BasicUserPrincipal implements Principal, Serializable {
 
     public BasicUserPrincipal(final String username) {
         super();
-        if (username == null) {
-            throw new IllegalArgumentException("User name may not be null");
-        }
+        Args.notNull(username, "User name");
         this.username = username;
     }
 
@@ -65,10 +63,12 @@ public final class BasicUserPrincipal implements Principal, Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
         if (o instanceof BasicUserPrincipal) {
-            BasicUserPrincipal that = (BasicUserPrincipal) o;
+            final BasicUserPrincipal that = (BasicUserPrincipal) o;
             if (LangUtils.equals(this.username, that.username)) {
                 return true;
             }
@@ -78,7 +78,7 @@ public final class BasicUserPrincipal implements Principal, Serializable {
 
     @Override
     public String toString() {
-        StringBuilder buffer = new StringBuilder();
+        final StringBuilder buffer = new StringBuilder();
         buffer.append("[principal: ");
         buffer.append(this.username);
         buffer.append("]");

@@ -37,6 +37,9 @@ import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
 
+
+
+@Deprecated
 public interface HttpRoutedConnection extends HttpInetConnection {
 
     

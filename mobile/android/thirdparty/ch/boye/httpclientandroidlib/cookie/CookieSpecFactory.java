@@ -34,6 +34,9 @@ import ch.boye.httpclientandroidlib.params.HttpParams;
 
 
 
+
+
+@Deprecated
 public interface CookieSpecFactory {
 
     

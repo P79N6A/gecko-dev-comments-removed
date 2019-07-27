@@ -32,8 +32,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.protocol.HTTP;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -41,6 +45,7 @@ import ch.boye.httpclientandroidlib.protocol.HTTP;
 
 
 
+@NotThreadSafe
 public class StringEntity extends AbstractHttpEntity implements Cloneable {
 
     protected final byte[] content;
@@ -55,20 +60,24 @@ public class StringEntity extends AbstractHttpEntity implements Cloneable {
 
 
 
-    public StringEntity(final String string, String mimeType, String charset)
-            throws UnsupportedEncodingException {
+
+
+    public StringEntity(final String string, final ContentType contentType) throws UnsupportedCharsetException {
         super();
-        if (string == null) {
-            throw new IllegalArgumentException("Source string may not be null");
-        }
-        if (mimeType == null) {
-            mimeType = HTTP.PLAIN_TEXT_TYPE;
-        }
+        Args.notNull(string, "Source string");
+        Charset charset = contentType != null ? contentType.getCharset() : null;
         if (charset == null) {
-            charset = HTTP.DEFAULT_CONTENT_CHARSET;
+            charset = HTTP.DEF_CONTENT_CHARSET;
         }
-        this.content = string.getBytes(charset);
-        setContentType(mimeType + HTTP.CHARSET_PARAM + charset);
+        try {
+            this.content = string.getBytes(charset.name());
+        } catch (final UnsupportedEncodingException ex) {
+            
+            throw new UnsupportedCharsetException(charset.name());
+        }
+        if (contentType != null) {
+            setContentType(contentType.toString());
+        }
     }
 
     
@@ -81,14 +90,56 @@ public class StringEntity extends AbstractHttpEntity implements Cloneable {
 
 
 
-    public StringEntity(final String string, String charset)
-            throws UnsupportedEncodingException {
-        this(string, null, charset);
+
+
+
+
+
+    @Deprecated
+    public StringEntity(
+            final String string, final String mimeType, final String charset) throws UnsupportedEncodingException {
+        super();
+        Args.notNull(string, "Source string");
+        final String mt = mimeType != null ? mimeType : HTTP.PLAIN_TEXT_TYPE;
+        final String cs = charset != null ? charset :HTTP.DEFAULT_CONTENT_CHARSET;
+        this.content = string.getBytes(cs);
+        setContentType(mt + HTTP.CHARSET_PARAM + cs);
     }
 
     
 
 
+
+
+
+
+
+
+
+
+
+    public StringEntity(final String string, final String charset)
+            throws UnsupportedCharsetException {
+        this(string, ContentType.create(ContentType.TEXT_PLAIN.getMimeType(), charset));
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    public StringEntity(final String string, final Charset charset) {
+        this(string, ContentType.create(ContentType.TEXT_PLAIN.getMimeType(), charset));
+    }
+
+    
 
 
 
@@ -99,7 +150,7 @@ public class StringEntity extends AbstractHttpEntity implements Cloneable {
 
     public StringEntity(final String string)
             throws UnsupportedEncodingException {
-        this(string, null);
+        this(string, ContentType.DEFAULT_TEXT);
     }
 
     public boolean isRepeatable() {
@@ -115,9 +166,7 @@ public class StringEntity extends AbstractHttpEntity implements Cloneable {
     }
 
     public void writeTo(final OutputStream outstream) throws IOException {
-        if (outstream == null) {
-            throw new IllegalArgumentException("Output stream may not be null");
-        }
+        Args.notNull(outstream, "Output stream");
         outstream.write(this.content);
         outstream.flush();
     }
@@ -131,6 +180,7 @@ public class StringEntity extends AbstractHttpEntity implements Cloneable {
         return false;
     }
 
+    @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
     }

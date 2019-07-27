@@ -33,6 +33,8 @@ import java.io.OutputStream;
 
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HttpEntity;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -43,6 +45,7 @@ import ch.boye.httpclientandroidlib.HttpEntity;
 
 
 
+@NotThreadSafe
 public class HttpEntityWrapper implements HttpEntity {
 
     
@@ -51,20 +54,10 @@ public class HttpEntityWrapper implements HttpEntity {
     
 
 
-
-
-
-    public HttpEntityWrapper(HttpEntity wrapped) {
+    public HttpEntityWrapper(final HttpEntity wrappedEntity) {
         super();
-
-        if (wrapped == null) {
-            throw new IllegalArgumentException
-                ("wrapped entity must not be null");
-        }
-        wrappedEntity = wrapped;
-
+        this.wrappedEntity = Args.notNull(wrappedEntity, "Wrapped entity");
     } 
-
 
     public boolean isRepeatable() {
         return wrappedEntity.isRepeatable();
@@ -91,7 +84,7 @@ public class HttpEntityWrapper implements HttpEntity {
         return wrappedEntity.getContent();
     }
 
-    public void writeTo(OutputStream outstream)
+    public void writeTo(final OutputStream outstream)
         throws IOException {
         wrappedEntity.writeTo(outstream);
     }
@@ -104,6 +97,7 @@ public class HttpEntityWrapper implements HttpEntity {
 
 
 
+    @Deprecated
     public void consumeContent() throws IOException {
         wrappedEntity.consumeContent();
     }

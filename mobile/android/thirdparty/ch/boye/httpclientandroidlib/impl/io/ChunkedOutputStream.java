@@ -30,6 +30,7 @@ package ch.boye.httpclientandroidlib.impl.io;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.io.SessionOutputBuffer;
 
 
@@ -44,12 +45,13 @@ import ch.boye.httpclientandroidlib.io.SessionOutputBuffer;
 
 
 
+@NotThreadSafe
 public class ChunkedOutputStream extends OutputStream {
 
     
     private final SessionOutputBuffer out;
 
-    private byte[] cache;
+    private final byte[] cache;
 
     private int cachePosition = 0;
 
@@ -59,6 +61,20 @@ public class ChunkedOutputStream extends OutputStream {
     private boolean closed = false;
 
     
+
+
+
+
+
+
+
+
+    @Deprecated
+    public ChunkedOutputStream(final SessionOutputBuffer out, final int bufferSize)
+            throws IOException {
+        this(bufferSize, out);
+    }
+
     
 
 
@@ -66,26 +82,26 @@ public class ChunkedOutputStream extends OutputStream {
 
 
 
-    public ChunkedOutputStream(final SessionOutputBuffer out, int bufferSize)
+
+
+    @Deprecated
+    public ChunkedOutputStream(final SessionOutputBuffer out)
             throws IOException {
+        this(2048, out);
+    }
+
+    
+
+
+
+
+
+    public ChunkedOutputStream(final int bufferSize, final SessionOutputBuffer out) {
         super();
         this.cache = new byte[bufferSize];
         this.out = out;
     }
 
-    
-
-
-
-
-
-
-    public ChunkedOutputStream(final SessionOutputBuffer out)
-            throws IOException {
-        this(out, 2048);
-    }
-
-    
     
 
 
@@ -102,7 +118,7 @@ public class ChunkedOutputStream extends OutputStream {
 
 
 
-    protected void flushCacheWithAppend(byte bufferToAppend[], int off, int len) throws IOException {
+    protected void flushCacheWithAppend(final byte bufferToAppend[], final int off, final int len) throws IOException {
         this.out.writeLine(Integer.toHexString(this.cachePosition + len));
         this.out.write(this.cache, 0, this.cachePosition);
         this.out.write(bufferToAppend, off, len);
@@ -131,20 +147,24 @@ public class ChunkedOutputStream extends OutputStream {
     }
 
     
-    public void write(int b) throws IOException {
+    @Override
+    public void write(final int b) throws IOException {
         if (this.closed) {
             throw new IOException("Attempted write to closed stream.");
         }
         this.cache[this.cachePosition] = (byte) b;
         this.cachePosition++;
-        if (this.cachePosition == this.cache.length) flushCache();
+        if (this.cachePosition == this.cache.length) {
+            flushCache();
+        }
     }
 
     
 
 
 
-    public void write(byte b[]) throws IOException {
+    @Override
+    public void write(final byte b[]) throws IOException {
         write(b, 0, b.length);
     }
 
@@ -152,7 +172,8 @@ public class ChunkedOutputStream extends OutputStream {
 
 
 
-    public void write(byte src[], int off, int len) throws IOException {
+    @Override
+    public void write(final byte src[], final int off, final int len) throws IOException {
         if (this.closed) {
             throw new IOException("Attempted write to closed stream.");
         }
@@ -167,6 +188,7 @@ public class ChunkedOutputStream extends OutputStream {
     
 
 
+    @Override
     public void flush() throws IOException {
         flushCache();
         this.out.flush();
@@ -175,6 +197,7 @@ public class ChunkedOutputStream extends OutputStream {
     
 
 
+    @Override
     public void close() throws IOException {
         if (!this.closed) {
             this.closed = true;

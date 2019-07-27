@@ -28,12 +28,11 @@ package ch.boye.httpclientandroidlib.impl.conn;
 
 import java.io.IOException;
 
+import ch.boye.httpclientandroidlib.Consts;
 import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.io.EofSensor;
 import ch.boye.httpclientandroidlib.io.HttpTransportMetrics;
 import ch.boye.httpclientandroidlib.io.SessionInputBuffer;
-import ch.boye.httpclientandroidlib.protocol.HTTP;
 import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
 
 
@@ -42,7 +41,9 @@ import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
 
 
 
+
 @Immutable
+@Deprecated
 public class LoggingSessionInputBuffer implements SessionInputBuffer, EofSensor {
 
     
@@ -67,19 +68,19 @@ public class LoggingSessionInputBuffer implements SessionInputBuffer, EofSensor 
         this.in = in;
         this.eofSensor = in instanceof EofSensor ? (EofSensor) in : null;
         this.wire = wire;
-        this.charset = charset != null ? charset : HTTP.ASCII;
+        this.charset = charset != null ? charset : Consts.ASCII.name();
     }
 
     public LoggingSessionInputBuffer(final SessionInputBuffer in, final Wire wire) {
         this(in, wire, null);
     }
 
-    public boolean isDataAvailable(int timeout) throws IOException {
+    public boolean isDataAvailable(final int timeout) throws IOException {
         return this.in.isDataAvailable(timeout);
     }
 
-    public int read(byte[] b, int off, int len) throws IOException {
-        int l = this.in.read(b,  off,  len);
+    public int read(final byte[] b, final int off, final int len) throws IOException {
+        final int l = this.in.read(b,  off,  len);
         if (this.wire.enabled() && l > 0) {
             this.wire.input(b, off, l);
         }
@@ -87,15 +88,15 @@ public class LoggingSessionInputBuffer implements SessionInputBuffer, EofSensor 
     }
 
     public int read() throws IOException {
-        int l = this.in.read();
+        final int l = this.in.read();
         if (this.wire.enabled() && l != -1) {
             this.wire.input(l);
         }
         return l;
     }
 
-    public int read(byte[] b) throws IOException {
-        int l = this.in.read(b);
+    public int read(final byte[] b) throws IOException {
+        final int l = this.in.read(b);
         if (this.wire.enabled() && l > 0) {
             this.wire.input(b, 0, l);
         }
@@ -103,20 +104,20 @@ public class LoggingSessionInputBuffer implements SessionInputBuffer, EofSensor 
     }
 
     public String readLine() throws IOException {
-        String s = this.in.readLine();
+        final String s = this.in.readLine();
         if (this.wire.enabled() && s != null) {
-            String tmp = s + "\r\n";
+            final String tmp = s + "\r\n";
             this.wire.input(tmp.getBytes(this.charset));
         }
         return s;
     }
 
     public int readLine(final CharArrayBuffer buffer) throws IOException {
-        int l = this.in.readLine(buffer);
+        final int l = this.in.readLine(buffer);
         if (this.wire.enabled() && l >= 0) {
-            int pos = buffer.length() - l;
-            String s = new String(buffer.buffer(), pos, l);
-            String tmp = s + "\r\n";
+            final int pos = buffer.length() - l;
+            final String s = new String(buffer.buffer(), pos, l);
+            final String tmp = s + "\r\n";
             this.wire.input(tmp.getBytes(this.charset));
         }
         return l;

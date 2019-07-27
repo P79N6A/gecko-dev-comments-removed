@@ -27,8 +27,6 @@
 
 package ch.boye.httpclientandroidlib.client;
 
-import java.io.IOException;
-
 import ch.boye.httpclientandroidlib.HttpHost;
 import ch.boye.httpclientandroidlib.HttpRequest;
 import ch.boye.httpclientandroidlib.HttpResponse;
@@ -37,6 +35,7 @@ import ch.boye.httpclientandroidlib.conn.ClientConnectionManager;
 import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
+import java.io.IOException;
 
 
 
@@ -46,62 +45,7 @@ import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+@SuppressWarnings("deprecation")
 public interface HttpClient {
 
 
@@ -113,6 +57,10 @@ public interface HttpClient {
 
 
 
+
+
+
+    @Deprecated
     HttpParams getParams();
 
     
@@ -120,6 +68,10 @@ public interface HttpClient {
 
 
 
+
+
+
+    @Deprecated
     ClientConnectionManager getConnectionManager();
 
     
@@ -139,7 +91,6 @@ public interface HttpClient {
         throws IOException, ClientProtocolException;
 
     
-
 
 
 
@@ -211,12 +162,26 @@ public interface HttpClient {
 
 
 
+
+
+
+
+
+
     <T> T execute(
             HttpUriRequest request,
             ResponseHandler<? extends T> responseHandler)
         throws IOException, ClientProtocolException;
 
     
+
+
+
+
+
+
+
+
 
 
 
@@ -248,6 +213,12 @@ public interface HttpClient {
 
 
 
+
+
+
+
+
+
     <T> T execute(
             HttpHost target,
             HttpRequest request,
@@ -255,6 +226,12 @@ public interface HttpClient {
         throws IOException, ClientProtocolException;
 
     
+
+
+
+
+
+
 
 
 

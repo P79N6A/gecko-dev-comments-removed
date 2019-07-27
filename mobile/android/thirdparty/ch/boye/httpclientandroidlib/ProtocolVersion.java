@@ -28,7 +28,9 @@
 package ch.boye.httpclientandroidlib;
 
 import java.io.Serializable;
-import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
+
+import ch.boye.httpclientandroidlib.annotation.Immutable;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -42,6 +44,7 @@ import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
 
 
 
+@Immutable
 public class ProtocolVersion implements Serializable, Cloneable {
 
     private static final long serialVersionUID = 8950662842175091068L;
@@ -64,22 +67,10 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
-    public ProtocolVersion(String protocol, int major, int minor) {
-        if (protocol == null) {
-            throw new IllegalArgumentException
-                ("Protocol name must not be null.");
-        }
-        if (major < 0) {
-            throw new IllegalArgumentException
-                ("Protocol major version number must not be negative.");
-        }
-        if (minor < 0) {
-            throw new IllegalArgumentException
-                ("Protocol minor version number may not be negative");
-        }
-        this.protocol = protocol;
-        this.major = major;
-        this.minor = minor;
+    public ProtocolVersion(final String protocol, final int major, final int minor) {
+        this.protocol = Args.notNull(protocol, "Protocol name");
+        this.major = Args.notNegative(major, "Protocol minor version");
+        this.minor = Args.notNegative(minor, "Protocol minor version");
     }
 
     
@@ -125,7 +116,7 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
-    public ProtocolVersion forVersion(int major, int minor) {
+    public ProtocolVersion forVersion(final int major, final int minor) {
 
         if ((major == this.major) && (minor == this.minor)) {
             return this;
@@ -141,6 +132,7 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
+    @Override
     public final int hashCode() {
         return this.protocol.hashCode() ^ (this.major * 100000) ^ this.minor;
     }
@@ -159,14 +151,15 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
-    public final boolean equals(Object obj) {
+    @Override
+    public final boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
         if (!(obj instanceof ProtocolVersion)) {
             return false;
         }
-        ProtocolVersion that = (ProtocolVersion) obj;
+        final ProtocolVersion that = (ProtocolVersion) obj;
 
         return ((this.protocol.equals(that.protocol)) &&
                 (this.major == that.major) &&
@@ -184,7 +177,7 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
-    public boolean isComparable(ProtocolVersion that) {
+    public boolean isComparable(final ProtocolVersion that) {
         return (that != null) && this.protocol.equals(that.protocol);
     }
 
@@ -205,17 +198,10 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
-    public int compareToVersion(ProtocolVersion that) {
-        if (that == null) {
-            throw new IllegalArgumentException
-                ("Protocol version must not be null.");
-        }
-        if (!this.protocol.equals(that.protocol)) {
-            throw new IllegalArgumentException
-                ("Versions for different protocols cannot be compared. " +
-                 this + " " + that);
-        }
-
+    public int compareToVersion(final ProtocolVersion that) {
+        Args.notNull(that, "Protocol version");
+        Args.check(this.protocol.equals(that.protocol),
+                "Versions for different protocols cannot be compared: %s %s", this, that);
         int delta = getMajor() - that.getMajor();
         if (delta == 0) {
             delta = getMinor() - that.getMinor();
@@ -234,7 +220,7 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
-    public final boolean greaterEquals(ProtocolVersion version) {
+    public final boolean greaterEquals(final ProtocolVersion version) {
         return isComparable(version) && (compareToVersion(version) >= 0);
     }
 
@@ -249,7 +235,7 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
-    public final boolean lessEquals(ProtocolVersion version) {
+    public final boolean lessEquals(final ProtocolVersion version) {
         return isComparable(version) && (compareToVersion(version) <= 0);
     }
 
@@ -259,8 +245,9 @@ public class ProtocolVersion implements Serializable, Cloneable {
 
 
 
+    @Override
     public String toString() {
-        CharArrayBuffer buffer = new CharArrayBuffer(16);
+        final StringBuilder buffer = new StringBuilder();
         buffer.append(this.protocol);
         buffer.append('/');
         buffer.append(Integer.toString(this.major));
@@ -269,6 +256,7 @@ public class ProtocolVersion implements Serializable, Cloneable {
         return buffer.toString();
     }
 
+    @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
     }

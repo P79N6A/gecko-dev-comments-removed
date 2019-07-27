@@ -41,6 +41,9 @@ import ch.boye.httpclientandroidlib.params.HttpParams;
 
 
 
+
+
+@Deprecated
 public interface SchemeSocketFactory {
 
     
@@ -62,6 +65,15 @@ public interface SchemeSocketFactory {
     Socket createSocket(HttpParams params) throws IOException;
 
     
+
+
+
+
+
+
+
+
+
 
 
 

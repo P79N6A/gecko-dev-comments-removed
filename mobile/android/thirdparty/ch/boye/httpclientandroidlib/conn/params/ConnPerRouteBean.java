@@ -30,8 +30,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
-
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -41,6 +41,9 @@ import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
 
+
+
+@Deprecated
 @ThreadSafe
 public final class ConnPerRouteBean implements ConnPerRoute {
 
@@ -51,7 +54,7 @@ public final class ConnPerRouteBean implements ConnPerRoute {
 
     private volatile int defaultMax;
 
-    public ConnPerRouteBean(int defaultMax) {
+    public ConnPerRouteBean(final int defaultMax) {
         super();
         this.maxPerHostMap = new ConcurrentHashMap<HttpRoute, Integer>();
         setDefaultMaxPerRoute(defaultMax);
@@ -61,10 +64,6 @@ public final class ConnPerRouteBean implements ConnPerRoute {
         this(DEFAULT_MAX_CONNECTIONS_PER_ROUTE);
     }
 
-    
-
-
-    @Deprecated
     public int getDefaultMax() {
         return this.defaultMax;
     }
@@ -76,32 +75,20 @@ public final class ConnPerRouteBean implements ConnPerRoute {
         return this.defaultMax;
     }
 
-    public void setDefaultMaxPerRoute(int max) {
-        if (max < 1) {
-            throw new IllegalArgumentException
-                ("The maximum must be greater than 0.");
-        }
+    public void setDefaultMaxPerRoute(final int max) {
+        Args.positive(max, "Defautl max per route");
         this.defaultMax = max;
     }
 
-    public void setMaxForRoute(final HttpRoute route, int max) {
-        if (route == null) {
-            throw new IllegalArgumentException
-                ("HTTP route may not be null.");
-        }
-        if (max < 1) {
-            throw new IllegalArgumentException
-                ("The maximum must be greater than 0.");
-        }
+    public void setMaxForRoute(final HttpRoute route, final int max) {
+        Args.notNull(route, "HTTP route");
+        Args.positive(max, "Max per route");
         this.maxPerHostMap.put(route, Integer.valueOf(max));
     }
 
     public int getMaxForRoute(final HttpRoute route) {
-        if (route == null) {
-            throw new IllegalArgumentException
-                ("HTTP route may not be null.");
-        }
-        Integer max = this.maxPerHostMap.get(route);
+        Args.notNull(route, "HTTP route");
+        final Integer max = this.maxPerHostMap.get(route);
         if (max != null) {
             return max.intValue();
         } else {

@@ -34,6 +34,9 @@ import java.lang.reflect.Method;
 
 
 
+
+
+@Deprecated
 public final class ExceptionUtils {
 
     
@@ -50,9 +53,9 @@ public final class ExceptionUtils {
 
     static private Method getInitCauseMethod() {
         try {
-            Class[] paramsClasses = new Class[] { Throwable.class };
+            final Class<?>[] paramsClasses = new Class[] { Throwable.class };
             return Throwable.class.getMethod("initCause", paramsClasses);
-        } catch (NoSuchMethodException e) {
+        } catch (final NoSuchMethodException e) {
             return null;
         }
     }
@@ -63,11 +66,11 @@ public final class ExceptionUtils {
 
 
 
-    public static void initCause(Throwable throwable, Throwable cause) {
+    public static void initCause(final Throwable throwable, final Throwable cause) {
         if (INIT_CAUSE_METHOD != null) {
             try {
-                INIT_CAUSE_METHOD.invoke(throwable, new Object[] { cause });
-            } catch (Exception e) {
+                INIT_CAUSE_METHOD.invoke(throwable, cause);
+            } catch (final Exception e) {
                 
             }
         }

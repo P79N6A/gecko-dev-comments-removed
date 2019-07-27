@@ -193,6 +193,7 @@ public interface HttpEntity {
 
 
 
+    @Deprecated
     void consumeContent() throws IOException;
 
 }

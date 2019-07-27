@@ -24,10 +24,6 @@
 
 
 
-
-
-
-
 package ch.boye.httpclientandroidlib.client.utils;
 
 import java.util.StringTokenizer;
@@ -51,58 +47,75 @@ public class Rfc3492Idn implements Idn {
     private static final char delimiter = '-';
     private static final String ACE_PREFIX = "xn--";
 
-    private int adapt(int delta, int numpoints, boolean firsttime) {
-        if (firsttime) delta = delta / damp;
-        else delta = delta / 2;
-        delta = delta + (delta / numpoints);
+    private int adapt(final int delta, final int numpoints, final boolean firsttime) {
+        int d = delta;
+        if (firsttime) {
+            d = d / damp;
+        } else {
+            d = d / 2;
+        }
+        d = d + (d / numpoints);
         int k = 0;
-        while (delta > ((base - tmin) * tmax) / 2) {
-          delta = delta / (base - tmin);
+        while (d > ((base - tmin) * tmax) / 2) {
+          d = d / (base - tmin);
           k = k + base;
         }
-        return k + (((base - tmin + 1) * delta) / (delta + skew));
+        return k + (((base - tmin + 1) * d) / (d + skew));
     }
 
-    private int digit(char c) {
-        if ((c >= 'A') && (c <= 'Z')) return (c - 'A');
-        if ((c >= 'a') && (c <= 'z')) return (c - 'a');
-        if ((c >= '0') && (c <= '9')) return (c - '0') + 26;
+    private int digit(final char c) {
+        if ((c >= 'A') && (c <= 'Z')) {
+            return (c - 'A');
+        }
+        if ((c >= 'a') && (c <= 'z')) {
+            return (c - 'a');
+        }
+        if ((c >= '0') && (c <= '9')) {
+            return (c - '0') + 26;
+        }
         throw new IllegalArgumentException("illegal digit: "+ c);
     }
 
-    public String toUnicode(String punycode) {
-        StringBuilder unicode = new StringBuilder(punycode.length());
-        StringTokenizer tok = new StringTokenizer(punycode, ".");
+    public String toUnicode(final String punycode) {
+        final StringBuilder unicode = new StringBuilder(punycode.length());
+        final StringTokenizer tok = new StringTokenizer(punycode, ".");
         while (tok.hasMoreTokens()) {
             String t = tok.nextToken();
-            if (unicode.length() > 0) unicode.append('.');
-            if (t.startsWith(ACE_PREFIX)) t = decode(t.substring(4));
+            if (unicode.length() > 0) {
+                unicode.append('.');
+            }
+            if (t.startsWith(ACE_PREFIX)) {
+                t = decode(t.substring(4));
+            }
             unicode.append(t);
         }
         return unicode.toString();
     }
 
-    protected String decode(String input) {
+    protected String decode(final String s) {
+        String input = s;
         int n = initial_n;
         int i = 0;
         int bias = initial_bias;
-        StringBuilder output = new StringBuilder(input.length());
-        int lastdelim = input.lastIndexOf(delimiter);
+        final StringBuilder output = new StringBuilder(input.length());
+        final int lastdelim = input.lastIndexOf(delimiter);
         if (lastdelim != -1) {
             output.append(input.subSequence(0, lastdelim));
             input = input.substring(lastdelim + 1);
         }
 
         while (input.length() > 0) {
-            int oldi = i;
+            final int oldi = i;
             int w = 1;
             for (int k = base;; k += base) {
-                if (input.length() == 0) break;
-                char c = input.charAt(0);
+                if (input.length() == 0) {
+                    break;
+                }
+                final char c = input.charAt(0);
                 input = input.substring(1);
-                int digit = digit(c);
+                final int digit = digit(c);
                 i = i + digit * w; 
-                int t;
+                final int t;
                 if (k <= bias + tmin) {
                     t = tmin;
                 } else if (k >= bias + tmax) {
@@ -110,7 +123,9 @@ public class Rfc3492Idn implements Idn {
                 } else {
                     t = k - bias;
                 }
-                if (digit < t) break;
+                if (digit < t) {
+                    break;
+                }
                 w = w * (base - t); 
             }
             bias = adapt(i - oldi, output.length() + 1, (oldi == 0));

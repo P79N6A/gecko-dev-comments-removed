@@ -38,6 +38,9 @@ import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
 
 
 
+
+
+@Deprecated
 public interface HttpRequestInterceptorList {
 
     
@@ -83,7 +86,7 @@ public interface HttpRequestInterceptorList {
 
 
 
-    void removeRequestInterceptorByClass(Class clazz);
+    void removeRequestInterceptorByClass(Class<? extends HttpRequestInterceptor> clazz);
 
     
 
@@ -94,7 +97,7 @@ public interface HttpRequestInterceptorList {
 
 
 
-    void setInterceptors(List list);
+    void setInterceptors(List<?> list);
 
 }
 

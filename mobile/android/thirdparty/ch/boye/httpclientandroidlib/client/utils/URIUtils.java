@@ -28,11 +28,14 @@ package ch.boye.httpclientandroidlib.client.utils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Locale;
 import java.util.Stack;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.HttpHost;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
+import ch.boye.httpclientandroidlib.util.Args;
+import ch.boye.httpclientandroidlib.util.TextUtils;
 
 
 
@@ -69,15 +72,17 @@ public class URIUtils {
 
 
 
+
+
+    @Deprecated
     public static URI createURI(
             final String scheme,
             final String host,
-            int port,
+            final int port,
             final String path,
             final String query,
             final String fragment) throws URISyntaxException {
-
-        StringBuilder buffer = new StringBuilder();
+        final StringBuilder buffer = new StringBuilder();
         if (host != null) {
             if (scheme != null) {
                 buffer.append(scheme);
@@ -125,43 +130,28 @@ public class URIUtils {
     public static URI rewriteURI(
             final URI uri,
             final HttpHost target,
-            boolean dropFragment) throws URISyntaxException {
-        if (uri == null) {
-            throw new IllegalArgumentException("URI may nor be null");
+            final boolean dropFragment) throws URISyntaxException {
+        Args.notNull(uri, "URI");
+        if (uri.isOpaque()) {
+            return uri;
         }
+        final URIBuilder uribuilder = new URIBuilder(uri);
         if (target != null) {
-            return URIUtils.createURI(
-                    target.getSchemeName(),
-                    target.getHostName(),
-                    target.getPort(),
-                    normalizePath(uri.getRawPath()),
-                    uri.getRawQuery(),
-                    dropFragment ? null : uri.getRawFragment());
+            uribuilder.setScheme(target.getSchemeName());
+            uribuilder.setHost(target.getHostName());
+            uribuilder.setPort(target.getPort());
         } else {
-            return URIUtils.createURI(
-                    null,
-                    null,
-                    -1,
-                    normalizePath(uri.getRawPath()),
-                    uri.getRawQuery(),
-                    dropFragment ? null : uri.getRawFragment());
+            uribuilder.setScheme(null);
+            uribuilder.setHost(null);
+            uribuilder.setPort(-1);
         }
-    }
-
-    private static String normalizePath(String path) {
-        if (path == null) {
-            return null;
+        if (dropFragment) {
+            uribuilder.setFragment(null);
         }
-        int n = 0;
-        for (; n < path.length(); n++) {
-            if (path.charAt(n) != '/') {
-                break;
-            }
+        if (TextUtils.isEmpty(uribuilder.getPath())) {
+            uribuilder.setPath("/");
         }
-        if (n > 1) {
-            path = path.substring(n - 1);
-        }
-        return path;
+        return uribuilder.build();
     }
 
     
@@ -173,6 +163,36 @@ public class URIUtils {
             final URI uri,
             final HttpHost target) throws URISyntaxException {
         return rewriteURI(uri, target, false);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    public static URI rewriteURI(final URI uri) throws URISyntaxException {
+        Args.notNull(uri, "URI");
+        if (uri.isOpaque()) {
+            return uri;
+        }
+        final URIBuilder uribuilder = new URIBuilder(uri);
+        if (uribuilder.getUserInfo() != null) {
+            uribuilder.setUserInfo(null);
+        }
+        if (TextUtils.isEmpty(uribuilder.getPath())) {
+            uribuilder.setPath("/");
+        }
+        if (uribuilder.getHost() != null) {
+            uribuilder.setHost(uribuilder.getHost().toLowerCase(Locale.ENGLISH));
+        }
+        uribuilder.setFragment(null);
+        return uribuilder.build();
     }
 
     
@@ -195,28 +215,25 @@ public class URIUtils {
 
 
 
-    public static URI resolve(final URI baseURI, URI reference){
-        if (baseURI == null) {
-            throw new IllegalArgumentException("Base URI may nor be null");
-        }
-        if (reference == null) {
-            throw new IllegalArgumentException("Reference URI may nor be null");
-        }
-        String s = reference.toString();
+    public static URI resolve(final URI baseURI, final URI reference){
+        Args.notNull(baseURI, "Base URI");
+        Args.notNull(reference, "Reference URI");
+        URI ref = reference;
+        final String s = ref.toString();
         if (s.startsWith("?")) {
-            return resolveReferenceStartingWithQueryString(baseURI, reference);
+            return resolveReferenceStartingWithQueryString(baseURI, ref);
         }
-        boolean emptyReference = s.length() == 0;
+        final boolean emptyReference = s.length() == 0;
         if (emptyReference) {
-            reference = URI.create("#");
+            ref = URI.create("#");
         }
-        URI resolved = baseURI.resolve(reference);
+        URI resolved = baseURI.resolve(ref);
         if (emptyReference) {
-            String resolvedString = resolved.toString();
+            final String resolvedString = resolved.toString();
             resolved = URI.create(resolvedString.substring(0,
                 resolvedString.indexOf('#')));
         }
-        return removeDotSegments(resolved);
+        return normalizeSyntax(resolved);
     }
 
     
@@ -240,34 +257,56 @@ public class URIUtils {
 
 
 
-    private static URI removeDotSegments(URI uri) {
-        String path = uri.getPath();
-        if ((path == null) || (path.indexOf("/.") == -1)) {
+
+    private static URI normalizeSyntax(final URI uri) {
+        if (uri.isOpaque() || uri.getAuthority() == null) {
             
             return uri;
         }
-        String[] inputSegments = path.split("/");
-        Stack<String> outputSegments = new Stack<String>();
-        for (int i = 0; i < inputSegments.length; i++) {
-            if ((inputSegments[i].length() == 0)
-                || (".".equals(inputSegments[i]))) {
+        Args.check(uri.isAbsolute(), "Base URI must be absolute");
+        final String path = uri.getPath() == null ? "" : uri.getPath();
+        final String[] inputSegments = path.split("/");
+        final Stack<String> outputSegments = new Stack<String>();
+        for (final String inputSegment : inputSegments) {
+            if ((inputSegment.length() == 0)
+                || (".".equals(inputSegment))) {
                 
-            } else if ("..".equals(inputSegments[i])) {
+            } else if ("..".equals(inputSegment)) {
                 if (!outputSegments.isEmpty()) {
                     outputSegments.pop();
                 }
             } else {
-                outputSegments.push(inputSegments[i]);
+                outputSegments.push(inputSegment);
             }
         }
-        StringBuilder outputBuffer = new StringBuilder();
-        for (String outputSegment : outputSegments) {
+        final StringBuilder outputBuffer = new StringBuilder();
+        for (final String outputSegment : outputSegments) {
             outputBuffer.append('/').append(outputSegment);
         }
+        if (path.lastIndexOf('/') == path.length() - 1) {
+            
+            outputBuffer.append('/');
+        }
         try {
-            return new URI(uri.getScheme(), uri.getAuthority(),
-                outputBuffer.toString(), uri.getQuery(), uri.getFragment());
-        } catch (URISyntaxException e) {
+            final String scheme = uri.getScheme().toLowerCase(Locale.ENGLISH);
+            final String auth = uri.getAuthority().toLowerCase(Locale.ENGLISH);
+            final URI ref = new URI(scheme, auth, outputBuffer.toString(),
+                    null, null);
+            if (uri.getQuery() == null && uri.getFragment() == null) {
+                return ref;
+            }
+            final StringBuilder normalized = new StringBuilder(
+                    ref.toASCIIString());
+            if (uri.getQuery() != null) {
+                
+                normalized.append('?').append(uri.getRawQuery());
+            }
+            if (uri.getFragment() != null) {
+                
+                normalized.append('#').append(uri.getRawFragment());
+            }
+            return URI.create(normalized.toString());
+        } catch (final URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
     }
@@ -294,7 +333,7 @@ public class URIUtils {
                 host = uri.getAuthority();
                 if (host != null) {
                     
-                    int at = host.indexOf('@');
+                    final int at = host.indexOf('@');
                     if (at >= 0) {
                         if (host.length() > at+1 ) {
                             host = host.substring(at+1);
@@ -303,25 +342,83 @@ public class URIUtils {
                         }
                     }
                     
-                    if (host != null) { 
-                        int colon = host.indexOf(':');
+                    if (host != null) {
+                        final int colon = host.indexOf(':');
                         if (colon >= 0) {
-                            if (colon+1 < host.length()) {
-                                port = Integer.parseInt(host.substring(colon+1));
+                            final int pos = colon + 1;
+                            int len = 0;
+                            for (int i = pos; i < host.length(); i++) {
+                                if (Character.isDigit(host.charAt(i))) {
+                                    len++;
+                                } else {
+                                    break;
+                                }
                             }
-                            host = host.substring(0,colon);
-                        }                
-                    }                    
+                            if (len > 0) {
+                                try {
+                                    port = Integer.parseInt(host.substring(pos, pos + len));
+                                } catch (final NumberFormatException ex) {
+                                }
+                            }
+                            host = host.substring(0, colon);
+                        }
+                    }
                 }
             }
-            String scheme = uri.getScheme();
-            if (host != null) {
+            final String scheme = uri.getScheme();
+            if (!TextUtils.isBlank(host)) {
                 target = new HttpHost(host, port, scheme);
             }
         }
         return target;
     }
+
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public static URI resolve(
+            final URI originalURI,
+            final HttpHost target,
+            final List<URI> redirects) throws URISyntaxException {
+        Args.notNull(originalURI, "Request URI");
+        final URIBuilder uribuilder;
+        if (redirects == null || redirects.isEmpty()) {
+            uribuilder = new URIBuilder(originalURI);
+        } else {
+            uribuilder = new URIBuilder(redirects.get(redirects.size() - 1));
+            String frag = uribuilder.getFragment();
+            
+            for (int i = redirects.size() - 1; frag == null && i >= 0; i--) {
+                frag = redirects.get(i).getFragment();
+            }
+            uribuilder.setFragment(frag);
+        }
+        
+        if (uribuilder.getFragment() == null) {
+            uribuilder.setFragment(originalURI.getFragment());
+        }
+        
+        if (target != null && !uribuilder.isAbsolute()) {
+            uribuilder.setScheme(target.getSchemeName());
+            uribuilder.setHost(target.getHostName());
+            uribuilder.setPort(target.getPort());
+        }
+        return uribuilder.build();
+    }
+
     
 
 

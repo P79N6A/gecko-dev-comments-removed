@@ -31,6 +31,8 @@ import java.util.Locale;
 
 import ch.boye.httpclientandroidlib.HttpStatus;
 import ch.boye.httpclientandroidlib.ReasonPhraseCatalog;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -39,6 +41,7 @@ import ch.boye.httpclientandroidlib.ReasonPhraseCatalog;
 
 
 
+@Immutable
 public class EnglishReasonPhraseCatalog implements ReasonPhraseCatalog {
 
     
@@ -69,18 +72,15 @@ public class EnglishReasonPhraseCatalog implements ReasonPhraseCatalog {
 
 
 
-    public String getReason(int status, Locale loc) {
-        if ((status < 100) || (status >= 600)) {
-            throw new IllegalArgumentException
-                ("Unknown category for status code " + status + ".");
-        }
-
+    public String getReason(final int status, final Locale loc) {
+        Args.check(status >= 100 && status < 600, "Unknown category for status code " + status);
         final int category = status / 100;
         final int subcode  = status - 100*category;
 
         String reason = null;
-        if (REASON_PHRASES[category].length > subcode)
+        if (REASON_PHRASES[category].length > subcode) {
             reason = REASON_PHRASES[category][subcode];
+        }
 
         return reason;
     }
@@ -105,7 +105,7 @@ public class EnglishReasonPhraseCatalog implements ReasonPhraseCatalog {
 
 
 
-    private static void setReason(int status, String reason) {
+    private static void setReason(final int status, final String reason) {
         final int category = status / 100;
         final int subcode  = status - 100*category;
         REASON_PHRASES[category][subcode] = reason;

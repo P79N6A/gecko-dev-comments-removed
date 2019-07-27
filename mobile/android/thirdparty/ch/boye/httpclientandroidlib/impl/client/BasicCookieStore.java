@@ -27,11 +27,14 @@
 package ch.boye.httpclientandroidlib.impl.client;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.TreeSet;
 
 import ch.boye.httpclientandroidlib.annotation.GuardedBy;
 import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
-
 import ch.boye.httpclientandroidlib.client.CookieStore;
 import ch.boye.httpclientandroidlib.cookie.Cookie;
 import ch.boye.httpclientandroidlib.cookie.CookieIdentityComparator;
@@ -65,7 +68,7 @@ public class BasicCookieStore implements CookieStore, Serializable {
 
 
 
-    public synchronized void addCookie(Cookie cookie) {
+    public synchronized void addCookie(final Cookie cookie) {
         if (cookie != null) {
             
             cookies.remove(cookie);
@@ -85,9 +88,9 @@ public class BasicCookieStore implements CookieStore, Serializable {
 
 
 
-    public synchronized void addCookies(Cookie[] cookies) {
+    public synchronized void addCookies(final Cookie[] cookies) {
         if (cookies != null) {
-            for (Cookie cooky : cookies) {
+            for (final Cookie cooky : cookies) {
                 this.addCookie(cooky);
             }
         }
@@ -117,7 +120,7 @@ public class BasicCookieStore implements CookieStore, Serializable {
             return false;
         }
         boolean removed = false;
-        for (Iterator<Cookie> it = cookies.iterator(); it.hasNext();) {
+        for (final Iterator<Cookie> it = cookies.iterator(); it.hasNext();) {
             if (it.next().isExpired(date)) {
                 it.remove();
                 removed = true;

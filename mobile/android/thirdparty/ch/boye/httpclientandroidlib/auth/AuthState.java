@@ -26,10 +26,10 @@
 
 package ch.boye.httpclientandroidlib.auth;
 
+import java.util.Queue;
+
 import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-
-
-
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -38,6 +38,9 @@ import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 
 @NotThreadSafe
 public class AuthState {
+
+    
+    private AuthProtocolState state;
 
     
     private AuthScheme authScheme;
@@ -49,22 +52,117 @@ public class AuthState {
     private Credentials credentials;
 
     
-
-
+    private Queue<AuthOption> authOptions;
 
     public AuthState() {
         super();
+        this.state = AuthProtocolState.UNCHALLENGED;
     }
 
     
 
 
-    public void invalidate() {
+
+
+    public void reset() {
+        this.state = AuthProtocolState.UNCHALLENGED;
+        this.authOptions = null;
         this.authScheme = null;
         this.authScope = null;
         this.credentials = null;
     }
 
+    
+
+
+    public AuthProtocolState getState() {
+        return this.state;
+    }
+
+    
+
+
+    public void setState(final AuthProtocolState state) {
+        this.state = state != null ? state : AuthProtocolState.UNCHALLENGED;
+    }
+
+    
+
+
+    public AuthScheme getAuthScheme() {
+        return this.authScheme;
+    }
+
+    
+
+
+    public Credentials getCredentials() {
+        return this.credentials;
+    }
+
+    
+
+
+
+
+
+
+
+    public void update(final AuthScheme authScheme, final Credentials credentials) {
+        Args.notNull(authScheme, "Auth scheme");
+        Args.notNull(credentials, "Credentials");
+        this.authScheme = authScheme;
+        this.credentials = credentials;
+        this.authOptions = null;
+    }
+
+    
+
+
+
+
+    public Queue<AuthOption> getAuthOptions() {
+        return this.authOptions;
+    }
+
+    
+
+
+
+
+
+    public boolean hasAuthOptions() {
+        return this.authOptions != null && !this.authOptions.isEmpty();
+    }
+
+    
+
+
+
+
+
+
+    public void update(final Queue<AuthOption> authOptions) {
+        Args.notEmpty(authOptions, "Queue of auth options");
+        this.authOptions = authOptions;
+        this.authScheme = null;
+        this.credentials = null;
+    }
+
+    
+
+
+
+
+    @Deprecated
+    public void invalidate() {
+        reset();
+    }
+
+    
+
+
+    @Deprecated
     public boolean isValid() {
         return this.authScheme != null;
     }
@@ -74,9 +172,12 @@ public class AuthState {
 
 
 
+
+
+    @Deprecated
     public void setAuthScheme(final AuthScheme authScheme) {
         if (authScheme == null) {
-            invalidate();
+            reset();
             return;
         }
         this.authScheme = authScheme;
@@ -87,58 +188,47 @@ public class AuthState {
 
 
 
-    public AuthScheme getAuthScheme() {
-        return this.authScheme;
-    }
 
 
-    
-
-
-
-
-    public Credentials getCredentials() {
-        return this.credentials;
-    }
-
-
-    
-
-
-
-
+    @Deprecated
     public void setCredentials(final Credentials credentials) {
         this.credentials = credentials;
     }
 
+    
+
+
+
+
+
+
+    @Deprecated
+    public AuthScope getAuthScope() {
+        return this.authScope;
+    }
 
     
 
 
 
 
-     public AuthScope getAuthScope() {
-        return this.authScope;
-     }
-
-     
 
 
-
-
-     public void setAuthScope(final AuthScope authScope) {
+    @Deprecated
+    public void setAuthScope(final AuthScope authScope) {
         this.authScope = authScope;
-     }
-
+    }
 
     @Override
     public String toString() {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("auth scope [");
-        buffer.append(this.authScope);
-        buffer.append("]; credentials set [");
-        buffer.append(this.credentials != null ? "true" : "false");
-        buffer.append("]");
+        final StringBuilder buffer = new StringBuilder();
+        buffer.append("state:").append(this.state).append(";");
+        if (this.authScheme != null) {
+            buffer.append("auth scheme:").append(this.authScheme.getSchemeName()).append(";");
+        }
+        if (this.credentials != null) {
+            buffer.append("credentials present");
+        }
         return buffer.toString();
     }
 

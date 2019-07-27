@@ -27,11 +27,13 @@
 
 package ch.boye.httpclientandroidlib.message;
 
+import ch.boye.httpclientandroidlib.FormattedHeader;
+import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.ProtocolVersion;
 import ch.boye.httpclientandroidlib.RequestLine;
 import ch.boye.httpclientandroidlib.StatusLine;
-import ch.boye.httpclientandroidlib.Header;
-import ch.boye.httpclientandroidlib.FormattedHeader;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
+import ch.boye.httpclientandroidlib.util.Args;
 import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
 
 
@@ -46,6 +48,7 @@ import ch.boye.httpclientandroidlib.util.CharArrayBuffer;
 
 
 
+@Immutable
 public class BasicLineFormatter implements LineFormatter {
 
     
@@ -54,22 +57,27 @@ public class BasicLineFormatter implements LineFormatter {
 
 
 
+
+
+    @Deprecated
     public final static BasicLineFormatter DEFAULT = new BasicLineFormatter();
 
+    public final static BasicLineFormatter INSTANCE = new BasicLineFormatter();
 
+    public BasicLineFormatter() {
+        super();
+    }
 
     
 
 
-    
 
 
 
 
 
-
-
-    protected CharArrayBuffer initBuffer(CharArrayBuffer buffer) {
+    protected CharArrayBuffer initBuffer(final CharArrayBuffer charBuffer) {
+        CharArrayBuffer buffer = charBuffer;
         if (buffer != null) {
             buffer.clear();
         } else {
@@ -89,23 +97,18 @@ public class BasicLineFormatter implements LineFormatter {
 
 
 
-    public final static
+    public static
         String formatProtocolVersion(final ProtocolVersion version,
-                                     LineFormatter formatter) {
-        if (formatter == null)
-            formatter = BasicLineFormatter.DEFAULT;
-        return formatter.appendProtocolVersion(null, version).toString();
+                                     final LineFormatter formatter) {
+        return (formatter != null ? formatter : BasicLineFormatter.INSTANCE)
+                .appendProtocolVersion(null, version).toString();
     }
 
 
     
     public CharArrayBuffer appendProtocolVersion(final CharArrayBuffer buffer,
                                                  final ProtocolVersion version) {
-        if (version == null) {
-            throw new IllegalArgumentException
-                ("Protocol version may not be null");
-        }
-
+        Args.notNull(version, "Protocol version");
         
         CharArrayBuffer result = buffer;
         final int len = estimateProtocolVersionLen(version);
@@ -149,23 +152,18 @@ public class BasicLineFormatter implements LineFormatter {
 
 
 
-    public final static String formatRequestLine(final RequestLine reqline,
-                                                 LineFormatter formatter) {
-        if (formatter == null)
-            formatter = BasicLineFormatter.DEFAULT;
-        return formatter.formatRequestLine(null, reqline).toString();
+    public static String formatRequestLine(final RequestLine reqline,
+                                           final LineFormatter formatter) {
+        return (formatter != null ? formatter : BasicLineFormatter.INSTANCE)
+                .formatRequestLine(null, reqline).toString();
     }
 
 
     
-    public CharArrayBuffer formatRequestLine(CharArrayBuffer buffer,
-                                             RequestLine reqline) {
-        if (reqline == null) {
-            throw new IllegalArgumentException
-                ("Request line may not be null");
-        }
-
-        CharArrayBuffer result = initBuffer(buffer);
+    public CharArrayBuffer formatRequestLine(final CharArrayBuffer buffer,
+                                             final RequestLine reqline) {
+        Args.notNull(reqline, "Request line");
+        final CharArrayBuffer result = initBuffer(buffer);
         doFormatRequestLine(result, reqline);
 
         return result;
@@ -186,7 +184,7 @@ public class BasicLineFormatter implements LineFormatter {
         final String uri    = reqline.getUri();
 
         
-        int len = method.length() + 1 + uri.length() + 1 +
+        final int len = method.length() + 1 + uri.length() + 1 +
             estimateProtocolVersionLen(reqline.getProtocolVersion());
         buffer.ensureCapacity(len);
 
@@ -209,23 +207,18 @@ public class BasicLineFormatter implements LineFormatter {
 
 
 
-    public final static String formatStatusLine(final StatusLine statline,
-                                                LineFormatter formatter) {
-        if (formatter == null)
-            formatter = BasicLineFormatter.DEFAULT;
-        return formatter.formatStatusLine(null, statline).toString();
+    public static String formatStatusLine(final StatusLine statline,
+                                          final LineFormatter formatter) {
+        return (formatter != null ? formatter : BasicLineFormatter.INSTANCE)
+                .formatStatusLine(null, statline).toString();
     }
 
 
     
     public CharArrayBuffer formatStatusLine(final CharArrayBuffer buffer,
                                             final StatusLine statline) {
-        if (statline == null) {
-            throw new IllegalArgumentException
-                ("Status line may not be null");
-        }
-
-        CharArrayBuffer result = initBuffer(buffer);
+        Args.notNull(statline, "Status line");
+        final CharArrayBuffer result = initBuffer(buffer);
         doFormatStatusLine(result, statline);
 
         return result;
@@ -271,22 +264,18 @@ public class BasicLineFormatter implements LineFormatter {
 
 
 
-    public final static String formatHeader(final Header header,
-                                            LineFormatter formatter) {
-        if (formatter == null)
-            formatter = BasicLineFormatter.DEFAULT;
-        return formatter.formatHeader(null, header).toString();
+    public static String formatHeader(final Header header,
+                                      final LineFormatter formatter) {
+        return (formatter != null ? formatter : BasicLineFormatter.INSTANCE)
+                .formatHeader(null, header).toString();
     }
 
 
     
-    public CharArrayBuffer formatHeader(CharArrayBuffer buffer,
-                                        Header header) {
-        if (header == null) {
-            throw new IllegalArgumentException
-                ("Header may not be null");
-        }
-        CharArrayBuffer result = null;
+    public CharArrayBuffer formatHeader(final CharArrayBuffer buffer,
+                                        final Header header) {
+        Args.notNull(header, "Header");
+        final CharArrayBuffer result;
 
         if (header instanceof FormattedHeader) {
             

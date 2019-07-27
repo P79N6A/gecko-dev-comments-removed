@@ -24,13 +24,13 @@
 
 
 
-
 package ch.boye.httpclientandroidlib.conn;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -38,6 +38,9 @@ import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 
 
 
+
+
+@Deprecated
 @NotThreadSafe
 public class BasicEofSensorWatcher implements EofSensorWatcher {
 
@@ -53,17 +56,14 @@ public class BasicEofSensorWatcher implements EofSensorWatcher {
 
 
 
-    public BasicEofSensorWatcher(ManagedClientConnection conn,
-                                 boolean reuse) {
-        if (conn == null)
-            throw new IllegalArgumentException
-                ("Connection may not be null.");
-
+    public BasicEofSensorWatcher(final ManagedClientConnection conn,
+                                 final boolean reuse) {
+        Args.notNull(conn, "Connection");
         managedConn = conn;
         attemptReuse = reuse;
     }
 
-    public boolean eofDetected(InputStream wrapped)
+    public boolean eofDetected(final InputStream wrapped)
         throws IOException {
 
         try {
@@ -79,7 +79,7 @@ public class BasicEofSensorWatcher implements EofSensorWatcher {
         return false;
     }
 
-    public boolean streamClosed(InputStream wrapped)
+    public boolean streamClosed(final InputStream wrapped)
         throws IOException {
 
         try {
@@ -95,7 +95,7 @@ public class BasicEofSensorWatcher implements EofSensorWatcher {
         return false;
     }
 
-    public boolean streamAbort(InputStream wrapped)
+    public boolean streamAbort(final InputStream wrapped)
         throws IOException {
 
         managedConn.abortConnection();

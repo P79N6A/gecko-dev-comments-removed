@@ -32,6 +32,9 @@ import java.util.NoSuchElementException;
 
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HeaderIterator;
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
+import ch.boye.httpclientandroidlib.util.Asserts;
 
 
 
@@ -39,13 +42,14 @@ import ch.boye.httpclientandroidlib.HeaderIterator;
 
 
 
+@NotThreadSafe
 public class BasicListHeaderIterator implements HeaderIterator {
 
     
 
 
 
-    protected final List allHeaders;
+    protected final List<Header> allHeaders;
 
 
     
@@ -77,13 +81,9 @@ public class BasicListHeaderIterator implements HeaderIterator {
 
 
 
-    public BasicListHeaderIterator(List headers, String name) {
-        if (headers == null) {
-            throw new IllegalArgumentException
-                ("Header list must not be null.");
-        }
-
-        this.allHeaders = headers;
+    public BasicListHeaderIterator(final List<Header> headers, final String name) {
+        super();
+        this.allHeaders = Args.notNull(headers, "Header list");
         this.headerName = name;
         this.currentIndex = findNext(-1);
         this.lastIndex = -1;
@@ -99,9 +99,11 @@ public class BasicListHeaderIterator implements HeaderIterator {
 
 
 
-    protected int findNext(int from) {
-        if (from < -1)
+    protected int findNext(final int pos) {
+        int from = pos;
+        if (from < -1) {
             return -1;
+        }
 
         final int to = this.allHeaders.size()-1;
         boolean found = false;
@@ -121,12 +123,13 @@ public class BasicListHeaderIterator implements HeaderIterator {
 
 
 
-    protected boolean filterHeader(int index) {
-        if (this.headerName == null)
+    protected boolean filterHeader(final int index) {
+        if (this.headerName == null) {
             return true;
+        }
 
         
-        final String name = ((Header)this.allHeaders.get(index)).getName();
+        final String name = (this.allHeaders.get(index)).getName();
 
         return this.headerName.equalsIgnoreCase(name);
     }
@@ -156,7 +159,7 @@ public class BasicListHeaderIterator implements HeaderIterator {
         this.lastIndex    = current;
         this.currentIndex = findNext(current);
 
-        return (Header) this.allHeaders.get(current);
+        return this.allHeaders.get(current);
     }
 
 
@@ -179,10 +182,7 @@ public class BasicListHeaderIterator implements HeaderIterator {
 
     public void remove()
         throws UnsupportedOperationException {
-
-        if (this.lastIndex < 0) {
-            throw new IllegalStateException("No header to remove.");
-        }
+        Asserts.check(this.lastIndex >= 0, "No header to remove");
         this.allHeaders.remove(this.lastIndex);
         this.lastIndex = -1;
         this.currentIndex--; 

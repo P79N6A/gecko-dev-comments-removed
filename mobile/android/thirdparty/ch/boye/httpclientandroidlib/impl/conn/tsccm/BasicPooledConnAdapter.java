@@ -37,6 +37,9 @@ import ch.boye.httpclientandroidlib.impl.conn.AbstractPooledConnAdapter;
 
 
 
+
+
+@Deprecated
 public class BasicPooledConnAdapter extends AbstractPooledConnAdapter {
 
     
@@ -45,8 +48,8 @@ public class BasicPooledConnAdapter extends AbstractPooledConnAdapter {
 
 
 
-    protected BasicPooledConnAdapter(ThreadSafeClientConnManager tsccm,
-                               AbstractPoolEntry entry) {
+    protected BasicPooledConnAdapter(final ThreadSafeClientConnManager tsccm,
+                               final AbstractPoolEntry entry) {
         super(tsccm, entry);
         markReusable();
     }

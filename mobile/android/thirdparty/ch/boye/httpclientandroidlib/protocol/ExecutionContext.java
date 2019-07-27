@@ -32,6 +32,9 @@ package ch.boye.httpclientandroidlib.protocol;
 
 
 
+
+
+@Deprecated
 public interface ExecutionContext {
 
     
@@ -62,6 +65,9 @@ public interface ExecutionContext {
 
 
 
+
+
+    @Deprecated
     public static final String HTTP_PROXY_HOST  = "http.proxy_host";
 
     

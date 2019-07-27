@@ -36,6 +36,10 @@ import ch.boye.httpclientandroidlib.HttpVersion;
 
 
 
+
+
+
+@Deprecated
 public class HttpProtocolParamBean extends HttpAbstractParamBean {
 
     public HttpProtocolParamBean (final HttpParams params) {
@@ -58,7 +62,7 @@ public class HttpProtocolParamBean extends HttpAbstractParamBean {
         HttpProtocolParams.setUserAgent(params, userAgent);
     }
 
-    public void setUseExpectContinue (boolean useExpectContinue) {
+    public void setUseExpectContinue (final boolean useExpectContinue) {
         HttpProtocolParams.setUseExpectContinue(params, useExpectContinue);
     }
 

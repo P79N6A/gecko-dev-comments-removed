@@ -34,9 +34,9 @@ import java.util.Locale;
 import java.util.Map;
 
 import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
-
 import ch.boye.httpclientandroidlib.cookie.ClientCookie;
 import ch.boye.httpclientandroidlib.cookie.SetCookie;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -56,9 +56,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
     public BasicClientCookie(final String name, final String value) {
         super();
-        if (name == null) {
-            throw new IllegalArgumentException("Name may not be null");
-        }
+        Args.notNull(name, "Name");
         this.name = name;
         this.attribs = new HashMap<String, String>();
         this.value = value;
@@ -111,7 +109,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
 
 
-    public void setComment(String comment) {
+    public void setComment(final String comment) {
         cookieComment = comment;
     }
 
@@ -150,7 +148,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
 
 
-    public void setExpiryDate (Date expiryDate) {
+    public void setExpiryDate (final Date expiryDate) {
         cookieExpiryDate = expiryDate;
     }
 
@@ -185,7 +183,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
 
 
-    public void setDomain(String domain) {
+    public void setDomain(final String domain) {
         if (domain != null) {
             cookieDomain = domain.toLowerCase(Locale.ENGLISH);
         } else {
@@ -213,7 +211,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
 
 
-    public void setPath(String path) {
+    public void setPath(final String path) {
         cookiePath = path;
     }
 
@@ -237,7 +235,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
 
 
-    public void setSecure (boolean secure) {
+    public void setSecure (final boolean secure) {
         isSecure = secure;
     }
 
@@ -271,7 +269,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
 
 
-    public void setVersion(int version) {
+    public void setVersion(final int version) {
         cookieVersion = version;
     }
 
@@ -282,9 +280,7 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
 
     public boolean isExpired(final Date date) {
-        if (date == null) {
-            throw new IllegalArgumentException("Date may not be null");
-        }
+        Args.notNull(date, "Date");
         return (cookieExpiryDate != null
             && cookieExpiryDate.getTime() <= date.getTime());
     }
@@ -303,14 +299,14 @@ public class BasicClientCookie implements SetCookie, ClientCookie, Cloneable, Se
 
     @Override
     public Object clone() throws CloneNotSupportedException {
-        BasicClientCookie clone = (BasicClientCookie) super.clone();
+        final BasicClientCookie clone = (BasicClientCookie) super.clone();
         clone.attribs = new HashMap<String, String>(this.attribs);
         return clone;
     }
 
     @Override
     public String toString() {
-        StringBuilder buffer = new StringBuilder();
+        final StringBuilder buffer = new StringBuilder();
         buffer.append("[version: ");
         buffer.append(Integer.toString(this.cookieVersion));
         buffer.append("]");

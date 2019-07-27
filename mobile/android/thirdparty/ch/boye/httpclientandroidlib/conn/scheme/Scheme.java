@@ -29,7 +29,7 @@ package ch.boye.httpclientandroidlib.conn.scheme;
 import java.util.Locale;
 
 import ch.boye.httpclientandroidlib.annotation.Immutable;
-
+import ch.boye.httpclientandroidlib.util.Args;
 import ch.boye.httpclientandroidlib.util.LangUtils;
 
 
@@ -45,7 +45,12 @@ import ch.boye.httpclientandroidlib.util.LangUtils;
 
 
 
+
+
+
+
 @Immutable
+@Deprecated
 public final class Scheme {
 
     
@@ -82,19 +87,21 @@ public final class Scheme {
 
 
     public Scheme(final String name, final int port, final SchemeSocketFactory factory) {
-        if (name == null) {
-            throw new IllegalArgumentException("Scheme name may not be null");
-        }
-        if ((port <= 0) || (port > 0xffff)) {
-            throw new IllegalArgumentException("Port is invalid: " + port);
-        }
-        if (factory == null) {
-            throw new IllegalArgumentException("Socket factory may not be null");
-        }
+        Args.notNull(name, "Scheme name");
+        Args.check(port > 0 && port <= 0xffff, "Port is invalid");
+        Args.notNull(factory, "Socket factory");
         this.name = name.toLowerCase(Locale.ENGLISH);
-        this.socketFactory = factory;
         this.defaultPort = port;
-        this.layered = factory instanceof LayeredSchemeSocketFactory;
+        if (factory instanceof SchemeLayeredSocketFactory) {
+            this.layered = true;
+            this.socketFactory = factory;
+        } else if (factory instanceof LayeredSchemeSocketFactory) {
+            this.layered = true;
+            this.socketFactory = new SchemeLayeredSocketFactoryAdaptor2((LayeredSchemeSocketFactory) factory);
+        } else {
+            this.layered = false;
+            this.socketFactory = factory;
+        }
     }
 
     
@@ -115,22 +122,13 @@ public final class Scheme {
                   final SocketFactory factory,
                   final int port) {
 
-        if (name == null) {
-            throw new IllegalArgumentException
-                ("Scheme name may not be null");
-        }
-        if (factory == null) {
-            throw new IllegalArgumentException
-                ("Socket factory may not be null");
-        }
-        if ((port <= 0) || (port > 0xffff)) {
-            throw new IllegalArgumentException
-                ("Port is invalid: " + port);
-        }
+        Args.notNull(name, "Scheme name");
+        Args.notNull(factory, "Socket factory");
+        Args.check(port > 0 && port <= 0xffff, "Port is invalid");
 
         this.name = name.toLowerCase(Locale.ENGLISH);
         if (factory instanceof LayeredSocketFactory) {
-            this.socketFactory = new LayeredSchemeSocketFactoryAdaptor(
+            this.socketFactory = new SchemeLayeredSocketFactoryAdaptor(
                     (LayeredSocketFactory) factory);
             this.layered = true;
         } else {
@@ -214,7 +212,7 @@ public final class Scheme {
 
 
 
-    public final int resolvePort(int port) {
+    public final int resolvePort(final int port) {
         return port <= 0 ? defaultPort : port;
     }
 
@@ -226,7 +224,7 @@ public final class Scheme {
     @Override
     public final String toString() {
         if (stringRep == null) {
-            StringBuilder buffer = new StringBuilder();
+            final StringBuilder buffer = new StringBuilder();
             buffer.append(this.name);
             buffer.append(':');
             buffer.append(Integer.toString(this.defaultPort));
@@ -236,10 +234,12 @@ public final class Scheme {
     }
 
     @Override
-    public final boolean equals(Object obj) {
-        if (this == obj) return true;
+    public final boolean equals(final Object obj) {
+        if (this == obj) {
+            return true;
+        }
         if (obj instanceof Scheme) {
-            Scheme that = (Scheme) obj;
+            final Scheme that = (Scheme) obj;
             return this.name.equals(that.name)
                 && this.defaultPort == that.defaultPort
                 && this.layered == that.layered;

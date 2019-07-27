@@ -27,16 +27,18 @@
 
 package ch.boye.httpclientandroidlib.impl.client;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.HttpException;
 import ch.boye.httpclientandroidlib.HttpResponse;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
 
 
 
+
+
+@Deprecated
 @Immutable
 public class TunnelRefusedException extends HttpException {
 

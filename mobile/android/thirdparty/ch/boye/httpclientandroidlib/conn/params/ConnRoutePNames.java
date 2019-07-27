@@ -31,6 +31,9 @@ package ch.boye.httpclientandroidlib.conn.params;
 
 
 
+
+
+@Deprecated
 public interface ConnRoutePNames {
 
     

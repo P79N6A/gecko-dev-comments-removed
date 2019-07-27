@@ -27,6 +27,7 @@
 
 package ch.boye.httpclientandroidlib.protocol;
 
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -35,6 +36,10 @@ package ch.boye.httpclientandroidlib.protocol;
 
 
 
+
+
+
+@Deprecated
 public final class DefaultedHttpContext implements HttpContext {
 
     private final HttpContext local;
@@ -42,15 +47,12 @@ public final class DefaultedHttpContext implements HttpContext {
 
     public DefaultedHttpContext(final HttpContext local, final HttpContext defaults) {
         super();
-        if (local == null) {
-            throw new IllegalArgumentException("HTTP context may not be null");
-        }
-        this.local = local;
+        this.local = Args.notNull(local, "HTTP context");
         this.defaults = defaults;
     }
 
     public Object getAttribute(final String id) {
-        Object obj = this.local.getAttribute(id);
+        final Object obj = this.local.getAttribute(id);
         if (obj == null) {
             return this.defaults.getAttribute(id);
         } else {
@@ -68,6 +70,15 @@ public final class DefaultedHttpContext implements HttpContext {
 
     public HttpContext getDefaults() {
         return this.defaults;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder buf = new StringBuilder();
+        buf.append("[local: ").append(this.local);
+        buf.append("defaults: ").append(this.defaults);
+        buf.append("]");
+        return buf.toString();
     }
 
 }

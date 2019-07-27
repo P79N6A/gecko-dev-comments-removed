@@ -29,10 +29,8 @@ package ch.boye.httpclientandroidlib.conn;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.Socket;
 
 import ch.boye.httpclientandroidlib.HttpHost;
-import ch.boye.httpclientandroidlib.conn.scheme.SchemeSocketFactory;
 import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
@@ -52,6 +50,10 @@ import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
 
 
+
+
+
+@Deprecated
 public interface ClientConnectionOperator {
 
     

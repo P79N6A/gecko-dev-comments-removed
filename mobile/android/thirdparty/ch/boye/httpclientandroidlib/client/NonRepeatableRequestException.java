@@ -26,9 +26,8 @@
 
 package ch.boye.httpclientandroidlib.client;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.ProtocolException;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
@@ -54,7 +53,7 @@ public class NonRepeatableRequestException extends ProtocolException {
 
 
 
-    public NonRepeatableRequestException(String message) {
+    public NonRepeatableRequestException(final String message) {
         super(message);
     }
 
@@ -64,7 +63,7 @@ public class NonRepeatableRequestException extends ProtocolException {
 
 
 
-    public NonRepeatableRequestException(String message, Throwable cause) {
+    public NonRepeatableRequestException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

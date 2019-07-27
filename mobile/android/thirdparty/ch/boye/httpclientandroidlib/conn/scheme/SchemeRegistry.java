@@ -31,9 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
-
 import ch.boye.httpclientandroidlib.HttpHost;
+import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
+import ch.boye.httpclientandroidlib.util.Args;
+
+
 
 
 
@@ -42,6 +44,7 @@ import ch.boye.httpclientandroidlib.HttpHost;
 
 
 @ThreadSafe
+@Deprecated
 public final class SchemeRegistry {
 
     
@@ -65,8 +68,8 @@ public final class SchemeRegistry {
 
 
 
-    public final Scheme getScheme(String name) {
-        Scheme found = get(name);
+    public final Scheme getScheme(final String name) {
+        final Scheme found = get(name);
         if (found == null) {
             throw new IllegalStateException
                 ("Scheme '"+name+"' not registered.");
@@ -85,10 +88,8 @@ public final class SchemeRegistry {
 
 
 
-    public final Scheme getScheme(HttpHost host) {
-        if (host == null) {
-            throw new IllegalArgumentException("Host must not be null.");
-        }
+    public final Scheme getScheme(final HttpHost host) {
+        Args.notNull(host, "Host");
         return getScheme(host.getSchemeName());
     }
 
@@ -100,13 +101,11 @@ public final class SchemeRegistry {
 
 
 
-    public final Scheme get(String name) {
-        if (name == null)
-            throw new IllegalArgumentException("Name must not be null.");
-
+    public final Scheme get(final String name) {
+        Args.notNull(name, "Scheme name");
         
         
-        Scheme found = registeredSchemes.get(name);
+        final Scheme found = registeredSchemes.get(name);
         return found;
     }
 
@@ -120,11 +119,9 @@ public final class SchemeRegistry {
 
 
 
-    public final Scheme register(Scheme sch) {
-        if (sch == null)
-            throw new IllegalArgumentException("Scheme must not be null.");
-
-        Scheme old = registeredSchemes.put(sch.getName(), sch);
+    public final Scheme register(final Scheme sch) {
+        Args.notNull(sch, "Scheme");
+        final Scheme old = registeredSchemes.put(sch.getName(), sch);
         return old;
     }
 
@@ -136,13 +133,11 @@ public final class SchemeRegistry {
 
 
 
-    public final Scheme unregister(String name) {
-        if (name == null)
-            throw new IllegalArgumentException("Name must not be null.");
-
+    public final Scheme unregister(final String name) {
+        Args.notNull(name, "Scheme name");
         
         
-        Scheme gone = registeredSchemes.remove(name);
+        final Scheme gone = registeredSchemes.remove(name);
         return gone;
     }
 

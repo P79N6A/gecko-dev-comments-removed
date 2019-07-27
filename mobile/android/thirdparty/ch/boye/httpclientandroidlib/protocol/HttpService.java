@@ -41,11 +41,13 @@ import ch.boye.httpclientandroidlib.HttpStatus;
 import ch.boye.httpclientandroidlib.HttpVersion;
 import ch.boye.httpclientandroidlib.MethodNotSupportedException;
 import ch.boye.httpclientandroidlib.ProtocolException;
-import ch.boye.httpclientandroidlib.ProtocolVersion;
 import ch.boye.httpclientandroidlib.UnsupportedHttpVersionException;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 import ch.boye.httpclientandroidlib.entity.ByteArrayEntity;
+import ch.boye.httpclientandroidlib.impl.DefaultConnectionReuseStrategy;
+import ch.boye.httpclientandroidlib.impl.DefaultHttpResponseFactory;
 import ch.boye.httpclientandroidlib.params.HttpParams;
-import ch.boye.httpclientandroidlib.params.DefaultedHttpParams;
+import ch.boye.httpclientandroidlib.util.Args;
 import ch.boye.httpclientandroidlib.util.EncodingUtils;
 import ch.boye.httpclientandroidlib.util.EntityUtils;
 
@@ -68,6 +70,8 @@ import ch.boye.httpclientandroidlib.util.EntityUtils;
 
 
 
+@SuppressWarnings("deprecation")
+@Immutable 
 public class HttpService {
 
     
@@ -75,7 +79,7 @@ public class HttpService {
 
     private volatile HttpParams params = null;
     private volatile HttpProcessor processor = null;
-    private volatile HttpRequestHandlerResolver handlerResolver = null;
+    private volatile HttpRequestHandlerMapper handlerMapper = null;
     private volatile ConnectionReuseStrategy connStrategy = null;
     private volatile HttpResponseFactory responseFactory = null;
     private volatile HttpExpectationVerifier expectationVerifier = null;
@@ -92,6 +96,9 @@ public class HttpService {
 
 
 
+
+
+    @Deprecated
     public HttpService(
             final HttpProcessor processor,
             final ConnectionReuseStrategy connStrategy,
@@ -99,24 +106,11 @@ public class HttpService {
             final HttpRequestHandlerResolver handlerResolver,
             final HttpExpectationVerifier expectationVerifier,
             final HttpParams params) {
-        super();
-        if (processor == null) {
-            throw new IllegalArgumentException("HTTP processor may not be null");
-        }
-        if (connStrategy == null) {
-            throw new IllegalArgumentException("Connection reuse strategy may not be null");
-        }
-        if (responseFactory == null) {
-            throw new IllegalArgumentException("Response factory may not be null");
-        }
-        if (params == null) {
-            throw new IllegalArgumentException("HTTP parameters may not be null");
-        }
-        this.processor = processor;
-        this.connStrategy = connStrategy;
-        this.responseFactory = responseFactory;
-        this.handlerResolver = handlerResolver;
-        this.expectationVerifier = expectationVerifier;
+        this(processor,
+             connStrategy,
+             responseFactory,
+             new HttpRequestHandlerResolverAdapter(handlerResolver),
+             expectationVerifier);
         this.params = params;
     }
 
@@ -131,13 +125,21 @@ public class HttpService {
 
 
 
+
+
+    @Deprecated
     public HttpService(
             final HttpProcessor processor,
             final ConnectionReuseStrategy connStrategy,
             final HttpResponseFactory responseFactory,
             final HttpRequestHandlerResolver handlerResolver,
             final HttpParams params) {
-        this(processor, connStrategy, responseFactory, handlerResolver, null, params);
+        this(processor,
+             connStrategy,
+             responseFactory,
+             new HttpRequestHandlerResolverAdapter(handlerResolver),
+             null);
+        this.params = params;
     }
 
     
@@ -150,6 +152,7 @@ public class HttpService {
 
 
 
+    @Deprecated
     public HttpService(
             final HttpProcessor proc,
             final ConnectionReuseStrategy connStrategy,
@@ -163,36 +166,96 @@ public class HttpService {
     
 
 
+
+
+
+
+
+
+
+
+
+
+    public HttpService(
+            final HttpProcessor processor,
+            final ConnectionReuseStrategy connStrategy,
+            final HttpResponseFactory responseFactory,
+            final HttpRequestHandlerMapper handlerMapper,
+            final HttpExpectationVerifier expectationVerifier) {
+        super();
+        this.processor =  Args.notNull(processor, "HTTP processor");
+        this.connStrategy = connStrategy != null ? connStrategy :
+            DefaultConnectionReuseStrategy.INSTANCE;
+        this.responseFactory = responseFactory != null ? responseFactory :
+            DefaultHttpResponseFactory.INSTANCE;
+        this.handlerMapper = handlerMapper;
+        this.expectationVerifier = expectationVerifier;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    public HttpService(
+            final HttpProcessor processor,
+            final ConnectionReuseStrategy connStrategy,
+            final HttpResponseFactory responseFactory,
+            final HttpRequestHandlerMapper handlerMapper) {
+        this(processor, connStrategy, responseFactory, handlerMapper, null);
+    }
+
+    
+
+
+
+
+
+
+
+    public HttpService(
+            final HttpProcessor processor, final HttpRequestHandlerMapper handlerMapper) {
+        this(processor, null, null, handlerMapper, null);
+    }
+
+    
+
+
+    @Deprecated
     public void setHttpProcessor(final HttpProcessor processor) {
-        if (processor == null) {
-            throw new IllegalArgumentException("HTTP processor may not be null");
-        }
+        Args.notNull(processor, "HTTP processor");
         this.processor = processor;
     }
 
     
 
 
+    @Deprecated
     public void setConnReuseStrategy(final ConnectionReuseStrategy connStrategy) {
-        if (connStrategy == null) {
-            throw new IllegalArgumentException("Connection reuse strategy may not be null");
-        }
+        Args.notNull(connStrategy, "Connection reuse strategy");
         this.connStrategy = connStrategy;
     }
 
     
 
 
+    @Deprecated
     public void setResponseFactory(final HttpResponseFactory responseFactory) {
-        if (responseFactory == null) {
-            throw new IllegalArgumentException("Response factory may not be null");
-        }
+        Args.notNull(responseFactory, "Response factory");
         this.responseFactory = responseFactory;
     }
 
     
 
 
+    @Deprecated
     public void setParams(final HttpParams params) {
         this.params = params;
     }
@@ -200,17 +263,23 @@ public class HttpService {
     
 
 
+    @Deprecated
     public void setHandlerResolver(final HttpRequestHandlerResolver handlerResolver) {
-        this.handlerResolver = handlerResolver;
+        this.handlerMapper = new HttpRequestHandlerResolverAdapter(handlerResolver);
     }
 
     
 
 
+    @Deprecated
     public void setExpectationVerifier(final HttpExpectationVerifier expectationVerifier) {
         this.expectationVerifier = expectationVerifier;
     }
 
+    
+
+
+    @Deprecated
     public HttpParams getParams() {
         return this.params;
     }
@@ -229,39 +298,24 @@ public class HttpService {
             final HttpServerConnection conn,
             final HttpContext context) throws IOException, HttpException {
 
-        context.setAttribute(ExecutionContext.HTTP_CONNECTION, conn);
+        context.setAttribute(HttpCoreContext.HTTP_CONNECTION, conn);
 
         HttpResponse response = null;
 
         try {
 
-            HttpRequest request = conn.receiveRequestHeader();
-            request.setParams(
-                    new DefaultedHttpParams(request.getParams(), this.params));
-
-            ProtocolVersion ver =
-                request.getRequestLine().getProtocolVersion();
-            if (!ver.lessEquals(HttpVersion.HTTP_1_1)) {
-                
-                ver = HttpVersion.HTTP_1_1;
-            }
-
+            final HttpRequest request = conn.receiveRequestHeader();
             if (request instanceof HttpEntityEnclosingRequest) {
 
                 if (((HttpEntityEnclosingRequest) request).expectContinue()) {
-                    response = this.responseFactory.newHttpResponse(ver,
+                    response = this.responseFactory.newHttpResponse(HttpVersion.HTTP_1_1,
                             HttpStatus.SC_CONTINUE, context);
-                    response.setParams(
-                            new DefaultedHttpParams(response.getParams(), this.params));
-
                     if (this.expectationVerifier != null) {
                         try {
                             this.expectationVerifier.verify(request, response, context);
-                        } catch (HttpException ex) {
+                        } catch (final HttpException ex) {
                             response = this.responseFactory.newHttpResponse(HttpVersion.HTTP_1_0,
                                     HttpStatus.SC_INTERNAL_SERVER_ERROR, context);
-                            response.setParams(
-                                    new DefaultedHttpParams(response.getParams(), this.params));
                             handleException(ex, response);
                         }
                     }
@@ -278,32 +332,29 @@ public class HttpService {
                 }
             }
 
+            context.setAttribute(HttpCoreContext.HTTP_REQUEST, request);
+
             if (response == null) {
-                response = this.responseFactory.newHttpResponse(ver, HttpStatus.SC_OK, context);
-                response.setParams(
-                        new DefaultedHttpParams(response.getParams(), this.params));
-
-                context.setAttribute(ExecutionContext.HTTP_REQUEST, request);
-                context.setAttribute(ExecutionContext.HTTP_RESPONSE, response);
-
+                response = this.responseFactory.newHttpResponse(HttpVersion.HTTP_1_1,
+                        HttpStatus.SC_OK, context);
                 this.processor.process(request, context);
                 doService(request, response, context);
             }
 
             
             if (request instanceof HttpEntityEnclosingRequest) {
-                HttpEntity entity = ((HttpEntityEnclosingRequest)request).getEntity();
+                final HttpEntity entity = ((HttpEntityEnclosingRequest)request).getEntity();
                 EntityUtils.consume(entity);
             }
 
-        } catch (HttpException ex) {
+        } catch (final HttpException ex) {
             response = this.responseFactory.newHttpResponse
                 (HttpVersion.HTTP_1_0, HttpStatus.SC_INTERNAL_SERVER_ERROR,
                  context);
-            response.setParams(
-                    new DefaultedHttpParams(response.getParams(), this.params));
             handleException(ex, response);
         }
+
+        context.setAttribute(HttpCoreContext.HTTP_RESPONSE, response);
 
         this.processor.process(response, context);
         conn.sendResponseHeader(response);
@@ -333,8 +384,12 @@ public class HttpService {
         } else {
             response.setStatusCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
         }
-        byte[] msg = EncodingUtils.getAsciiBytes(ex.getMessage());
-        ByteArrayEntity entity = new ByteArrayEntity(msg);
+        String message = ex.getMessage();
+        if (message == null) {
+            message = ex.toString();
+        }
+        final byte[] msg = EncodingUtils.getAsciiBytes(message);
+        final ByteArrayEntity entity = new ByteArrayEntity(msg);
         entity.setContentType("text/plain; charset=US-ASCII");
         response.setEntity(entity);
     }
@@ -361,15 +416,32 @@ public class HttpService {
             final HttpResponse response,
             final HttpContext context) throws HttpException, IOException {
         HttpRequestHandler handler = null;
-        if (this.handlerResolver != null) {
-            String requestURI = request.getRequestLine().getUri();
-            handler = this.handlerResolver.lookup(requestURI);
+        if (this.handlerMapper != null) {
+            handler = this.handlerMapper.lookup(request);
         }
         if (handler != null) {
             handler.handle(request, response, context);
         } else {
             response.setStatusCode(HttpStatus.SC_NOT_IMPLEMENTED);
         }
+    }
+
+    
+
+
+    @Deprecated
+    private static class HttpRequestHandlerResolverAdapter implements HttpRequestHandlerMapper {
+
+        private final HttpRequestHandlerResolver resolver;
+
+        public HttpRequestHandlerResolverAdapter(final HttpRequestHandlerResolver resolver) {
+            this.resolver = resolver;
+        }
+
+        public HttpRequestHandler lookup(final HttpRequest request) {
+            return resolver.lookup(request.getRequestLine().getUri());
+        }
+
     }
 
 }

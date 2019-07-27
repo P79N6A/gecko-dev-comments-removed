@@ -28,11 +28,11 @@ package ch.boye.httpclientandroidlib.conn.params;
 
 import java.net.InetAddress;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.HttpHost;
-import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
+import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.util.Args;
 
 
 
@@ -40,6 +40,9 @@ import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 
 
 
+
+
+@Deprecated
 @Immutable
 public class ConnRouteParams implements ConnRoutePNames {
 
@@ -73,10 +76,8 @@ public class ConnRouteParams implements ConnRoutePNames {
 
 
 
-    public static HttpHost getDefaultProxy(HttpParams params) {
-        if (params == null) {
-            throw new IllegalArgumentException("Parameters must not be null.");
-        }
+    public static HttpHost getDefaultProxy(final HttpParams params) {
+        Args.notNull(params, "Parameters");
         HttpHost proxy = (HttpHost)
             params.getParameter(DEFAULT_PROXY);
         if ((proxy != null) && NO_HOST.equals(proxy)) {
@@ -96,11 +97,9 @@ public class ConnRouteParams implements ConnRoutePNames {
 
 
 
-    public static void setDefaultProxy(HttpParams params,
-                                             HttpHost proxy) {
-        if (params == null) {
-            throw new IllegalArgumentException("Parameters must not be null.");
-        }
+    public static void setDefaultProxy(final HttpParams params,
+                                             final HttpHost proxy) {
+        Args.notNull(params, "Parameters");
         params.setParameter(DEFAULT_PROXY, proxy);
     }
 
@@ -115,10 +114,8 @@ public class ConnRouteParams implements ConnRoutePNames {
 
 
 
-    public static HttpRoute getForcedRoute(HttpParams params) {
-        if (params == null) {
-            throw new IllegalArgumentException("Parameters must not be null.");
-        }
+    public static HttpRoute getForcedRoute(final HttpParams params) {
+        Args.notNull(params, "Parameters");
         HttpRoute route = (HttpRoute)
             params.getParameter(FORCED_ROUTE);
         if ((route != null) && NO_ROUTE.equals(route)) {
@@ -138,11 +135,9 @@ public class ConnRouteParams implements ConnRoutePNames {
 
 
 
-    public static void setForcedRoute(HttpParams params,
-                                            HttpRoute route) {
-        if (params == null) {
-            throw new IllegalArgumentException("Parameters must not be null.");
-        }
+    public static void setForcedRoute(final HttpParams params,
+                                            final HttpRoute route) {
+        Args.notNull(params, "Parameters");
         params.setParameter(FORCED_ROUTE, route);
     }
 
@@ -158,11 +153,9 @@ public class ConnRouteParams implements ConnRoutePNames {
 
 
 
-    public static InetAddress getLocalAddress(HttpParams params) {
-        if (params == null) {
-            throw new IllegalArgumentException("Parameters must not be null.");
-        }
-        InetAddress local = (InetAddress)
+    public static InetAddress getLocalAddress(final HttpParams params) {
+        Args.notNull(params, "Parameters");
+        final InetAddress local = (InetAddress)
             params.getParameter(LOCAL_ADDRESS);
         
         return local;
@@ -175,11 +168,9 @@ public class ConnRouteParams implements ConnRoutePNames {
 
 
 
-    public static void setLocalAddress(HttpParams params,
-                                             InetAddress local) {
-        if (params == null) {
-            throw new IllegalArgumentException("Parameters must not be null.");
-        }
+    public static void setLocalAddress(final HttpParams params,
+                                             final InetAddress local) {
+        Args.notNull(params, "Parameters");
         params.setParameter(LOCAL_ADDRESS, local);
     }
 

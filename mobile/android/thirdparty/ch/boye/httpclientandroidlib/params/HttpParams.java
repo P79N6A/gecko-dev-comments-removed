@@ -46,6 +46,8 @@ package ch.boye.httpclientandroidlib.params;
 
 
 
+
+@Deprecated
 public interface HttpParams {
 
     
@@ -70,8 +72,6 @@ public interface HttpParams {
     HttpParams setParameter(String name, Object value);
 
     
-
-
 
 
 

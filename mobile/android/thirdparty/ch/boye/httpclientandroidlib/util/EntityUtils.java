@@ -31,11 +31,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 
 import ch.boye.httpclientandroidlib.HeaderElement;
 import ch.boye.httpclientandroidlib.HttpEntity;
+import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.NameValuePair;
 import ch.boye.httpclientandroidlib.ParseException;
+import ch.boye.httpclientandroidlib.entity.ContentType;
 import ch.boye.httpclientandroidlib.protocol.HTTP;
 
 
@@ -57,12 +62,28 @@ public final class EntityUtils {
 
 
 
+    public static void consumeQuietly(final HttpEntity entity) {
+        try {
+          consume(entity);
+        } catch (final IOException ignore) {
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
     public static void consume(final HttpEntity entity) throws IOException {
         if (entity == null) {
             return;
         }
         if (entity.isStreaming()) {
-            InputStream instream = entity.getContent();
+            final InputStream instream = entity.getContent();
             if (instream != null) {
                 instream.close();
             }
@@ -78,24 +99,39 @@ public final class EntityUtils {
 
 
 
+
+
+    public static void updateEntity(
+            final HttpResponse response, final HttpEntity entity) throws IOException {
+        Args.notNull(response, "Response");
+        consume(response.getEntity());
+        response.setEntity(entity);
+    }
+
+    
+
+
+
+
+
+
+
+
     public static byte[] toByteArray(final HttpEntity entity) throws IOException {
-        if (entity == null) {
-            throw new IllegalArgumentException("HTTP entity may not be null");
-        }
-        InputStream instream = entity.getContent();
+        Args.notNull(entity, "Entity");
+        final InputStream instream = entity.getContent();
         if (instream == null) {
             return null;
         }
         try {
-            if (entity.getContentLength() > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("HTTP entity too large to be buffered in memory");
-            }
+            Args.check(entity.getContentLength() <= Integer.MAX_VALUE,
+                    "HTTP entity too large to be buffered in memory");
             int i = (int)entity.getContentLength();
             if (i < 0) {
                 i = 4096;
             }
-            ByteArrayBuffer buffer = new ByteArrayBuffer(i);
-            byte[] tmp = new byte[4096];
+            final ByteArrayBuffer buffer = new ByteArrayBuffer(i);
+            final byte[] tmp = new byte[4096];
             int l;
             while((l = instream.read(tmp)) != -1) {
                 buffer.append(tmp, 0, l);
@@ -114,15 +150,16 @@ public final class EntityUtils {
 
 
 
+
+
+    @Deprecated
     public static String getContentCharSet(final HttpEntity entity) throws ParseException {
-        if (entity == null) {
-            throw new IllegalArgumentException("HTTP entity may not be null");
-        }
+        Args.notNull(entity, "Entity");
         String charset = null;
         if (entity.getContentType() != null) {
-            HeaderElement values[] = entity.getContentType().getElements();
+            final HeaderElement values[] = entity.getContentType().getElements();
             if (values.length > 0) {
-                NameValuePair param = values[0].getParameterByName("charset");
+                final NameValuePair param = values[0].getParameterByName("charset");
                 if (param != null) {
                     charset = param.getValue();
                 }
@@ -141,13 +178,14 @@ public final class EntityUtils {
 
 
 
+
+
+    @Deprecated
     public static String getContentMimeType(final HttpEntity entity) throws ParseException {
-        if (entity == null) {
-            throw new IllegalArgumentException("HTTP entity may not be null");
-        }
+        Args.notNull(entity, "Entity");
         String mimeType = null;
         if (entity.getContentType() != null) {
-            HeaderElement values[] = entity.getContentType().getElements();
+            final HeaderElement values[] = entity.getContentType().getElements();
             if (values.length > 0) {
                 mimeType = values[0].getName();
             }
@@ -168,33 +206,40 @@ public final class EntityUtils {
 
 
 
+
+
     public static String toString(
-            final HttpEntity entity, final String defaultCharset) throws IOException, ParseException {
-        if (entity == null) {
-            throw new IllegalArgumentException("HTTP entity may not be null");
-        }
-        InputStream instream = entity.getContent();
+            final HttpEntity entity, final Charset defaultCharset) throws IOException, ParseException {
+        Args.notNull(entity, "Entity");
+        final InputStream instream = entity.getContent();
         if (instream == null) {
             return null;
         }
         try {
-            if (entity.getContentLength() > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("HTTP entity too large to be buffered in memory");
-            }
+            Args.check(entity.getContentLength() <= Integer.MAX_VALUE,
+                    "HTTP entity too large to be buffered in memory");
             int i = (int)entity.getContentLength();
             if (i < 0) {
                 i = 4096;
             }
-            String charset = getContentCharSet(entity);
+            Charset charset = null;
+            try {
+                final ContentType contentType = ContentType.get(entity);
+                if (contentType != null) {
+                    charset = contentType.getCharset();
+                }
+            } catch (final UnsupportedCharsetException ex) {
+                throw new UnsupportedEncodingException(ex.getMessage());
+            }
             if (charset == null) {
                 charset = defaultCharset;
             }
             if (charset == null) {
-                charset = HTTP.DEFAULT_CONTENT_CHARSET;
+                charset = HTTP.DEF_CONTENT_CHARSET;
             }
-            Reader reader = new InputStreamReader(instream, charset);
-            CharArrayBuffer buffer = new CharArrayBuffer(i);
-            char[] tmp = new char[1024];
+            final Reader reader = new InputStreamReader(instream, charset);
+            final CharArrayBuffer buffer = new CharArrayBuffer(i);
+            final char[] tmp = new char[1024];
             int l;
             while((l = reader.read(tmp)) != -1) {
                 buffer.append(tmp, 0, l);
@@ -216,9 +261,31 @@ public final class EntityUtils {
 
 
 
+
+
+
+
+    public static String toString(
+            final HttpEntity entity, final String defaultCharset) throws IOException, ParseException {
+        return toString(entity, defaultCharset != null ? Charset.forName(defaultCharset) : null);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
     public static String toString(final HttpEntity entity)
         throws IOException, ParseException {
-        return toString(entity, null);
+        return toString(entity, (Charset)null);
     }
 
 }

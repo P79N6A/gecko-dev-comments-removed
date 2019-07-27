@@ -33,12 +33,15 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import ch.boye.httpclientandroidlib.annotation.GuardedBy;
+import ch.boye.httpclientandroidlib.annotation.ThreadSafe;
 
 
 
 
 
 
+@ThreadSafe
 public class HttpDateGenerator {
 
     
@@ -48,10 +51,11 @@ public class HttpDateGenerator {
     
     public static final TimeZone GMT = TimeZone.getTimeZone("GMT");
 
-
+    @GuardedBy("this")
     private final DateFormat dateformat;
-
+    @GuardedBy("this")
     private long dateAsLong = 0L;
+    @GuardedBy("this")
     private String dateAsText = null;
 
     public HttpDateGenerator() {
@@ -61,7 +65,7 @@ public class HttpDateGenerator {
     }
 
     public synchronized String getCurrentDate() {
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         if (now - this.dateAsLong > 1000) {
             
             this.dateAsText = this.dateformat.format(new Date(now));

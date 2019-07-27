@@ -36,18 +36,20 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
-import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
 import ch.boye.httpclientandroidlib.HttpException;
 import ch.boye.httpclientandroidlib.HttpHost;
 import ch.boye.httpclientandroidlib.HttpRequest;
-import ch.boye.httpclientandroidlib.protocol.HttpContext;
-
+import ch.boye.httpclientandroidlib.annotation.NotThreadSafe;
+import ch.boye.httpclientandroidlib.conn.params.ConnRouteParams;
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
 import ch.boye.httpclientandroidlib.conn.routing.HttpRoutePlanner;
 import ch.boye.httpclientandroidlib.conn.scheme.Scheme;
 import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
+import ch.boye.httpclientandroidlib.protocol.HttpContext;
+import ch.boye.httpclientandroidlib.util.Args;
+import ch.boye.httpclientandroidlib.util.Asserts;
 
-import ch.boye.httpclientandroidlib.conn.params.ConnRouteParams;
+
 
 
 
@@ -70,6 +72,7 @@ import ch.boye.httpclientandroidlib.conn.params.ConnRouteParams;
 
 
 @NotThreadSafe 
+@Deprecated
 public class ProxySelectorRoutePlanner implements HttpRoutePlanner {
 
     
@@ -85,13 +88,9 @@ public class ProxySelectorRoutePlanner implements HttpRoutePlanner {
 
 
 
-    public ProxySelectorRoutePlanner(SchemeRegistry schreg,
-                                     ProxySelector prosel) {
-
-        if (schreg == null) {
-            throw new IllegalArgumentException
-                ("SchemeRegistry must not be null.");
-        }
+    public ProxySelectorRoutePlanner(final SchemeRegistry schreg,
+                                     final ProxySelector prosel) {
+        Args.notNull(schreg, "SchemeRegistry");
         schemeRegistry = schreg;
         proxySelector  = prosel;
     }
@@ -111,33 +110,28 @@ public class ProxySelectorRoutePlanner implements HttpRoutePlanner {
 
 
 
-    public void setProxySelector(ProxySelector prosel) {
+    public void setProxySelector(final ProxySelector prosel) {
         this.proxySelector = prosel;
     }
 
-    public HttpRoute determineRoute(HttpHost target,
-                                    HttpRequest request,
-                                    HttpContext context)
+    public HttpRoute determineRoute(final HttpHost target,
+                                    final HttpRequest request,
+                                    final HttpContext context)
         throws HttpException {
 
-        if (request == null) {
-            throw new IllegalStateException
-                ("Request must not be null.");
-        }
+        Args.notNull(request, "HTTP request");
 
         
         HttpRoute route =
             ConnRouteParams.getForcedRoute(request.getParams());
-        if (route != null)
+        if (route != null) {
             return route;
-
-        
-        
-
-        if (target == null) {
-            throw new IllegalStateException
-                ("Target host must not be null.");
         }
+
+        
+        
+
+        Asserts.notNull(target, "Target host");
 
         final InetAddress local =
             ConnRouteParams.getLocalAddress(request.getParams());
@@ -169,28 +163,30 @@ public class ProxySelectorRoutePlanner implements HttpRoutePlanner {
 
 
 
-    protected HttpHost determineProxy(HttpHost    target,
-                                      HttpRequest request,
-                                      HttpContext context)
+    protected HttpHost determineProxy(final HttpHost    target,
+                                      final HttpRequest request,
+                                      final HttpContext context)
         throws HttpException {
 
         
         ProxySelector psel = this.proxySelector;
-        if (psel == null)
+        if (psel == null) {
             psel = ProxySelector.getDefault();
-        if (psel == null)
+        }
+        if (psel == null) {
             return null;
+        }
 
         URI targetURI = null;
         try {
             targetURI = new URI(target.toURI());
-        } catch (URISyntaxException usx) {
+        } catch (final URISyntaxException usx) {
             throw new HttpException
                 ("Cannot convert host to URI: " + target, usx);
         }
-        List<Proxy> proxies = psel.select(targetURI);
+        final List<Proxy> proxies = psel.select(targetURI);
 
-        Proxy p = chooseProxy(proxies, target, request, context);
+        final Proxy p = chooseProxy(proxies, target, request, context);
 
         HttpHost result = null;
         if (p.type() == Proxy.Type.HTTP) {
@@ -217,7 +213,7 @@ public class ProxySelectorRoutePlanner implements HttpRoutePlanner {
 
 
 
-    protected String getHost(InetSocketAddress isa) {
+    protected String getHost(final InetSocketAddress isa) {
 
         
         
@@ -243,22 +239,18 @@ public class ProxySelectorRoutePlanner implements HttpRoutePlanner {
 
 
 
-    protected Proxy chooseProxy(List<Proxy> proxies,
-                                HttpHost    target,
-                                HttpRequest request,
-                                HttpContext context) {
-
-        if ((proxies == null) || proxies.isEmpty()) {
-            throw new IllegalArgumentException
-                ("Proxy list must not be empty.");
-        }
+    protected Proxy chooseProxy(final List<Proxy> proxies,
+                                final HttpHost    target,
+                                final HttpRequest request,
+                                final HttpContext context) {
+        Args.notEmpty(proxies, "List of proxies");
 
         Proxy result = null;
 
         
         for (int i=0; (result == null) && (i < proxies.size()); i++) {
 
-            Proxy p = proxies.get(i);
+            final Proxy p = proxies.get(i);
             switch (p.type()) {
 
             case DIRECT:

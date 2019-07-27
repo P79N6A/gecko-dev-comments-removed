@@ -26,9 +26,8 @@
 
 package ch.boye.httpclientandroidlib.auth;
 
-import ch.boye.httpclientandroidlib.annotation.Immutable;
-
 import ch.boye.httpclientandroidlib.ProtocolException;
+import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
@@ -53,7 +52,7 @@ public class AuthenticationException extends ProtocolException {
 
 
 
-    public AuthenticationException(String message) {
+    public AuthenticationException(final String message) {
         super(message);
     }
 
@@ -64,7 +63,7 @@ public class AuthenticationException extends ProtocolException {
 
 
 
-    public AuthenticationException(String message, Throwable cause) {
+    public AuthenticationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

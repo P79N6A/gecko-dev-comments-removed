@@ -38,7 +38,9 @@ import ch.boye.httpclientandroidlib.HttpMessage;
 
 
 
-public interface HttpMessageParser {
+
+
+public interface HttpMessageParser<T extends HttpMessage> {
 
     
 
@@ -48,7 +50,7 @@ public interface HttpMessageParser {
 
 
 
-    HttpMessage parse()
+    T parse()
         throws IOException, HttpException;
 
 }

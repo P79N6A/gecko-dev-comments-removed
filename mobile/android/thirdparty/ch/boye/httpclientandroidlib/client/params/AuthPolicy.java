@@ -34,6 +34,9 @@ import ch.boye.httpclientandroidlib.annotation.Immutable;
 
 
 
+
+
+@Deprecated
 @Immutable
 public final class AuthPolicy {
 
@@ -65,5 +68,12 @@ public final class AuthPolicy {
 
 
     public static final String SPNEGO = "negotiate";
+
+    
+
+
+
+
+    public static final String KERBEROS = "Kerberos";
 
 }

@@ -45,6 +45,9 @@ import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
 
 
 
+
+
+@Deprecated
 public interface ClientConnectionManager {
 
     

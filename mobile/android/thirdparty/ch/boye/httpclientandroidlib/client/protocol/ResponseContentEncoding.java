@@ -52,6 +52,8 @@ import ch.boye.httpclientandroidlib.protocol.HttpContext;
 @Immutable
 public class ResponseContentEncoding implements HttpResponseInterceptor {
 
+    public static final String UNCOMPRESSED = "http.client.response.uncompressed";
+
     
 
 
@@ -69,21 +71,25 @@ public class ResponseContentEncoding implements HttpResponseInterceptor {
     public void process(
             final HttpResponse response,
             final HttpContext context) throws HttpException, IOException {
-        HttpEntity entity = response.getEntity();
+        final HttpEntity entity = response.getEntity();
 
         
-        if (entity != null) {
-            Header ceheader = entity.getContentEncoding();
+        
+        if (entity != null && entity.getContentLength() != 0) {
+            final Header ceheader = entity.getContentEncoding();
             if (ceheader != null) {
-                HeaderElement[] codecs = ceheader.getElements();
-                for (HeaderElement codec : codecs) {
-                    String codecname = codec.getName().toLowerCase(Locale.US);
+                final HeaderElement[] codecs = ceheader.getElements();
+                boolean uncompressed = false;
+                for (final HeaderElement codec : codecs) {
+                    final String codecname = codec.getName().toLowerCase(Locale.ENGLISH);
                     if ("gzip".equals(codecname) || "x-gzip".equals(codecname)) {
                         response.setEntity(new GzipDecompressingEntity(response.getEntity()));
-                        return;
+                        uncompressed = true;
+                        break;
                     } else if ("deflate".equals(codecname)) {
                         response.setEntity(new DeflateDecompressingEntity(response.getEntity()));
-                        return;
+                        uncompressed = true;
+                        break;
                     } else if ("identity".equals(codecname)) {
 
                         
@@ -91,6 +97,11 @@ public class ResponseContentEncoding implements HttpResponseInterceptor {
                     } else {
                         throw new HttpException("Unsupported Content-Coding: " + codec.getName());
                     }
+                }
+                if (uncompressed) {
+                    response.removeHeaders("Content-Length");
+                    response.removeHeaders("Content-Encoding");
+                    response.removeHeaders("Content-MD5");
                 }
             }
         }
