@@ -35,6 +35,7 @@
 #include "nsHTMLStyleSheet.h"
 #include "nsCSSRules.h"
 #include "nsPrintfCString.h"
+#include "nsIFrame.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1451,10 +1452,35 @@ nsStyleSet::ResolveStyleWithReplacement(Element* aElement,
     }
   }
 
+  nsCSSPseudoElements::Type pseudoType = aOldStyleContext->GetPseudoType();
+  Element* elementForAnimation = nullptr;
+  if (pseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+      pseudoType == nsCSSPseudoElements::ePseudo_before ||
+      pseudoType == nsCSSPseudoElements::ePseudo_after) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (aReplacements & ~(eRestyle_CSSTransitions | eRestyle_CSSAnimations)) {
+      flags |= eDoAnimation;
+    }
+    elementForAnimation = aElement;
+    NS_ASSERTION(pseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+                 !elementForAnimation->GetPrimaryFrame() ||
+                 elementForAnimation->GetPrimaryFrame()->StyleContext()->
+                     GetPseudoType() ==
+                   nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                 "aElement should be the element and not the pseudo-element");
+  }
+
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,
-                    aOldStyleContext->GetPseudo(),
-                    aOldStyleContext->GetPseudoType(),
-                    nullptr, flags);
+                    aOldStyleContext->GetPseudo(), pseudoType,
+                    elementForAnimation, flags);
 }
 
 
