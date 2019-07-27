@@ -256,7 +256,11 @@ AudioSink::Cleanup()
   AssertCurrentThreadInMonitor();
   nsRefPtr<AudioStream> audioStream;
   audioStream.swap(mAudioStream);
-  mStateMachine->DispatchOnAudioSinkComplete();
+  
+  
+  if (!mStopAudioThread) {
+    mStateMachine->DispatchOnAudioSinkComplete();
+  }
 
   ReentrantMonitorAutoExit exit(GetReentrantMonitor());
   audioStream->Shutdown();
