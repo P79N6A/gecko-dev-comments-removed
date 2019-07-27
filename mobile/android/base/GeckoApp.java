@@ -1581,8 +1581,6 @@ public abstract class GeckoApp
             mZoomedView = (ZoomedView) stub.inflate();
         }
 
-        UpdateServiceHelper.registerForUpdates(GeckoApp.this);
-
         
         
         mJavaUiStartupTimer.stop();
@@ -1595,6 +1593,8 @@ public abstract class GeckoApp
                 if (rec != null) {
                     rec.recordJavaStartupTime(javaDuration);
                 }
+
+                UpdateServiceHelper.registerForUpdates(GeckoApp.this);
 
                 
                 
