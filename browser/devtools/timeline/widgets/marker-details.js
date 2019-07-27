@@ -34,6 +34,9 @@ function MarkerDetails(parent, splitter) {
 }
 
 MarkerDetails.prototype = {
+  
+
+
   destroy: function() {
     this.empty();
     this._parent = null;

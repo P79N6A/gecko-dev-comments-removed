@@ -9,9 +9,20 @@ function spawnTest () {
   let { EVENTS, OverviewView } = panel.panelWin;
 
   yield startRecording(panel);
- 
-  yield once(OverviewView, EVENTS.OVERVIEW_RENDERED);
-  yield once(OverviewView, EVENTS.OVERVIEW_RENDERED);
+
+  yield Promise.all([
+    once(OverviewView, EVENTS.FRAMERATE_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.MARKERS_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.MEMORY_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.OVERVIEW_RENDERED),
+  ]);
+
+  yield Promise.all([
+    once(OverviewView, EVENTS.FRAMERATE_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.MARKERS_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.MEMORY_GRAPH_RENDERED),
+    once(OverviewView, EVENTS.OVERVIEW_RENDERED),
+  ]);
 
   yield stopRecording(panel);
 

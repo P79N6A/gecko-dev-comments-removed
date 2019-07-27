@@ -19,8 +19,6 @@ loader.lazyRequireGetter(this, "DevToolsUtils",
 loader.lazyImporter(this, "gDevTools",
   "resource:///modules/devtools/gDevTools.jsm");
 
-let showTimelineMemory = () => Services.prefs.getBoolPref("devtools.performance.ui.show-timeline-memory");
-
 
 
 
@@ -215,7 +213,10 @@ PerformanceFront.prototype = {
 
 
 
-  startRecording: Task.async(function*() {
+
+
+
+  startRecording: Task.async(function*(options = {}) {
     let { isActive, currentTime } = yield this._request("profiler", "isActive");
 
     
@@ -236,12 +237,9 @@ PerformanceFront.prototype = {
 
     
     
-    let withMemory = showTimelineMemory();
 
     
-    let startTime = yield this._request("timeline", "start", { withTicks: true, withMemory: withMemory });
-    this._startTime = startTime;
-
+    let startTime = yield this._request("timeline", "start", options);
     return { startTime };
   }),
 
@@ -259,7 +257,7 @@ PerformanceFront.prototype = {
     filterSamples(profilerData, this._profilingStartTime);
     offsetSampleTimes(profilerData, this._profilingStartTime);
 
-    let endTime = this._endTime = yield this._request("timeline", "stop");
+    let endTime = yield this._request("timeline", "stop");
 
     
     return {

@@ -18,6 +18,11 @@ devtools.lazyRequireGetter(this, "DevToolsUtils",
   "devtools/toolkit/DevToolsUtils");
 devtools.lazyRequireGetter(this, "L10N",
   "devtools/profiler/global", true);
+
+devtools.lazyRequireGetter(this, "MarkersOverview",
+  "devtools/timeline/markers-overview", true);
+devtools.lazyRequireGetter(this, "MemoryOverview",
+  "devtools/timeline/memory-overview", true);
 devtools.lazyRequireGetter(this, "Waterfall",
   "devtools/timeline/waterfall", true);
 devtools.lazyRequireGetter(this, "MarkerDetails",
@@ -27,6 +32,8 @@ devtools.lazyRequireGetter(this, "CallView",
 devtools.lazyRequireGetter(this, "ThreadNode",
   "devtools/profiler/tree-model", true);
 
+devtools.lazyImporter(this, "CanvasGraphUtils",
+  "resource:///modules/devtools/Graphs.jsm");
 devtools.lazyImporter(this, "LineGraphWidget",
   "resource:///modules/devtools/Graphs.jsm");
 
@@ -35,6 +42,7 @@ const EVENTS = {
   
   RECORDING_STARTED: "Performance:RecordingStarted",
   RECORDING_STOPPED: "Performance:RecordingStopped",
+
   
   TIMELINE_DATA: "Performance:TimelineData",
 
@@ -44,6 +52,10 @@ const EVENTS = {
 
   
   OVERVIEW_RENDERED: "Performance:UI:OverviewRendered",
+  FRAMERATE_GRAPH_RENDERED: "Performance:UI:OverviewFramerateRendered",
+  MARKERS_GRAPH_RENDERED: "Performance:UI:OverviewMarkersRendered",
+  MEMORY_GRAPH_RENDERED: "Performance:UI:OverviewMemoryRendered",
+
   
   OVERVIEW_RANGE_SELECTED: "Performance:UI:OverviewRangeSelected",
   
@@ -116,6 +128,16 @@ let PerformanceController = {
 
 
 
+  _startTime: 0,
+  _endTime: 0,
+  _markers: [],
+  _memory: [],
+  _ticks: [],
+
+  
+
+
+
   initialize: function() {
     this.startRecording = this.startRecording.bind(this);
     this.stopRecording = this.stopRecording.bind(this);
@@ -123,8 +145,9 @@ let PerformanceController = {
 
     PerformanceView.on(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.on(EVENTS.UI_STOP_RECORDING, this.stopRecording);
-    gFront.on("ticks", this._onTimelineData);
-    gFront.on("markers", this._onTimelineData);
+    gFront.on("ticks", this._onTimelineData); 
+    gFront.on("markers", this._onTimelineData); 
+    gFront.on("memory", this._onTimelineData); 
   },
 
   
@@ -135,6 +158,7 @@ let PerformanceController = {
     PerformanceView.off(EVENTS.UI_STOP_RECORDING, this.stopRecording);
     gFront.off("ticks", this._onTimelineData);
     gFront.off("markers", this._onTimelineData);
+    gFront.off("memory", this._onTimelineData);
   },
 
   
@@ -144,10 +168,22 @@ let PerformanceController = {
   startRecording: Task.async(function *() {
     
     
+    
+    
     this._localStartTime = performance.now();
 
-    let startTime = this._startTime = yield gFront.startRecording();
-    this.emit(EVENTS.RECORDING_STARTED, startTime);
+    let { startTime } = yield gFront.startRecording({
+      withTicks: true,
+      withMemory: true
+    });
+
+    this._startTime = startTime;
+    this._endTime = startTime;
+    this._markers = [];
+    this._memory = [];
+    this._ticks = [];
+
+    this.emit(EVENTS.RECORDING_STARTED, this._startTime);
   }),
 
   
@@ -159,9 +195,11 @@ let PerformanceController = {
 
     
     if (!results.endTime) {
-      results.endTime = this._startTime + (performance.now() - this._localStartTime);
-      this._endTime = results.endTime;
+      results.endTime = this._startTime + this.getInterval().localElapsedTime;
     }
+
+    this._endTime = results.endTime;
+    this._markers = this._markers.sort((a,b) => (a.start > b.start));
 
     this.emit(EVENTS.RECORDING_STOPPED, results);
   }),
@@ -169,7 +207,58 @@ let PerformanceController = {
   
 
 
+
+  getInterval: function() {
+    let localElapsedTime = performance.now() - this._localStartTime;
+    let startTime = this._startTime;
+    let endTime = this._endTime;
+    return { localElapsedTime, startTime, endTime };
+  },
+
+  
+
+
+
+  getMarkers: function() {
+    return this._markers;
+  },
+
+  
+
+
+
+  getMemory: function() {
+    return this._memory;
+  },
+
+  
+
+
+
+  getTicks: function() {
+    return this._ticks;
+  },
+
+  
+
+
   _onTimelineData: function (eventName, ...data) {
+    
+    if (eventName == "markers") {
+      let [markers] = data;
+      Array.prototype.push.apply(this._markers, markers);
+    }
+    
+    else if (eventName == "memory") {
+      let [delta, measurement] = data;
+      this._memory.push({ delta, value: measurement.total / 1024 / 1024 });
+    }
+    
+    else if (eventName == "ticks") {
+      let [delta, timestamps] = data;
+      this._ticks = timestamps;
+    }
+
     this.emit(EVENTS.TIMELINE_DATA, eventName, ...data);
   }
 };

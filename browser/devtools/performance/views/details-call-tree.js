@@ -11,8 +11,7 @@ let CallTreeView = {
 
 
   initialize: function () {
-    this.el = $(".call-tree");
-    this._graphEl = $(".call-tree-cells-container");
+    this._callTree = $(".call-tree-cells-container");
     this._onRangeChange = this._onRangeChange.bind(this);
     this._onLink = this._onLink.bind(this);
     this._stop = this._stop.bind(this);
@@ -32,7 +31,6 @@ let CallTreeView = {
   },
 
   
-
 
 
   render: function (profilerData, beginAt, endAt, options={}) {
@@ -58,6 +56,9 @@ let CallTreeView = {
     let { beginAt, endAt } = params || {};
     this.render(this._profilerData, beginAt, endAt);
   },
+
+  
+
 
   _onLink: function (_, treeItem) {
     let { url, line } = treeItem.frame.getInfo();
@@ -97,8 +98,8 @@ let CallTreeView = {
     root.on("link", this._onLink);
 
     
-    this._graphEl.innerHTML = "";
-    root.attachTo(this._graphEl);
+    this._callTree.innerHTML = "";
+    root.attachTo(this._callTree);
 
     let contentOnly = !Prefs.showPlatformData;
     root.toggleCategories(!contentOnly);
@@ -130,7 +131,7 @@ let viewSourceInDebugger = Task.async(function *(url, line) {
 
   let { DebuggerView } = dbg;
   let item = DebuggerView.Sources.getItemForAttachment(a => a.source.url === url);
-  
+
   if (item) {
     return DebuggerView.setEditorLocation(item.attachment.source.actor, line, { noDebug: true });
   }

@@ -14,6 +14,7 @@ let PerformanceView = {
     this._recordButton = $("#record-button");
 
     this._onRecordButtonClick = this._onRecordButtonClick.bind(this);
+    this._lockRecordButton = this._lockRecordButton.bind(this);
     this._unlockRecordButton = this._unlockRecordButton.bind(this);
 
     this._recordButton.addEventListener("click", this._onRecordButtonClick);
@@ -45,6 +46,14 @@ let PerformanceView = {
   
 
 
+
+  _lockRecordButton: function () {
+    this._recordButton.setAttribute("locked", "true");
+  },
+
+  
+
+
   _unlockRecordButton: function () {
     this._recordButton.removeAttribute("locked");
   },
@@ -55,11 +64,11 @@ let PerformanceView = {
   _onRecordButtonClick: function (e) {
     if (this._recordButton.hasAttribute("checked")) {
       this._recordButton.removeAttribute("checked");
-      this._recordButton.setAttribute("locked", "true");
+      this._lockRecordButton();
       this.emit(EVENTS.UI_STOP_RECORDING);
     } else {
       this._recordButton.setAttribute("checked", "true");
-      this._recordButton.setAttribute("locked", "true");
+      this._lockRecordButton();
       this.emit(EVENTS.UI_START_RECORDING);
     }
   }

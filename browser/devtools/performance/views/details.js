@@ -21,7 +21,6 @@ let DetailsView = {
   
 
 
-
   initialize: Task.async(function *() {
     this.el = $("#details-pane");
 
@@ -34,6 +33,18 @@ let DetailsView = {
     yield CallTreeView.initialize();
     yield WaterfallView.initialize();
     this.selectView(DEFAULT_DETAILS_SUBVIEW);
+  }),
+
+  
+
+
+  destroy: Task.async(function *() {
+    for (let button of $$("toolbarbutton[data-view]", $("#details-toolbar"))) {
+      button.removeEventListener("command", this._onViewToggle);
+    }
+
+    yield CallTreeView.destroy();
+    yield WaterfallView.destroy();
   }),
 
   
@@ -61,19 +72,7 @@ let DetailsView = {
 
   _onViewToggle: function (e) {
     this.selectView(e.target.getAttribute("data-view"));
-  },
-
-  
-
-
-  destroy: Task.async(function *() {
-    for (let button of $$("toolbarbutton[data-view]", $("#details-toolbar"))) {
-      button.removeEventListener("command", this._onViewToggle);
-    }
-
-    yield CallTreeView.destroy();
-    yield WaterfallView.destroy();
-  })
+  }
 };
 
 
