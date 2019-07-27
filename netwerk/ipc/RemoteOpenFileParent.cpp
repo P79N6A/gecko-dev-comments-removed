@@ -47,6 +47,8 @@ RemoteOpenFileParent::OpenSendCloseDelete()
                     path.get());
     } else {
       fileDescriptor = FileDescriptor(fd);
+      
+      close(fd);
     }
   }
 
