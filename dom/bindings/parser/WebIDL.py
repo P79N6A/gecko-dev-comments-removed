@@ -1196,6 +1196,7 @@ class IDLInterface(IDLObjectWithScope):
                   identifier == "OverrideBuiltins" or
                   identifier == "ChromeOnly" or
                   identifier == "Unforgeable" or
+                  identifier == "UnsafeInPrerendering" or
                   identifier == "LegacyEventInit"):
                 
                 if not attr.noArguments():
@@ -3309,6 +3310,7 @@ class IDLAttribute(IDLInterfaceMember):
               identifier == "Frozen" or
               identifier == "AvailableIn" or
               identifier == "NewObject" or
+              identifier == "UnsafeInPrerendering" or
               identifier == "CheckPermissions"):
             
             pass
@@ -3902,6 +3904,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
         elif (identifier == "Throws" or
               identifier == "NewObject" or
               identifier == "ChromeOnly" or
+              identifier == "UnsafeInPrerendering" or
               identifier == "Pref" or
               identifier == "Func" or
               identifier == "AvailableIn" or
