@@ -2283,6 +2283,34 @@ PeerConnectionWrapper.prototype = {
   
 
 
+
+
+
+
+
+
+  hasStat : function PCW_hasStat(stats, props) {
+    for (var key in stats) {
+      if (stats.hasOwnProperty(key)) {
+        var res = stats[key];
+        var match = true;
+        for (var prop in props) {
+          if (res[prop] !== props[prop]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) {
+          return true;
+        }
+      }
+    }
+    return false;
+  },
+
+  
+
+
   close : function PCW_close() {
     
     
