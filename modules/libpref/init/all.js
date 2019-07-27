@@ -1598,7 +1598,6 @@ pref("network.predictor.preserve", 80);
 
 
 
-
 pref("network.negotiate-auth.allow-insecure-ntlm-v1", false);
 
 pref("network.negotiate-auth.allow-insecure-ntlm-v1-https", true);
@@ -2628,7 +2627,6 @@ pref("font.size.inflation.mappingIntercept", 1);
 
 
 
-
 pref("font.size.inflation.maxRatio", 0);
 
 
@@ -3303,9 +3301,6 @@ pref("ui.panel.default_level_parent", false);
 
 pref("ui.plugin.cancel_composition_at_input_source_changed", false);
 
-
-pref("ui.plugin.panel.min-width", 500);
-
 pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
 
@@ -3855,7 +3850,6 @@ pref("webgl.angle.force-d3d11", false);
 #ifdef MOZ_WIDGET_GONK
 pref("gfx.gralloc.fence-with-readpixels", false);
 #endif
-
 
 
 pref("stagefright.force-enabled", false);
