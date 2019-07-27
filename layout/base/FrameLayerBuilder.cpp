@@ -3721,9 +3721,6 @@ FrameLayerBuilder::RecomputeVisibilityForItems(nsTArray<ClippedDisplayItem>& aIt
   uint32_t i;
   
   
-  
-  
-  
   nsRegion visible = aRegionToDraw.ToAppUnits(aAppUnitsPerDevPixel);
   visible.MoveBy(NSIntPixelsToAppUnits(aOffset.x, aAppUnitsPerDevPixel),
                  NSIntPixelsToAppUnits(aOffset.y, aAppUnitsPerDevPixel));

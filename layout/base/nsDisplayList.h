@@ -1400,6 +1400,7 @@ protected:
   
   
   
+  
   nsRect    mVisibleRect;
   bool      mInFixedPos;
 #ifdef MOZ_DUMP_PAINTING
@@ -1682,6 +1683,7 @@ public:
   void PaintForFrame(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
                      nsIFrame* aForFrame, uint32_t aFlags);
   
+
 
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder) const;
