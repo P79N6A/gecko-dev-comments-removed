@@ -3020,27 +3020,21 @@ void ContainerState::FinishPaintedLayerData(PaintedLayerData& aData, FindOpaqueB
 
   } else {
     EventRegions regions;
-    regions.mHitRegion =
-      data->mHitRegion.ToOutsidePixels(mAppUnitsPerDevPixel);
-    regions.mNoActionRegion =
-      data->mNoActionRegion.ToOutsidePixels(mAppUnitsPerDevPixel);
-    regions.mHorizontalPanRegion =
-      data->mHorizontalPanRegion.ToOutsidePixels(mAppUnitsPerDevPixel);
-    regions.mVerticalPanRegion =
-      data->mVerticalPanRegion.ToOutsidePixels(mAppUnitsPerDevPixel);
-
+    regions.mHitRegion = ScaleRegionToOutsidePixels(data->mHitRegion);
+    regions.mNoActionRegion = ScaleRegionToOutsidePixels(data->mNoActionRegion);
+    regions.mHorizontalPanRegion = ScaleRegionToOutsidePixels(data->mHorizontalPanRegion);
+    regions.mVerticalPanRegion = ScaleRegionToOutsidePixels(data->mVerticalPanRegion);
     
     
     
     
-    nsIntRegion maybeHitRegion =
-      data->mMaybeHitRegion.ToOutsidePixels(mAppUnitsPerDevPixel);
+    nsIntRegion maybeHitRegion = ScaleRegionToOutsidePixels(data->mMaybeHitRegion);
     regions.mDispatchToContentHitRegion.Sub(maybeHitRegion, regions.mHitRegion);
     regions.mDispatchToContentHitRegion.OrWith(
-        data->mDispatchToContentHitRegion.ToOutsidePixels(mAppUnitsPerDevPixel));
+        ScaleRegionToOutsidePixels(data->mDispatchToContentHitRegion));
     regions.mHitRegion.OrWith(maybeHitRegion);
 
-    Matrix mat = layer->GetBaseTransform().As2D();
+    Matrix mat = layer->GetTransform().As2D();
     mat.Invert();
     regions.ApplyTranslationAndScale(mat._31, mat._32, mat._11, mat._22);
 
