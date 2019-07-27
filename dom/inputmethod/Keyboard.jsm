@@ -20,8 +20,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
                                   "resource://gre/modules/SystemAppProxy.jsm");
 
 this.Keyboard = {
-  _formMM: null,     
-  _keyboardMM: null, 
+  _formMM: null,      
+  _keyboardMM: null,  
+  _keyboardID: -1,    
+  _nextKeyboardID: 0, 
   _systemMessageName: [
     'SetValue', 'RemoveFocus', 'SetSelectedOption', 'SetSelectedOptions'
   ],
@@ -149,6 +151,20 @@ this.Keyboard = {
       }
     }
 
+    
+    
+    
+    let kbID = null;
+    if ('kbID' in msg.data) {
+      kbID = msg.data.kbID;
+    }
+
+    if (0 === msg.name.indexOf('Keyboard:') &&
+        ('Keyboard:Register' !== msg.name && this._keyboardID !== kbID)
+       ) {
+      return;
+    }
+
     switch (msg.name) {
       case 'Forms:Input':
         this.handleFocusChange(msg);
@@ -212,9 +228,22 @@ this.Keyboard = {
         break;
       case 'Keyboard:Register':
         this._keyboardMM = mm;
+        if (kbID !== null) {
+          
+          
+          this._keyboardID = kbID;
+        }else{
+          
+          this._keyboardID = this._nextKeyboardID;
+          this._nextKeyboardID++;
+          
+          
+          return this._keyboardID;
+        }
         break;
       case 'Keyboard:Unregister':
         this._keyboardMM = null;
+        this._keyboardID = -1;
         break;
     }
   },

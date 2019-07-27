@@ -13,7 +13,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
-  "@mozilla.org/childprocessmessagemanager;1", "nsIMessageSender");
+  "@mozilla.org/childprocessmessagemanager;1", "nsISyncMessageSender");
 
 XPCOMUtils.defineLazyServiceGetter(this, "tm",
   "@mozilla.org/thread-manager;1", "nsIThreadManager");
@@ -32,7 +32,13 @@ let WindowMap = {
     if (!this._map || !win) {
       return false;
     }
-    return this._map.get(win) || false;
+
+    let obj = this._map.get(win);
+    if (obj && 'active' in obj) {
+      return obj.active;
+    }else{
+      return false;
+    }
   },
 
   
@@ -45,8 +51,48 @@ let WindowMap = {
     if (!this._map) {
       this._map = new WeakMap();
     }
-    this._map.set(win, isActive);
+    if (!this._map.has(win)) {
+      this._map.set(win, {});
+    }
+    this._map.get(win).active = isActive;
+  },
+
+  
+
+
+  getKbID: function(win) {
+    if (!this._map || !win) {
+      return null;
+    }
+
+    let obj = this._map.get(win);
+    if (obj && 'kbID' in obj) {
+      return obj.kbID;
+    }else{
+      return null;
+    }
+  },
+
+  
+
+
+  setKbID: function(win, kbID) {
+    if (!win) {
+      return;
+    }
+    if (!this._map) {
+      this._map = new WeakMap();
+    }
+    if (!this._map.has(win)) {
+      this._map.set(win, {});
+    }
+    this._map.get(win).kbID = kbID;
   }
+};
+
+let cpmmSendAsyncMessageWithKbID = function (self, msg, data) {
+  data.kbID = WindowMap.getKbID(self._window);
+  cpmm.sendAsyncMessage(msg, data);
 };
 
 
@@ -70,14 +116,14 @@ MozInputMethodManager.prototype = {
     if (!WindowMap.isActive(this._window)) {
       return;
     }
-    cpmm.sendAsyncMessage('Keyboard:ShowInputMethodPicker', {});
+    cpmmSendAsyncMessageWithKbID(this, 'Keyboard:ShowInputMethodPicker', {});
   },
 
   next: function() {
     if (!WindowMap.isActive(this._window)) {
       return;
     }
-    cpmm.sendAsyncMessage('Keyboard:SwitchToNextInputMethod', {});
+    cpmmSendAsyncMessageWithKbID(this, 'Keyboard:SwitchToNextInputMethod', {});
   },
 
   supportsSwitching: function() {
@@ -91,7 +137,7 @@ MozInputMethodManager.prototype = {
     if (!WindowMap.isActive(this._window)) {
       return;
     }
-    cpmm.sendAsyncMessage('Keyboard:RemoveFocus', {});
+    cpmmSendAsyncMessageWithKbID(this, 'Keyboard:RemoveFocus', {});
   }
 };
 
@@ -261,11 +307,23 @@ MozInputMethod.prototype = {
       
       
       
-      cpmm.sendAsyncMessage('Keyboard:Register', {});
-      cpmm.sendAsyncMessage("Keyboard:GetContext", {});
+
+      
+      
+      
+      
+      var kbID = WindowMap.getKbID(this._window);
+      if (kbID !== null) {
+        cpmmSendAsyncMessageWithKbID(this, 'Keyboard:Register', {});
+      }else{
+        let res = cpmm.sendSyncMessage('Keyboard:Register', {});
+        WindowMap.setKbID(this._window, res[0]);
+      }
+
+      cpmmSendAsyncMessageWithKbID(this, 'Keyboard:GetContext', {});
     } else {
       
-      cpmm.sendAsyncMessage('Keyboard:Unregister', {});
+      cpmmSendAsyncMessageWithKbID(this, 'Keyboard:Unregister', {});
       if (this._inputcontext) {
         this.setInputContext(null);
       }
@@ -489,7 +547,7 @@ MozInputContext.prototype = {
   getText: function ic_getText(offset, length) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:GetText', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:GetText', {
         contextId: self._contextId,
         requestId: resolverId,
         offset: offset,
@@ -517,7 +575,7 @@ MozInputContext.prototype = {
   setSelectionRange: function ic_setSelectionRange(start, length) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage("Keyboard:SetSelectionRange", {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:SetSelectionRange', {
         contextId: self._contextId,
         requestId: resolverId,
         selectionStart: start,
@@ -545,7 +603,7 @@ MozInputContext.prototype = {
   replaceSurroundingText: function ic_replaceSurrText(text, offset, length) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:ReplaceSurroundingText', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:ReplaceSurroundingText', {
         contextId: self._contextId,
         requestId: resolverId,
         text: text,
@@ -562,7 +620,7 @@ MozInputContext.prototype = {
   sendKey: function ic_sendKey(keyCode, charCode, modifiers, repeat) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:SendKey', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:SendKey', {
         contextId: self._contextId,
         requestId: resolverId,
         keyCode: keyCode,
@@ -576,7 +634,7 @@ MozInputContext.prototype = {
   setComposition: function ic_setComposition(text, cursor, clauses) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:SetComposition', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:SetComposition', {
         contextId: self._contextId,
         requestId: resolverId,
         text: text,
@@ -589,7 +647,7 @@ MozInputContext.prototype = {
   endComposition: function ic_endComposition(text) {
     let self = this;
     return this._sendPromise(function(resolverId) {
-      cpmm.sendAsyncMessage('Keyboard:EndComposition', {
+      cpmmSendAsyncMessageWithKbID(self, 'Keyboard:EndComposition', {
         contextId: self._contextId,
         requestId: resolverId,
         text: text || ''
