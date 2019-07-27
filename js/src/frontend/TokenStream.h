@@ -417,21 +417,16 @@ class MOZ_STACK_CLASS TokenStream
     
     
     
-    
-    MOZ_ALWAYS_INLINE bool
-    peekTokenSameLine(TokenKind *ttp, Modifier modifier = None) {
-        const Token &curr = currentToken();
+    MOZ_ALWAYS_INLINE TokenKind peekTokenSameLine(Modifier modifier = None) {
+       const Token &curr = currentToken();
 
         
         
         
         
         
-        if (lookahead != 0 && srcCoords.isOnThisLine(curr.pos.end, lineno)) {
-            TokenKind tt = tokens[(cursor + 1) & ntokensMask].type;
-            *ttp = tt;
-            return tt != TOK_ERROR;
-        }
+        if (lookahead != 0 && srcCoords.isOnThisLine(curr.pos.end, lineno))
+            return tokens[(cursor + 1) & ntokensMask].type;
 
         
         
@@ -442,14 +437,12 @@ class MOZ_STACK_CLASS TokenStream
         
         TokenKind tmp;
         if (!getToken(&tmp, modifier))
-            return false;
+            return TOK_ERROR;
         const Token &next = currentToken();
         ungetToken();
-
-        *ttp = srcCoords.lineNum(curr.pos.end) == srcCoords.lineNum(next.pos.begin)
-             ? next.type
-             : TOK_EOL;
-        return true;
+        return srcCoords.lineNum(curr.pos.end) == srcCoords.lineNum(next.pos.begin)
+               ? next.type
+               : TOK_EOL;
     }
 
     
