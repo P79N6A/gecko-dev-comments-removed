@@ -202,6 +202,7 @@ abstract class BaseTest extends BaseRobocopTest {
 
     protected final void focusUrlBar() {
         
+        mSolo.waitForView(R.id.browser_toolbar);
         final View toolbarView = mSolo.getView(R.id.browser_toolbar);
         mSolo.clickOnView(toolbarView);
 
@@ -221,9 +222,9 @@ abstract class BaseTest extends BaseRobocopTest {
     }
 
     protected final void enterUrl(String url) {
-        final EditText urlEditView = (EditText) mSolo.getView(R.id.url_edit_text);
-
         focusUrlBar();
+
+        final EditText urlEditView = (EditText) mSolo.getView(R.id.url_edit_text);
 
         
         mSolo.clearEditText(urlEditView);
