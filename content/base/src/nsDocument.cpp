@@ -1601,6 +1601,12 @@ nsDocument::~nsDocument()
 
   NS_ASSERTION(!mIsShowing, "Destroying a currently-showing document");
 
+  
+  
+  NS_ASSERTION(!mObservingAppThemeChanged,
+               "Document leaked to shutdown, then the observer service dropped "
+               "its ref to us so we were able to go away.");
+
   if (IsTopLevelContentDocument()) {
     
     nsCOMPtr<nsIPrincipal> principal = GetPrincipal();
@@ -8873,7 +8879,10 @@ nsDocument::OnPageShow(bool aPersisted,
                         "chrome-page-shown" :
                         "content-page-shown",
                       nullptr);
-  os->AddObserver(this, "app-theme-changed",  false);
+  if (!mObservingAppThemeChanged) {
+    os->AddObserver(this, "app-theme-changed",  false);
+    mObservingAppThemeChanged = true;
+  }
 
   DispatchPageTransition(target, NS_LITERAL_STRING("pageshow"), aPersisted);
 }
@@ -8949,6 +8958,7 @@ nsDocument::OnPageHide(bool aPersisted,
                         nullptr);
 
     os->RemoveObserver(this, "app-theme-changed");
+    mObservingAppThemeChanged = false;
   }
 
   DispatchPageTransition(target, NS_LITERAL_STRING("pagehide"), aPersisted);
