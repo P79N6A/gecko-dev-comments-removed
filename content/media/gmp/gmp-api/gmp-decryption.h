@@ -260,6 +260,10 @@ public:
   virtual void Decrypt(GMPBuffer* aBuffer,
                        GMPEncryptedBufferMetadata* aMetadata) = 0;
 
+  
+  
+  virtual void DecryptingComplete() = 0;
+
 };
 
 #endif 
