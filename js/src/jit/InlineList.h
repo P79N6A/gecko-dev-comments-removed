@@ -67,22 +67,13 @@ class InlineForwardList : protected InlineForwardListNode<T>
     iterator end() const {
         return iterator(nullptr);
     }
-    iterator removeAt(iterator &where) {
+    void removeAt(iterator where) {
         iterator iter(where);
         iter++;
-        iter.prev = where.prev;
 #ifdef DEBUG
         iter.modifyCount_++;
 #endif
-
-        
-        
-        
-        
         removeAfter(where.prev, where.iter);
-        where.prev = where.iter = nullptr;
-
-        return iter;
     }
     void pushFront(Node *t) {
         insertAfter(this, t);
@@ -261,20 +252,6 @@ class InlineList : protected InlineListNode<T>
     }
     reverse_iterator rend() const {
         return reverse_iterator(this);
-    }
-    template <typename itertype>
-    itertype removeAt(itertype &where) {
-        itertype iter(where);
-        iter++;
-
-        
-        
-        
-        
-        remove(where.iter);
-        where.iter = nullptr;
-
-        return iter;
     }
     void pushFront(Node *t) {
         insertAfter(this, t);

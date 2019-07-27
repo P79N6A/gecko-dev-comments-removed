@@ -289,11 +289,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void discard(MInstruction *ins);
     void discardLastIns();
-    MInstructionIterator discardAt(MInstructionIterator &iter);
-    MInstructionReverseIterator discardAt(MInstructionReverseIterator &iter);
-    MDefinitionIterator discardDefAt(MDefinitionIterator &iter);
+    void discardDef(MDefinition *def);
     void discardAllInstructions();
-    void discardAllInstructionsStartingAt(MInstructionIterator &iter);
+    void discardAllInstructionsStartingAt(MInstructionIterator iter);
     void discardAllPhiOperands();
     void discardAllPhis();
     void discardAllResumePoints(bool discardEntry = true);
@@ -303,7 +301,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void discardIgnoreOperands(MInstruction *ins);
 
     
-    MPhiIterator discardPhiAt(MPhiIterator &at);
+    void discardPhi(MPhi *phi);
 
     
     
