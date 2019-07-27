@@ -104,9 +104,6 @@ protected:
 
 
   HashEntry*          GetNamedEntry(const char * name);
-  HashEntry*          GetIndexedEntry(int32_t index);
-  uint32_t            GetNumEntries();
-
   HashEntry*          GetOrMakeEntry(const char * name, uint8_t entryType);
 
 protected:
@@ -124,10 +121,6 @@ protected:
                                   
 protected:
   
-  enum {
-    eNumEntriesUnknown      = -1
-  };
-
   
   
   
@@ -135,12 +128,8 @@ protected:
   
   PLDHashTable    mValuesHash;
   
-  
-  int32_t         mCurEntry;
-  int32_t         mNumEntries;      
-    
   static const PLDHashTableOps    sHashOps;
 };
 
 
-#endif
+#endif 
