@@ -87,7 +87,7 @@ static const FeatureInfo sFeatureInfoArr[] = {
     {
         "draw_buffers",
         200, 
-        300, 
+        0, 
         GLContext::Extension_None,
         {
             GLContext::ARB_draw_buffers,
