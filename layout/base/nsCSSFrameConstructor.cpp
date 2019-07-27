@@ -11849,6 +11849,29 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   }
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIAtom* frameType = aFrame->GetType();
+  if (IsRubyPseudo(aFrame) ||
+      frameType == nsGkAtoms::rubyFrame ||
+      frameType == nsGkAtoms::rubyBaseContainerFrame ||
+      frameType == nsGkAtoms::rubyTextContainerFrame) {
+    
+    
+    
+    RecreateFramesForContent(aFrame->GetContent(), true,
+                             REMOVE_FOR_RECONSTRUCTION, nullptr);
+    return true;
+  }
+
+  
   ParentType parentType = GetParentType(aFrame);
   
   
