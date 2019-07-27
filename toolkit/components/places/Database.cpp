@@ -1044,6 +1044,13 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       
 
+      if (currentSchemaVersion < 29) {
+        rv = MigrateV29Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+
       
 
       rv = UpdateBookmarkRootTitles();
@@ -1115,6 +1122,8 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
     
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_FAVICONS);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_FAVICONS_GUID);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1893,6 +1902,16 @@ Database::MigrateV28Up() {
   
   
   MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV29Up() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsresult rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_FAVICONS_GUID);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
