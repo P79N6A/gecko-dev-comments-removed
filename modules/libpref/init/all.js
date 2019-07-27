@@ -3812,14 +3812,6 @@ pref("image.mem.surfacecache.size_factor", 4);
 
 
 
-
-
-
-
-pref("image.mem.surfacecache.discard_factor", 1);
-
-
-
 pref("image.multithreaded_decoding.enabled", true);
 
 
