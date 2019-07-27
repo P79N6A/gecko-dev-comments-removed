@@ -4041,11 +4041,7 @@ pref("layers.offmainthreadcomposition.force-basic", false);
 #ifdef RELEASE_BUILD
 pref("layers.offmainthreadcomposition.async-animations", false);
 #else
-#if defined(MOZ_X11)
-pref("layers.offmainthreadcomposition.async-animations", false);
-#else
 pref("layers.offmainthreadcomposition.async-animations", true);
-#endif
 #endif
 
 
@@ -4654,10 +4650,6 @@ pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
 
 
 pref("reader.parse-on-load.enabled", true);
-
-
-
-pref("reader.parse-node-limit", 3000);
 
 
 
