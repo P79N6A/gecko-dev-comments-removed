@@ -50,6 +50,7 @@ public:
   
 
 
+  IMPL_EVENT_HANDLER(characteristicchanged);
   IMPL_EVENT_HANDLER(connectionstatechanged);
 
   
@@ -103,6 +104,20 @@ private:
 
 
   void HandleServicesDiscovered(const BluetoothValue& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  void HandleCharacteristicChanged(const BluetoothValue& aValue);
 
   
 

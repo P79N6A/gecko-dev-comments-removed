@@ -231,6 +231,12 @@ extern bool gBluetoothDebugFlag;
 
 
 
+#define GATT_CHARACTERISTIC_CHANGED_ID       "characteristicchanged"
+
+
+
+
+
 #define GATT_CONNECTION_STATE_CHANGED_ID     "connectionstatechanged"
 
 
@@ -722,7 +728,7 @@ struct BluetoothGattNotifyParam {
   BluetoothGattServiceId mServiceId;
   BluetoothGattId mCharId;
   uint16_t mLength;
-  uint8_t mIsNotify;
+  bool mIsNotify;
 };
 
 END_BLUETOOTH_NAMESPACE

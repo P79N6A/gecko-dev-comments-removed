@@ -143,4 +143,25 @@ private:
 
 END_BLUETOOTH_NAMESPACE
 
+
+
+
+
+
+
+
+
+template <>
+class nsDefaultComparator <
+  nsRefPtr<mozilla::dom::bluetooth::BluetoothGattService>,
+  mozilla::dom::bluetooth::BluetoothGattServiceId> {
+public:
+  bool Equals(
+    const nsRefPtr<mozilla::dom::bluetooth::BluetoothGattService>& aService,
+    const mozilla::dom::bluetooth::BluetoothGattServiceId& aServiceId) const
+  {
+    return aService->GetServiceId() == aServiceId;
+  }
+};
+
 #endif
