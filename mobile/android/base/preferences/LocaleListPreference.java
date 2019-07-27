@@ -172,6 +172,12 @@ public class LocaleListPreference extends ListPreference {
 
 
         public boolean isUsable(CharacterValidator validator) {
+            if (Versions.preLollipop && this.tag.matches("[a-zA-Z]{3}.*")) {
+                
+                
+                return false;
+            }
+
             
             if (this.tag.equals("bn-IN")) {
                 
@@ -295,8 +301,11 @@ public class LocaleListPreference extends ListPreference {
         values[0] = "";
 
         for (int i = 0; i < count; ++i) {
-            entries[i + 1] = descriptors[i].getDisplayName();
-            values[i + 1] = descriptors[i].getTag();
+            final String displayName = descriptors[i].getDisplayName();
+            final String tag = descriptors[i].getTag();
+            Log.v(LOG_TAG, displayName + " => " + tag);
+            entries[i + 1] = displayName;
+            values[i + 1] = tag;
         }
 
         setEntries(entries);
