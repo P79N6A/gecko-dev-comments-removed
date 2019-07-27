@@ -1708,13 +1708,6 @@ CodeGeneratorARM::generateInvalidateEpilogue()
 }
 
 void
-DispatchIonCache::initializeAddCacheState(LInstruction* ins, AddCacheState* addState)
-{
-    
-    addState->dispatchScratch = ScratchRegister;
-}
-
-void
 CodeGeneratorARM::visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic* ins)
 {
     MOZ_CRASH("NYI");

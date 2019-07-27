@@ -865,14 +865,6 @@ CodeGeneratorX86::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc* ins)
     masm.append(AsmJSGlobalAccess(label, mir->globalDataOffset()));
 }
 
-void
-DispatchIonCache::initializeAddCacheState(LInstruction* ins, AddCacheState* addState)
-{
-    
-    
-    MOZ_CRASH("x86 needs manual assignment of dispatchScratch");
-}
-
 namespace js {
 namespace jit {
 

@@ -48,11 +48,59 @@ class IonCacheVisitor
 
 
 
-struct AddCacheState
-{
-    RepatchLabel repatchEntry;
-    Register dispatchScratch;
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -166,6 +214,10 @@ class IonCache
     
     jsbytecode* profilerLeavePc_;
 
+    CodeLocationJump initialJump_;
+    CodeLocationJump lastJump_;
+    CodeLocationLabel rejoinLabel_;
+
   private:
     static const size_t MAX_STUBS;
     void incrementStubCount() {
@@ -184,7 +236,10 @@ class IonCache
         fallbackLabel_(),
         script_(nullptr),
         pc_(nullptr),
-        profilerLeavePc_(nullptr)
+        profilerLeavePc_(nullptr),
+        initialJump_(),
+        lastJump_(),
+        rejoinLabel_()
     {
     }
 
@@ -206,21 +261,15 @@ class IonCache
     }
 
     
-    virtual void* rejoinAddress() = 0;
+    void* rejoinAddress() const {
+        return rejoinLabel_.raw();
+    }
 
-    virtual void emitInitialJump(MacroAssembler& masm, AddCacheState& addState) = 0;
-    virtual void bindInitialJump(MacroAssembler& masm, AddCacheState& addState) = 0;
-    virtual void updateBaseAddress(JitCode* code, MacroAssembler& masm);
-
-    
-    
-    virtual void initializeAddCacheState(LInstruction* ins, AddCacheState* addState);
+    void emitInitialJump(MacroAssembler& masm, RepatchLabel& entry);
+    void updateBaseAddress(JitCode* code, MacroAssembler& masm);
 
     
     virtual void reset();
-
-    
-    virtual void destroy();
 
     bool canAttachStub() const {
         return stubCount_ < MAX_STUBS;
@@ -287,204 +336,6 @@ class IonCache
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class RepatchIonCache : public IonCache
-{
-  protected:
-    class RepatchStubAppender;
-
-    CodeLocationJump initialJump_;
-    CodeLocationJump lastJump_;
-    CodeLocationLabel rejoinLabel_;
-
-  public:
-    RepatchIonCache()
-      : initialJump_(),
-        lastJump_()
-    {
-    }
-
-    virtual void reset() override;
-
-    
-    
-    
-    
-    void emitInitialJump(MacroAssembler& masm, AddCacheState& addState) override;
-    void bindInitialJump(MacroAssembler& masm, AddCacheState& addState) override;
-
-    
-    void updateBaseAddress(JitCode* code, MacroAssembler& masm) override;
-
-    virtual void* rejoinAddress() override {
-        return rejoinLabel_.raw();
-    }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class DispatchIonCache : public IonCache
-{
-  protected:
-    class DispatchStubPrepender;
-
-    uint8_t* firstStub_;
-    CodeLocationLabel rejoinLabel_;
-    CodeOffsetLabel dispatchLabel_;
-
-  public:
-    DispatchIonCache()
-      : firstStub_(nullptr),
-        rejoinLabel_(),
-        dispatchLabel_()
-    {
-    }
-
-    virtual void reset() override;
-    virtual void initializeAddCacheState(LInstruction* ins, AddCacheState* addState) override;
-
-    void emitInitialJump(MacroAssembler& masm, AddCacheState& addState) override;
-    void bindInitialJump(MacroAssembler& masm, AddCacheState& addState) override;
-
-    
-    void updateBaseAddress(JitCode* code, MacroAssembler& masm) override;
-
-    virtual void* rejoinAddress() override {
-        return rejoinLabel_.raw();
-    }
-};
-
-
-
 #define CACHE_HEADER(ickind)                                        \
     Kind kind() const {                                             \
         return IonCache::Cache_##ickind;                            \
@@ -517,7 +368,7 @@ struct CacheLocation {
     { }
 };
 
-class GetPropertyIC : public RepatchIonCache
+class GetPropertyIC : public IonCache
 {
   protected:
     
@@ -662,7 +513,7 @@ class GetPropertyIC : public RepatchIonCache
                        HandleObject obj, MutableHandleValue vp);
 };
 
-class SetPropertyIC : public RepatchIonCache
+class SetPropertyIC : public IonCache
 {
   protected:
     
@@ -749,7 +600,7 @@ class SetPropertyIC : public RepatchIonCache
                        HandleObject obj, HandleValue value);
 };
 
-class GetElementIC : public RepatchIonCache
+class GetElementIC : public IonCache
 {
   protected:
     LiveRegisterSet liveRegs_;
@@ -860,7 +711,7 @@ class GetElementIC : public RepatchIonCache
     }
 };
 
-class SetElementIC : public RepatchIonCache
+class SetElementIC : public IonCache
 {
   protected:
     Register object_;
@@ -944,7 +795,7 @@ class SetElementIC : public RepatchIonCache
            HandleValue idval, HandleValue value);
 };
 
-class BindNameIC : public RepatchIonCache
+class BindNameIC : public IonCache
 {
   protected:
     Register scopeChain_;
@@ -981,7 +832,7 @@ class BindNameIC : public RepatchIonCache
     update(JSContext* cx, HandleScript outerScript, size_t cacheIndex, HandleObject scopeChain);
 };
 
-class NameIC : public RepatchIonCache
+class NameIC : public IonCache
 {
   protected:
     
