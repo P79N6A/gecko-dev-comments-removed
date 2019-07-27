@@ -600,6 +600,21 @@ DebuggerClient.prototype = {
 
 
 
+  attachProcess: function (aId) {
+    let packet = {
+      to: 'root',
+      type: 'attachProcess',
+      id: aId
+    }
+    return this.request(packet);
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -1291,6 +1306,15 @@ RootClient.prototype = {
 
   listAddons: DebuggerClient.requester({ type: "listAddons" },
                                        { telemetry: "LISTADDONS" }),
+
+  
+
+
+
+
+
+  listProcesses: DebuggerClient.requester({ type: "listProcesses" },
+                                       { telemetry: "LISTPROCESSES" }),
 
   
 

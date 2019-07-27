@@ -20,10 +20,17 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
 
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
                                   "resource:///modules/CustomizableUI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
+                                  "resource://gre/modules/devtools/dbg-server.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "DebuggerClient",
+                                  "resource://gre/modules/devtools/dbg-client.jsm");
 
 const EventEmitter = devtools.require("devtools/toolkit/event-emitter");
 const FORBIDDEN_IDS = new Set(["toolbox", ""]);
 const MAX_ORDINAL = 99;
+
+const bundle = Services.strings.createBundle("chrome://browser/locale/devtools/toolbox.properties");
 
 
 
@@ -593,6 +600,7 @@ let gDevToolsBrowser = {
     let remoteEnabled = chromeEnabled && devtoolsRemoteEnabled &&
                         Services.prefs.getBoolPref("devtools.debugger.chrome-enabled");
     toggleCmd("Tools:BrowserToolbox", remoteEnabled);
+    toggleCmd("Tools:BrowserContentToolbox", remoteEnabled && win.gMultiProcessBrowser);
 
     
     let consoleEnabled = Services.prefs.getBoolPref("devtools.errorconsole.enabled");
@@ -686,6 +694,61 @@ let gDevToolsBrowser = {
     } else {
       Services.ww.openWindow(null, "chrome://webide/content/", "webide", "chrome,centerscreen,resizable", null);
     }
+  },
+
+  _getContentProcessTarget: function () {
+    
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+    }
+
+    let transport = DebuggerServer.connectPipe();
+    let client = new DebuggerClient(transport);
+
+    let deferred = promise.defer();
+    client.connect(() => {
+      client.mainRoot.listProcesses(response => {
+        
+        let contentProcesses = response.processes.filter(p => (!p.parent));
+        if (contentProcesses.length < 1) {
+          let msg = bundle.GetStringFromName("toolbox.noContentProcess.message");
+          Services.prompt.alert(null, "", msg);
+          deferred.reject("No content processes available.");
+          return;
+        }
+        
+        client.attachProcess(contentProcesses[0].id)
+              .then(response => {
+                let options = {
+                  form: response.form,
+                  client: client,
+                  chrome: true
+                };
+                return devtools.TargetFactory.forRemoteTab(options);
+              })
+              .then(target => {
+                
+                
+                
+                target.on("close", () => {
+                  client.close();
+                });
+                deferred.resolve(target);
+              });
+      });
+    });
+
+    return deferred.promise;
+  },
+
+  openContentProcessToolbox: function () {
+    this._getContentProcessTarget()
+        .then(target => {
+          
+          return gDevTools.showToolbox(target, "jsdebugger",
+                                       devtools.Toolbox.HostType.WINDOW);
+        });
   },
 
   

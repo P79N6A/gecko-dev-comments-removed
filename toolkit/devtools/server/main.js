@@ -704,6 +704,69 @@ var DebuggerServer = {
     return this._onConnection(transport, aPrefix, true);
   },
 
+  connectToContent: function (aConnection, aMm) {
+    let deferred = defer();
+
+    let prefix = aConnection.allocID("content-process");
+    let actor, childTransport;
+
+    aMm.addMessageListener("debug:content-process-actor", function listener(msg) {
+      
+      
+      aMm.removeMessageListener("debug:content-process-actor", listener);
+
+      
+      childTransport = new ChildDebuggerTransport(aMm, prefix);
+      childTransport.hooks = {
+        onPacket: aConnection.send.bind(aConnection),
+        onClosed: function () {}
+      };
+      childTransport.ready();
+
+      aConnection.setForwarding(prefix, childTransport);
+
+      dumpn("establishing forwarding for process with prefix " + prefix);
+
+      actor = msg.json.actor;
+
+      deferred.resolve(actor);
+    });
+
+    aMm.sendAsyncMessage("DevTools:InitDebuggerServer", {
+      prefix: prefix
+    });
+
+    function onDisconnect() {
+      Services.obs.removeObserver(onMessageManagerDisconnect, "message-manager-disconnect");
+      events.off(aConnection, "closed", onDisconnect);
+      if (childTransport) {
+        
+        
+        childTransport.close();
+        childTransport = null;
+        aConnection.cancelForwarding(prefix);
+
+        
+        try {
+          aMm.sendAsyncMessage("debug:content-process-destroy");
+        } catch(e) {}
+      }
+    }
+
+    let onMessageManagerDisconnect = DevToolsUtils.makeInfallible(function (subject, topic, data) {
+      if (subject == aMm) {
+        onDisconnect();
+        aConnection.send({ from: actor.actor, type: "tabDetached" });
+      }
+    }).bind(this);
+    Services.obs.addObserver(onMessageManagerDisconnect,
+                             "message-manager-disconnect", false);
+
+    events.on(aConnection, "closed", onDisconnect);
+
+    return deferred.promise;
+  },
+
   
 
 
