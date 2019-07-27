@@ -78,27 +78,10 @@ struct PLDHashTableOps;
 
 
 
-
-
-
-
-
 struct PLDHashEntryHdr
 {
   PLDHashNumber keyHash;  
 };
-
-MOZ_ALWAYS_INLINE bool
-PL_DHASH_ENTRY_IS_FREE(PLDHashEntryHdr* aEntry)
-{
-  return aEntry->keyHash == 0;
-}
-
-MOZ_ALWAYS_INLINE bool
-PL_DHASH_ENTRY_IS_BUSY(PLDHashEntryHdr* aEntry)
-{
-  return !PL_DHASH_ENTRY_IS_FREE(aEntry);
-}
 
 
 
@@ -199,7 +182,7 @@ private:
     uint32_t        mSteps;         
     uint32_t        mHits;          
     uint32_t        mMisses;        
-    uint32_t        mLookups;       
+    uint32_t        mSearches;      
     uint32_t        mAddMisses;     
     uint32_t        mAddOverRemoved;
     uint32_t        mAddHits;       
@@ -258,7 +241,6 @@ public:
 
   void Finish();
 
-  PLDHashEntryHdr* Lookup(const void* aKey);
   PLDHashEntryHdr* Search(const void* aKey);
   PLDHashEntryHdr* Add(const void* aKey);
   void Remove(const void* aKey);
@@ -479,17 +461,6 @@ MOZ_WARN_UNUSED_RESULT bool PL_DHashTableInit(
 
 
 void PL_DHashTableFinish(PLDHashTable* aTable);
-
-
-
-
-
-
-
-
-
-PLDHashEntryHdr* PL_DHASH_FASTCALL
-PL_DHashTableLookup(PLDHashTable* aTable, const void* aKey);
 
 
 
