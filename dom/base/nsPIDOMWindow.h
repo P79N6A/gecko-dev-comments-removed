@@ -471,7 +471,8 @@ public:
 
 
 
-  virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust,
+
+  virtual nsresult SetFullScreenInternal(bool aIsFullscreen, bool aFullscreenMode,
                                          mozilla::gfx::VRHMDInfo *aHMD = nullptr) = 0;
 
   

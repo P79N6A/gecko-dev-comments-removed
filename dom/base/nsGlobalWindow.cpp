@@ -6046,7 +6046,8 @@ nsGlobalWindow::SetFullScreen(bool aFullScreen)
 }
 
 nsresult
-nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust, gfx::VRHMDInfo* aHMD)
+nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aFullscreenMode,
+                                      gfx::VRHMDInfo* aHMD)
 {
   MOZ_ASSERT(IsOuterWindow());
 
@@ -6055,7 +6056,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust, gfx:
   
   
   if (aFullScreen == FullScreen() ||
-      (aRequireTrust && !nsContentUtils::IsCallerChrome())) {
+      (aFullscreenMode && !nsContentUtils::IsCallerChrome())) {
     return NS_OK;
   }
 
@@ -6068,7 +6069,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust, gfx:
   if (!window)
     return NS_ERROR_FAILURE;
   if (rootItem != mDocShell)
-    return window->SetFullScreenInternal(aFullScreen, aRequireTrust, aHMD);
+    return window->SetFullScreenInternal(aFullScreen, aFullscreenMode, aHMD);
 
   
   
@@ -6082,9 +6083,7 @@ nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust, gfx:
   
   
   
-  
-  
-  if (aRequireTrust) {
+  if (aFullscreenMode) {
     mFullscreenMode = aFullScreen;
   } else {
     
