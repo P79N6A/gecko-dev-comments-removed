@@ -2250,7 +2250,7 @@ JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
 }
 
 void
-CodeGeneratorARM::memoryBarrier(int barrier)
+CodeGeneratorARM::memoryBarrier(MemoryBarrierBits barrier)
 {
     
     if (barrier == (MembarStoreStore|MembarSynchronizing))
