@@ -1876,7 +1876,10 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 
   PluginDestructionGuard guard(npp);
 
-  switch(variable) {
+  
+  
+  switch (static_cast<int>(variable)) {
+
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
   case NPNVxDisplay : {
 #if defined(MOZ_X11)
@@ -2299,7 +2302,6 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       return NPERR_NO_ERROR;
     }
 
-
     case kSystemInterfaceV1_ANPGetValue: {
       LOG("get system interface v1");
       ANPSystemInterfaceV1* i = reinterpret_cast<ANPSystemInterfaceV1*>(result);
@@ -2313,7 +2315,6 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       InitSystemInterfaceV2(i);
       return NPERR_NO_ERROR;
     }
-
 #endif
 
   
@@ -2354,7 +2355,9 @@ _setvalue(NPP npp, NPPVariable variable, void *result)
 
   PluginDestructionGuard guard(inst);
 
-  switch (variable) {
+  
+  
+  switch (static_cast<int>(variable)) {
 
     
     
