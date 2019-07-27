@@ -21,17 +21,6 @@ namespace layers {
 
 
 
-
-struct SetTargetAPZCCallback {
-public:
-  NS_INLINE_DECL_REFCOUNTING(SetTargetAPZCCallback)
-  virtual void Run(uint64_t aInputBlockId, const nsTArray<ScrollableLayerGuid>& aTargets) const = 0;
-protected:
-  virtual ~SetTargetAPZCCallback() {}
-};
-
-
-
 struct SetAllowedTouchBehaviorCallback {
 public:
   NS_INLINE_DECL_REFCOUNTING(SetAllowedTouchBehaviorCallback)
@@ -169,12 +158,14 @@ public:
 
 
 
+
+
+
     static void SendSetTargetAPZCNotification(nsIWidget* aWidget,
                                               nsIDocument* aDocument,
                                               const WidgetGUIEvent& aEvent,
                                               const ScrollableLayerGuid& aGuid,
-                                              uint64_t aInputBlockId,
-                                              const nsRefPtr<SetTargetAPZCCallback>& aCallback);
+                                              uint64_t aInputBlockId);
 
     
 
@@ -190,4 +181,4 @@ public:
 }
 }
 
-#endif
+#endif 

@@ -53,6 +53,7 @@ class CompositorChild;
 class LayerManager;
 class LayerManagerComposite;
 class PLayerTransactionChild;
+struct ScrollableLayerGuid;
 }
 namespace gfx {
 class DrawTarget;
@@ -1766,6 +1767,13 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsEventStatus DispatchInputEvent(mozilla::WidgetInputEvent* aEvent) = 0;
+
+    
+
+
+
+    virtual void SetConfirmedTargetAPZC(uint64_t aInputBlockId,
+                                        const nsTArray<mozilla::layers::ScrollableLayerGuid>& aTargets) const = 0;
 
     
 
