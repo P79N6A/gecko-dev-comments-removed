@@ -1041,6 +1041,7 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
     
     
     if (referrerPolicy != REFERRER_POLICY_UNSAFE_URL &&
+	referrerPolicy != REFERRER_POLICY_ORIGIN_WHEN_XORIGIN &&
         referrerPolicy != REFERRER_POLICY_ORIGIN) {
 
       
@@ -1066,17 +1067,24 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
 
   
   
-  nsCOMPtr<nsIURI> loadingURI;
+  nsCOMPtr<nsIURI> triggeringURI;
   bool isCrossOrigin = true;
   if (mLoadInfo) {
-    mLoadInfo->LoadingPrincipal()->GetURI(getter_AddRefs(loadingURI));
+    mLoadInfo->TriggeringPrincipal()->GetURI(getter_AddRefs(triggeringURI));
   }
-  if (loadingURI) {
+  if (triggeringURI) {
+    if (LOG_ENABLED()) {
+      nsAutoCString triggeringURISpec;
+      rv = triggeringURI->GetAsciiSpec(triggeringURISpec);
+      if (!NS_FAILED(rv)) {
+        LOG(("triggeringURI=%s\n", triggeringURISpec.get()));
+      }
+    }
     nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-    rv = ssm->CheckSameOriginURI(loadingURI, mURI, false);
+    rv = ssm->CheckSameOriginURI(triggeringURI, mURI, false);
     isCrossOrigin = NS_FAILED(rv);
   } else {
-    NS_WARNING("no loading principal available via loadInfo, assumming load is cross-origin");
+    NS_WARNING("no triggering principal available via loadInfo, assuming load is cross-origin");
   }
 
   nsCOMPtr<nsIURI> clone;
