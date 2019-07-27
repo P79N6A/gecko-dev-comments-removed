@@ -24,6 +24,19 @@ public class PerProfileDatabases<T extends SQLiteOpenHelper> {
     private final String mDatabaseName;
     private final DatabaseHelperFactory<T> mHelperFactory;
 
+    
+    public void shutdown() {
+        synchronized (this) {
+            for (T t : mStorages.values()) {
+                try {
+                    t.close();
+                } catch (Throwable e) {
+                    
+                }
+            }
+        }
+    }
+
     public interface DatabaseHelperFactory<T> {
         public T makeDatabaseHelper(Context context, String databasePath);
     }
