@@ -314,8 +314,7 @@ MediaDecoderReader::Shutdown()
   } else {
     
     
-    p = new ShutdownPromise(__func__);
-    p->Resolve(true, __func__);
+    p = ShutdownPromise::CreateAndResolve(true, __func__);
   }
 
   return p;
