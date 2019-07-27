@@ -423,7 +423,7 @@ JitRuntime::ensureIonCodeAccessible(JSRuntime *rt)
         ionCodeProtected_ = false;
     }
 
-    if (rt->interrupt) {
+    if (rt->hasPendingInterrupt()) {
         
         
         
@@ -1157,7 +1157,7 @@ IonScript::copyPatchableBackedges(JSContext *cx, JitCode *code,
         
         
         
-        if (cx->runtime()->interrupt)
+        if (cx->runtime()->hasPendingInterrupt())
             PatchBackedge(backedge, interruptCheck, JitRuntime::BackedgeInterruptCheck);
         else
             PatchBackedge(backedge, loopHeader, JitRuntime::BackedgeLoopHeader);

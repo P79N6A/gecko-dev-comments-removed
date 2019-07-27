@@ -36,6 +36,7 @@
 #include "jit/PcScriptCache.h"
 #include "js/MemoryMetrics.h"
 #include "js/SliceBudget.h"
+#include "vm/Debugger.h"
 
 #include "jscntxtinlines.h"
 #include "jsgcinlines.h"
@@ -73,7 +74,7 @@ PerThreadData::PerThreadData(JSRuntime *runtime)
     runtime_(runtime),
     jitTop(nullptr),
     jitJSContext(nullptr),
-    jitStackLimit(0),
+    jitStackLimit_(0xbad),
 #ifdef JS_TRACE_LOGGING
     traceLogger(nullptr),
 #endif
@@ -135,8 +136,8 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime)
     ),
     mainThread(this),
     parentRuntime(parentRuntime),
-    interrupt(false),
-    interruptPar(false),
+    interrupt_(false),
+    interruptPar_(false),
     handlingSignal(false),
     interruptCallback(nullptr),
     interruptLock(nullptr),
@@ -156,7 +157,7 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime)
     execAlloc_(nullptr),
     jitRuntime_(nullptr),
     selfHostingGlobal_(nullptr),
-    nativeStackBase(0),
+    nativeStackBase(GetNativeStackBase()),
     cxCallback(nullptr),
     destroyCompartmentCallback(nullptr),
     destroyZoneCallback(nullptr),
@@ -322,8 +323,6 @@ JSRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
         return false;
 #endif
 
-    nativeStackBase = GetNativeStackBase();
-
     jitSupportsFloatingPoint = js::jit::JitSupportsFloatingPoint();
     jitSupportsSimd = js::jit::JitSupportsSimd();
 
@@ -466,17 +465,6 @@ NewObjectCache::clearNurseryObjects(JSRuntime *rt)
 }
 
 void
-JSRuntime::resetJitStackLimit()
-{
-    AutoLockForInterrupt lock(this);
-    mainThread.setJitStackLimit(mainThread.nativeStackLimit[js::StackForUntrustedScript]);
-
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
-    mainThread.setJitStackLimit(js::jit::Simulator::StackLimit());
-#endif
-}
-
-void
 JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes *rtSizes)
 {
     
@@ -530,31 +518,118 @@ JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::Runtim
 #endif
 }
 
+static bool
+InvokeInterruptCallback(JSContext *cx)
+{
+    MOZ_ASSERT(cx->runtime()->requestDepth >= 1);
+
+    cx->gcIfNeeded();
+
+    
+    
+    jit::AttachFinishedCompilations(cx);
+
+    
+    
+    
+    JSInterruptCallback cb = cx->runtime()->interruptCallback;
+    if (!cb)
+        return true;
+
+    if (cb(cx)) {
+        
+        
+        if (cx->compartment()->debugMode()) {
+            ScriptFrameIter iter(cx);
+            if (iter.script()->stepModeEnabled()) {
+                RootedValue rval(cx);
+                switch (Debugger::onSingleStep(cx, &rval)) {
+                  case JSTRAP_ERROR:
+                    return false;
+                  case JSTRAP_CONTINUE:
+                    return true;
+                  case JSTRAP_RETURN:
+                    
+                    Debugger::propagateForcedReturn(cx, iter.abstractFramePtr(), rval);
+                    return false;
+                  case JSTRAP_THROW:
+                    cx->setPendingException(rval);
+                    return false;
+                  default:;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    
+    
+    JSString *stack = ComputeStackString(cx);
+    JSFlatString *flat = stack ? stack->ensureFlat(cx) : nullptr;
+
+    const char16_t *chars;
+    AutoStableStringChars stableChars(cx);
+    if (flat && stableChars.initTwoByte(cx, flat))
+        chars = stableChars.twoByteRange().start().get();
+    else
+        chars = MOZ_UTF16("(stack not available)");
+    JS_ReportErrorFlagsAndNumberUC(cx, JSREPORT_WARNING, js_GetErrorMessage, nullptr,
+                                   JSMSG_TERMINATED, chars);
+
+    return false;
+}
+
+void
+PerThreadData::resetJitStackLimit()
+{
+    
+    
+    
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+    jitStackLimit_ = jit::Simulator::StackLimit();
+#else
+    jitStackLimit_ = nativeStackLimit[StackForUntrustedScript];
+#endif
+}
+
+void
+PerThreadData::initJitStackLimit()
+{
+    resetJitStackLimit();
+}
+
+void
+PerThreadData::initJitStackLimitPar(uintptr_t limit)
+{
+    jitStackLimit_ = limit;
+}
+
 void
 JSRuntime::requestInterrupt(InterruptMode mode)
 {
-    AutoLockForInterrupt lock(this);
-
-    
-
-
-
-
-
-    mainThread.setJitStackLimit(-1);
-
-    interrupt = true;
-
-    RequestInterruptForForkJoin(this, mode);
-
-    
-
-
+    interrupt_ = true;
+    interruptPar_ = true;
+    mainThread.jitStackLimit_ = UINTPTR_MAX;
 
     if (canUseSignalHandlers()) {
+        AutoLockForInterrupt lock(this);
         RequestInterruptForAsmJSCode(this, mode);
         jit::RequestInterruptForIonCode(this, mode);
     }
+}
+
+bool
+JSRuntime::handleInterrupt(JSContext *cx)
+{
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(cx->runtime()));
+    if (interrupt_ || mainThread.jitStackLimit_ == UINTPTR_MAX) {
+        interrupt_ = false;
+        interruptPar_ = false;
+        mainThread.resetJitStackLimit();
+        return InvokeInterruptCallback(cx);
+    }
+    return true;
 }
 
 jit::ExecutableAllocator *

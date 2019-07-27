@@ -152,7 +152,7 @@ NativeRegExpMacroAssembler::GenerateCode(JSContext *cx, bool match_only)
 
     
     Label stack_ok;
-    void *stack_limit = &runtime->mainThread.jitStackLimit;
+    void *stack_limit = runtime->mainThread.addressofJitStackLimit();
     masm.branchPtr(Assembler::Below, AbsoluteAddress(stack_limit), StackPointer, &stack_ok);
 
     
@@ -502,7 +502,7 @@ NativeRegExpMacroAssembler::Backtrack()
     
     Label noInterrupt;
     masm.branch32(Assembler::Equal,
-                  AbsoluteAddress(&runtime->interrupt), Imm32(0),
+                  AbsoluteAddress(runtime->addressOfInterruptUint32()), Imm32(0),
                   &noInterrupt);
     masm.movePtr(ImmWord(RegExpRunStatus_Error), temp0);
     masm.jump(&exit_label_);
