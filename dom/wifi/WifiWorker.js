@@ -3290,6 +3290,17 @@ WifiWorker.prototype = {
       }
     }
 
+    function connectToNetwork() {
+      WifiManager.updateNetwork(privnet, (function(ok) {
+        if (!ok) {
+          self._sendMessage(message, false, "Network is misconfigured", msg);
+          return;
+        }
+
+        networkReady();
+      }));
+    }
+
     let ssid = privnet.ssid;
     let networkKey = getNetworkKey(privnet);
     let configured;
@@ -3311,14 +3322,22 @@ WifiWorker.prototype = {
       
       
       configured.priority = privnet.priority;
-      WifiManager.updateNetwork(privnet, (function(ok) {
-        if (!ok) {
-          this._sendMessage(message, false, "Network is misconfigured", msg);
-          return;
-        }
 
-        networkReady();
-      }).bind(this));
+      
+      
+      
+      
+      
+      WifiManager.getNetworkId(dequote(configured.ssid), function(netId) {
+        if (netId) {
+          WifiManager.disableNetwork(netId, function() {
+            connectToNetwork();
+          });
+        }
+        else {
+          connectToNetwork();
+        }
+      });
     } else {
       
       
