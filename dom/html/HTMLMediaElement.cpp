@@ -175,6 +175,13 @@ static const double THRESHOLD_LOW_PLAYBACKRATE_AUDIO = 0.5;
 
 
 
+
+
+
+
+
+
+
 class nsMediaEvent : public nsRunnable
 {
 public:
@@ -3136,6 +3143,8 @@ void HTMLMediaElement::CheckProgress(bool aHaveNewProgress)
     
     StopProgress();
   }
+
+  AddRemoveSelfReference();
 }
 
 
@@ -3622,7 +3631,8 @@ void HTMLMediaElement::AddRemoveSelfReference()
      (!mPaused && mSrcStream && !mSrcStream->IsFinished()) ||
      (mDecoder && mDecoder->IsSeeking()) ||
      CanActivateAutoplay() ||
-     mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING);
+     (mMediaSource ? mProgressTimer :
+      mNetworkState == nsIDOMHTMLMediaElement::NETWORK_LOADING));
 
   if (needSelfReference != mHasSelfReference) {
     mHasSelfReference = needSelfReference;
