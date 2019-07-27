@@ -18,7 +18,6 @@ Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/PromiseUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/ObjectUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "ctypes",
                                   "resource://gre/modules/ctypes.jsm");
@@ -367,46 +366,58 @@ EnvironmentAddonBuilder.prototype = {
 
   
   onEnabled: function() {
-    this._onAddonChange();
+    this._onChange();
   },
   onDisabled: function() {
-    this._onAddonChange();
+    this._onChange();
   },
   onInstalled: function() {
-    this._onAddonChange();
+    this._onChange();
   },
   onUninstalling: function() {
-    this._onAddonChange();
+    this._onChange();
   },
 
-  _onAddonChange: function() {
-    this._environment._log.trace("_onAddonChange");
-    this._checkForChanges("addons-changed");
+  _onChange: function() {
+    if (this._pendingTask) {
+      this._environment._log.trace("_onChange - task already pending");
+      return;
+    }
+
+    this._environment._log.trace("_onChange");
+    this._pendingTask = this._updateAddons().then(
+      (changed) => {
+        this._pendingTask = null;
+        if (changed) {
+          this._environment._onEnvironmentChange("addons-changed");
+        }
+      },
+      (err) => {
+        this._pendingTask = null;
+        this._environment._log.error("Error collecting addons", err);
+      });
   },
 
   
   observe: function (aSubject, aTopic, aData) {
     this._environment._log.trace("observe - Topic " + aTopic);
-    this._checkForChanges("experiment-changed");
-  },
 
-  _checkForChanges: function(changeReason) {
-    if (this._pendingTask) {
-      this._environment._log.trace("_checkForChanges - task already pending, dropping change with reason " + changeReason);
-      return;
+    if (aTopic == EXPERIMENTS_CHANGED_TOPIC) {
+      if (this._pendingTask) {
+        return;
+      }
+      this._pendingTask = this._updateAddons().then(
+        (changed) => {
+          this._pendingTask = null;
+          if (changed) {
+            this._environment._onEnvironmentChange("experiment-changed");
+          }
+        },
+        (err) => {
+          this._pendingTask = null;
+          this._environment._log.error("observe: Error collecting addons", err);
+        });
     }
-
-    this._pendingTask = this._updateAddons().then(
-      (result) => {
-        this._pendingTask = null;
-        if (result.changed) {
-          this._environment._onEnvironmentChange(changeReason, result.oldEnvironment);
-        }
-      },
-      (err) => {
-        this._pendingTask = null;
-        this._environment._log.error("_checkForChanges: Error collecting addons", err);
-      });
   },
 
   _shutdownBlocker: function() {
@@ -418,8 +429,6 @@ EnvironmentAddonBuilder.prototype = {
   },
 
   
-
-
 
 
 
@@ -446,17 +455,14 @@ EnvironmentAddonBuilder.prototype = {
       persona: personaId,
     };
 
-    let result = {
-      changed: !ObjectUtils.deepEqual(addons, this._environment._currentEnvironment.addons),
-    };
-
-    if (result.changed) {
+    if (JSON.stringify(addons) !=
+        JSON.stringify(this._environment._currentEnvironment.addons)) {
       this._environment._log.trace("_updateAddons: addons differ");
-      result.oldEnvironment = Cu.cloneInto(this._environment._currentEnvironment, myScope);
       this._environment._currentEnvironment.addons = addons;
+      return true;
     }
-
-    return result;
+    this._environment._log.trace("_updateAddons: no changes found");
+    return false;
   }),
 
   
@@ -691,7 +697,6 @@ EnvironmentCache.prototype = {
 
 
 
-
   registerChangeListener: function (name, listener) {
     this._log.trace("registerChangeListener for " + name);
     if (this._shutdown) {
@@ -767,9 +772,8 @@ EnvironmentCache.prototype = {
 
   _onPrefChanged: function() {
     this._log.trace("_onPrefChanged");
-    let oldEnvironment = Cu.cloneInto(this._currentEnvironment, myScope);
     this._updateSettings();
-    this._onEnvironmentChange("pref-changed", oldEnvironment);
+    this._onEnvironmentChange("pref-changed");
   },
 
   
@@ -1055,20 +1059,17 @@ EnvironmentCache.prototype = {
     };
   },
 
-  _onEnvironmentChange: function (what, oldEnvironment) {
+  _onEnvironmentChange: function (what) {
     this._log.trace("_onEnvironmentChange for " + what);
     if (this._shutdown) {
       this._log.trace("_onEnvironmentChange - Already shut down.");
       return;
     }
 
-    
-    
-
     for (let [name, listener] of this._changeListeners) {
       try {
         this._log.debug("_onEnvironmentChange - calling " + name);
-        listener(what, oldEnvironment);
+        listener(what, this.currentEnvironment);
       } catch (e) {
         this._log.error("_onEnvironmentChange - listener " + name + " caught error", e);
       }
