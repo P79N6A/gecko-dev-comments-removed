@@ -260,6 +260,7 @@ let MozLoopServiceInternal = {
 
   setError: function(errorType, error, actionCallback = null) {
     log.debug("setError", errorType, error);
+    log.trace();
     let messageString, detailsString, detailsButtonLabelString, detailsButtonCallback;
     const NETWORK_ERRORS = [
       Cr.NS_ERROR_CONNECTION_REFUSED,
@@ -300,14 +301,23 @@ let MozLoopServiceInternal = {
     }
 
     error.friendlyMessage = this.localizedStrings.get(messageString);
-    error.friendlyDetails = detailsString ?
-                              this.localizedStrings.get(detailsString) :
-                              null;
+
+    
+    
     error.friendlyDetailsButtonLabel = detailsButtonLabelString ?
                                          this.localizedStrings.get(detailsButtonLabelString) :
-                                         null;
+                                         this.localizedStrings.get("retry_button");
 
     error.friendlyDetailsButtonCallback = actionCallback || detailsButtonCallback || null;
+
+    if (detailsString) {
+      error.friendlyDetails = this.localizedStrings.get(detailsString);
+    } else if (error.friendlyDetailsButtonCallback) {
+      
+      error.friendlyDetails = this.localizedStrings.get("generic_failure_no_reason2");
+    } else {
+      error.friendlyDetails = null;
+    }
 
     gErrors.set(errorType, error);
     this.notifyStatusChanged();
@@ -1219,7 +1229,8 @@ this.MozLoopService = {
       deferredInitialization.resolve("initialized to logged-in status");
     }, error => {
       log.debug("MozLoopService: error logging in using cached auth token");
-      MozLoopServiceInternal.setError("login", error);
+      let retryFunc = () => MozLoopServiceInternal.promiseRegisteredWithServers(LOOP_SESSION_TYPE.FXA);
+      MozLoopServiceInternal.setError("login", error, retryFunc);
       deferredInitialization.reject("error logging in using cached auth token");
     });
     yield completedPromise;
@@ -1421,27 +1432,17 @@ this.MozLoopService = {
         MozLoopServiceInternal.clearError("profile");
         return MozLoopServiceInternal.fxAOAuthTokenData;
       });
-    }).then(tokenData => {
-      let client = new FxAccountsProfileClient({
-        serverURL: gFxAOAuthClient.parameters.profile_uri,
-        token: tokenData.access_token
-      });
-      client.fetchProfile().then(result => {
-        MozLoopServiceInternal.fxAOAuthProfile = result;
-      }, error => {
-        log.error("Failed to retrieve profile", error);
-        this.setError("profile", error);
-        MozLoopServiceInternal.fxAOAuthProfile = null;
-        MozLoopServiceInternal.notifyStatusChanged();
-      });
+    }).then(Task.async(function* fetchProfile(tokenData) {
+      yield MozLoopService.fetchFxAProfile(tokenData);
       return tokenData;
-    }).catch(error => {
+    })).catch(error => {
       MozLoopServiceInternal.fxAOAuthTokenData = null;
       MozLoopServiceInternal.fxAOAuthProfile = null;
       MozLoopServiceInternal.deferredRegistrations.delete(LOOP_SESSION_TYPE.FXA);
       throw error;
     }).catch((error) => {
-      MozLoopServiceInternal.setError("login", error);
+      MozLoopServiceInternal.setError("login", error,
+                                      () => MozLoopService.logInToFxA());
       
       throw error;
     });
@@ -1484,6 +1485,30 @@ this.MozLoopService = {
       MozLoopServiceInternal.clearError("profile");
     }
   }),
+
+  
+
+
+
+
+
+
+  fetchFxAProfile: function() {
+    log.debug("fetchFxAProfile");
+    let client = new FxAccountsProfileClient({
+      serverURL: gFxAOAuthClient.parameters.profile_uri,
+      token: MozLoopServiceInternal.fxAOAuthTokenData.access_token
+    });
+    return client.fetchProfile().then(result => {
+      MozLoopServiceInternal.fxAOAuthProfile = result;
+      MozLoopServiceInternal.clearError("profile");
+    }, error => {
+      log.error("Failed to retrieve profile", error, this.fetchFxAProfile.bind(this));
+      MozLoopServiceInternal.setError("profile", error);
+      MozLoopServiceInternal.fxAOAuthProfile = null;
+      MozLoopServiceInternal.notifyStatusChanged();
+    });
+  },
 
   openFxASettings: Task.async(function() {
     try {
