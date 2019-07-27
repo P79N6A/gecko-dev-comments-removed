@@ -701,8 +701,6 @@ UnboxedPlainObject::obj_defineProperty(JSContext *cx, HandleObject obj, HandleId
     }
 
     
-#if 0
-    
     Rooted<UnboxedExpandoObject *> expando(cx, ensureExpando(cx, obj.as<UnboxedPlainObject>()));
     if (!expando)
         return false;
@@ -711,12 +709,6 @@ UnboxedPlainObject::obj_defineProperty(JSContext *cx, HandleObject obj, HandleId
     AddTypePropertyId(cx, obj, id, v);
 
     return DefineProperty(cx, expando, id, v, getter, setter, attrs, result);
-#else
-    if (!convertToNative(cx, obj))
-        return false;
-
-    return DefineProperty(cx, obj, id, v, getter, setter, attrs, result);
-#endif
 }
 
  bool
