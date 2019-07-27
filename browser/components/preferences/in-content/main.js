@@ -702,8 +702,10 @@ var gMainPane = {
         
         
         
+        
+        
         let version = Services.sysinfo.getProperty("version");
-        claimAllTypes = (parseFloat(version) < 6.2);
+        claimAllTypes = (parseFloat(version) <= 6.3);
       }
     } catch (ex) {}
     return claimAllTypes;
