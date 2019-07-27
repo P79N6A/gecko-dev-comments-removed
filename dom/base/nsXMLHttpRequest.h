@@ -51,8 +51,8 @@ class nsIJSID;
 namespace mozilla {
 
 namespace dom {
+class Blob;
 class BlobSet;
-class File;
 }
 
 
@@ -352,7 +352,7 @@ private:
     {
       mValue.mArrayBufferView = aArrayBufferView;
     }
-    explicit RequestBody(mozilla::dom::File& aBlob) : mType(Blob)
+    explicit RequestBody(mozilla::dom::Blob& aBlob) : mType(Blob)
     {
       mValue.mBlob = &aBlob;
     }
@@ -386,7 +386,7 @@ private:
     union Value {
       const mozilla::dom::ArrayBuffer* mArrayBuffer;
       const mozilla::dom::ArrayBufferView* mArrayBufferView;
-      mozilla::dom::File* mBlob;
+      mozilla::dom::Blob* mBlob;
       nsIDocument* mDocument;
       const nsAString* mString;
       nsFormData* mFormData;
@@ -450,7 +450,7 @@ public:
   {
     aRv = Send(RequestBody(&aArrayBufferView));
   }
-  void Send(JSContext* , mozilla::dom::File& aBlob, ErrorResult& aRv)
+  void Send(JSContext* , mozilla::dom::Blob& aBlob, ErrorResult& aRv)
   {
     aRv = Send(RequestBody(aBlob));
   }
@@ -606,7 +606,7 @@ protected:
                 uint32_t *writeCount);
   nsresult CreateResponseParsedJSON(JSContext* aCx);
   void CreatePartialBlob();
-  bool CreateDOMFile(nsIRequest *request);
+  bool CreateDOMBlob(nsIRequest *request);
   
   
   nsresult ChangeState(uint32_t aState, bool aBroadcast = true);
@@ -708,10 +708,10 @@ protected:
 
   
   
-  nsRefPtr<mozilla::dom::File> mResponseBlob;
+  nsRefPtr<mozilla::dom::Blob> mResponseBlob;
   
   
-  nsRefPtr<mozilla::dom::File> mDOMFile;
+  nsRefPtr<mozilla::dom::Blob> mDOMBlob;
   
   
   nsAutoPtr<mozilla::dom::BlobSet> mBlobSet;

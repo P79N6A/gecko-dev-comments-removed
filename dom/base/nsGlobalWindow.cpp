@@ -8063,8 +8063,8 @@ PostMessageReadStructuredClone(JSContext* cx,
       
       JS::Rooted<JS::Value> val(cx);
       {
-        nsRefPtr<File> blob = new File(scInfo->window, blobImpl);
-        if (!GetOrCreateDOMReflector(cx, blob, &val)) {
+        nsRefPtr<Blob> blob = Blob::Create(scInfo->window, blobImpl);
+        if (!ToJSValue(cx, blob, &val)) {
           return nullptr;
         }
       }
@@ -8106,7 +8106,7 @@ PostMessageWriteStructuredClone(JSContext* cx,
 
   
   {
-    File* blob = nullptr;
+    Blob* blob = nullptr;
     if (scInfo->subsumes && NS_SUCCEEDED(UNWRAP_OBJECT(Blob, obj, blob))) {
       FileImpl* blobImpl = blob->Impl();
       if (JS_WriteUint32Pair(writer, SCTAG_DOM_BLOB, 0) &&

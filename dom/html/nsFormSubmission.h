@@ -51,7 +51,7 @@ public:
 
 
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   mozilla::dom::File* aBlob) = 0;
+                                   mozilla::dom::File* aFile) = 0;
 
   
 
@@ -160,7 +160,7 @@ public:
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue) override;
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   mozilla::dom::File* aBlob) override;
+                                   mozilla::dom::File* aFile) override;
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
                                         nsIInputStream** aPostDataStream) override;
 
