@@ -18,8 +18,6 @@
 #include "nsID.h"
 #include "nsNetUtil.h"
 #include "nsIClassInfoImpl.h"
-#include "nsIObjectInputStream.h"
-#include "nsIObjectOutputStream.h"
 #include "nsNetCID.h"
 #include "nsError.h"
 #include "nsIScriptSecurityManager.h"
@@ -68,24 +66,11 @@ nsNullPrincipal::~nsNullPrincipal()
 {
 }
 
- already_AddRefed<nsNullPrincipal>
-nsNullPrincipal::CreateWithInheritedAttributes(nsIPrincipal* aInheritFrom)
-{
-  nsRefPtr<nsNullPrincipal> nullPrin = new nsNullPrincipal();
-  nsresult rv = nullPrin->Init(aInheritFrom->GetAppId(),
-                               aInheritFrom->GetIsInBrowserElement());
-  return NS_SUCCEEDED(rv) ? nullPrin.forget() : nullptr;
-}
-
 #define NS_NULLPRINCIPAL_PREFIX NS_NULLPRINCIPAL_SCHEME ":"
 
 nsresult
-nsNullPrincipal::Init(uint32_t aAppId, bool aInMozBrowser)
+nsNullPrincipal::Init()
 {
-  MOZ_ASSERT(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID);
-  mAppId = aAppId;
-  mInMozBrowser = aInMozBrowser;
-
   
   nsresult rv;
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
@@ -271,21 +256,21 @@ nsNullPrincipal::GetJarPrefix(nsACString& aJarPrefix)
 NS_IMETHODIMP
 nsNullPrincipal::GetAppStatus(uint16_t* aAppStatus)
 {
-  *aAppStatus = nsScriptSecurityManager::AppStatusForPrincipal(this);
+  *aAppStatus = nsIPrincipal::APP_STATUS_NOT_INSTALLED;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::GetAppId(uint32_t* aAppId)
 {
-  *aAppId = mAppId;
+  *aAppId = nsIScriptSecurityManager::NO_APP_ID;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::GetIsInBrowserElement(bool* aIsInBrowserElement)
 {
-  *aIsInBrowserElement = mInMozBrowser;
+  *aIsInBrowserElement = false;
   return NS_OK;
 }
 
@@ -318,22 +303,14 @@ nsNullPrincipal::Read(nsIObjectInputStream* aStream)
 {
   
   
-  
-  
-  nsresult rv = aStream->Read32(&mAppId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = aStream->ReadBoolean(&mInMozBrowser);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNullPrincipal::Write(nsIObjectOutputStream* aStream)
 {
-  aStream->Write32(mAppId);
-  aStream->WriteBoolean(mInMozBrowser);
+  
+  
   return NS_OK;
 }
 
