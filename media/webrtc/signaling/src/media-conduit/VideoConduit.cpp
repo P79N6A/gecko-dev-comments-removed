@@ -644,8 +644,9 @@ WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
   }
 
   if (!mVideoCodecStat) {
-    mVideoCodecStat = new VideoCodecStatistics(mChannel, mPtrViECodec, true);
+    mVideoCodecStat = new VideoCodecStatistics(mChannel, mPtrViECodec);
   }
+  mVideoCodecStat->Register(true);
 
   mSendingWidth = 0;
   mSendingHeight = 0;
@@ -800,8 +801,9 @@ WebrtcVideoConduit::ConfigureRecvMediaCodecs(
   }
 
   if (!mVideoCodecStat) {
-    mVideoCodecStat = new VideoCodecStatistics(mChannel, mPtrViECodec, false);
+    mVideoCodecStat = new VideoCodecStatistics(mChannel, mPtrViECodec);
   }
+  mVideoCodecStat->Register(false);
 
   
   
