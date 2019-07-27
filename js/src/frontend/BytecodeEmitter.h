@@ -397,7 +397,10 @@ struct BytecodeEmitter
 
     
     
-    bool emitUint16Operand(JSOp op, uint32_t i);
+    bool emitUint16Operand(JSOp op, uint32_t operand);
+
+    
+    bool emitUint32Operand(JSOp op, uint32_t operand);
 
     
     bool emitN(JSOp op, size_t extra, ptrdiff_t* offset = nullptr);
