@@ -55,6 +55,11 @@ public:
     return AsAString();
   }
 
+  
+  
+  operator const nsString&() = delete;
+  operator const nsAString&() = delete;
+
   nsString& AsAString()
   {
     MOZ_ASSERT(!mStringBuffer, "We already have a stringbuffer?");
