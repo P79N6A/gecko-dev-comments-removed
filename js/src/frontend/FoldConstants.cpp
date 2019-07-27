@@ -239,22 +239,6 @@ ContainsHoistedDeclaration(ExclusiveContext* cx, ParseNode* node, bool* result)
         MOZ_ASSERT(node->isArity(PN_BINARY));
         return ContainsHoistedDeclaration(cx, node->pn_right, result);
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      case PNK_SEQ:
-        return ListContainsHoistedDeclaration(cx, &node->as<ListNode>(), result);
-
       case PNK_FOR: {
         MOZ_ASSERT(node->isArity(PN_BINARY));
 
@@ -279,9 +263,6 @@ ContainsHoistedDeclaration(ExclusiveContext* cx, ParseNode* node, bool* result)
         } else {
             MOZ_ASSERT(loopHead->isKind(PNK_FORIN) || loopHead->isKind(PNK_FOROF));
 
-            
-            
-            
             
             
             

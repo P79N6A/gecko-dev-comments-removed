@@ -141,7 +141,6 @@ class UpvarCookie
     F(EXPORT_SPEC_LIST) \
     F(EXPORT_SPEC) \
     F(EXPORT_BATCH_SPEC) \
-    F(SEQ) \
     F(FORIN) \
     F(FOROF) \
     F(FORHEAD) \
@@ -226,6 +225,15 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
+
+
+
+
+
+
+
 
 
 
@@ -689,7 +697,7 @@ class ParseNode
                                            still valid, but this use no longer
                                            optimizable via an upvar opcode */
 #define PND_CLOSED              0x40    /* variable is closed over */
-#define PND_DEFAULT             0x80    /* definition is an arg with a default */
+
 #define PND_IMPLICITARGUMENTS  0x100    /* the definition is a placeholder for
                                            'arguments' that has been converted
                                            into a definition after the function
@@ -706,8 +714,7 @@ class ParseNode
                                            needs popping */
 #define PNX_FUNCDEFS    0x02            /* contains top-level function statements */
 #define PNX_SETCALL     0x04            /* call expression in lvalue context */
-#define PNX_DESTRUCT    0x08            /* code evaluating destructuring
-                                           arguments occurs before function body */
+
 #define PNX_ARRAYHOLESPREAD 0x10        /* one or more of
                                            1. array initialiser has holes
                                            2. array initializer has spread node */
