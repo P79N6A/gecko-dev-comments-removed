@@ -2764,10 +2764,13 @@ WorkerThreadPrimaryRunnable::Run()
 
     
     
-    
     JS_DestroyContext(cx);
 
     
+    
+    
+    mWorkerPrivate->ClearMainEventQueue(WorkerPrivate::WorkerRan);
+
     
     
     
