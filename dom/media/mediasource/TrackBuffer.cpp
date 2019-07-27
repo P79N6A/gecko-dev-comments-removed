@@ -273,9 +273,7 @@ TrackBuffer::AppendDataToCurrentResource(MediaByteBuffer* aData, uint32_t aDurat
   int64_t appendOffset = resource->GetLength();
   resource->AppendData(aData);
   mCurrentDecoder->SetRealMediaDuration(mCurrentDecoder->GetRealMediaDuration() + aDuration);
-  
-  mCurrentDecoder->NotifyDataArrived(reinterpret_cast<const char*>(aData->Elements()),
-                                     aData->Length(), appendOffset);
+  mCurrentDecoder->NotifyDataArrived(aData->Length(), appendOffset);
   mParentDecoder->NotifyBytesDownloaded();
   NotifyTimeRangesChanged();
 
