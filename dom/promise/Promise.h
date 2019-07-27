@@ -22,6 +22,13 @@
 
 #include "mozilla/dom/workers/bindings/WorkerFeature.h"
 
+
+
+
+
+
+#define DOM_PROMISE_DEPRECATED_REPORTING 1
+
 class nsIGlobalObject;
 
 namespace mozilla {
@@ -35,6 +42,7 @@ class PromiseInit;
 class PromiseNativeHandler;
 class PromiseDebugging;
 
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
 class Promise;
 class PromiseReportRejectFeature : public workers::WorkerFeature
 {
@@ -51,6 +59,7 @@ public:
   virtual bool
   Notify(JSContext* aCx, workers::Status aStatus) MOZ_OVERRIDE;
 };
+#endif 
 
 class Promise : public nsISupports,
                 public nsWrapperCache,
@@ -59,7 +68,9 @@ class Promise : public nsISupports,
   friend class NativePromiseCallback;
   friend class PromiseResolverTask;
   friend class PromiseTask;
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   friend class PromiseReportRejectFeature;
+#endif 
   friend class PromiseWorkerProxy;
   friend class PromiseWorkerProxyRunnable;
   friend class RejectPromiseCallback;
@@ -171,6 +182,9 @@ public:
 
   void AppendNativeHandler(PromiseNativeHandler* aRunnable);
 
+  
+  uint64_t GetID();
+
 protected:
   
   
@@ -197,6 +211,21 @@ protected:
   }
 
   void GetDependentPromises(nsTArray<nsRefPtr<Promise>>& aPromises);
+
+  bool IsLastInChain() const
+  {
+    return mIsLastInChain;
+  }
+
+  void SetNotifiedAsUncaught()
+  {
+    mWasNotifiedAsUncaught = true;
+  }
+
+  bool WasNotifiedAsUncaught() const
+  {
+    return mWasNotifiedAsUncaught;
+  }
 
 private:
   friend class PromiseDebugging;
@@ -231,6 +260,7 @@ private:
   void AppendCallbacks(PromiseCallback* aResolveCallback,
                        PromiseCallback* aRejectCallback);
 
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   
   
   
@@ -241,6 +271,7 @@ private:
     RemoveFeature();
     mResult = JS::UndefinedValue();
   }
+#endif 
 
   void MaybeResolveInternal(JSContext* aCx,
                             JS::Handle<JS::Value> aValue);
@@ -289,7 +320,9 @@ private:
 
   void HandleException(JSContext* aCx);
 
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
   void RemoveFeature();
+#endif 
 
   
   
@@ -315,21 +348,38 @@ private:
   
   JS::Heap<JSObject*> mFullfillmentStack;
   PromiseState mState;
-  bool mHadRejectCallback;
 
-  bool mResolvePending;
+#if defined(DOM_PROMISE_DEPRECATED_REPORTING)
+  bool mHadRejectCallback;
 
   
   
   
   
   nsAutoPtr<PromiseReportRejectFeature> mFeature;
+#endif 
+
+  bool mTaskPending;
+  bool mResolvePending;
+
+  
+  
+  
+  bool mIsLastInChain;
+
+  
+  
+  bool mWasNotifiedAsUncaught;
 
   
   TimeStamp mCreationTimestamp;
 
   
   TimeStamp mSettlementTimestamp;
+
+  
+  
+  uint64_t mID;
 };
 
 } 
