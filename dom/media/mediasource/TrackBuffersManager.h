@@ -209,6 +209,10 @@ private:
     nsRefPtr<MediaTrackDemuxer> mDemuxer;
     MediaPromiseRequestHolder<MediaTrackDemuxer::SamplesPromise> mDemuxRequest;
     
+    
+    
+    Maybe<size_t> mNextInsertionIndex;
+    
     TrackBuffer mQueuedSamples;
     
     nsTArray<TrackBuffer> mBuffers;
