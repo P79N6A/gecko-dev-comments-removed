@@ -89,7 +89,19 @@ NativeRegExpMacroAssembler::NativeRegExpMacroAssembler(LifoAlloc *alloc, RegExpS
             temp1.name(),
             temp2.name());
 
-    savedNonVolatileRegisters = SavedNonVolatileRegisters(regs);
+    
+    for (GeneralRegisterIterator iter(GeneralRegisterSet::NonVolatile()); iter.more(); iter++) {
+        Register reg = *iter;
+        if (!regs.has(reg))
+            savedNonVolatileRegisters.add(reg);
+    }
+
+#if defined(JS_CODEGEN_ARM)
+    
+    savedNonVolatileRegisters.add(Register::FromCode(Registers::lr));
+#elif defined(JS_CODEGEN_MIPS)
+    savedNonVolatileRegisters.add(Register::FromCode(Registers::ra));
+#endif
 
     masm.jump(&entry_label_);
     masm.bind(&start_label_);

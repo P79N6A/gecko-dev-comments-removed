@@ -696,7 +696,7 @@ class NativeObject : public JSObject
     bool removeProperty(ExclusiveContext *cx, jsid id);
 
     
-    static void clear(ExclusiveContext *cx, HandleNativeObject obj);
+    static void clear(JSContext *cx, HandleNativeObject obj);
 
   protected:
     

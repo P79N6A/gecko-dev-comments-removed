@@ -751,7 +751,7 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
 
         
         AsmJSModule::CodePtr enter = module.entryTrampoline(func);
-        if (!CALL_GENERATED_2(enter, coercedArgs.begin(), module.globalData()))
+        if (!CALL_GENERATED_ASMJS(enter, coercedArgs.begin(), module.globalData()))
             return false;
     }
 
