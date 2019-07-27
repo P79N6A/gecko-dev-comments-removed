@@ -170,13 +170,14 @@ nsHTMLCanvasFrame::ComputeSize(nsRenderingContext *aRenderingContext,
 
   nsSize intrinsicRatio = GetIntrinsicRatio(); 
 
-  return LogicalSize(aWM, nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
+  return nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
+                            aWM,
                             aRenderingContext, this,
                             intrinsicSize, intrinsicRatio,
-                            aCBSize.GetPhysicalSize(aWM),
-                            aMargin.GetPhysicalSize(aWM),
-                            aBorder.GetPhysicalSize(aWM),
-                            aPadding.GetPhysicalSize(aWM)));
+                            aCBSize,
+                            aMargin,
+                            aBorder,
+                            aPadding);
 }
 
 void
