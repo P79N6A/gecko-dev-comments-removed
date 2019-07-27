@@ -351,21 +351,32 @@ nsImageFrame::GetSourceToDestTransform(nsTransform2D& aTransform)
   
   
   
-  nsRect innerArea = GetInnerArea();
-  aTransform.SetToTranslate(float(innerArea.x),
-                            float(innerArea.y - GetContinuationOffset()));
+  
+  nsRect constraintRect(GetInnerArea().TopLeft(), mComputedSize);
+  constraintRect.y -= GetContinuationOffset();
+
+  nsRect destRect = nsLayoutUtils::ComputeObjectDestRect(constraintRect,
+                                                         mIntrinsicSize,
+                                                         mIntrinsicRatio,
+                                                         StylePosition());
+  
+  
+  
+  
+  aTransform.SetToTranslate(float(destRect.x),
+                            float(destRect.y));
 
   
   if (mIntrinsicSize.width.GetUnit() == eStyleUnit_Coord &&
       mIntrinsicSize.width.GetCoordValue() != 0 &&
       mIntrinsicSize.height.GetUnit() == eStyleUnit_Coord &&
       mIntrinsicSize.height.GetCoordValue() != 0 &&
-      mIntrinsicSize.width.GetCoordValue() != mComputedSize.width &&
-      mIntrinsicSize.height.GetCoordValue() != mComputedSize.height) {
+      mIntrinsicSize.width.GetCoordValue() != destRect.width &&
+      mIntrinsicSize.height.GetCoordValue() != destRect.height) {
 
-    aTransform.SetScale(float(mComputedSize.width)  /
+    aTransform.SetScale(float(destRect.width)  /
                         float(mIntrinsicSize.width.GetCoordValue()),
-                        float(mComputedSize.height) /
+                        float(destRect.height) /
                         float(mIntrinsicSize.height.GetCoordValue()));
     return true;
   }
@@ -1489,9 +1500,18 @@ nsImageFrame::PaintImage(nsRenderingContext& aRenderingContext, nsPoint aPt,
   
   
   NS_ASSERTION(GetInnerArea().width == mComputedSize.width, "bad width");
-  nsRect inner = GetInnerArea() + aPt;
-  nsRect dest(inner.TopLeft(), mComputedSize);
-  dest.y -= GetContinuationOffset();
+
+  
+  
+  
+  
+  nsRect constraintRect(aPt + GetInnerArea().TopLeft(), mComputedSize);
+  constraintRect.y -= GetContinuationOffset();
+
+  nsRect dest = nsLayoutUtils::ComputeObjectDestRect(constraintRect,
+                                                     mIntrinsicSize,
+                                                     mIntrinsicRatio,
+                                                     StylePosition());
 
   nsLayoutUtils::DrawSingleImage(*aRenderingContext.ThebesContext(),
     PresContext(), aImage,
@@ -1501,7 +1521,7 @@ nsImageFrame::PaintImage(nsRenderingContext& aRenderingContext, nsPoint aPt,
   nsImageMap* map = GetImageMap();
   if (map) {
     gfxPoint devPixelOffset =
-      nsLayoutUtils::PointToGfxPoint(inner.TopLeft(),
+      nsLayoutUtils::PointToGfxPoint(dest.TopLeft(),
                                      PresContext()->AppUnitsPerDevPixel());
     AutoRestoreTransform autoRestoreTransform(drawTarget);
     drawTarget->SetTransform(

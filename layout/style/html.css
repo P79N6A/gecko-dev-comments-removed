@@ -720,6 +720,13 @@ video {
   object-fit: contain;
 }
 
+video > img:-moz-native-anonymous {
+  
+
+  object-fit: inherit !important;
+  object-position: inherit !important;
+}
+
 audio:not([controls]) {
   display: none;
 }
