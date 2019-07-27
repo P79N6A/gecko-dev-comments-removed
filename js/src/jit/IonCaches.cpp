@@ -1567,9 +1567,6 @@ EmitCallProxyGet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     masm.Push(object);
     masm.movePtr(StackPointer, argProxyReg);
 
-    
-    PushObjectOpResult(masm);
-
     masm.loadJSContext(argJSContextReg);
 
     if (!masm.icBuildOOLFakeExitFrame(returnAddr, aic))
@@ -2221,6 +2218,15 @@ EmitObjectOpResultCheck(MacroAssembler &masm, Label *failure, bool strict,
 }
 
 static bool
+ProxySetProperty(JSContext *cx, HandleObject proxy, HandleId id, MutableHandleValue vp,
+                 bool strict)
+{
+    ObjectOpResult result;
+    return Proxy::set(cx, proxy, proxy, id, vp, result)
+           && result.checkStrictErrorOrWarning(cx, proxy, id, strict);
+}
+
+static bool
 EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
                  HandleId propId, RegisterSet liveRegs, Register object,
                  ConstantOrRegister value, void *returnAddr, bool strict)
@@ -2243,7 +2249,7 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     Register argProxyReg     = regSet.takeGeneral();
     Register argIdReg        = regSet.takeGeneral();
     Register argVpReg        = regSet.takeGeneral();
-    Register argResultReg    = regSet.takeGeneral();
+    Register argStrictReg    = regSet.takeGeneral();
 
     Register scratch         = regSet.takeGeneral();
 
@@ -2251,8 +2257,11 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     attacher.pushStubCodePointer(masm);
 
     
+    
     masm.Push(value);
     masm.movePtr(StackPointer, argVpReg);
+
+    masm.move32(Imm32(strict), argStrictReg);
 
     masm.Push(propId, scratch);
     masm.movePtr(StackPointer, argIdReg);
@@ -2263,10 +2272,6 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     masm.Push(object);
     masm.movePtr(StackPointer, argProxyReg);
 
-    
-    PushObjectOpResult(masm);
-    masm.movePtr(StackPointer, argResultReg);
-
     masm.loadJSContext(argJSContextReg);
 
     if (!masm.icBuildOOLFakeExitFrame(returnAddr, aic))
@@ -2274,23 +2279,16 @@ EmitCallProxySet(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &at
     masm.enterFakeExitFrame(IonOOLProxyExitFrameLayout::Token());
 
     
-    masm.setupUnalignedABICall(6, scratch);
+    masm.setupUnalignedABICall(5, scratch);
     masm.passABIArg(argJSContextReg);
-    masm.passABIArg(argProxyReg);
     masm.passABIArg(argProxyReg);
     masm.passABIArg(argIdReg);
     masm.passABIArg(argVpReg);
-    masm.passABIArg(argResultReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Proxy::set));
+    masm.passABIArg(argStrictReg);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ProxySetProperty));
 
     
     masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
-
-    
-    
-    EmitObjectOpResultCheck<IonOOLProxyExitFrameLayout>(masm, masm.exceptionLabel(), strict,
-                                                        scratch, argJSContextReg, argProxyReg,
-                                                        argIdReg, argVpReg, argResultReg);
 
     
     masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
@@ -2508,6 +2506,7 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
 
         SetterOp target = shape->setterOp();
         MOZ_ASSERT(target);
+
         
         
 
@@ -2561,6 +2560,7 @@ GenerateCallSetter(JSContext *cx, IonScript *ion, MacroAssembler &masm,
         
         masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
+        
         
         EmitObjectOpResultCheck<IonOOLSetterOpExitFrameLayout>(masm, masm.exceptionLabel(),
                                                                strict, scratchReg,

@@ -708,9 +708,6 @@ class IonOOLProxyExitFrameLayout
     ExitFrameLayout exit_;
 
     
-    JS::ObjectOpResult result_;
-
-    
     JSObject *proxy_;
 
     
@@ -734,20 +731,8 @@ class IonOOLProxyExitFrameLayout
         return sizeof(IonOOLProxyExitFrameLayout);
     }
 
-    static size_t offsetOfObject() {
-        return offsetof(IonOOLProxyExitFrameLayout, proxy_);
-    }
-
     static size_t offsetOfResult() {
         return offsetof(IonOOLProxyExitFrameLayout, vp0_);
-    }
-
-    static size_t offsetOfId() {
-        return offsetof(IonOOLProxyExitFrameLayout, id_);
-    }
-
-    static size_t offsetOfObjectOpResult() {
-        return offsetof(IonOOLProxyExitFrameLayout, result_);
     }
 
     inline JitCode **stubCode() {
