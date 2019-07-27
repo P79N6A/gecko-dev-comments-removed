@@ -10,13 +10,12 @@ const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
+const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 const PREF_STORAGE_VERSION = "browser.pagethumbnails.storage_version";
 const LATEST_STORAGE_VERSION = 3;
 
 const EXPIRATION_MIN_CHUNK_SIZE = 50;
 const EXPIRATION_INTERVAL_SECS = 3600;
-
-var gRemoteThumbId = 0;
 
 
 
@@ -27,6 +26,11 @@ const MAX_THUMBNAIL_AGE_SECS = 172800;
 
 
 const THUMBNAIL_DIRECTORY = "thumbnails";
+
+
+
+
+const THUMBNAIL_BG_COLOR = "#fff";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/PromiseWorker.jsm", this);
@@ -65,8 +69,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
   "resource://gre/modules/AsyncShutdown.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PageThumbUtils",
-  "resource://gre/modules/PageThumbUtils.jsm");
 
 
 
@@ -172,21 +174,46 @@ this.PageThumbs = {
 
 
 
+  capture: function PageThumbs_capture(aWindow, aCallback) {
+    if (!this._prefEnabled()) {
+      return;
+    }
 
-  captureToBlob: function PageThumbs_captureToBlob(aBrowser) {
+    let canvas = this.createCanvas();
+    this.captureToCanvas(aWindow, canvas);
+
+    
+    
+    
+    Services.tm.currentThread.dispatch(function () {
+      canvas.mozFetchAsStream(aCallback, this.contentType);
+    }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+
+  
+
+
+
+
+
+
+  captureToBlob: function PageThumbs_captureToBlob(aWindow) {
     if (!this._prefEnabled()) {
       return null;
     }
 
-    let deferred = Promise.defer();
-
     let canvas = this.createCanvas();
-    this.captureToCanvas(aBrowser, canvas, () => {
-      canvas.toBlob(blob => {
-        deferred.resolve(blob, this.contentType);
-      });
-    });
+    this.captureToCanvas(aWindow, canvas);
 
+    let deferred = Promise.defer();
+    let type = this.contentType;
+    
+    
+    
+    canvas.toBlob(function asBlob(blob) {
+      deferred.resolve(blob, type);
+    });
     return deferred.promise;
   },
 
@@ -195,44 +222,18 @@ this.PageThumbs = {
 
 
 
-
-
-
-
-
-  captureToCanvas: function PageThumbs_captureToCanvas(aBrowser, aCanvas, aCallback) {
+  captureToCanvas: function PageThumbs_captureToCanvas(aWindow, aCanvas) {
     let telemetryCaptureTime = new Date();
-    this._captureToCanvas(aBrowser, aCanvas, function () {
-      Services.telemetry
-              .getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
-              .add(new Date() - telemetryCaptureTime);
-      if (aCallback) {
-        aCallback(aCanvas);
-      }
-    });
+    this._captureToCanvas(aWindow, aCanvas);
+    let telemetry = Services.telemetry;
+    telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
+      .add(new Date() - telemetryCaptureTime);
   },
 
   
   
-  _captureToCanvas: function (aBrowser, aCanvas, aCallback) {
-    if (aBrowser.isRemoteBrowser) {
-      Task.spawn(function () {
-        let data =
-          yield this._captureRemoteThumbnail(aBrowser, aCanvas);
-        let canvas = data.thumbnail;
-        let ctx = canvas.getContext("2d");
-        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        aCanvas.getContext("2d").putImageData(imgData, 0, 0);
-        if (aCallback) {
-          aCallback(aCanvas);
-        }
-      }.bind(this));
-      return;
-    }
-
-    
-    let [width, height, scale] =
-      PageThumbUtils.determineCropSize(aBrowser.contentWindow, aCanvas);
+  _captureToCanvas: function PageThumbs__captureToCanvas(aWindow, aCanvas) {
+    let [sw, sh, scale] = this._determineCropSize(aWindow, aCanvas);
     let ctx = aCanvas.getContext("2d");
 
     
@@ -241,76 +242,13 @@ this.PageThumbs = {
 
     try {
       
-      ctx.drawWindow(aBrowser.contentWindow, 0, 0, width, height,
-                     PageThumbUtils.THUMBNAIL_BG_COLOR,
+      ctx.drawWindow(aWindow, 0, 0, sw, sh, THUMBNAIL_BG_COLOR,
                      ctx.DRAWWINDOW_DO_NOT_FLUSH);
     } catch (e) {
       
     }
+
     ctx.restore();
-
-    if (aCallback) {
-      aCallback(aCanvas);
-    }
-  },
-
-  
-
-
-
-
-
-
-  _captureRemoteThumbnail: function (aBrowser, aCanvas) {
-    let deferred = Promise.defer();
-
-    
-    
-    let index = gRemoteThumbId++;
-
-    
-    let mm = aBrowser.messageManager;
-
-    
-    let thumbFunc = function (aMsg) {
-      
-      if (aMsg.data.id != index) {
-        return;
-      }
-
-      mm.removeMessageListener("Browser:Thumbnail:Response", thumbFunc);
-      let imageBlob = aMsg.data.thumbnail;
-      let doc = aBrowser.parentElement.ownerDocument;
-      let reader = Cc["@mozilla.org/files/filereader;1"].
-                   createInstance(Ci.nsIDOMFileReader);
-      reader.addEventListener("loadend", function() {
-        let image = doc.createElementNS(PageThumbUtils.HTML_NAMESPACE, "img");
-        image.onload = function () {
-          let thumbnail = doc.createElementNS(PageThumbUtils.HTML_NAMESPACE, "canvas");
-          thumbnail.width = image.naturalWidth;
-          thumbnail.height = image.naturalHeight;
-          let ctx = thumbnail.getContext("2d");
-          ctx.drawImage(image, 0, 0);
-          deferred.resolve({
-            thumbnail: thumbnail
-          });
-        }
-        image.src = reader.result;
-      });
-      
-      reader.readAsDataURL(imageBlob);
-    }
-
-    
-    mm.addMessageListener("Browser:Thumbnail:Response", thumbFunc);
-    mm.sendAsyncMessage("Browser:Thumbnail:Request", {
-      canvasWidth: aCanvas.width,
-      canvasHeight: aCanvas.height,
-      background: PageThumbUtils.THUMBNAIL_BG_COLOR,
-      id: index
-    });
-
-    return deferred.promise;
   },
 
   
@@ -324,27 +262,19 @@ this.PageThumbs = {
     }
 
     let url = aBrowser.currentURI.spec;
-    let originalURL;
-    let channelError = false;
+    let channel = aBrowser.docShell.currentDocumentChannel;
+    let originalURL = channel.originalURI.spec;
 
-    if (!aBrowser.isRemoteBrowser) {
-      let channel = aBrowser.docShell.currentDocumentChannel;
-      originalURL = channel.originalURI.spec;
-      
-      channelError = this._isChannelErrorResponse(channel);
-    } else {
-      
-      originalURL = url;
-    }
+    
+    let wasError = this._isChannelErrorResponse(channel);
 
     Task.spawn((function task() {
       let isSuccess = true;
       try {
-        let blob = yield this.captureToBlob(aBrowser);
+        let blob = yield this.captureToBlob(aBrowser.contentWindow);
         let buffer = yield TaskUtils.readBlob(blob);
-        yield this._store(originalURL, url, buffer, channelError);
-      } catch (ex) {
-        Components.utils.reportError("Exception thrown during thumbnail capture: '" + ex + "'");
+        yield this._store(originalURL, url, buffer, wasError);
+      } catch (_) {
         isSuccess = false;
       }
       if (aCallback) {
@@ -450,8 +380,69 @@ this.PageThumbs = {
 
 
 
+  _determineCropSize: function PageThumbs_determineCropSize(aWindow, aCanvas) {
+    let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils);
+    let sbWidth = {}, sbHeight = {};
+
+    try {
+      utils.getScrollbarSize(false, sbWidth, sbHeight);
+    } catch (e) {
+      
+      Cu.reportError("Unable to get scrollbar size in _determineCropSize.");
+      sbWidth.value = sbHeight.value = 0;
+    }
+
+    
+    
+    let sw = aWindow.innerWidth - sbWidth.value;
+    let sh = aWindow.innerHeight - sbHeight.value;
+
+    let {width: thumbnailWidth, height: thumbnailHeight} = aCanvas;
+    let scale = Math.min(Math.max(thumbnailWidth / sw, thumbnailHeight / sh), 1);
+    let scaledWidth = sw * scale;
+    let scaledHeight = sh * scale;
+
+    if (scaledHeight > thumbnailHeight)
+      sh -= Math.floor(Math.abs(scaledHeight - thumbnailHeight) * scale);
+
+    if (scaledWidth > thumbnailWidth)
+      sw -= Math.floor(Math.abs(scaledWidth - thumbnailWidth) * scale);
+
+    return [sw, sh, scale];
+  },
+
+  
+
+
+
+
+
   createCanvas: function PageThumbs_createCanvas(aWindow) {
-    return PageThumbUtils.createCanvas(aWindow);
+    let doc = (aWindow || Services.appShell.hiddenDOMWindow).document;
+    let canvas = doc.createElementNS(HTML_NAMESPACE, "canvas");
+    canvas.mozOpaque = true;
+    canvas.mozImageSmoothingEnabled = true;
+    let [thumbnailWidth, thumbnailHeight] = this._getThumbnailSize();
+    canvas.width = thumbnailWidth;
+    canvas.height = thumbnailHeight;
+    return canvas;
+  },
+
+  
+
+
+
+  _getThumbnailSize: function PageThumbs_getThumbnailSize() {
+    if (!this._thumbnailWidth || !this._thumbnailHeight) {
+      let screenManager = Cc["@mozilla.org/gfx/screenmanager;1"]
+                            .getService(Ci.nsIScreenManager);
+      let left = {}, top = {}, width = {}, height = {};
+      screenManager.primaryScreen.GetRectDisplayPix(left, top, width, height);
+      this._thumbnailWidth = Math.round(width.value / 3);
+      this._thumbnailHeight = Math.round(height.value / 3);
+    }
+    return [this._thumbnailWidth, this._thumbnailHeight];
   },
 
   

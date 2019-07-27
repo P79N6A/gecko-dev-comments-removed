@@ -33,6 +33,10 @@ let gBrowserThumbnails = {
   _tabEvents: ["TabClose", "TabSelect"],
 
   init: function Thumbnails_init() {
+    
+    if (gMultiProcessBrowser)
+      return;
+
     PageThumbs.addExpirationFilter(this);
     gBrowser.addTabsProgressListener(this);
     Services.prefs.addObserver(this.PREF_DISK_CACHE_SSL, this, false);
@@ -48,6 +52,10 @@ let gBrowserThumbnails = {
   },
 
   uninit: function Thumbnails_uninit() {
+    
+    if (gMultiProcessBrowser)
+      return;
+
     PageThumbs.removeExpirationFilter(this);
     gBrowser.removeTabsProgressListener(this);
     Services.prefs.removeObserver(this.PREF_DISK_CACHE_SSL, this);
@@ -118,6 +126,10 @@ let gBrowserThumbnails = {
   
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
     
+    if (gMultiProcessBrowser)
+      return false;
+
+    
     if (aBrowser != gBrowser.selectedBrowser)
       return false;
 
@@ -133,15 +145,11 @@ let gBrowserThumbnails = {
       return false;
 
     
-    if (aBrowser.currentURI.schemeIs("about"))
+    if (aBrowser.docShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE)
       return false;
 
     
-    if (!aBrowser.docShell)
-      return true;
-
-    
-    if (aBrowser.docShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE)
+    if (aBrowser.currentURI.schemeIs("about"))
       return false;
 
     let channel = aBrowser.docShell.currentDocumentChannel;
