@@ -282,6 +282,10 @@ void MediaDecoder::DestroyDecodedStream()
   MOZ_ASSERT(NS_IsMainThread());
   GetReentrantMonitor().AssertCurrentThreadIn();
 
+  if (GetDecodedStream()) {
+    GetStateMachine()->ResyncMediaStreamClock();
+  }
+
   
   
   for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {

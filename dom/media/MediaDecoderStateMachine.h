@@ -333,6 +333,11 @@ public:
   
   
   void SetSyncPointForMediaStream();
+
+  
+  
+  
+  void ResyncMediaStreamClock();
   int64_t GetCurrentTimeViaMediaStreamSync() const;
 
   
@@ -744,6 +749,7 @@ protected:
   int64_t mSyncPointInMediaStream; 
   int64_t mSyncPointInDecodedStream; 
 
+  
   
   
   
