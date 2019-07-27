@@ -6651,10 +6651,11 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
 
     
     
-    JS_ASSERT(Imm16::IsInSignedRange(AsmJSModule::heapGlobalDataOffset()));
+    JS_ASSERT(Imm16::IsInSignedRange(AsmJSModule::heapGlobalDataOffset() - AsmJSGlobalRegBias));
     masm.pop(HeapReg);
     masm.as_jr(HeapReg);
-    masm.loadPtr(Address(GlobalReg, AsmJSModule::heapGlobalDataOffset()), HeapReg);
+    masm.loadPtr(Address(GlobalReg, AsmJSModule::heapGlobalDataOffset() - AsmJSGlobalRegBias),
+                 HeapReg);
 #elif defined(JS_CODEGEN_ARM)
     masm.setFramePushed(0);         
     masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(Registers::AllMask & ~(1<<Registers::sp)), FloatRegisterSet(uint32_t(0))));   

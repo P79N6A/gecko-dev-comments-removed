@@ -120,6 +120,11 @@ static MOZ_CONSTEXPR_VAR FloatRegister SecondScratchFloat32Reg = { FloatRegister
 static MOZ_CONSTEXPR_VAR FloatRegister SecondScratchDoubleReg = { FloatRegisters::f16, FloatRegister::Double };
 
 
+
+
+static const int32_t AsmJSGlobalRegBias = 32768;
+
+
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegCallee = t0;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE0 = a0;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegE1 = a1;
