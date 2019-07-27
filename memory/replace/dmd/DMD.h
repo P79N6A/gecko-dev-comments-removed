@@ -8,121 +8,20 @@
 #define DMD_h___
 
 #include <string.h>
+#include <stdarg.h>
 
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Move.h"
 #include "mozilla/Types.h"
 #include "mozilla/UniquePtr.h"
+
+#include "replace_malloc_bridge.h"
 
 namespace mozilla {
 
 class JSONWriteFunc;
 
 namespace dmd {
-
-
-MOZ_EXPORT void
-Report(const void* aPtr);
-
-
-MOZ_EXPORT void
-ReportOnAlloc(const void* aPtr);
-
-
-
-
-
-
-
-MOZ_EXPORT void
-ClearReports();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-MOZ_EXPORT void
-AnalyzeReports(mozilla::UniquePtr<mozilla::JSONWriteFunc>);
 
 struct Sizes
 {
@@ -137,24 +36,257 @@ struct Sizes
 
 
 
-MOZ_EXPORT void
-SizeOf(Sizes* aSizes);
+
+struct DMDFuncs
+{
+  virtual void Report(const void*);
+
+  virtual void ReportOnAlloc(const void*);
+
+  virtual void ClearReports();
+
+  virtual void AnalyzeReports(UniquePtr<JSONWriteFunc>);
+
+  virtual void SizeOf(Sizes*);
+
+  virtual void StatusMsg(const char*, va_list);
+
+  virtual void SetSampleBelowSize(size_t);
+
+  virtual void ClearBlocks();
+
+#ifndef REPLACE_MALLOC_IMPL
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static DMDFuncs* Get() { return sSingleton.Get(); }
+
+private:
+  
+  
+  
+  
+  
+  class Singleton
+  {
+  public:
+    Singleton() : mValue(ReplaceMalloc::GetDMDFuncs()), mInitialized(true) {}
+
+    DMDFuncs* Get()
+    {
+      MOZ_ASSERT(mInitialized);
+      return mValue;
+    }
+
+  private:
+    DMDFuncs* mValue;
+    DebugOnly<bool> mInitialized;
+  };
+
+  
+  
+  static Singleton sSingleton;
+#endif
+};
+
+#ifndef REPLACE_MALLOC_IMPL
+
+inline void
+Report(const void* aPtr)
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    funcs->Report(aPtr);
+  }
+}
 
 
-MOZ_EXPORT void
-StatusMsg(const char* aFmt, ...);
+inline void
+ReportOnAlloc(const void* aPtr)
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    funcs->ReportOnAlloc(aPtr);
+  }
+}
 
 
-MOZ_EXPORT bool
-IsRunning();
 
 
-MOZ_EXPORT void
-SetSampleBelowSize(size_t aSize);
 
 
-MOZ_EXPORT void
-ClearBlocks();
+
+inline void
+ClearReports()
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    funcs->ClearReports();
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename JSONWriteFunc>
+inline void
+AnalyzeReports(UniquePtr<JSONWriteFunc> aWriteFunc)
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    funcs->AnalyzeReports(Move(aWriteFunc));
+  }
+}
+
+
+
+inline void
+SizeOf(Sizes* aSizes)
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    funcs->SizeOf(aSizes);
+  }
+}
+
+
+inline void
+StatusMsg(const char* aFmt, ...)
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    va_list ap;
+    va_start(ap, aFmt);
+    funcs->StatusMsg(aFmt, ap);
+    va_end(ap);
+  }
+}
+
+
+inline bool
+IsRunning()
+{
+  return !!DMDFuncs::Get();
+}
+
+
+inline void
+SetSampleBelowSize(size_t aSize)
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    funcs->SetSampleBelowSize(aSize);
+  }
+}
+
+
+inline void
+ClearBlocks()
+{
+  DMDFuncs* funcs = DMDFuncs::Get();
+  if (funcs) {
+    funcs->ClearBlocks();
+  }
+}
+#endif
 
 } 
 } 

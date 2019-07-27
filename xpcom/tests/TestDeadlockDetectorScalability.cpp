@@ -4,6 +4,9 @@
 
 
 
+
+#undef MOZ_DMD
+
 #include "TestHarness.h"
 #include "nsIMemoryReporter.h"
 

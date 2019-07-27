@@ -58,9 +58,18 @@ struct ReplaceMallocBridge;
 extern "C" MFBT_API ReplaceMallocBridge* get_bridge();
 #endif
 
+namespace mozilla {
+namespace dmd {
+struct DMDFuncs;
+}
+}
+
 struct ReplaceMallocBridge
 {
-  ReplaceMallocBridge() : mVersion(0) {}
+  ReplaceMallocBridge() : mVersion(1) {}
+
+  
+  virtual mozilla::dmd::DMDFuncs* GetDMDFuncs() { return nullptr; }
 
 #ifndef REPLACE_MALLOC_IMPL
   
@@ -85,6 +94,13 @@ protected:
 
 struct ReplaceMalloc
 {
+  
+
+  static mozilla::dmd::DMDFuncs* GetDMDFuncs()
+  {
+    auto singleton = ReplaceMallocBridge::Get( 1);
+    return singleton ? singleton->GetDMDFuncs() : nullptr;
+  }
 };
 #endif
 

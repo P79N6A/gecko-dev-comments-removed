@@ -4,8 +4,6 @@
 
 
 
-#include "DMD.h"
-
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -49,6 +47,8 @@
 
 
 
+
+
 #define MOZ_REPLACE_ONLY_MEMALIGN 1
 
 #ifdef XP_WIN
@@ -66,8 +66,33 @@ static long GetPageSize()
 #undef MOZ_REPLACE_ONLY_MEMALIGN
 #undef PAGE_SIZE
 
+#include "DMD.h"
+
 namespace mozilla {
 namespace dmd {
+
+class DMDBridge : public ReplaceMallocBridge
+{
+  virtual DMDFuncs* GetDMDFuncs() MOZ_OVERRIDE;
+};
+
+static DMDBridge sDMDBridge;
+static DMDFuncs sDMDFuncs;
+
+DMDFuncs*
+DMDBridge::GetDMDFuncs()
+{
+  return &sDMDFuncs;
+}
+
+inline void
+StatusMsg(const char* aFmt, ...)
+{
+  va_list ap;
+  va_start(ap, aFmt);
+  sDMDFuncs.StatusMsg(aFmt, ap);
+  va_end(ap);
+}
 
 
 
@@ -82,7 +107,7 @@ namespace dmd {
 static const malloc_table_t* gMallocTable = nullptr;
 
 
-static bool gIsDMDRunning = false;
+static bool gIsDMDInitialized = false;
 
 
 
@@ -197,26 +222,23 @@ MallocSizeOf(const void* aPtr)
   return gMallocTable->malloc_usable_size(const_cast<void*>(aPtr));
 }
 
-MOZ_EXPORT void
-StatusMsg(const char* aFmt, ...)
+void
+DMDFuncs::StatusMsg(const char* aFmt, va_list aAp)
 {
-  va_list ap;
-  va_start(ap, aFmt);
 #ifdef ANDROID
 #ifdef MOZ_B2G_LOADER
   
   
-  if (gIsDMDRunning)
+  if (gIsDMDInitialized)
 #endif
-    __android_log_vprint(ANDROID_LOG_INFO, "DMD", aFmt, ap);
+    __android_log_vprint(ANDROID_LOG_INFO, "DMD", aFmt, aAp);
 #else
   
   char* fmt = (char*) InfallibleAllocPolicy::malloc_(strlen(aFmt) + 64);
   sprintf(fmt, "DMD[%d] %s", getpid(), aFmt);
-  vfprintf(stderr, fmt, ap);
+  vfprintf(stderr, fmt, aAp);
   InfallibleAllocPolicy::free_(fmt);
 #endif
-  va_end(ap);
 }
 
  void
@@ -954,8 +976,6 @@ static size_t gSmallBlockActualSizeCounter = 0;
 static void
 AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
 {
-  MOZ_ASSERT(gIsDMDRunning);
-
   if (!aPtr) {
     return;
   }
@@ -988,8 +1008,6 @@ AllocCallback(void* aPtr, size_t aReqSize, Thread* aT)
 static void
 FreeCallback(void* aPtr, Thread* aT)
 {
-  MOZ_ASSERT(gIsDMDRunning);
-
   if (!aPtr) {
     return;
   }
@@ -1019,12 +1037,18 @@ replace_init(const malloc_table_t* aMallocTable)
   mozilla::dmd::Init(aMallocTable);
 }
 
+ReplaceMallocBridge*
+replace_get_bridge()
+{
+  return &mozilla::dmd::sDMDBridge;
+}
+
 void*
 replace_malloc(size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     
     
     
@@ -1050,7 +1074,7 @@ replace_calloc(size_t aCount, size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     return gMallocTable->calloc(aCount, aSize);
   }
 
@@ -1069,7 +1093,7 @@ replace_realloc(void* aOldPtr, size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     return gMallocTable->realloc(aOldPtr, aSize);
   }
 
@@ -1106,7 +1130,7 @@ replace_memalign(size_t aAlignment, size_t aSize)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     return gMallocTable->memalign(aAlignment, aSize);
   }
 
@@ -1125,7 +1149,7 @@ replace_free(void* aPtr)
 {
   using namespace mozilla::dmd;
 
-  if (!gIsDMDRunning) {
+  if (!gIsDMDInitialized) {
     gMallocTable->free(aPtr);
     return;
   }
@@ -1266,11 +1290,8 @@ Options::BadArg(const char* aArg)
   StatusMsg("\n");
   StatusMsg("Bad entry in the $DMD environment variable: '%s'.\n", aArg);
   StatusMsg("\n");
-  StatusMsg("Valid values of $DMD are:\n");
-  StatusMsg("- undefined or \"\" or \"0\", which disables DMD, or\n");
-  StatusMsg("- \"1\", which enables it with the default options, or\n");
-  StatusMsg("- a whitespace-separated list of |--option=val| entries, which\n");
-  StatusMsg("  enables it with non-default options.\n");
+  StatusMsg("$DMD must be a whitespace-separated list of |--option=val|\n");
+  StatusMsg("entries.\n");
   StatusMsg("\n");
   StatusMsg("The following options are allowed;  defaults are shown in [].\n");
   StatusMsg("  --sample-below=<1..%d> Sample blocks smaller than this [%d]\n",
@@ -1304,18 +1325,13 @@ NopStackWalkCallback(uint32_t aFrameNumber, void* aPc, void* aSp,
 static void
 Init(const malloc_table_t* aMallocTable)
 {
-  MOZ_ASSERT(!gIsDMDRunning);
-
   gMallocTable = aMallocTable;
 
   
-  
-  
+  const char* e = getenv("DMD");
 
-  char* e = getenv("DMD");
-
-  if (!e || strcmp(e, "") == 0 || strcmp(e, "0") == 0) {
-    return;
+  if (!e) {
+    e = "1";
   }
 
   StatusMsg("$DMD = '%s'\n", e);
@@ -1350,7 +1366,7 @@ Init(const malloc_table_t* aMallocTable)
     gBlockTable->init(8192);
   }
 
-  gIsDMDRunning = true;
+  gIsDMDInitialized = true;
 }
 
 
@@ -1360,7 +1376,7 @@ Init(const malloc_table_t* aMallocTable)
 static void
 ReportHelper(const void* aPtr, bool aReportedOnAlloc)
 {
-  if (!gIsDMDRunning || !aPtr) {
+  if (!aPtr) {
     return;
   }
 
@@ -1379,14 +1395,14 @@ ReportHelper(const void* aPtr, bool aReportedOnAlloc)
   }
 }
 
-MOZ_EXPORT void
-Report(const void* aPtr)
+void
+DMDFuncs::Report(const void* aPtr)
 {
   ReportHelper(aPtr,  false);
 }
 
-MOZ_EXPORT void
-ReportOnAlloc(const void* aPtr)
+void
+DMDFuncs::ReportOnAlloc(const void* aPtr)
 {
   ReportHelper(aPtr,  true);
 }
@@ -1420,10 +1436,6 @@ SizeOfInternal(Sizes* aSizes)
 
   aSizes->Clear();
 
-  if (!gIsDMDRunning) {
-    return;
-  }
-
   StackTraceSet usedStackTraces;
   GatherUsedStackTraces(usedStackTraces);
 
@@ -1445,27 +1457,19 @@ SizeOfInternal(Sizes* aSizes)
   aSizes->mBlockTable = gBlockTable->sizeOfIncludingThis(MallocSizeOf);
 }
 
-MOZ_EXPORT void
-SizeOf(Sizes* aSizes)
+void
+DMDFuncs::SizeOf(Sizes* aSizes)
 {
   aSizes->Clear();
-
-  if (!gIsDMDRunning) {
-    return;
-  }
 
   AutoBlockIntercepts block(Thread::Fetch());
   AutoLockState lock;
   SizeOfInternal(aSizes);
 }
 
-MOZ_EXPORT void
-ClearReports()
+void
+DMDFuncs::ClearReports()
 {
-  if (!gIsDMDRunning) {
-    return;
-  }
-
   AutoLockState lock;
 
   
@@ -1474,12 +1478,6 @@ ClearReports()
   for (BlockTable::Range r = gBlockTable->all(); !r.empty(); r.popFront()) {
     r.front().UnreportIfNotReportedOnAlloc();
   }
-}
-
-MOZ_EXPORT bool
-IsRunning()
-{
-  return gIsDMDRunning;
 }
 
 class ToIdStringConverter MOZ_FINAL
@@ -1551,10 +1549,6 @@ private:
 static void
 AnalyzeReportsImpl(UniquePtr<JSONWriteFunc> aWriter)
 {
-  if (!gIsDMDRunning) {
-    return;
-  }
-
   AutoBlockIntercepts block(Thread::Fetch());
   AutoLockState lock;
 
@@ -1727,8 +1721,8 @@ AnalyzeReportsImpl(UniquePtr<JSONWriteFunc> aWriter)
   StatusMsg("}\n");
 }
 
-MOZ_EXPORT void
-AnalyzeReports(UniquePtr<JSONWriteFunc> aWriter)
+void
+DMDFuncs::AnalyzeReports(UniquePtr<JSONWriteFunc> aWriter)
 {
   AnalyzeReportsImpl(Move(aWriter));
   ClearReports();
@@ -1738,14 +1732,14 @@ AnalyzeReports(UniquePtr<JSONWriteFunc> aWriter)
 
 
 
-MOZ_EXPORT void
-SetSampleBelowSize(size_t aSize)
+void
+DMDFuncs::SetSampleBelowSize(size_t aSize)
 {
   gOptions->SetSampleBelowSize(aSize);
 }
 
-MOZ_EXPORT void
-ClearBlocks()
+void
+DMDFuncs::ClearBlocks()
 {
   gBlockTable->clear();
   gSmallBlockActualSizeCounter = 0;
