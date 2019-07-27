@@ -491,6 +491,16 @@ protected:
   
 
 
+
+
+
+
+
+  ScreenPoint PanStart() const;
+
+  
+
+
   const ScreenPoint GetVelocityVector();
 
   

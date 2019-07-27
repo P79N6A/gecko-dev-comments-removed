@@ -121,6 +121,11 @@ public:
   
 
 
+  ScreenCoord PanStart() const;
+
+  
+
+
 
 
   ScreenCoord PanDistance() const;
