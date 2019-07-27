@@ -109,6 +109,9 @@ private:
                const mozilla::ipc::PrincipalInfo& aPrincipalInfo, Feature* aFeature);
   ~CacheStorage();
 
+  
+  void DisconnectFromActor();
+
   void MaybeRunPendingRequests();
 
   RequestId AddRequestPromise(Promise* aPromise, ErrorResult& aRv);
