@@ -17,8 +17,9 @@
 
 
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && _MSC_VER < 1900
    
+
 
 
 
@@ -50,6 +51,7 @@ typedef unsigned int char32_t;
 #ifdef MOZ_USE_CHAR16_WRAPPER
 # include <string>
   
+
 
 
 
