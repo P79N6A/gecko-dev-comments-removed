@@ -13,6 +13,16 @@
 
 
 
+var debug = false;
+function log(...stuff) {
+  if (!debug) {
+    return;
+  }
+
+  let msg = "listmanager: " + stuff.join(" ");
+  dump(msg + "\n");
+}
+
 function QueryAdapter(callback) {
   this.callback_ = callback;
 };
@@ -28,46 +38,31 @@ QueryAdapter.prototype.handleResponse = function(value) {
 
 
 function PROT_ListManager() {
-  this.debugZone = "listmanager";
-  G_debugService.enableZone(this.debugZone);
-
-  this.currentUpdateChecker_ = null;   
   this.prefs_ = new G_Preferences();
   this.updateInterval = this.prefs_.getPref("urlclassifier.updateinterval", 30 * 60) * 1000;
 
-  this.updateserverURL_ = null;
-  this.gethashURL_ = null;
-
-  this.isTesting_ = false;
-
+  
+  
   this.tablesData = {};
+  
+  
+  
+  this.needsUpdate_ = {};
 
   this.observerServiceObserver_ = new G_ObserverServiceObserver(
                                           'quit-application',
                                           BindToObject(this.shutdown_, this),
                                           true );
 
-  this.cookieObserver_ = new G_ObserverServiceObserver(
-                                          'cookie-changed',
-                                          BindToObject(this.cookieChanged_, this),
-                                          false);
-
-  
-  var backoffInterval = 30 * 60 * 1000;
-  backoffInterval += Math.floor(Math.random() * (30 * 60 * 1000));
-
-  this.requestBackoff_ = new RequestBackoff(2 ,
-                                      60*1000 ,
-                                            4 ,
-                                   60*60*1000 ,
-                              backoffInterval ,
-                                 8*60*60*1000 );
-
+  this.updateCheckers_ = {};
+  this.requestBackoffs_ = {};
   this.dbService_ = Cc["@mozilla.org/url-classifier/dbservice;1"]
                    .getService(Ci.nsIUrlClassifierDBService);
 
+
   this.hashCompleter_ = Cc["@mozilla.org/url-classifier/hashcompleter;1"]
                         .getService(Ci.nsIUrlClassifierHashCompleter);
+  debug = this.prefs_.getPref("browser.safebrowsing.debug");
 }
 
 
@@ -87,44 +82,44 @@ PROT_ListManager.prototype.shutdown_ = function() {
 
 
 
-
-
-PROT_ListManager.prototype.setUpdateUrl = function(url) {
-  G_Debug(this, "Set update url: " + url);
-  if (url != this.updateserverURL_) {
-    this.updateserverURL_ = url;
-    this.requestBackoff_.reset();
-    
-    
-    for (var name in this.tablesData) {
-      delete this.tablesData[name];
-    }
+PROT_ListManager.prototype.registerTable = function(tableName,
+                                                    updateUrl,
+                                                    gethashUrl) {
+  log("registering " + tableName + " with " + updateUrl);
+  if (!updateUrl) {
+    log("Can't register table " + tableName + " without updateUrl");
+    return false;
   }
-}
-
-
-
-
-PROT_ListManager.prototype.setGethashUrl = function(url) {
-  G_Debug(this, "Set gethash url: " + url);
-  if (url != this.gethashURL_) {
-    this.gethashURL_ = url;
-    this.hashCompleter_.gethashUrl = url;
-  }
-}
-
-
-
-
-
-
-
-PROT_ListManager.prototype.registerTable = function(tableName, 
-                                                    opt_requireMac) {
   this.tablesData[tableName] = {};
-  this.tablesData[tableName].needsUpdate = false;
+  this.tablesData[tableName].updateUrl = updateUrl;
+  this.tablesData[tableName].gethashUrl = gethashUrl;
+
+  
+  if (!this.needsUpdate_[updateUrl]) {
+    this.needsUpdate_[updateUrl] = {};
+    
+    var backoffInterval = 30 * 60 * 1000;
+    backoffInterval += Math.floor(Math.random() * (30 * 60 * 1000));
+
+    log("Creating request backoff for " + updateUrl);
+    this.requestBackoffs_[updateUrl] = new RequestBackoff(2 ,
+                                      60*1000 ,
+                                            4 ,
+                                   60*60*1000 ,
+                              backoffInterval ,
+                                 8*60*60*1000 );
+
+  }
+  this.needsUpdate_[updateUrl][tableName] = false;
 
   return true;
+}
+
+PROT_ListManager.prototype.getGethashUrl = function(tableName) {
+  if (this.tablesData[tableName] && this.tablesData[tableName].gethashUrl) {
+    return this.tablesData[tableName].gethashUrl;
+  }
+  return "";
 }
 
 
@@ -135,13 +130,14 @@ PROT_ListManager.prototype.enableUpdate = function(tableName) {
   var changed = false;
   var table = this.tablesData[tableName];
   if (table) {
-    G_Debug(this, "Enabling table updates for " + tableName);
-    table.needsUpdate = true;
+    log("Enabling table updates for " + tableName);
+    this.needsUpdate_[table.updateUrl][tableName] = true;
     changed = true;
   }
 
-  if (changed === true)
+  if (changed) {
     this.maybeToggleUpdateChecking();
+  }
 }
 
 
@@ -152,40 +148,28 @@ PROT_ListManager.prototype.disableUpdate = function(tableName) {
   var changed = false;
   var table = this.tablesData[tableName];
   if (table) {
-    G_Debug(this, "Disabling table updates for " + tableName);
-    table.needsUpdate = false;
+    log("Disabling table updates for " + tableName);
+    this.needsUpdate_[table.updateUrl][tableName] = false;
     changed = true;
   }
 
-  if (changed === true)
+  if (changed) {
     this.maybeToggleUpdateChecking();
+  }
 }
 
 
 
 
 PROT_ListManager.prototype.requireTableUpdates = function() {
-  for (var type in this.tablesData) {
+  for (var name in this.tablesData) {
     
-    if (this.tablesData[type].needsUpdate)
+    if (this.needsUpdate_[this.tablesData[name].updateUrl][name]) {
       return true;
+    }
   }
 
   return false;
-}
-
-
-
-
-
-
-PROT_ListManager.prototype.maybeStartManagingUpdates = function() {
-  if (this.isTesting_)
-    return;
-
-  
-  
-  this.maybeToggleUpdateChecking();
 }
 
 
@@ -197,25 +181,40 @@ PROT_ListManager.prototype.kickoffUpdate_ = function (onDiskTableData)
   var initialUpdateDelay = 3000;
 
   
-  var diskTablesAreUpdating = false;
+  var updatingExisting = false;
   for (var tableName in this.tablesData) {
-    if (this.tablesData[tableName].needsUpdate) {
+    if (this.needsUpdate_[this.tablesData[tableName].updateUrl][tableName]) {
       if (onDiskTableData.indexOf(tableName) != -1) {
-        diskTablesAreUpdating = true;
+        updatingExisting = true;
       }
     }
   }
 
   
-  
-  if (diskTablesAreUpdating) {
+  log("needsUpdate: " + JSON.stringify(this.needsUpdate_, undefined, 2));
+  for (var url in this.needsUpdate_) {
     
-    initialUpdateDelay += Math.floor(Math.random() * (5 * 60 * 1000));
+    if (updatingExisting) {
+      
+      initialUpdateDelay += Math.floor(Math.random() * (5 * 60 * 1000));
+    }
+    
+    
+    
+    if (!this.updateCheckers_[url]) {
+      this.updateCheckers_[url] =
+        new G_Alarm(BindToObject(this.checkForUpdates, this, url),
+                    initialUpdateDelay, true );
+    }
   }
+}
 
-  this.currentUpdateChecker_ =
-    new G_Alarm(BindToObject(this.checkForUpdates, this),
-                initialUpdateDelay);
+PROT_ListManager.prototype.stopUpdateCheckers = function() {
+  log("Stopping updates");
+  for (var updateUrl in this.updateCheckers_) {
+    this.updateCheckers_[updateUrl].cancel();
+    this.updateCheckers_[updateUrl] = null;
+  }
 }
 
 
@@ -225,68 +224,19 @@ PROT_ListManager.prototype.kickoffUpdate_ = function (onDiskTableData)
 PROT_ListManager.prototype.maybeToggleUpdateChecking = function() {
   
   
-  if (this.isTesting_)
-    return;
-
-  
-  
-  if (this.requireTableUpdates() === true) {
-    G_Debug(this, "Starting managing lists");
-    this.startUpdateChecker();
+  if (this.requireTableUpdates()) {
+    log("Starting managing lists");
 
     
     
-    if (!this.currentUpdateChecker && !this.startingUpdate_) {
+    if (!this.startingUpdate_) {
       this.startingUpdate_ = true;
       
       this.dbService_.getTables(BindToObject(this.kickoffUpdate_, this));
     }
   } else {
-    G_Debug(this, "Stopping managing lists (if currently active)");
-    this.stopUpdateChecker();                    
-  }
-}
-
-
-
-
-
-
-
-PROT_ListManager.prototype.startUpdateChecker = function() {
-  this.stopUpdateChecker();
-
-  
-  var repeatingUpdateDelay = this.updateInterval / 2;
-  repeatingUpdateDelay += Math.floor(Math.random() * this.updateInterval);
-  this.updateChecker_ = new G_Alarm(BindToObject(this.initialUpdateCheck_,
-                                                 this),
-                                    repeatingUpdateDelay);
-}
-
-
-
-
-
-
-PROT_ListManager.prototype.initialUpdateCheck_ = function() {
-  this.checkForUpdates();
-  this.updateChecker_ = new G_Alarm(BindToObject(this.checkForUpdates, this), 
-                                    this.updateInterval, true );
-}
-
-
-
-
-PROT_ListManager.prototype.stopUpdateChecker = function() {
-  if (this.updateChecker_) {
-    this.updateChecker_.cancel();
-    this.updateChecker_ = null;
-  }
-  
-  if (this.currentUpdateChecker_) {
-    this.currentUpdateChecker_.cancel();
-    this.currentUpdateChecker_ = null;
+    log("Stopping managing lists (if currently active)");
+    this.stopUpdateCheckers();                    
   }
 }
 
@@ -303,13 +253,13 @@ PROT_ListManager.prototype.stopUpdateChecker = function() {
 
 PROT_ListManager.prototype.safeLookup = function(key, callback) {
   try {
-    G_Debug(this, "safeLookup: " + key);
+    log("safeLookup: " + key);
     var cb = new QueryAdapter(callback);
     this.dbService_.lookup(key,
                            BindToObject(cb.handleResponse, cb),
                            true);
   } catch(e) {
-    G_Debug(this, "safeLookup masked failure for key " + key + ": " + e);
+    log("safeLookup masked failure for key " + key + ": " + e);
     callback.handleEvent("");
   }
 }
@@ -320,21 +270,19 @@ PROT_ListManager.prototype.safeLookup = function(key, callback) {
 
 
 
-PROT_ListManager.prototype.checkForUpdates = function() {
+PROT_ListManager.prototype.checkForUpdates = function(updateUrl) {
+  log("checkForUpdates with " + updateUrl);
   
-  this.currentUpdateChecker_ = null;
-
-  if (!this.updateserverURL_) {
-    G_Debug(this, 'checkForUpdates: no update server url');
+  if (!updateUrl) {
     return false;
   }
-
-  
-  if (!this.requestBackoff_.canMakeRequest())
+  if (!this.requestBackoffs_[updateUrl] ||
+      !this.requestBackoffs_[updateUrl].canMakeRequest()) {
     return false;
-
+  }
   
-  this.dbService_.getTables(BindToObject(this.makeUpdateRequest_, this));
+  this.dbService_.getTables(BindToObject(this.makeUpdateRequest_, this,
+                            updateUrl));
   return true;
 }
 
@@ -344,56 +292,76 @@ PROT_ListManager.prototype.checkForUpdates = function() {
 
 
 
-PROT_ListManager.prototype.makeUpdateRequest_ = function(tableData) {
-  var tableList;
-  var tableNames = {};
+PROT_ListManager.prototype.makeUpdateRequest_ = function(updateUrl, tableData) {
+  log("this.tablesData: " + JSON.stringify(this.tablesData, undefined, 2));
+  log("existing chunks: " + tableData + "\n");
+  
+  if (!updateUrl) {
+    return;
+  }
+  
+  
+  
+  
+  
+  var streamerMap = { tableList: null, tableNames: {}, request: "" };
   for (var tableName in this.tablesData) {
-    if (this.tablesData[tableName].needsUpdate)
-      tableNames[tableName] = true;
-    if (!tableList) {
-      tableList = tableName;
+    
+    if (this.tablesData[tableName].updateUrl != updateUrl) {
+      continue;
+    }
+    if (this.needsUpdate_[this.tablesData[tableName].updateUrl][tableName]) {
+      streamerMap.tableNames[tableName] = true;
+    }
+    if (!streamerMap.tableList) {
+      streamerMap.tableList = tableName;
     } else {
-      tableList += "," + tableName;
+      streamerMap.tableList += "," + tableName;
     }
   }
-
-  var request = "";
-
   
   
   var lines = tableData.split("\n");
   for (var i = 0; i < lines.length; i++) {
     var fields = lines[i].split(";");
-    if (tableNames[fields[0]]) {
-      request += lines[i] + "\n";
-      delete tableNames[fields[0]];
+    var name = fields[0];
+    if (streamerMap.tableNames[name]) {
+      streamerMap.request += lines[i] + "\n";
+      delete streamerMap.tableNames[name];
     }
   }
-
   
   
-  for (var tableName in tableNames) {
-    request += tableName + ";\n";
+  for (let tableName in streamerMap.tableNames) {
+    streamerMap.request += tableName + ";\n";
   }
 
-  G_Debug(this, 'checkForUpdates: scheduling request..');
+  log("update request: " + JSON.stringify(streamerMap, undefined, 2) + "\n");
+
+  if (Object.keys(streamerMap.tableNames).length > 0) {
+    this.makeUpdateRequestForEntry_(updateUrl, streamerMap.tableList,
+                                    streamerMap.request);
+  }
+}
+
+PROT_ListManager.prototype.makeUpdateRequestForEntry_ = function(updateUrl,
+                                                                 tableList,
+                                                                 request) {
+  log("makeUpdateRequestForEntry_: request " + request + " update: " +
+      updateUrl + " tablelist: " + tableList + "\n");
   var streamer = Cc["@mozilla.org/url-classifier/streamupdater;1"]
                  .getService(Ci.nsIUrlClassifierStreamUpdater);
-  try {
-    streamer.updateUrl = this.updateserverURL_;
-  } catch (e) {
-    G_Debug(this, 'invalid url');
-    return;
-  }
 
-  this.requestBackoff_.noteRequest();
+  this.requestBackoffs_[updateUrl].noteRequest();
 
-  if (!streamer.downloadUpdates(tableList,
-                                request,
-                                BindToObject(this.updateSuccess_, this),
-                                BindToObject(this.updateError_, this),
-                                BindToObject(this.downloadError_, this))) {
-    G_Debug(this, "pending update, wait until later");
+  if (!streamer.downloadUpdates(
+        tableList,
+        request,
+        updateUrl,
+        BindToObject(this.updateSuccess_, this, tableList, updateUrl),
+        BindToObject(this.updateError_, this, tableList, updateUrl),
+        BindToObject(this.downloadError_, this, tableList, updateUrl))) {
+    log("pending update, wait until later");
   }
 }
 
@@ -402,26 +370,34 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(tableData) {
 
 
 
-PROT_ListManager.prototype.updateSuccess_ = function(waitForUpdate) {
-  G_Debug(this, "update success: " + waitForUpdate);
+PROT_ListManager.prototype.updateSuccess_ = function(tableList, updateUrl,
+                                                     waitForUpdate) {
+  log("update success for " + tableList + " from " + updateUrl + ": " +
+      waitForUpdate + "\n");
   if (waitForUpdate) {
     var delay = parseInt(waitForUpdate, 10);
     
     
-    if (delay >= (5 * 60) && this.updateChecker_)
-      this.updateChecker_.setDelay(delay * 1000);
+    
+    if (delay >= (5 * 60) && this.updateCheckers_[updateUrl]) {
+      log("Waiting " + delay);
+      this.updateCheckers_[updateUrl].setDelay(delay * 1000);
+    } else {
+      log("Ignoring delay from server, waiting " + this.updateInterval);
+      this.updateCheckers_[updateUrl].setDelay(this.updateInterval);
+    }
   }
 
   
-  this.requestBackoff_.noteServerResponse(200);
+  this.requestBackoffs_[updateUrl].noteServerResponse(200);
 }
 
 
 
 
 
-PROT_ListManager.prototype.updateError_ = function(result) {
-  G_Debug(this, "update error: " + result);
+PROT_ListManager.prototype.updateError_ = function(table, updateUrl, result) {
+  log("update error for " + table + " from " + updateUrl + ": " + result + "\n");
   
 }
 
@@ -429,32 +405,20 @@ PROT_ListManager.prototype.updateError_ = function(result) {
 
 
 
-PROT_ListManager.prototype.downloadError_ = function(status) {
-  G_Debug(this, "download error: " + status);
+PROT_ListManager.prototype.downloadError_ = function(table, updateUrl, status) {
+  log("download error for " + table + ": " + status + "\n");
   
   
   if (!status) {
     status = 500;
   }
   status = parseInt(status, 10);
-  this.requestBackoff_.noteServerResponse(status);
-
-  if (this.requestBackoff_.isErrorStatus(status)) {
+  this.requestBackoffs_[updateUrl].noteServerResponse(status);
+  if (this.requestBackoffs_[updateUrl].isErrorStatus(status)) {
     
-    this.currentUpdateChecker_ =
-      new G_Alarm(BindToObject(this.checkForUpdates, this),
-                  this.requestBackoff_.nextRequestDelay());
+    this.updateCheckers_[updateUrl].setDelay(
+      this.requestBackoffs_[updateUrl].nextRequestDelay());
   }
-}
-
-
-
-
-PROT_ListManager.prototype.cookieChanged_ = function(subject, topic, data) {
-  if (data != "cleared")
-    return;
-
-  G_Debug(this, "cookies cleared");
 }
 
 PROT_ListManager.prototype.QueryInterface = function(iid) {

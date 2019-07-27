@@ -28,6 +28,8 @@
 
 
 
+
+
 let basicCompletionSet = [
   {
     hash: "abcdefgh",
@@ -119,7 +121,7 @@ let multipleResponsesCompletionSet = [
 
 
 const SIZE_OF_RANDOM_SET = 16;
-function addRandomCompletionSet() {
+function getRandomCompletionSet(forceServerError) {
   let completionSet = [];
   let hashPrefixes = [];
 
@@ -128,7 +130,7 @@ function addRandomCompletionSet() {
   let rand = new LFSRgenerator(seed);
 
   for (let i = 0; i < SIZE_OF_RANDOM_SET; i++) {
-    let completion = {};
+    let completion = { expectCompletion: false, forceServerError: false, _finished: false };
 
     
     
@@ -145,7 +147,11 @@ function addRandomCompletionSet() {
     hashPrefixes.push(prefix);
     completion.hash = hash;
 
-    completion.expectCompletion = rand.nextNum(1) == 1;
+    if (!forceServerError) {
+      completion.expectCompletion = rand.nextNum(1) == 1;
+    } else {
+      completion.forceServerError = true;
+    }
     if (completion.expectCompletion) {
       
       
@@ -153,11 +159,10 @@ function addRandomCompletionSet() {
 
       completion.chunkId = rand.nextNum(16);
     }
-
     completionSet.push(completion);
   }
 
-  completionSets.push(completionSet);
+  return completionSet;
 }
 
 let completionSets = [basicCompletionSet, falseCompletionSet,
@@ -177,8 +182,22 @@ const COMPLETE_LENGTH = 32;
 let completer = Cc["@mozilla.org/url-classifier/hashcompleter;1"].
                   getService(Ci.nsIUrlClassifierHashCompleter);
 
+let gethashUrl;
+
+
+let expectedMaxServerCompletionSet = 0;
+let maxServerCompletionSet = 0;
+
 function run_test() {
-  addRandomCompletionSet();
+  
+  completionSets.push(getRandomCompletionSet(false));
+  
+  
+  expectedMaxServerCompletionSet = completionSets.length;
+  
+  for (let j = 0; j < 10; ++j) {
+    completionSets.push(getRandomCompletionSet(true));
+  }
 
   
   for each (let completionSet in completionSets) {
@@ -204,32 +223,26 @@ function run_test() {
   const SERVER_PORT = 8080;
   server.start(SERVER_PORT);
 
-  completer.gethashUrl = "http://localhost:" + SERVER_PORT + SERVER_PATH;
-
-  runNextCompletion();
-}
-
-function doneCompletionSet() {
-  do_check_eq(finishedCompletions, completionSets[currentCompletionSet].length);
-
-  for each (let completion in completionSets[currentCompletionSet])
-    do_check_true(completion._finished);
+  gethashUrl = "http://localhost:" + SERVER_PORT + SERVER_PATH;
 
   runNextCompletion();
 }
 
 function runNextCompletion() {
+  
+  
   currentCompletionSet++;
-  finishedCompletions = 0;
-
   if (currentCompletionSet >= completionSets.length) {
     finish();
     return;
   }
 
-  dump("Now on completion set index " + currentCompletionSet + "\n");
+  dump("Now on completion set index " + currentCompletionSet + ", length " +
+       completionSets[currentCompletionSet].length + "\n");
+  
+  finishedCompletions = 0;
   for each (let completion in completionSets[currentCompletionSet]) {
-    completer.complete(completion.hash.substring(0,4),
+    completer.complete(completion.hash.substring(0,4), gethashUrl,
                        (new callback(completion)));
   }
 }
@@ -251,6 +264,9 @@ function hashCompleterServer(aRequest, aResponse) {
   function responseForCompletion(x) {
     return x.table + ":" + x.chunkId + ":" + x.hash.length + "\n" + x.hash;
   }
+  
+  
+  let httpStatus = 204;
   for each (let completion in completionSets[currentCompletionSet]) {
     if (completion.expectCompletion &&
         (completedHashes.indexOf(completion.hash) == -1)) {
@@ -261,24 +277,28 @@ function hashCompleterServer(aRequest, aResponse) {
       else
         responseText += responseForCompletion(completion);
     }
+    if (completion.forceServerError) {
+      httpStatus = 503;
+    }
   }
 
-  
-  
-  if (responseText)
+  dump("Server sending response for " + currentCompletionSet + "\n");
+  maxServerCompletionSet = currentCompletionSet;
+  if (responseText && httpStatus != 503) {
     aResponse.write(responseText);
-  else
-    aResponse.setStatusLine(null, 204, null);
+  } else {
+    aResponse.setStatusLine(null, httpStatus, null);
+  }
 }
 
 
 function callback(completion) {
   this._completion = completion;
 }
+
 callback.prototype = {
   completion: function completion(hash, table, chunkId, trusted) {
     do_check_true(this._completion.expectCompletion);
-
     if (this._completion.multipleCompletions) {
       for each (let completion in this._completion.completions) {
         if (completion.hash == hash) {
@@ -306,16 +326,20 @@ callback.prototype = {
   },
 
   completionFinished: function completionFinished(status) {
+    finishedCompletions++;
     do_check_eq(!!this._completion.expectCompletion, !!this._completed);
     this._completion._finished = true;
 
-    finishedCompletions++;
-    if (finishedCompletions == completionSets[currentCompletionSet].length)
-      doneCompletionSet();
+    
+    if (currentCompletionSet < completionSets.length &&
+        finishedCompletions == completionSets[currentCompletionSet].length) {
+      runNextCompletion();
+    }
   },
 };
 
 function finish() {
+  do_check_eq(expectedMaxServerCompletionSet, maxServerCompletionSet);
   server.stop(function() {
     do_test_finished();
   });
