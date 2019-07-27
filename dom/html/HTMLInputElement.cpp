@@ -3,7 +3,6 @@
 
 
 
-
 #include "mozilla/dom/HTMLInputElement.h"
 
 #include "mozilla/ArrayUtils.h"
@@ -1692,11 +1691,12 @@ HTMLInputElement::GetValueInternal(nsAString& aValue) const
 
     case VALUE_MODE_FILENAME:
       if (nsContentUtils::IsCallerChrome()) {
-#ifndef MOZ_CHILD_PERMISSIONS
-        aValue.Assign(mFirstFilePath);
-#else
-        MOZ_ASSERT_UNREACHABLE("This doesn't happen with a sane security model");
-#endif
+        if (!mFiles.IsEmpty()) {
+          return mFiles[0]->GetMozFullPath(aValue);
+        }
+        else {
+          aValue.Truncate();
+        }
       } else {
         
         if (mFiles.IsEmpty() || NS_FAILED(mFiles[0]->GetName(aValue))) {
@@ -2645,19 +2645,6 @@ HTMLInputElement::AfterSetFiles(bool aSetValueChanged)
     GetDisplayFileName(readableValue);
     formControlFrame->SetFormProperty(nsGkAtoms::value, readableValue);
   }
-
-#ifndef MOZ_CHILD_PERMISSIONS
-  
-  
-  
-  
-  
-  if (mFiles.IsEmpty()) {
-    mFirstFilePath.Truncate();
-  } else {
-    mFiles[0]->GetMozFullPath(mFirstFilePath);
-  }
-#endif
 
   UpdateFileList();
 
