@@ -18,27 +18,72 @@ function processScript() {
   });
   sendSyncMessage("ProcessTest:Loaded");
 }
+let processScriptURL = "data:,(" + processScript.toString() + ")()";
 
-function test() {
-  waitForExplicitFinish();
+let checkProcess = Task.async(function*(mm) {
+  let { target } = yield promiseMessage(mm, "ProcessTest:Loaded");
+  target.sendAsyncMessage("ProcessTest:Reply");
+  yield promiseMessage(target, "ProcessTest:Finished");
+  ok(true, "Saw process finished");
+});
 
-  let replyCount = 0;
+function promiseMessage(messageManager, message) {
+  return new Promise(resolve => {
+    let listener = (msg) => {
+      messageManager.removeMessageListener(message, listener);
+      resolve(msg);
+    };
 
-  function loadListener(msg) {
-    replyCount++;
-    msg.target.sendAsyncMessage("ProcessTest:Reply");
-  }
-
-  ppmm.addMessageListener("ProcessTest:Loaded", loadListener);
-  ppmm.addMessageListener("ProcessTest:Finished", function finishListener(msg) {
-    if (replyCount < ppmm.childCount) {
-      return;
-    }
-    info("Got " + replyCount + " replies");
-    ok(replyCount, "Got message reply");
-    ppmm.removeMessageListener("ProcessTest:Loaded", loadListener);
-    ppmm.removeMessageListener("ProcessTest:Finished", finishListener);
-    finish();
-  });
-  ppmm.loadProcessScript("data:,(" + processScript.toString() + ")()", true);
+    messageManager.addMessageListener(message, listener);
+  })
 }
+
+
+add_task(function*() {
+  let checks = [];
+  for (let i = 0; i < ppmm.childCount; i++)
+    checks.push(checkProcess(ppmm.getChildAt(i)));
+
+  ppmm.loadProcessScript(processScriptURL, false);
+  yield Promise.all(checks);
+});
+
+
+add_task(function*() {
+  
+  if (!gMultiProcessBrowser)
+    return;
+
+  is(ppmm.childCount, 2, "Should be two processes at this point");
+
+  
+  gBrowser.selectedBrowser.loadURI("about:robots");
+  yield BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+
+  
+  
+  
+  
+  if (ppmm.childCount == 1) {
+    let check = checkProcess(ppmm);
+    ppmm.loadProcessScript(processScriptURL, true);
+
+    
+    yield check;
+
+    check = checkProcess(ppmm);
+    
+    gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, true);
+    gBrowser.selectedBrowser.loadURI("about:blank");
+    yield BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+
+    is(ppmm.childCount, 2, "Should be back to two processes at this point");
+
+    
+    yield check;
+
+    ppmm.removeDelayedProcessScript(processScriptURL);
+  } else {
+    info("Unable to finish test entirely");
+  }
+});
