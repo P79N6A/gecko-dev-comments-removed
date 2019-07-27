@@ -223,9 +223,6 @@ public:
 
 
 
-
-
-
 SECItem* CreateEncodedOCSPResponse(OCSPResponseContext& context);
 
 } } } 
