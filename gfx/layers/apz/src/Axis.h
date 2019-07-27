@@ -55,13 +55,13 @@ public:
 
 
 
-  void UpdateWithTouchAtDevicePoint(int32_t aPos, uint32_t aTimestampMs);
+  void UpdateWithTouchAtDevicePoint(ScreenIntCoord aPos, uint32_t aTimestampMs);
 
   
 
 
 
-  void StartTouch(int32_t aPos, uint32_t aTimestampMs);
+  void StartTouch(ScreenIntCoord aPos, uint32_t aTimestampMs);
 
   
 
@@ -87,20 +87,20 @@ public:
 
 
 
-  bool AdjustDisplacement(float aDisplacement,
-                          float& aDisplacementOut,
-                          float& aOverscrollAmountOut);
+  bool AdjustDisplacement(CSSCoord aDisplacement,
+                          CSSCoord& aDisplacementOut,
+                          CSSCoord& aOverscrollAmountOut);
 
   
 
 
 
-  void OverscrollBy(float aOverscroll);
+  void OverscrollBy(CSSCoord aOverscroll);
 
   
 
 
-  float GetOverscroll() const;
+  CSSCoord GetOverscroll() const;
 
   
 
@@ -129,7 +129,7 @@ public:
 
 
 
-  float PanDistance(float aPos);
+  float PanDistance(ScreenIntCoord aPos);
 
   
 
@@ -177,13 +177,13 @@ public:
 
 
 
-  Overscroll DisplacementWillOverscroll(float aDisplacement);
+  Overscroll DisplacementWillOverscroll(CSSCoord aDisplacement);
 
   
 
 
 
-  float DisplacementWillOverscrollAmount(float aDisplacement);
+  CSSCoord DisplacementWillOverscrollAmount(CSSCoord aDisplacement);
 
   
 
@@ -193,7 +193,7 @@ public:
 
 
 
-  float ScaleWillOverscrollAmount(float aScale, float aFocus);
+  CSSCoord ScaleWillOverscrollAmount(float aScale, CSSCoord aFocus);
 
   
 
@@ -204,23 +204,23 @@ public:
 
   bool ScaleWillOverscrollBothSides(float aScale);
 
-  float GetOrigin() const;
-  float GetCompositionLength() const;
-  float GetPageStart() const;
-  float GetPageLength() const;
-  float GetCompositionEnd() const;
-  float GetPageEnd() const;
+  CSSCoord GetOrigin() const;
+  CSSCoord GetCompositionLength() const;
+  CSSCoord GetPageStart() const;
+  CSSCoord GetPageLength() const;
+  CSSCoord GetCompositionEnd() const;
+  CSSCoord GetPageEnd() const;
 
-  int32_t GetPos() const { return mPos; }
+  ScreenIntCoord GetPos() const { return mPos; }
 
-  virtual float GetPointOffset(const CSSPoint& aPoint) const = 0;
-  virtual float GetRectLength(const CSSRect& aRect) const = 0;
-  virtual float GetRectOffset(const CSSRect& aRect) const = 0;
+  virtual CSSCoord GetPointOffset(const CSSPoint& aPoint) const = 0;
+  virtual CSSCoord GetRectLength(const CSSRect& aRect) const = 0;
+  virtual CSSCoord GetRectOffset(const CSSRect& aRect) const = 0;
 
 protected:
-  int32_t mPos;
+  ScreenIntCoord mPos;
   uint32_t mPosTimeMs;
-  int32_t mStartPos;
+  ScreenIntCoord mStartPos;
   float mVelocity;
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
@@ -230,7 +230,7 @@ protected:
   
   
   
-  float mOverscroll;
+  CSSCoord mOverscroll;
   
   
   
@@ -241,23 +241,23 @@ protected:
 
   
   
-  float ApplyResistance(float aOverscroll) const;
+  CSSCoord ApplyResistance(CSSCoord aOverscroll) const;
 };
 
 class AxisX : public Axis {
 public:
   AxisX(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual float GetPointOffset(const CSSPoint& aPoint) const;
-  virtual float GetRectLength(const CSSRect& aRect) const;
-  virtual float GetRectOffset(const CSSRect& aRect) const;
+  virtual CSSCoord GetPointOffset(const CSSPoint& aPoint) const;
+  virtual CSSCoord GetRectLength(const CSSRect& aRect) const;
+  virtual CSSCoord GetRectOffset(const CSSRect& aRect) const;
 };
 
 class AxisY : public Axis {
 public:
   AxisY(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual float GetPointOffset(const CSSPoint& aPoint) const;
-  virtual float GetRectLength(const CSSRect& aRect) const;
-  virtual float GetRectOffset(const CSSRect& aRect) const;
+  virtual CSSCoord GetPointOffset(const CSSPoint& aPoint) const;
+  virtual CSSCoord GetRectLength(const CSSRect& aRect) const;
+  virtual CSSCoord GetRectOffset(const CSSRect& aRect) const;
 };
 
 }

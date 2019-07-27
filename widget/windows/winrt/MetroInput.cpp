@@ -737,9 +737,7 @@ MetroInput::TransformRefPoint(const Foundation::Point& aPosition, LayoutDeviceIn
   
   
   aRefPointOut = LayoutDeviceIntPoint::FromUntyped(MetroUtils::LogToPhys(aPosition));
-  ScreenIntPoint spt;
-  spt.x = aRefPointOut.x;
-  spt.y = aRefPointOut.y;
+  ScreenIntPoint spt(aRefPointOut.x, aRefPointOut.y);
   
   
   bool apzIntersect = mWidget->ApzHitTest(spt);
