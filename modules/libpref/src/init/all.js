@@ -1079,6 +1079,9 @@ pref("network.http.connection-timeout", 90);
 pref("network.http.speculative-parallel-limit", 6);
 
 
+pref("network.http.speculative.allowLoopback", false);
+
+
 
 pref("network.http.rendering-critical-requests-prioritization", true);
 
@@ -1496,6 +1499,10 @@ pref("network.proxy.autoconfig_retry_interval_max", 300);
 
 
 pref("network.stricttransportsecurity.preloadlist", true);
+
+
+
+pref("network.zonepolicy.enabled", true);
 
 pref("converter.html2txt.structs",          true); 
 pref("converter.html2txt.header_strategy",  1); 

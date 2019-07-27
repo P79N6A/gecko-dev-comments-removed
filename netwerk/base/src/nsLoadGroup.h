@@ -83,6 +83,9 @@ protected:
     bool                            mIsCanceling;
 
     
+    bool                            mAllowLoadsFromPrivateNetworks;
+
+    
     mozilla::TimeStamp              mDefaultRequestCreationTime;
     bool                            mDefaultLoadIsTimed;
     uint32_t                        mTimedRequests;

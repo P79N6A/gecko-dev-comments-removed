@@ -111,6 +111,8 @@ union NetAddr {
 #endif
   
   bool operator == (const NetAddr& other) const;
+  
+  bool EqualsIP(const NetAddr& other) const;
 };
 
 
@@ -163,6 +165,8 @@ bool IsLoopBackAddress(const NetAddr *addr);
 bool IsIPAddrAny(const NetAddr *addr);
 
 bool IsIPAddrV4Mapped(const NetAddr *addr);
+
+bool IsIPAddrPrivate(const NetAddr *addr);
 
 bool IsIPAddrLocal(const NetAddr *addr);
 
