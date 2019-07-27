@@ -29,7 +29,24 @@ public:
   virtual ~CrashReporterParent();
 
 #ifdef MOZ_CRASHREPORTER
+
   
+
+
+
+
+
+  template<class Toplevel>
+  bool
+  GenerateCrashReport(Toplevel* t, const AnnotationTable* processNotes);
+
+  
+
+
+
+
+
+
 
 
 
@@ -41,15 +58,45 @@ public:
 
 
 
-  template<class Toplevel>
-  bool
-  GenerateCrashReport(Toplevel* t, const AnnotationTable* processNotes);
 
-  
+
+
+
+
 
 
   bool
   GenerateChildData(const AnnotationTable* processNotes);
+
+  
+
+
+
+
+
+
+
+
+
+  void
+  FinalizeChildData();
+
+  
+
+
+
+
+
+
+  template<class Toplevel>
+  bool
+  GenerateCompleteMinidump(Toplevel* t);
+
+  
+
+
+
+
 
   bool
   GenerateCrashReportForMinidump(nsIFile* minidump,
@@ -58,19 +105,31 @@ public:
   
 
 
+
+
+
   template<class Toplevel>
   static bool CreateCrashReporter(Toplevel* actor);
-#endif
-  
-  void
-    SetChildData(const NativeThreadId& id, const uint32_t& processType);
+#endif 
 
   
+
+
+  void
+  SetChildData(const NativeThreadId& id, const uint32_t& processType);
+
+  
+
 
 
   const nsString& ChildDumpID() {
     return mChildDumpID;
   }
+
+  
+
+
+
 
   void
   AnnotateCrashReport(const nsCString& key, const nsCString& data);
@@ -138,6 +197,36 @@ CrashReporterParent::GenerateCrashReport(Toplevel* t,
   if (t->TakeMinidump(getter_AddRefs(crashDump), nullptr) &&
       CrashReporter::GetIDFromMinidump(crashDump, mChildDumpID)) {
     return GenerateChildData(processNotes);
+  }
+  return false;
+}
+
+template<class Toplevel>
+inline bool
+CrashReporterParent::GenerateCompleteMinidump(Toplevel* t)
+{
+  mozilla::ipc::ScopedProcessHandle child;
+  if (!NS_IsMainThread()) {
+    NS_WARNING("GenerateCompleteMinidump can't be called on non-main thread.");
+    return false;
+  }
+
+#ifdef XP_MACOSX
+  child = t->Process()->GetChildTask();
+#else
+  if (!base::OpenPrivilegedProcessHandle(t->OtherPid(), &child.rwget())) {
+    NS_WARNING("Failed to open child process handle.");
+    return false;
+  }
+#endif
+  nsCOMPtr<nsIFile> childDump;
+  if (CrashReporter::CreatePairedMinidumps(child,
+                                           mMainThread,
+                                           getter_AddRefs(childDump)) &&
+      CrashReporter::GetIDFromMinidump(childDump, mChildDumpID)) {
+    GenerateChildData(nullptr);
+    FinalizeChildData();
+    return true;
   }
   return false;
 }

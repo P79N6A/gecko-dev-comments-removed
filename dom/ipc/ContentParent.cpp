@@ -2012,14 +2012,9 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
                                                        NS_ConvertUTF16toUTF8(mAppManifestURL));
                 }
 
-                if (mCreatedPairedMinidumps) {
-                    
-                    
-                    
-                    
-                    
-                    crashReporter->GenerateChildData(nullptr);
-                } else {
+                
+                
+                if (!mCreatedPairedMinidumps) {
                     crashReporter->GenerateCrashReport(this, nullptr);
                 }
 
@@ -3388,37 +3383,33 @@ ContentParent::KillHard(const char* aReason)
     mForceKillTimer = nullptr;
 
 #if defined(MOZ_CRASHREPORTER) && !defined(MOZ_B2G)
+    
+    
+    
     if (ManagedPCrashReporterParent().Length() > 0) {
         CrashReporterParent* crashReporter =
             static_cast<CrashReporterParent*>(ManagedPCrashReporterParent()[0]);
+        
+        
+        
+        
+        
+        nsAutoCString additionalDumps("browser");
+        crashReporter->AnnotateCrashReport(
+            NS_LITERAL_CSTRING("additional_minidumps"),
+            additionalDumps);
+        if (IsKillHardAnnotationSet()) {
+          crashReporter->AnnotateCrashReport(
+              NS_LITERAL_CSTRING("kill_hard"),
+              GetKillHardAnnotation());
+        }
+        nsDependentCString reason(aReason);
+        crashReporter->AnnotateCrashReport(
+            NS_LITERAL_CSTRING("ipc_channel_error"),
+            reason);
 
         
-        
-        
-        
-        
-        
-        if (crashReporter->GeneratePairedMinidump(this)) {
-            mCreatedPairedMinidumps = true;
-            
-            
-            
-            
-            
-            nsAutoCString additionalDumps("browser");
-            crashReporter->AnnotateCrashReport(
-                NS_LITERAL_CSTRING("additional_minidumps"),
-                additionalDumps);
-            if (IsKillHardAnnotationSet()) {
-              crashReporter->AnnotateCrashReport(
-                  NS_LITERAL_CSTRING("kill_hard"),
-                  GetKillHardAnnotation());
-            }
-            nsDependentCString reason(aReason);
-            crashReporter->AnnotateCrashReport(
-                NS_LITERAL_CSTRING("ipc_channel_error"),
-                reason);
-        }
+        mCreatedPairedMinidumps = crashReporter->GenerateCompleteMinidump(this);
     }
 #endif
     ProcessHandle otherProcessHandle;
