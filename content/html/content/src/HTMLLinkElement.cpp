@@ -264,6 +264,15 @@ HTMLLinkElement::UpdateImport()
   }
 
   
+  
+  if (!doc->IsMasterDocument()) {
+    nsContentUtils::LogSimpleConsoleError(
+      NS_LITERAL_STRING("Nested imports are not supported yet"),
+      "Imports");
+    return;
+  }
+
+  
   nsAutoString rel;
   GetAttr(kNameSpaceID_None, nsGkAtoms::rel, rel);
   uint32_t linkTypes = nsStyleLinkElement::ParseLinkTypes(rel, NodePrincipal());
@@ -517,7 +526,7 @@ HTMLLinkElement::WrapNode(JSContext* aCx)
 already_AddRefed<nsIDocument>
 HTMLLinkElement::GetImport()
 {
-  return mImportLoader ? nsRefPtr<nsIDocument>(mImportLoader->GetImport()).forget() : nullptr;
+  return mImportLoader ? mImportLoader->GetImport() : nullptr;
 }
 
 } 

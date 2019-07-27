@@ -39,13 +39,12 @@
 #ifndef mozilla_dom_ImportManager_h__
 #define mozilla_dom_ImportManager_h__
 
-#include "nsTArray.h"
+#include "nsCOMArray.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMEventListener.h"
 #include "nsIStreamListener.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsRefPtrHashtable.h"
-#include "nsScriptLoader.h"
 #include "nsURIHashKey.h"
 
 class nsIDocument;
@@ -59,70 +58,11 @@ namespace dom {
 
 class ImportManager;
 
-typedef nsTHashtable<nsPtrHashKey<nsINode>> NodeTable;
-
 class ImportLoader MOZ_FINAL : public nsIStreamListener
                              , public nsIDOMEventListener
 {
-
-  
-  
-  class Updater {
-
-  public:
-    Updater(ImportLoader* aLoader) : mLoader(aLoader)
-    {}
-
-    
-    
-    
-    
-    
-    
-    
-    
-    void UpdateSpanningTree(nsINode* aNode);
-
-  private:
-    
-    
-    
-    void GetReferrerChain(nsINode* aNode, nsTArray<nsINode*>& aResult);
-
-    
-    
-    bool ShouldUpdate(nsTArray<nsINode*>& aNewPath);
-    void UpdateMainReferrer(uint32_t newIdx);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    nsINode* NextDependant(nsINode* aCurrentLink,
-                           nsTArray<nsINode*>& aPath,
-                           NodeTable& aVisitedLinks, bool aSkipChildren);
-
-    
-    
-    
-    void UpdateDependants(nsINode* aNode, nsTArray<nsINode*>& aPath);
-
-    ImportLoader* mLoader;
-  };
-
   friend class ::AutoError;
   friend class ImportManager;
-  friend class Updater;
 
 public:
   ImportLoader(nsIURI* aURI, nsIDocument* aOriginDocument);
@@ -143,45 +83,10 @@ public:
   bool IsReady() { return mReady; }
   bool IsStopped() { return mStopped; }
   bool IsBlocking() { return mBlockingScripts; }
-
-  ImportManager* Manager() {
-    MOZ_ASSERT(mDocument || mImportParent, "One of them should be always set");
-    return (mDocument ? mDocument : mImportParent)->ImportManager();
-  }
-
-  
-  
-  nsIDocument* GetDocument()
+  already_AddRefed<nsIDocument> GetImport()
   {
-    return mDocument;
+    return mReady ? nsCOMPtr<nsIDocument>(mDocument).forget() : nullptr;
   }
-
-  
-  
-  nsIDocument* GetImport()
-  {
-    return mReady ? mDocument : nullptr;
-  }
-
-  
-  
-  
-  
-  
-  
-  nsINode* GetMainReferrer()
-  {
-    return mLinks.IsEmpty() ? nullptr : mLinks[mMainReferrer];
-  }
-
-  
-  
-  
-  
-  
-  void AddBlockedScriptLoader(nsScriptLoader* aScriptLoader);
-  bool RemoveBlockedScriptLoader(nsScriptLoader* aScriptLoader);
-  void SetBlockingPredecessor(ImportLoader* aLoader);
 
 private:
   ~ImportLoader() {}
@@ -217,25 +122,12 @@ private:
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsIStreamListener> mParserStreamListener;
   nsCOMPtr<nsIDocument> mImportParent;
-  ImportLoader* mBlockingPredecessor;
-
   
   
-  nsTArray<nsCOMPtr<nsINode>> mLinks;
-
-  
-  
-  nsTArray<nsRefPtr<nsScriptLoader>> mBlockedScriptLoaders;
-
-  
-  
-  
-  
-  uint32_t mMainReferrer;
+  nsCOMArray<nsINode> mLinks;
   bool mReady;
   bool mStopped;
   bool mBlockingScripts;
-  Updater mUpdater;
 };
 
 class ImportManager MOZ_FINAL : public nsISupports
@@ -250,23 +142,8 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(ImportManager)
 
-  
-  ImportLoader* Find(nsIDocument* aImport);
-
-  
-  ImportLoader* Find(nsINode* aLink);
-
-  void AddLoaderWithNewURI(ImportLoader* aLoader, nsIURI* aNewURI);
-
-  
-  
-  
   already_AddRefed<ImportLoader> Get(nsIURI* aURI, nsINode* aNode,
                                      nsIDocument* aOriginDocument);
-
-  
-  
-  nsRefPtr<ImportLoader> GetNearestPredecessor(nsINode* aNode);
 
 private:
   ImportMap mImports;
