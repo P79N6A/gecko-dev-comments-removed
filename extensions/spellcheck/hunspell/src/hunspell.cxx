@@ -352,6 +352,12 @@ int Hunspell::spell(const char * word, int * info, char ** root)
   if (rl && rl->conv(word, wspace)) wl = cleanword2(cw, wspace, unicw, &nc, &captype, &abbv);
   else wl = cleanword2(cw, word, unicw, &nc, &captype, &abbv);
 
+#ifdef MOZILLA_CLIENT
+  
+  
+  abbv = 1;
+#endif
+
   if (wl == 0 || maxdic == 0) return 1;
   if (root) *root = NULL;
 
