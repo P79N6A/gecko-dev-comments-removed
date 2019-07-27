@@ -126,6 +126,17 @@ GetStrokeDashData(SVGContentUtils::AutoStrokeOptions* aStrokeOptions,
   
   aStrokeOptions->mDashLength = dashArrayLength;
 
+  if ((dashArrayLength % 2) == 1) {
+    
+    
+    
+    
+    
+    Float origTotalLengthOfDashes = totalLengthOfDashes;
+    totalLengthOfDashes += totalLengthOfGaps;
+    totalLengthOfGaps += origTotalLengthOfDashes;
+  }
+
   if (totalLengthOfDashes <= 0 || totalLengthOfGaps <= 0) {
     if (totalLengthOfGaps > 0 && totalLengthOfDashes <= 0) {
       return eNoStroke;
