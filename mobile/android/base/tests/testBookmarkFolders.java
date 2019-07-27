@@ -1,7 +1,7 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.home.HomePager;
+import org.mozilla.gecko.sync.Utils;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -32,11 +32,9 @@ public class testBookmarkFolders extends AboutHomeTest {
         
         ListView desktopFolderContent = findListViewWithTag(HomePager.LIST_TAG_BOOKMARKS);
         ListAdapter adapter = desktopFolderContent.getAdapter();
-        if (mDevice.type.equals("tablet")) { 
-            mAsserter.is(adapter.getCount(), 5, "Checking that the correct number of folders is displayed in the Desktop Bookmarks folder");
-        } else { 
-            mAsserter.is(adapter.getCount(), 4, "Checking that the correct number of folders is displayed in the Desktop Bookmarks folder");
-        }
+
+        
+        mAsserter.is(adapter.getCount(), 4, "Checking that the correct number of folders is displayed in the Desktop Bookmarks folder");
 
         clickOnBookmarkFolder(StringHelper.TOOLBAR_FOLDER_LABEL);
 
