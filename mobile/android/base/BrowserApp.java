@@ -2891,6 +2891,11 @@ public class BrowserApp extends GeckoApp
         if (mMenuPanel != null)
             mMenuPanel.scrollTo(0, 0);
 
+        
+        if (mMenu instanceof GeckoMenu) {
+            ((GeckoMenu) mMenu).setSelection(0);
+        }
+
         if (!mBrowserToolbar.openOptionsMenu())
             super.openOptionsMenu();
 
