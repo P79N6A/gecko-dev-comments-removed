@@ -666,7 +666,7 @@ nsHostResolver::DnsExperimentChanged(const char* aPref, void* aClosure)
     
     
     DebugOnly<nsresult> rv = NS_DispatchToMainThread(
-        NS_NewRunnableMethod(self, &DnsExperimentChangedInternal));
+        NS_NewRunnableMethod(self, &nsHostResolver::DnsExperimentChangedInternal));
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
                      "Could not dispatch DnsExperimentChanged event.");
 }
