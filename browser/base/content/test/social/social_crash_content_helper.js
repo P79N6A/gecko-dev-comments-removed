@@ -13,7 +13,7 @@ let crash = function() {
 };
 
 
-TestHelper = {
+let TestHelper = {
   init: function() {
     addMessageListener("social-test:crash", this);
   },

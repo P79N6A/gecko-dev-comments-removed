@@ -47,9 +47,9 @@ function test1() {
   
   
   var script = 'data:,\
-    testState = 0; \
+    this.testState = 0; \
     content.alert("Hello, world!"); \
-    testState = 1; \
+    this.testState = 1; \
   ';
 
   mm.loadFrameScript(script,  false);
@@ -71,11 +71,11 @@ function test2a(e) {
   
   
   var script = 'data:,\
-    if (testState === 0) { \
+    if (this.testState === 0) { \
       sendAsyncMessage("test-success", "1: Correct testState"); \
     } \
     else { \
-      sendAsyncMessage("test-fail", "1: Wrong testState: " + testState); \
+      sendAsyncMessage("test-fail", "1: Wrong testState: " + this.testState); \
     }';
 
   mm.loadFrameScript(script,  false);
@@ -89,11 +89,11 @@ function test3(e) {
   e.detail.unblock();
 
   var script2 = 'data:,\
-    if (testState === 1) { \
+    if (this.testState === 1) { \
       sendAsyncMessage("test-success", "2: Correct testState"); \
     } \
     else { \
-      sendAsyncMessage("test-try-again", "2: Wrong testState (for now): " + testState); \
+      sendAsyncMessage("test-try-again", "2: Wrong testState (for now): " + this.testState); \
     }';
 
   
