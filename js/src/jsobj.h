@@ -263,7 +263,7 @@ class JSObject : public js::gc::Cell
 
     
 
-    void markChildren(JSTracer* trc);
+    void traceChildren(JSTracer* trc);
 
     void fixupAfterMovingGC();
 

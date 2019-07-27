@@ -253,11 +253,12 @@ class GCMarker : public JSTracer
     template <typename T>
     void markAndTraverse(T* thing) {
         if (mark(thing))
-            markChildren(thing);
+            dispatchToTraceChildren(thing);
     }
 
+    
     template <typename T>
-    void markChildren(T* thing);
+    void dispatchToTraceChildren(T* thing);
 
     
     

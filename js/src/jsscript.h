@@ -1717,7 +1717,7 @@ class JSScript : public js::gc::TenuredCell
 
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_SCRIPT; }
 
-    void markChildren(JSTracer* trc);
+    void traceChildren(JSTracer* trc);
 
     
     
@@ -2133,7 +2133,7 @@ class LazyScript : public gc::TenuredCell
     bool hasUncompiledEnclosingScript() const;
     uint32_t staticLevel(JSContext* cx) const;
 
-    void markChildren(JSTracer* trc);
+    void traceChildren(JSTracer* trc);
     void finalize(js::FreeOp* fop);
     void fixupAfterMovingGC() {}
 

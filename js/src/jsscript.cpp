@@ -3423,7 +3423,7 @@ JSScript::hasBreakpointsAt(jsbytecode* pc)
 }
 
 void
-JSScript::markChildren(JSTracer* trc)
+JSScript::traceChildren(JSTracer* trc)
 {
     
     
@@ -3481,7 +3481,7 @@ JSScript::markChildren(JSTracer* trc)
 }
 
 void
-LazyScript::markChildren(JSTracer* trc)
+LazyScript::traceChildren(JSTracer* trc)
 {
     if (function_)
         TraceEdge(trc, &function_, "function");

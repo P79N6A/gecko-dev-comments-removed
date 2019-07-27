@@ -639,7 +639,7 @@ JitCode::copyFrom(MacroAssembler& masm)
 }
 
 void
-JitCode::trace(JSTracer* trc)
+JitCode::traceChildren(JSTracer* trc)
 {
     
     
@@ -2610,7 +2610,7 @@ InvalidateActivation(FreeOp* fop, const JitActivationIterator& activations, bool
             
             
             
-            ionCode->trace(zone->barrierTracer());
+            ionCode->traceChildren(zone->barrierTracer());
         }
         ionCode->setInvalidated();
 
