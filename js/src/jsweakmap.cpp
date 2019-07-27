@@ -348,7 +348,7 @@ WeakMapPostWriteBarrier(JSRuntime* rt, ObjectValueMap* weakMap, JSObject* key)
     
     
     if (key && IsInsideNursery(key))
-        rt->gc.storeBuffer.putGeneric(UnbarrieredRef(weakMap, key));
+        rt->gc.storeBuffer.putGeneric(gc::HashKeyRef<ObjectValueMap, JSObject*>(weakMap, key));
 }
 
 static MOZ_ALWAYS_INLINE bool

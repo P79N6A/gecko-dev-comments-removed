@@ -331,6 +331,8 @@ class StoreBuffer
     };
 
     bool isOkayToUseBuffer() const {
+        MOZ_ASSERT(!JS::shadow::Runtime::asShadowRuntime(runtime_)->isHeapBusy());
+
         
 
 

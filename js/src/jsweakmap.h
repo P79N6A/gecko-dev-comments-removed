@@ -258,13 +258,8 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
     }
 
     
-    void entryMoved(Enum& eArg, const Key& k) {
-        typedef typename HashMap<typename Unbarriered<Key>::type,
-                                 typename Unbarriered<Value>::type,
-                                 typename Unbarriered<HashPolicy>::type,
-                                 RuntimeAllocPolicy>::Enum UnbarrieredEnum;
-        UnbarrieredEnum& e = reinterpret_cast<UnbarrieredEnum&>(eArg);
-        e.rekeyFront(reinterpret_cast<const typename Unbarriered<Key>::type&>(k));
+    void entryMoved(Enum& e, const Key& k) {
+        e.rekeyFront(k);
     }
 
 protected:
@@ -279,28 +274,6 @@ protected:
 #endif
     }
 };
-
-
-
-
-
-template <class Key, class Value>
-static inline gc::HashKeyRef<HashMap<Key, Value, DefaultHasher<Key>, RuntimeAllocPolicy>, Key>
-UnbarrieredRef(WeakMap<PreBarriered<Key>, RelocatablePtr<Value>>* map, Key key)
-{
-    
-
-
-
-
-
-
-    typedef typename WeakMap<PreBarriered<Key>, RelocatablePtr<Value>>::Base BaseMap;
-    auto baseMap = static_cast<BaseMap*>(map);
-    typedef HashMap<Key, Value, DefaultHasher<Key>, RuntimeAllocPolicy> UnbarrieredMap;
-    typedef gc::HashKeyRef<UnbarrieredMap, Key> UnbarrieredKeyRef;
-    return UnbarrieredKeyRef(reinterpret_cast<UnbarrieredMap*>(baseMap), key);
-}
 
 
 
