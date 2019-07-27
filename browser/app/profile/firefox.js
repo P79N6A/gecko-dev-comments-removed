@@ -1191,6 +1191,8 @@ pref("security.sandbox.windows.log", false);
 
 
 
+
+
 pref("dom.ipc.plugins.sandbox-level.default", 0);
 pref("dom.ipc.plugins.sandbox-level.flash", 1);
 
@@ -1781,8 +1783,10 @@ pref("ui.key.menuAccessKeyFocuses", true);
 
 #ifdef RELEASE_BUILD
 pref("media.eme.enabled", false);
+pref("media.eme.apiVisible", false);
 #else
 pref("media.eme.enabled", true);
+pref("media.eme.apiVisible", true);
 #endif
 
 
