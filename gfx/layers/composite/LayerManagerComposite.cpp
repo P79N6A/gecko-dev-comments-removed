@@ -797,7 +797,13 @@ LayerManagerComposite::ComputeRenderIntegrity()
     return 1.f;
   }
 
-  const FrameMetrics& rootMetrics = root->GetFrameMetrics();
+  FrameMetrics rootMetrics = LayerMetricsWrapper::TopmostScrollableMetrics(root);
+  if (!rootMetrics.IsScrollable()) {
+    
+    
+    
+    rootMetrics = LayerMetricsWrapper(root).Metrics();
+  }
   ParentLayerIntRect bounds = RoundedToInt(rootMetrics.mCompositionBounds);
   nsIntRect screenRect(bounds.x,
                        bounds.y,

@@ -713,6 +713,15 @@ Layer::HasScrollableFrameMetrics() const
   return false;
 }
 
+bool
+Layer::IsScrollInfoLayer() const
+{
+  
+  return AsContainerLayer()
+      && HasScrollableFrameMetrics()
+      && !GetFirstChild();
+}
+
 const Matrix4x4
 Layer::GetTransform() const
 {
