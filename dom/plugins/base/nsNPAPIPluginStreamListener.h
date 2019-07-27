@@ -105,6 +105,14 @@ public:
   void URLRedirectResponse(NPBool allow);
 
 protected:
+
+  enum StreamState
+  {
+    eStreamStopped = 0, 
+    eNewStreamCalled,   
+    eStreamTypeSet      
+  };
+
   virtual ~nsNPAPIPluginStreamListener();
   char* mStreamBuffer;
   char* mNotifyURL;
@@ -113,7 +121,7 @@ protected:
   uint32_t mStreamBufferSize;
   int32_t mStreamBufferByteCount;
   int32_t mStreamType;
-  bool mStreamStarted;
+  StreamState mStreamState;
   bool mStreamCleanedUp;
   bool mCallNotify;
   bool mIsSuspended;
@@ -128,4 +136,4 @@ public:
   nsRefPtr<nsPluginStreamListenerPeer> mStreamListenerPeer;
 };
 
-#endif 
+#endif
