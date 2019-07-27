@@ -898,6 +898,13 @@ protected:
 
 
 
+  void DoLoad();
+
+  
+
+
+
+
   void SuspendLoad();
 
   
@@ -1282,6 +1289,10 @@ protected:
 
   
   bool mIsRunningLoadMethod;
+
+  
+  
+  bool mIsDoingExplicitLoad;
 
   
   bool mIsLoadingFromSourceChildren;
