@@ -33,6 +33,9 @@ var MemoryObserver = {
 
     
     defaults.setIntPref("image.mem.max_decoded_image_kb", 0);
+
+    
+    defaults.setIntPref("browser.sessionhistory.max_total_viewers", 0);
   },
 
   zombify: function(tab) {
