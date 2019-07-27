@@ -90,7 +90,15 @@ function loadHelperScript(filePath) {
 }
 
 function addProjectEditorTabForTempDirectory(opts = {}) {
-  TEMP_PATH = buildTempDirectoryStructure();
+  try {
+    TEMP_PATH = buildTempDirectoryStructure();
+  } catch (e) {
+    
+    
+    
+    info ("Project Editor temp directory creation failed.  Trying again.");
+    TEMP_PATH = buildTempDirectoryStructure();
+  }
   let customOpts = {
     name: "Test",
     iconUrl: "chrome://browser/skin/devtools/tool-options.svg",
