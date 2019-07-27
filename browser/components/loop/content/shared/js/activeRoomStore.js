@@ -304,6 +304,21 @@ loop.store.ActiveRoomStore = (function() {
 
       this._setRefreshTimeout(actionData.expires);
       this._sdkDriver.connectSession(actionData);
+
+      
+      
+      
+      if (!this._storeState.roomName) {
+        this._mozLoop.rooms.get(this._storeState.roomToken,
+          function(err, result) {
+            if (err) {
+              console.error("Failed to get room data:", err);
+              return;
+            }
+
+            this.dispatcher.dispatch(new sharedActions.UpdateRoomInfo(result));
+        }.bind(this));
+      }
     },
 
     

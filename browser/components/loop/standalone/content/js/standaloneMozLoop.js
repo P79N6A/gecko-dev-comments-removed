@@ -77,6 +77,44 @@ loop.StandaloneMozLoop = (function(mozL10n) {
 
 
 
+    get: function(roomToken, callback) {
+      var req = $.ajax({
+        url:         this._baseServerUrl + "/rooms/" + roomToken,
+        method:      "GET",
+        contentType: "application/json",
+        beforeSend: function(xhr) {
+          if (this.sessionToken) {
+            xhr.setRequestHeader("Authorization", "Basic " + btoa(this.sessionToken));
+          }
+        }.bind(this)
+      });
+
+      req.done(function(responseData) {
+        try {
+          
+          callback(null, validate(responseData, {
+            roomName: String,
+            roomOwner: String,
+            roomUrl: String
+          }));
+        } catch (err) {
+          console.error("Error requesting call info", err.message);
+          callback(err);
+        }
+      }.bind(this));
+
+      req.fail(failureHandler.bind(this, callback));
+    },
+
+    
+
+
+
+
+
+
+
+
 
 
 
@@ -115,6 +153,16 @@ loop.StandaloneMozLoop = (function(mozL10n) {
 
 
     join: function(roomToken, callback) {
+      function callbackWrapper(err, result) {
+        
+        
+        if (result) {
+          this.sessionToken = result.sessionToken;
+        }
+
+        callback(err, result);
+      }
+
       this._postToRoom(roomToken, null, {
         action: "join",
         displayName: mozL10n.get("rooms_display_name_guest"),
@@ -124,7 +172,7 @@ loop.StandaloneMozLoop = (function(mozL10n) {
         sessionId: String,
         sessionToken: String,
         expires: Number
-      }, callback);
+      }, callbackWrapper.bind(this));
     },
 
     
