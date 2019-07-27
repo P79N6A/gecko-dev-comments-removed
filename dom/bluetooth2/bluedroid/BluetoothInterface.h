@@ -287,12 +287,14 @@ public:
 
   
 
-  int DutModeConfigure(uint8_t aEnable);
-  int DutModeSend(uint16_t aOpcode, uint8_t* aBuf, uint8_t aLen);
+  void DutModeConfigure(uint8_t aEnable, BluetoothResultHandler* aRes);
+  void DutModeSend(uint16_t aOpcode, uint8_t* aBuf, uint8_t aLen,
+                   BluetoothResultHandler* aRes);
 
   
 
-  int LeTestMode(uint16_t aOpcode, uint8_t* aBuf, uint8_t aLen);
+  void LeTestMode(uint16_t aOpcode, uint8_t* aBuf, uint8_t aLen,
+                  BluetoothResultHandler* aRes);
 
   
 
