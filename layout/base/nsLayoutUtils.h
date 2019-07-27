@@ -1396,6 +1396,16 @@ public:
     nsStyleUnit unit = aCoord.GetUnit();
     return unit == eStyleUnit_Auto ||  
            unit == eStyleUnit_None ||  
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           unit == eStyleUnit_Enumerated ||
            (aCBBSize == nscoord_MAX && aCoord.HasPercent());
   }
 
