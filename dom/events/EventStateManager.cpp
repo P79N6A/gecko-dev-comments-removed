@@ -2495,7 +2495,7 @@ EventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
   nsIntPoint overflow;
   aScrollableFrame->ScrollBy(actualDevPixelScrollAmount,
                              nsIScrollableFrame::DEVICE_PIXELS,
-                             mode, &overflow, origin);
+                             mode, &overflow, origin, aEvent->isMomentum);
 
   if (!scrollFrameWeak.IsAlive()) {
     

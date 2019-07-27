@@ -3019,8 +3019,17 @@ ScrollFrameHelper::ScrollBy(nsIntPoint aDelta,
                                 nsIScrollableFrame::ScrollUnit aUnit,
                                 nsIScrollableFrame::ScrollMode aMode,
                                 nsIntPoint* aOverflow,
-                                nsIAtom *aOrigin)
+                                nsIAtom *aOrigin,
+                                bool aIsMomentum)
 {
+  
+  
+  
+  
+  if (aIsMomentum && IsProcessingAsyncScroll()) {
+    return;
+  }
+
   if (mAsyncSmoothMSDScroll != nullptr) {
     
     

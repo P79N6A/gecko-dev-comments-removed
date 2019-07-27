@@ -243,7 +243,9 @@ public:
 
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
-                        nsIntPoint* aOverflow = nullptr, nsIAtom *aOrigin = nullptr) = 0;
+                        nsIntPoint* aOverflow = nullptr,
+                        nsIAtom* aOrigin = nullptr,
+                        bool aIsMomentum = false) = 0;
   
 
 
