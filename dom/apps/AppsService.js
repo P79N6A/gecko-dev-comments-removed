@@ -147,6 +147,16 @@ AppsService.prototype = {
     return null;
   },
 
+  getScopeByLocalId: function(aLocalId) {
+    debug("getScopeByLocalId( " + aLocalId + " )");
+    if (this.isInvalidId(aLocalId)) {
+      return null;
+    }
+    
+    
+    return null;
+  },
+
   classID : APPS_SERVICE_CID,
   QueryInterface : XPCOMUtils.generateQI([Ci.nsIAppsService])
 }
