@@ -15,6 +15,7 @@
 #include "WebGLVertexArray.h"
 #include "GLContext.h"
 #include "CanvasUtils.h"
+#include "WebGLContextUtils.h"
 
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Preferences.h"
@@ -1254,6 +1255,51 @@ WebGLContext::ValidateTexInputData(GLenum type, int jsArrayType, WebGLTexImageFu
         ErrorInvalidOperation(invalidTypedArray, InfoFrom(func));
 
     return validInput;
+}
+
+
+
+
+
+
+
+bool
+WebGLContext::ValidateCopyTexImage(GLenum format, WebGLTexImageFunc func)
+{
+    MOZ_ASSERT(IsCopyFunc(func));
+
+    
+    GLenum fboFormat = bool(gl->GetPixelFormat().alpha > 0) ? LOCAL_GL_RGBA : LOCAL_GL_RGB;
+
+    if (mBoundFramebuffer) {
+        if (!mBoundFramebuffer->CheckAndInitializeAttachments()) {
+            ErrorInvalidFramebufferOperation("%s: incomplete framebuffer", InfoFrom(func));
+            return false;
+        }
+
+        GLenum readPlaneBits = LOCAL_GL_COLOR_BUFFER_BIT;
+        if (!mBoundFramebuffer->HasCompletePlanes(readPlaneBits)) {
+            ErrorInvalidOperation("%s: Read source attachment doesn't have the"
+                                  " correct color/depth/stencil type.", InfoFrom(func));
+            return false;
+        }
+
+        
+        const WebGLFramebuffer::Attachment& color0 = mBoundFramebuffer->GetAttachment(LOCAL_GL_COLOR_ATTACHMENT0);
+        fboFormat = mBoundFramebuffer->GetFormatForAttachment(color0);
+    }
+
+    
+    
+    const GLComponents formatComps = GLComponents(format);
+    const GLComponents fboComps = GLComponents(fboFormat);
+    if (!formatComps.IsSubsetOf(fboComps)) {
+        ErrorInvalidOperation("%s: format %s is not a subset of the current framebuffer format, which is %s.",
+                              InfoFrom(func), EnumName(format), EnumName(fboFormat));
+        return false;
+    }
+
+    return true;
 }
 
 
