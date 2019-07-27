@@ -2138,14 +2138,25 @@ public:
 
 
 
-  static bool HasAnimationsForCompositor(nsIContent* aContent,
+
+
+
+  static bool GetAnimationContent(const nsIFrame* aFrame,
+                                  nsIContent* &aContentResult,
+                                  nsCSSPseudoElements::Type &aPseudoTypeResult);
+
+  
+
+
+
+  static bool HasAnimationsForCompositor(const nsIFrame* aFrame,
                                          nsCSSProperty aProperty);
 
   
 
 
 
-  static bool HasAnimations(nsIContent* aContent, nsCSSProperty aProperty);
+  static bool HasAnimations(const nsIFrame* aFrame, nsCSSProperty aProperty);
 
   
 
@@ -2153,14 +2164,14 @@ public:
 
 
 
-  static bool HasCurrentAnimations(nsIContent* aContent,
+  static bool HasCurrentAnimations(const nsIFrame* aFrame,
                                    nsIAtom* aAnimationProperty);
 
   
 
 
 
-  static bool HasCurrentAnimationsForProperties(nsIContent* aContent,
+  static bool HasCurrentAnimationsForProperties(const nsIFrame* aFrame,
                                                 const nsCSSProperty* aProperties,
                                                 size_t aPropertyCount);
 
@@ -2185,7 +2196,7 @@ public:
 
 
 
-  static gfxSize ComputeSuitableScaleForAnimation(nsIContent* aContent,
+  static gfxSize ComputeSuitableScaleForAnimation(const nsIFrame* aFrame,
                                                   const nsSize& aVisibleSize,
                                                   const nsSize& aDisplaySize);
 

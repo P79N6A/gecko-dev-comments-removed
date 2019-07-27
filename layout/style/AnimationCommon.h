@@ -161,6 +161,8 @@ protected:
     return false;
   }
 
+
+public:
   
   
   
@@ -168,12 +170,11 @@ protected:
   
   
   
-  
-  static AnimationCollection*
-  GetAnimationsForCompositor(nsIContent* aContent,
-                             nsIAtom* aElementProperty,
+  AnimationCollection*
+  GetAnimationsForCompositor(const nsIFrame* aFrame,
                              nsCSSProperty aProperty);
 
+protected:
   PRCList mElementCollections;
   nsPresContext *mPresContext; 
   bool mIsObservingRefreshDriver;

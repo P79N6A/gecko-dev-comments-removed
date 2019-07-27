@@ -4773,11 +4773,10 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   if (canDraw2D) {
     
     
-    if (aContainerFrame->GetContent() &&
-        aContainerItem &&
+    if (aContainerItem &&
         aContainerItem->GetType() == nsDisplayItem::TYPE_TRANSFORM &&
         nsLayoutUtils::HasAnimationsForCompositor(
-          aContainerFrame->GetContent(), eCSSProperty_transform)) {
+          aContainerFrame, eCSSProperty_transform)) {
       
       
       
@@ -4795,7 +4794,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
       
       
       scale = nsLayoutUtils::ComputeSuitableScaleForAnimation(
-                aContainerFrame->GetContent(), aVisibleRect.Size(),
+                aContainerFrame, aVisibleRect.Size(),
                 displaySize);
       
       scale.width *= aIncomingScale.mXScale;
