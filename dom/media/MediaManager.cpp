@@ -1992,13 +1992,23 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
 
   } else if (!strcmp(aTopic, "getUserMedia:revoke")) {
     nsresult rv;
-    uint64_t windowID = nsString(aData).ToInteger64(&rv);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    if (NS_SUCCEEDED(rv)) {
-      LOG(("Revoking MediaCapture access for window %llu",windowID));
-      OnNavigation(windowID);
+    
+    nsDependentString data(aData);
+    if (Substring(data, 0, strlen("screen:")).EqualsLiteral("screen:")) {
+      uint64_t windowID = PromiseFlatString(Substring(data, strlen("screen:"))).ToInteger64(&rv);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      if (NS_SUCCEEDED(rv)) {
+        LOG(("Revoking Screeen/windowCapture access for window %llu", windowID));
+        StopScreensharing(windowID);
+      }
+    } else {
+      uint64_t windowID = nsString(aData).ToInteger64(&rv);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      if (NS_SUCCEEDED(rv)) {
+        LOG(("Revoking MediaCapture access for window %llu", windowID));
+        OnNavigation(windowID);
+      }
     }
-
     return NS_OK;
   }
 #ifdef MOZ_WIDGET_GONK
@@ -2148,6 +2158,67 @@ MediaManager::MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVide
   return NS_OK;
 }
 
+
+
+void
+MediaManager::StopScreensharing(uint64_t aWindowID)
+{
+  
+  
+
+  nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
+      (nsGlobalWindow::GetInnerWindowWithId(aWindowID));
+  if (!window) {
+    return;
+  }
+  StopScreensharing(window);
+}
+
+void
+MediaManager::StopScreensharing(nsPIDOMWindow *aWindow)
+{
+  
+  
+
+  
+  
+  
+  nsCOMPtr<nsPIDOMWindow> piWin = do_QueryInterface(aWindow);
+  if (piWin) {
+    if (piWin->IsInnerWindow() || piWin->GetCurrentInnerWindow()) {
+      uint64_t windowID;
+      if (piWin->IsInnerWindow()) {
+        windowID = piWin->WindowID();
+      } else {
+        windowID = piWin->GetCurrentInnerWindow()->WindowID();
+      }
+      StreamListeners* listeners = GetActiveWindows()->Get(windowID);
+      if (listeners) {
+        uint32_t length = listeners->Length();
+        for (uint32_t i = 0; i < length; ++i) {
+          listeners->ElementAt(i)->StopScreenWindowSharing();
+        }
+      }
+    }
+
+    
+    nsCOMPtr<nsIDocShell> docShell = piWin->GetDocShell();
+    if (docShell) {
+      int32_t i, count;
+      docShell->GetChildCount(&count);
+      for (i = 0; i < count; ++i) {
+        nsCOMPtr<nsIDocShellTreeItem> item;
+        docShell->GetChildAt(i, getter_AddRefs(item));
+        nsCOMPtr<nsPIDOMWindow> win = item ? item->GetWindow() : nullptr;
+
+        if (win) {
+          StopScreensharing(win);
+        }
+      }
+    }
+  }
+}
+
 void
 MediaManager::StopMediaStreams()
 {
@@ -2181,6 +2252,26 @@ GetUserMediaCallbackMediaStreamListener::Invalidate()
                                         mFinished, mWindowID, nullptr);
   mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
 }
+
+
+
+void
+GetUserMediaCallbackMediaStreamListener::StopScreenWindowSharing()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+  if (mVideoSource && !mStopped &&
+      (mVideoSource->GetMediaSource() == MediaSourceType::Screen ||
+       mVideoSource->GetMediaSource() == MediaSourceType::Window)) {
+    
+    nsRefPtr<MediaOperationRunnable> runnable(
+      new MediaOperationRunnable(mAudioSource ? MEDIA_STOP_TRACK : MEDIA_STOP,
+                                 this, nullptr, nullptr,
+                                 nullptr, mVideoSource,
+                                 mFinished, mWindowID, nullptr));
+    mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+  }
+}
+
 
 
 void
@@ -2241,6 +2332,9 @@ GetUserMediaNotificationEvent::Run()
     if (mListener) {
       mListener->SetStopped();
     }
+    break;
+  case STOPPED_TRACK:
+    msg = NS_LITERAL_STRING("shutdown");
     break;
   }
 
