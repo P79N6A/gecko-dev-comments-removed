@@ -816,7 +816,7 @@ HandleExecutionInterrupt(JSContext *cx);
 
 
 
-inline bool
+MOZ_ALWAYS_INLINE bool
 CheckForInterrupt(JSContext *cx)
 {
     MOZ_ASSERT(cx->runtime()->requestDepth >= 1);
