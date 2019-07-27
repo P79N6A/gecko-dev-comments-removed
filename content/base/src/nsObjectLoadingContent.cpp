@@ -989,6 +989,17 @@ nsObjectLoadingContent::OnStopRequest(nsIRequest *aRequest,
   PROFILER_LABEL("nsObjectLoadingContent", "OnStopRequest",
     js::ProfileEntry::Category::NETWORK);
 
+  
+  
+  
+  if (aStatusCode == NS_ERROR_TRACKING_URI) {
+    nsCOMPtr<nsIContent> thisNode =
+      do_QueryInterface(static_cast<nsIObjectLoadingContent*>(this));
+    if (thisNode) {
+      thisNode->GetCurrentDoc()->AddBlockedTrackingNode(thisNode);
+    }
+  }
+
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
 
   if (aRequest != mChannel) {
