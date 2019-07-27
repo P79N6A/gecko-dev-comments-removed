@@ -66,6 +66,9 @@ void CSP_LogMessage(const nsAString& aMessage,
 
 
 
+
+
+
 static const char* CSPStrDirectives[] = {
   "-error-",    
   "default-src",     
@@ -82,7 +85,8 @@ static const char* CSPStrDirectives[] = {
   "reflected-xss",   
   "base-uri",        
   "form-action",     
-  "referrer"         
+  "referrer",        
+  "manifest-src"     
 };
 
 inline const char* CSP_CSPDirectiveToString(CSPDirective aDir)
