@@ -512,7 +512,9 @@ ElfLoader::~ElfLoader()
 
   
   self_elf = nullptr;
+#if defined(ANDROID)
   libc = nullptr;
+#endif
 
   
 
