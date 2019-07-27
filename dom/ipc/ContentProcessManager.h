@@ -90,9 +90,10 @@ public:
   
 
 
-
-  nsTArray<uint64_t>
-  GetAppIdsByContentProcess(const ContentParentId& aChildCpId);
+  bool
+  GetTabContextByProcessAndTabId(const ContentParentId& aChildCpId,
+                                 const TabId& aChildTabId,
+                                  TabContext* aTabContext);
 
   
 
