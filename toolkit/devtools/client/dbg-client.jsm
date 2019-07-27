@@ -859,71 +859,71 @@ DebuggerClient.prototype = {
 
 
   onPacket: function (aPacket) {
-      if (!aPacket.from) {
-        DevToolsUtils.reportException(
-          "onPacket",
-          new Error("Server did not specify an actor, dropping packet: " +
-                    JSON.stringify(aPacket)));
+    if (!aPacket.from) {
+      DevToolsUtils.reportException(
+        "onPacket",
+        new Error("Server did not specify an actor, dropping packet: " +
+                  JSON.stringify(aPacket)));
+      return;
+    }
+
+    
+    
+    let front = this.getActor(aPacket.from);
+    if (front) {
+      front.onPacket(aPacket);
+      return;
+    }
+
+    if (this._clients.has(aPacket.from) && aPacket.type) {
+      let client = this._clients.get(aPacket.from);
+      let type = aPacket.type;
+      if (client.events.indexOf(type) != -1) {
+        client.emit(type, aPacket);
+        
         return;
       }
+    }
 
-      
-      
-      let front = this.getActor(aPacket.from);
-      if (front) {
-        front.onPacket(aPacket);
-        return;
-      }
+    let activeRequest;
+    
+    
+    
+    if (this._activeRequests.has(aPacket.from) &&
+        !(aPacket.type in UnsolicitedNotifications) &&
+        !(aPacket.type == ThreadStateTypes.paused &&
+          aPacket.why.type in UnsolicitedPauses)) {
+      activeRequest = this._activeRequests.get(aPacket.from);
+      this._activeRequests.delete(aPacket.from);
+    }
 
-      if (this._clients.has(aPacket.from) && aPacket.type) {
-        let client = this._clients.get(aPacket.from);
-        let type = aPacket.type;
-        if (client.events.indexOf(type) != -1) {
-          client.emit(type, aPacket);
-          
-          return;
-        }
-      }
+    
+    if (aPacket.type in ThreadStateTypes &&
+        this._clients.has(aPacket.from) &&
+        typeof this._clients.get(aPacket.from)._onThreadState == "function") {
+      this._clients.get(aPacket.from)._onThreadState(aPacket);
+    }
+    
+    
+    
+    if (aPacket.type == UnsolicitedNotifications.tabNavigated &&
+        this._clients.has(aPacket.from) &&
+        this._clients.get(aPacket.from).thread) {
+      let thread = this._clients.get(aPacket.from).thread;
+      let resumption = { from: thread._actor, type: "resumed" };
+      thread._onThreadState(resumption);
+    }
+    
+    
+    if (aPacket.type) {
+      this.emit(aPacket.type, aPacket);
+    }
 
-      let activeRequest;
-      
-      
-      
-      if (this._activeRequests.has(aPacket.from) &&
-          !(aPacket.type in UnsolicitedNotifications) &&
-          !(aPacket.type == ThreadStateTypes.paused &&
-            aPacket.why.type in UnsolicitedPauses)) {
-        activeRequest = this._activeRequests.get(aPacket.from);
-        this._activeRequests.delete(aPacket.from);
-      }
+    if (activeRequest) {
+      activeRequest.emit("json-reply", aPacket);
+    }
 
-      
-      if (aPacket.type in ThreadStateTypes &&
-          this._clients.has(aPacket.from) &&
-          typeof this._clients.get(aPacket.from)._onThreadState == "function") {
-        this._clients.get(aPacket.from)._onThreadState(aPacket);
-      }
-      
-      
-      
-      if (aPacket.type == UnsolicitedNotifications.tabNavigated &&
-          this._clients.has(aPacket.from) &&
-          this._clients.get(aPacket.from).thread) {
-        let thread = this._clients.get(aPacket.from).thread;
-        let resumption = { from: thread._actor, type: "resumed" };
-        thread._onThreadState(resumption);
-      }
-      
-      
-      if (aPacket.type) {
-        this.emit(aPacket.type, aPacket);
-      }
-
-      if (activeRequest) {
-        activeRequest.emit("json-reply", aPacket);
-      }
-
-      this._sendRequests();
+    this._sendRequests();
   },
 
   
