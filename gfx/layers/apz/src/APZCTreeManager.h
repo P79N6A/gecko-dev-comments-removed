@@ -377,15 +377,6 @@ public:
 
   nsRefPtr<const OverscrollHandoffChain> BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
 
-public:
-  
-  
-  
-  
-  
-  
-  static bool WillHandleWheelEvent(WidgetWheelEvent* aEvent);
-
 protected:
   
   virtual ~APZCTreeManager();

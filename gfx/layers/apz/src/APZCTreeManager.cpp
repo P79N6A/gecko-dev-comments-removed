@@ -897,11 +897,18 @@ APZCTreeManager::ProcessWheelEvent(WidgetWheelEvent& aEvent,
   nsEventStatus status = ReceiveInputEvent(input, aOutTargetGuid, aOutInputBlockId);
   aEvent.refPoint.x = input.mOrigin.x;
   aEvent.refPoint.y = input.mOrigin.y;
+  aEvent.mFlags.mHandledByAPZ = true;
   return status;
 }
 
-bool
-APZCTreeManager::WillHandleWheelEvent(WidgetWheelEvent* aEvent)
+
+
+
+
+
+
+static bool
+WillHandleWheelEvent(WidgetWheelEvent* aEvent)
 {
   
   

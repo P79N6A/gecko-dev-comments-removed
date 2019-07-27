@@ -539,6 +539,10 @@ public:
   
   
   bool mWantReplyFromContentProcess : 1;
+  
+  
+  
+  bool mHandledByAPZ : 1;
 
   
   inline bool InTargetPhase() const
