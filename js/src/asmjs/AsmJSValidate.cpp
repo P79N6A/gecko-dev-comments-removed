@@ -8392,6 +8392,7 @@ GenerateAsyncInterruptExit(ModuleCompiler &m, Label *throwLabel)
     
     masm.pop(HeapReg);
     masm.as_jr(HeapReg);
+    masm.loadAsmJSHeapRegisterFromGlobalData();
 #elif defined(JS_CODEGEN_ARM)
     masm.setFramePushed(0);         
     masm.PushRegsInMask(RegisterSet(GeneralRegisterSet(Registers::AllMask & ~(1<<Registers::sp)), FloatRegisterSet(uint32_t(0))));   
