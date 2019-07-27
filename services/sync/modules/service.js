@@ -926,6 +926,9 @@ Sync11Service.prototype = {
 
     this.identity.finalize().then(
       () => {
+        
+        
+        Svc.Obs.notify("weave:service:start-over:init-identity");
         this.identity.username = "";
         this.status.__authManager = null;
         this.identity = Status._authManager;

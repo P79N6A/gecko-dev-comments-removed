@@ -211,26 +211,38 @@ Migrator.prototype = {
     
     this.log.info("Performing final sync migration steps");
     
+    
+    
+    let observeStartOverIdentity;
+    Services.obs.addObserver(observeStartOverIdentity = () => {
+      this.log.info("observed that startOver is about to re-initialize the identity");
+      Services.obs.removeObserver(observeStartOverIdentity, "weave:service:start-over:init-identity");
+      
+      
+      for (let [prefName, prefType, prefVal] of enginePrefs) {
+        this.log.debug("Restoring pref ${prefName} (type=${prefType}) to ${prefVal}",
+                       {prefName, prefType, prefVal});
+        switch (prefType) {
+          case Services.prefs.PREF_BOOL:
+            Services.prefs.setBoolPref(prefName, prefVal);
+            break;
+          case Services.prefs.PREF_STRING:
+            Services.prefs.setCharPref(prefName, prefVal);
+            break;
+          default:
+            
+            Cu.reportError("unknown engine pref type for " + prefName + ": " + prefType);
+        }
+      }
+    }, "weave:service:start-over:init-identity", false);
+
+    
+    
     let startOverComplete = new Promise((resolve, reject) => {
       let observe;
       Services.obs.addObserver(observe = () => {
         this.log.info("observed that startOver is complete");
         Services.obs.removeObserver(observe, "weave:service:start-over:finish");
-        
-        
-        for (let [prefName, prefType, prefVal] of enginePrefs) {
-          switch (prefType) {
-            case Services.prefs.PREF_BOOL:
-              Services.prefs.setBoolPref(prefName, prefVal);
-              break;
-            case Services.prefs.PREF_STRING:
-              Services.prefs.setCharPref(prefName, prefVal);
-              break;
-            default:
-              
-              Cu.reportError("unknown engine pref type for " + prefName + ": " + prefType);
-          }
-        }
         resolve();
       }, "weave:service:start-over:finish", false);
     });
@@ -240,6 +252,8 @@ Migrator.prototype = {
     yield startOverComplete;
     
     this.log.info("scheduling initial FxA sync.");
+    
+    
     this._unblockSync();
     Weave.Service.scheduler.scheduleNextSync(0);
 

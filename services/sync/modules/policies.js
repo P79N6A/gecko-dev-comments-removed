@@ -593,7 +593,9 @@ ErrorHandler.prototype = {
     root.addAppender(fapp);
 
     
-    for (let extra of ["FirefoxAccounts", "Hawk", "Common.TokenServerClient"]) {
+    
+    for (let extra of ["FirefoxAccounts", "Hawk", "Common.TokenServerClient",
+                       "Sync.SyncMigration"]) {
       let log = Log.repository.getLogger(extra);
       for (let appender of [fapp, dapp, capp]) {
         log.addAppender(appender);
