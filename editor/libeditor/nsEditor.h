@@ -533,8 +533,6 @@ public:
 
 
 
-  nsIDOMNode* GetRightmostChild(nsIDOMNode* aCurrentNode,
-                                bool bNoBlockCrossing = false);
   nsIContent* GetRightmostChild(nsINode *aCurrentNode,
                                 bool     bNoBlockCrossing = false);
 
@@ -542,8 +540,6 @@ public:
 
 
 
-  nsIDOMNode* GetLeftmostChild(nsIDOMNode* aCurrentNode,
-                               bool bNoBlockCrossing = false);
   nsIContent* GetLeftmostChild(nsINode *aCurrentNode,
                                bool     bNoBlockCrossing = false);
 

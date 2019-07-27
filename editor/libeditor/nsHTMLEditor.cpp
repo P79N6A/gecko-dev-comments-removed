@@ -4281,15 +4281,15 @@ nsresult
 nsHTMLEditor::GetFirstEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutFirstLeaf)
 {
   
-  NS_ENSURE_TRUE(aOutFirstLeaf && aNode, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(node && aOutFirstLeaf, NS_ERROR_NULL_POINTER);
   
   
   *aOutFirstLeaf = aNode;
   
   
-  nsCOMPtr<nsIDOMNode> child;
   nsresult res = NS_OK;
-  child = GetLeftmostChild(aNode);  
+  nsCOMPtr<nsIDOMNode> child = GetAsDOMNode(GetLeftmostChild(node));
   while (child && (!IsEditable(child) || !nsEditorUtils::IsLeafNode(child)))
   {
     nsCOMPtr<nsIDOMNode> tmp;
@@ -4315,13 +4315,14 @@ nsresult
 nsHTMLEditor::GetLastEditableLeaf(nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutLastLeaf)
 {
   
-  NS_ENSURE_TRUE(aOutLastLeaf && aNode, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(node && aOutLastLeaf, NS_ERROR_NULL_POINTER);
   
   
   *aOutLastLeaf = nullptr;
   
   
-  nsCOMPtr<nsIDOMNode> child = GetRightmostChild(aNode, false);
+  nsCOMPtr<nsIDOMNode> child = GetAsDOMNode(GetRightmostChild(node, false));
   nsresult res = NS_OK;
   while (child && (!IsEditable(child) || !nsEditorUtils::IsLeafNode(child)))
   {
