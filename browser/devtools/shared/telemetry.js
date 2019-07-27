@@ -287,6 +287,28 @@ Telemetry.prototype = {
 
 
 
+
+
+
+  logKeyed: function(histogramId, key, value) {
+    if (histogramId) {
+      try {
+        let histogram = Services.telemetry.getKeyedHistogramById(histogramId);
+        histogram.add(key, value);
+      } catch(e) {
+        dump("Warning: An attempt was made to write to the " + histogramId +
+             " histogram, which is not defined in Histograms.json\n");
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
   logOncePerBrowserVersion: function(perUserHistogram, value) {
     let currentVersion = appInfo.version;
     let latest = Services.prefs.getCharPref(TOOLS_OPENED_PREF);
