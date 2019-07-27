@@ -281,7 +281,7 @@ public class GeckoAppShell
 
     public static native void notifyBatteryChange(double aLevel, boolean aCharging, double aRemainingTime);
 
-    public static native void scheduleComposite();
+    public static native void invalidateAndScheduleComposite();
 
     
     

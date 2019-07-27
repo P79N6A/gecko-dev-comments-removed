@@ -779,7 +779,7 @@ class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     @Override
     public void renderRequested() {
         try {
-            GeckoAppShell.scheduleComposite();
+            GeckoAppShell.invalidateAndScheduleComposite();
         } catch (UnsupportedOperationException uoe) {
             
             

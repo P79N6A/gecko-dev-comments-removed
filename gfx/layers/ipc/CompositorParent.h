@@ -297,6 +297,7 @@ public:
   
   void ScheduleRenderOnCompositorThread();
   void SchedulePauseOnCompositorThread();
+  void InvalidateOnCompositorThread();
   
 
 
@@ -451,6 +452,7 @@ protected:
   void ResumeCompositionAndResize(int width, int height);
   void ForceComposition();
   void CancelCurrentCompositeTask();
+  void Invalidate();
 
   
 
