@@ -516,32 +516,17 @@ function _computeKeyCodeFromChar(aChar)
 
 
 
-function isKeypressFiredKey(aDOMKeyCode)
-{
-  if (typeof(aDOMKeyCode) == "string") {
-    if (aDOMKeyCode.indexOf("VK_") == 0) {
-      aDOMKeyCode = KeyEvent["DOM_" + aDOMKeyCode];
-      if (!aDOMKeyCode) {
-        throw "Unknown key: " + aDOMKeyCode;
-      }
-    } else {
-      
-      return true;
-    }
-  }
-  switch (aDOMKeyCode) {
-    case KeyEvent.DOM_VK_SHIFT:
-    case KeyEvent.DOM_VK_CONTROL:
-    case KeyEvent.DOM_VK_ALT:
-    case KeyEvent.DOM_VK_CAPS_LOCK:
-    case KeyEvent.DOM_VK_NUM_LOCK:
-    case KeyEvent.DOM_VK_SCROLL_LOCK:
-    case KeyEvent.DOM_VK_META:
-      return false;
-    default:
-      return true;
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -563,47 +548,34 @@ function isKeypressFiredKey(aDOMKeyCode)
 
 function synthesizeKey(aKey, aEvent, aWindow)
 {
-  var utils = _getDOMWindowUtils(aWindow);
-  if (utils) {
-    var keyEventDict = _createKeyboardEventDictionary(aKey, aEvent);
-    var keyCode = keyEventDict.dictionary.keyCode;
-    var charCode =
-      (aKey.indexOf("VK_") == 0) ?
-        0 : ((keyEventDict.dictionary.key != "") ?
-                keyEventDict.dictionary.key.charCodeAt(0) : 0);
+  var TIP = _getTIP(aWindow);
+  if (!TIP) {
+    return;
+  }
+  var modifiers = _emulateToActivateModifiers(TIP, aEvent);
+  var keyEventDict = _createKeyboardEventDictionary(aKey, aEvent);
+  var keyEvent = new KeyboardEvent("", keyEventDict.dictionary);
+  var dispatchKeydown =
+    !("type" in aEvent) || aEvent.type === "keydown" || !aEvent.type;
+  var dispatchKeyup =
+    !("type" in aEvent) || aEvent.type === "keyup"   || !aEvent.type;
 
-    var modifiers = _parseModifiers(aEvent);
-    var flags = 0;
-    switch (keyEventDict.dictionary.location) {
-      case KeyboardEvent.DOM_KEY_LOCATION_STANDARD:
-        flags |= utils.KEY_FLAG_LOCATION_STANDARD;
-        break;
-      case KeyboardEvent.DOM_KEY_LOCATION_LEFT:
-        flags |= utils.KEY_FLAG_LOCATION_LEFT;
-        break;
-      case KeyboardEvent.DOM_KEY_LOCATION_RIGHT:
-        flags |= utils.KEY_FLAG_LOCATION_RIGHT;
-        break;
-      case KeyboardEvent.DOM_KEY_LOCATION_NUMPAD:
-        flags |= utils.KEY_FLAG_LOCATION_NUMPAD;
-        break;
-    }
-
-    if (!("type" in aEvent) || !aEvent.type) {
-      
-      var keyDownDefaultHappened =
-        utils.sendKeyEvent("keydown", keyCode, 0, modifiers, flags);
-      if (isKeypressFiredKey(keyCode) && keyDownDefaultHappened) {
-        utils.sendKeyEvent("keypress", keyCode, charCode, modifiers, flags);
+  try {
+    if (dispatchKeydown) {
+      TIP.keydown(keyEvent, keyEventDict.flags);
+      if ("repeat" in aEvent && aEvent.repeat > 1) {
+        keyEventDict.dictionary.repeat = true;
+        var repeatedKeyEvent = new KeyboardEvent("", keyEventDict.dictionary);
+        for (var i = 1; i < aEvent.repeat; i++) {
+          TIP.keydown(repeatedKeyEvent, keyEventDict.flags);
+        }
       }
-      utils.sendKeyEvent("keyup", keyCode, 0, modifiers, flags);
-    } else if (aEvent.type == "keypress") {
-      
-      utils.sendKeyEvent(aEvent.type, keyCode, charCode, modifiers, flags);
-    } else {
-      
-      utils.sendKeyEvent(aEvent.type, keyCode, 0, modifiers, flags);
     }
+    if (dispatchKeyup) {
+      TIP.keyup(keyEvent, keyEventDict.flags);
+    }
+  } finally {
+    _emulateToInactivateModifiers(TIP, modifiers);
   }
 }
 
@@ -1074,7 +1046,7 @@ function _createKeyboardEventDictionary(aKey, aKeyEvent)
     key: keyName,
     code: "code" in aKeyEvent ? aKeyEvent.code : "",
     location: locationIsDefined ? aKeyEvent.location : 0,
-    repeat: "repeat" in aKeyEvent ? aKeyEvent.repeat : false,
+    repeat: "repeat" in aKeyEvent ? aKeyEvent.repeat === true : false,
     keyCode: keyCode,
   };
   return result;
