@@ -37,6 +37,7 @@ class   ViewWrapper;
 class   nsIWidgetListener;
 class   nsIntRegion;
 class   nsIScreen;
+class   nsIRunnable;
 
 namespace mozilla {
 class CompositorVsyncDispatcher;
@@ -119,8 +120,8 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_PLUGIN_ID            105
 
 #define NS_IWIDGET_IID \
-{ 0xb81e1264, 0x9f79, 0x4962, \
-  { 0x8d, 0x9a, 0x64, 0xdd, 0x21, 0x5d, 0x6a, 0x01 } }
+{ 0x22b4504e, 0xddba, 0x4211, \
+  { 0xa1, 0x49, 0x6e, 0x11, 0x73, 0xc4, 0x11, 0x45 } }
 
 
 
@@ -1695,6 +1696,34 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD HideWindowChrome(bool aShouldHide) = 0;
+
+    enum FullscreenTransitionStage
+    {
+      eBeforeFullscreenToggle,
+      eAfterFullscreenToggle
+    };
+
+    
+
+
+
+
+
+
+
+
+
+    virtual bool PrepareForFullscreenTransition(nsISupports** aData) = 0;
+
+    
+
+
+
+
+    virtual void PerformFullscreenTransition(FullscreenTransitionStage aStage,
+                                             uint16_t aDuration,
+                                             nsISupports* aData,
+                                             nsIRunnable* aCallback) = 0;
 
     
 
