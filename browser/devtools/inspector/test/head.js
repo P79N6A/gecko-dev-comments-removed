@@ -726,6 +726,15 @@ function wait(ms) {
 
 
 
+function fireCopyEvent(element) {
+  let evt = element.ownerDocument.createEvent("Event");
+  evt.initEvent("copy", true, true);
+  element.dispatchEvent(evt);
+}
+
+
+
+
 
 
 
