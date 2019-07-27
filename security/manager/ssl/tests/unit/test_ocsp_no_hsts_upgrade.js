@@ -34,7 +34,7 @@ function run_test() {
   
   
   
-  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK);
+  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess);
   add_test(function () { run_next_test(); });
 
   add_test(function () { ocspResponder.stop(run_next_test); });
