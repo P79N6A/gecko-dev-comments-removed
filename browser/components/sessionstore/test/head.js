@@ -531,3 +531,109 @@ for (let name of FORM_HELPERS) {
 function promiseRemoveTab(tab) {
   return BrowserTestUtils.removeTab(tab);
 }
+
+
+
+
+
+
+
+
+
+function crashBrowser(browser) {
+  
+
+
+
+
+  function getMinidumpDirectory() {
+    let dir = Services.dirsvc.get('ProfD', Ci.nsIFile);
+    dir.append("minidumps");
+    return dir;
+  }
+
+  
+
+
+
+
+
+
+
+
+  function removeFile(directory, filename) {
+    let file = directory.clone();
+    file.append(filename);
+    if (file.exists()) {
+      file.remove(false);
+    }
+  }
+
+  
+  
+  
+  
+  let frame_script = () => {
+    const Cu = Components.utils;
+    Cu.import("resource://gre/modules/ctypes.jsm");
+
+    let dies = function() {
+      privateNoteIntentionalCrash();
+      let zero = new ctypes.intptr_t(8);
+      let badptr = ctypes.cast(zero, ctypes.PointerType(ctypes.int32_t));
+      badptr.contents
+    };
+
+    dump("Et tu, Brute?");
+    dies();
+  }
+
+  let crashCleanupPromise = new Promise((resolve, reject) => {
+    let observer = (subject, topic, data) => {
+      is(topic, 'ipc:content-shutdown', 'Received correct observer topic.');
+      ok(subject instanceof Ci.nsIPropertyBag2,
+         'Subject implements nsIPropertyBag2.');
+      
+      
+      if (!subject.hasKey("abnormal")) {
+        info("This is a normal termination and isn't the one we are looking for...");
+        return;
+      }
+
+      let dumpID;
+      if ('nsICrashReporter' in Ci) {
+        dumpID = subject.getPropertyAsAString('dumpID');
+        ok(dumpID, "dumpID is present and not an empty string");
+      }
+
+      if (dumpID) {
+        let minidumpDirectory = getMinidumpDirectory();
+        removeFile(minidumpDirectory, dumpID + '.dmp');
+        removeFile(minidumpDirectory, dumpID + '.extra');
+      }
+
+      Services.obs.removeObserver(observer, 'ipc:content-shutdown');
+      info("Crash cleaned up");
+      resolve();
+    };
+
+    Services.obs.addObserver(observer, 'ipc:content-shutdown');
+  });
+
+  let aboutTabCrashedLoadPromise = new Promise((resolve, reject) => {
+    browser.addEventListener("AboutTabCrashedLoad", function onCrash() {
+      browser.removeEventListener("AboutTabCrashedLoad", onCrash, false);
+      info("about:tabcrashed loaded");
+      resolve();
+    }, false, true);
+  });
+
+  
+  
+  let mm = browser.messageManager;
+  mm.loadFrameScript("data:,(" + frame_script.toString() + ")();", false);
+  return Promise.all([crashCleanupPromise, aboutTabCrashedLoadPromise]).then(() => {
+    let tab = gBrowser.getTabForBrowser(browser);
+    is(tab.getAttribute("crashed"), "true", "Tab should be marked as crashed");
+  });
+}
