@@ -34,6 +34,7 @@
 
 
 #define JS_DESCR_SLOT_TYPE               8  // Type code
+#define JS_DESCR_SLOT_LANES              9
 
 
 #define JS_DESCR_SLOT_ARRAY_ELEM_TYPE    8
@@ -85,5 +86,6 @@
 
 #define JS_SIMDTYPEREPR_INT32         0
 #define JS_SIMDTYPEREPR_FLOAT32       1
+#define JS_SIMDTYPEREPR_FLOAT64       2
 
 #endif
