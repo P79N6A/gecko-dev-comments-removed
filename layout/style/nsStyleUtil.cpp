@@ -463,11 +463,10 @@ nsStyleUtil::ComputeFunctionalAlternates(const nsCSSValueList* aList,
   }
 }
 
-
 static void
 AppendSerializedUnicodePoint(uint32_t aCode, nsACString& aBuf)
 {
-  aBuf.Append(nsPrintfCString("%04X", aCode));
+  aBuf.Append(nsPrintfCString("%0X", aCode));
 }
 
 
