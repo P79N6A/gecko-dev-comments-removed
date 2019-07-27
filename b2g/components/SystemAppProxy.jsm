@@ -30,6 +30,11 @@ let SystemAppProxy = {
   },
 
   
+  getFrame: function () {
+    return this._frame;
+  },
+
+  
   setIsReady: function () {
     if (this._isReady) {
       Cu.reportError('SystemApp has already been declared as being ready.');
