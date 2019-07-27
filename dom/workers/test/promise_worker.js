@@ -672,11 +672,11 @@ function promiseResolveThenableCleanStack() {
   
   
   setTimeout(function(){
+    results.push(x);
     
     is(results[0], 0, "Expected thenable to be called asynchronously");
     
     p.then(function() {
-      results.push(x);
       is(results[1], 2, "Expected thenable to be called asynchronously");
       runTest();
     });
