@@ -1030,6 +1030,8 @@ gfxDWriteFontList::DelayedInitFontList()
 
             
             for (i = 0; i < faces.Length(); i++) {
+                
+                faces[i]->mFamilyName = gillSansMTFamily->Name();
                 gillSansMTFamily->AddFontEntry(faces[i]);
 
 #ifdef PR_LOGGING
