@@ -16,6 +16,8 @@ const { AbstractTreeItem } = require("resource:///modules/devtools/AbstractTreeI
 const MILLISECOND_UNITS = L10N.getStr("table.ms");
 const PERCENTAGE_UNITS = L10N.getStr("table.percentage");
 const URL_LABEL_TOOLTIP = L10N.getStr("table.url.tooltiptext");
+const VIEW_OPTIMIZATIONS_TOOLTIP = L10N.getStr("table.view-optimizations.tooltiptext");
+
 const CALL_TREE_INDENTATION = 16; 
 
 const DEFAULT_SORTING_PREDICATE = (frameA, frameB) => {
@@ -86,9 +88,13 @@ const sum = vals => vals.reduce((a, b) => a + b, 0);
 
 
 
+
+
+
 function CallView({
   caller, frame, level, hidden, inverted,
-  sortingPredicate, autoExpandDepth, visibleCells
+  sortingPredicate, autoExpandDepth, visibleCells,
+  showOptimizationHint
 }) {
   AbstractTreeItem.call(this, {
     parent: caller,
@@ -114,6 +120,7 @@ function CallView({
   this.frame = frame;
   this.hidden = hidden;
   this.inverted = inverted;
+  this.showOptimizationHint = showOptimizationHint;
 
   this._onUrlClick = this._onUrlClick.bind(this);
 };
@@ -258,6 +265,16 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     
     
+    if (this.root.showOptimizationHint && frameInfo.hasOptimizations && !frameInfo.isMetaCategory) {
+      let icon = doc.createElement("description");
+      icon.setAttribute("tooltiptext", VIEW_OPTIMIZATIONS_TOOLTIP);
+      icon.setAttribute("type", "linkable");
+      icon.className = "opt-icon";
+      cell.appendChild(icon);
+    }
+
+    
+    
     if (frameName) {
       let nameNode = doc.createElement("description");
       nameNode.className = "plain call-tree-name";
@@ -280,6 +297,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     return cell;
   },
+
   _appendFunctionDetailsCells: function(doc, cell, frameInfo) {
     if (frameInfo.fileName) {
       let urlNode = doc.createElement("description");
