@@ -77,8 +77,6 @@ loader.lazyGetter(this, "REGEX_ALL_CSS_PROPERTIES", function () {
 
 function OutputParser() {
   this.parsed = [];
-  this.colorSwatches = new WeakMap();
-  this._onSwatchMouseDown = this._onSwatchMouseDown.bind(this);
 }
 
 exports.OutputParser = OutputParser;
@@ -398,14 +396,12 @@ OutputParser.prototype = {
           class: options.colorSwatchClass,
           style: "background-color:" + color
         });
-        this.colorSwatches.set(swatch, colorObj);
-        swatch.addEventListener("mousedown", this._onSwatchMouseDown, false);
         container.appendChild(swatch);
       }
 
       if (options.defaultColorType) {
         color = colorObj.toString();
-        container.dataset.colorÂ = color;
+        container.dataset["color"]Â = color;
       }
 
       let value = this._createNode("span", {
@@ -437,21 +433,6 @@ OutputParser.prototype = {
 
     container.appendChild(value);
     this.parsed.push(container);
-  },
-
-  _onSwatchMouseDown: function(event) {
-    
-    event.preventDefault();
-
-    if (!event.shiftKey) {
-      return;
-    }
-
-    let swatch = event.target;
-    let color = this.colorSwatches.get(swatch);
-    let val = color.nextColorUnit();
-
-    swatch.nextElementSibling.textContent = val;
   },
 
    
