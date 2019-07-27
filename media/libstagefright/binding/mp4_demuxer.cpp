@@ -29,10 +29,14 @@ MP4Demuxer::Init()
 {
   mMonitor->AssertCurrentThreadOwns();
 
+  
+  
+  if (!MP4Metadata::HasCompleteMetadata(mSource)) {
+    return false;
+  }
+
   mMetadata = mozilla::MakeUnique<MP4Metadata>(mSource);
 
-  
-  
   if (!mMetadata->GetNumberTracks(mozilla::TrackInfo::kAudioTrack) &&
       !mMetadata->GetNumberTracks(mozilla::TrackInfo::kVideoTrack)) {
     return false;
