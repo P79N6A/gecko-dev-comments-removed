@@ -41,6 +41,8 @@ const StatisticsTestData = [
   },
   {
     timeLastUsed: daysBeforeMs(7),
+    formSubmitURL: null,
+    httpRealm: "The HTTP Realm",
   },
   {
     username: "",
@@ -132,6 +134,10 @@ add_task(function test_logins_statistics() {
     
     testHistogram("PWMGR_NUM_SAVED_PASSWORDS",
                   { 10: 1 });
+
+    
+    testHistogram("PWMGR_NUM_HTTPAUTH_PASSWORDS",
+                  { 1: 1 });
 
     
     

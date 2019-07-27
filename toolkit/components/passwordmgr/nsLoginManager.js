@@ -236,6 +236,9 @@ LoginManager.prototype = {
     clearAndGetHistogram("PWMGR_NUM_SAVED_PASSWORDS").add(
       this.countLogins("", "", "")
     );
+    clearAndGetHistogram("PWMGR_NUM_HTTPAUTH_PASSWORDS").add(
+      this.countLogins("", null, "")
+    );
 
     
     
