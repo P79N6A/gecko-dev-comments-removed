@@ -386,6 +386,7 @@ private:
   bool                       mDiscardable:1;   
   bool                       mHasSourceData:1; 
   bool                       mHasBeenDecoded:1; 
+  bool                       mDownscaleDuringDecode:1;
 
   
   
