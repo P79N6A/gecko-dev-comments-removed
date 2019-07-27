@@ -802,12 +802,6 @@ public:
   
 
 
-
-  void NotifyUIResolutionChanged(nsIMessageBroadcaster* aManager);
-
-  
-
-
   void SysColorChanged();
 
   

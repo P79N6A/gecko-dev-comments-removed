@@ -47,6 +47,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
+#include "mozilla/unused.h"
 #include <algorithm>
 
 #ifdef MOZ_XUL
@@ -172,6 +173,7 @@ static const char* kObservedPrefs[] = {
 };
 
 nsFocusManager::nsFocusManager()
+  : mParentFocusType(ParentFocusType_Ignore)
 { }
 
 nsFocusManager::~nsFocusManager()
@@ -708,13 +710,10 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
 
   
   
-  window->ActivateOrDeactivate(true);
-
   
-  nsContentUtils::DispatchTrustedEvent(window->GetExtantDoc(),
-                                       window,
-                                       NS_LITERAL_STRING("activate"),
-                                       true, true, nullptr);
+  if (mParentFocusType == ParentFocusType_Ignore) {
+    ActivateOrDeactivate(window, true);
+  }
 
   
   nsCOMPtr<nsPIDOMWindow> currentWindow;
@@ -773,13 +772,10 @@ nsFocusManager::WindowLowered(nsIDOMWindow* aWindow)
 
   
   
-  window->ActivateOrDeactivate(false);
-
   
-  nsContentUtils::DispatchTrustedEvent(window->GetExtantDoc(),
-                                       window,
-                                       NS_LITERAL_STRING("deactivate"),
-                                       true, true, nullptr);
+  if (mParentFocusType == ParentFocusType_Ignore) {
+    ActivateOrDeactivate(window, false);
+  }
 
   
   
@@ -904,6 +900,10 @@ nsFocusManager::WindowShown(nsIDOMWindow* aWindow, bool aNeedsFocus)
     
     
     EnsureCurrentWidgetFocused();
+  }
+
+  if (mParentFocusType == ParentFocusType_Active) {
+    ActivateOrDeactivate(window, true);
   }
 
   return NS_OK;
@@ -1065,6 +1065,19 @@ nsFocusManager::FocusPlugin(nsIContent* aContent)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsFocusManager::ParentActivated(nsIDOMWindow* aWindow, bool aActive)
+{
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
+  NS_ENSURE_TRUE(window, NS_ERROR_INVALID_ARG);
+
+  window = window->GetOuterWindow();
+
+  mParentFocusType = aActive ? ParentFocusType_Active : ParentFocusType_Inactive;
+  ActivateOrDeactivate(window, aActive);
+  return NS_OK;
+}
+
 
 void
 nsFocusManager::NotifyFocusStateChange(nsIContent* aContent,
@@ -1107,6 +1120,36 @@ nsFocusManager::EnsureCurrentWidgetFocused()
       }
     }
   }
+}
+
+void
+ActivateOrDeactivateChild(TabParent* aParent, void* aArg)
+{
+  bool active = static_cast<bool>(aArg);
+  unused << aParent->SendParentActivated(active);
+}
+
+void
+nsFocusManager::ActivateOrDeactivate(nsPIDOMWindow* aWindow, bool aActive)
+{
+  if (!aWindow) {
+    return;
+  }
+
+  
+  
+  aWindow->ActivateOrDeactivate(aActive);
+
+  
+  nsContentUtils::DispatchTrustedEvent(aWindow->GetExtantDoc(),
+                                       aWindow,
+                                       aActive ? NS_LITERAL_STRING("activate") :
+                                                 NS_LITERAL_STRING("deactivate"),
+                                       true, true, nullptr);
+
+  
+  nsContentUtils::CallOnAllRemoteChildren(aWindow, ActivateOrDeactivateChild,
+                                          (void *)aActive);
 }
 
 void

@@ -22,8 +22,15 @@
 class nsIContent;
 class nsIDocShellTreeItem;
 class nsPIDOMWindow;
+class nsIMessageBroadcaster;
 
 struct nsDelayedBlurOrFocusEvent;
+
+enum ParentFocusType {
+  ParentFocusType_Ignore, 
+  ParentFocusType_Active, 
+  ParentFocusType_Inactive, 
+};
 
 
 
@@ -90,6 +97,15 @@ public:
 
   void UpdateCaretForCaretBrowsingMode();
 
+  bool IsParentActivated()
+  {
+    if (mParentFocusType == ParentFocusType_Ignore) {
+      return mActiveWindow != nullptr;
+    }
+
+    return mParentFocusType == ParentFocusType_Active;
+  }
+
   
 
 
@@ -133,6 +149,17 @@ protected:
 
 
   void EnsureCurrentWidgetFocused();
+
+  
+
+
+
+  void ActivateOrDeactivateChildren(nsIMessageBroadcaster* aManager, bool aActive);
+
+  
+
+
+  void ActivateOrDeactivate(nsPIDOMWindow* aWindow, bool aActive);
 
   
 
@@ -525,6 +552,9 @@ private:
   
   
   nsCOMPtr<nsIDocument> mMouseButtonEventHandlingDocument;
+
+  
+  ParentFocusType mParentFocusType;
 
   static bool sTestMode;
 
