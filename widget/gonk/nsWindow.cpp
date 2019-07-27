@@ -259,15 +259,17 @@ class DispatchTouchInputOnMainThread : public nsRunnable
 public:
     DispatchTouchInputOnMainThread(const MultiTouchInput& aInput,
                                    const ScrollableLayerGuid& aGuid,
-                                   const uint64_t& aInputBlockId)
+                                   const uint64_t& aInputBlockId,
+                                   nsEventStatus aApzResponse)
       : mInput(aInput)
       , mGuid(aGuid)
       , mInputBlockId(aInputBlockId)
+      , mApzResponse(aApzResponse)
     {}
 
     NS_IMETHOD Run() {
         if (gFocusedWindow) {
-            gFocusedWindow->DispatchTouchEventForAPZ(mInput, mGuid, mInputBlockId);
+            gFocusedWindow->DispatchTouchEventForAPZ(mInput, mGuid, mInputBlockId, mApzResponse);
         }
         return NS_OK;
     }
@@ -276,6 +278,7 @@ private:
     MultiTouchInput mInput;
     ScrollableLayerGuid mGuid;
     uint64_t mInputBlockId;
+    nsEventStatus mApzResponse;
 };
 
 void
@@ -292,9 +295,9 @@ nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
     
     mozilla::layers::ScrollableLayerGuid guid;
     uint64_t inputBlockId;
-    nsEventStatus rv = mAPZC->ReceiveInputEvent(aInput, &guid, &inputBlockId);
+    nsEventStatus result = mAPZC->ReceiveInputEvent(aInput, &guid, &inputBlockId);
     
-    if (rv == nsEventStatus_eConsumeNoDefault) {
+    if (result == nsEventStatus_eConsumeNoDefault) {
         return;
     }
 
@@ -303,13 +306,14 @@ nsWindow::DispatchTouchInputViaAPZ(MultiTouchInput& aInput)
     
     
     NS_DispatchToMainThread(new DispatchTouchInputOnMainThread(
-        aInput, guid, inputBlockId));
+        aInput, guid, inputBlockId, result));
 }
 
 void
 nsWindow::DispatchTouchEventForAPZ(const MultiTouchInput& aInput,
                                    const ScrollableLayerGuid& aGuid,
-                                   const uint64_t aInputBlockId)
+                                   const uint64_t aInputBlockId,
+                                   nsEventStatus aApzResponse)
 {
     MOZ_ASSERT(NS_IsMainThread());
     UserActivity();
@@ -321,7 +325,7 @@ nsWindow::DispatchTouchEventForAPZ(const MultiTouchInput& aInput,
     
     
     
-    ProcessUntransformedAPZEvent(&event, aGuid, aInputBlockId);
+    ProcessUntransformedAPZEvent(&event, aGuid, aInputBlockId, aApzResponse);
 }
 
 class DispatchTouchInputOnControllerThread : public Task
