@@ -201,6 +201,17 @@ BluetoothHfpManager::ConnectSco()
   return false;
 }
 
+void
+BluetoothHfpManager::HandleBackendError()
+{
+  
+
+
+
+
+
+}
+
 bool
 BluetoothHfpManager::DisconnectSco()
 {

@@ -34,6 +34,8 @@ public:
 
   bool ConnectSco();
   bool DisconnectSco();
+  
+  void HandleBackendError();
 
 protected:
   virtual ~BluetoothHfpManager() { }
