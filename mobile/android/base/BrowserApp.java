@@ -2299,8 +2299,10 @@ public class BrowserApp extends GeckoApp
 
     @Override
     public void openOptionsMenu() {
-        if (!hasTabsSideBar() && areTabsShown())
+        if (areTabsShown()) {
+            mTabsPanel.showMenu();
             return;
+        }
 
         
         if (mMenuPanel != null)
