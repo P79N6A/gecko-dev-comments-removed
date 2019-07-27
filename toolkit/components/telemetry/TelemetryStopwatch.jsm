@@ -103,6 +103,33 @@ this.TelemetryStopwatch = {
 
 
 
+  timeElapsed: function(aHistogram, aObj) {
+    if (!validTypes(aHistogram, aObj))
+      return -1;
+    let timers = aObj
+                 ? objectTimers.get(aObj) || {}
+                 : simpleTimers;
+    let start = timers[aHistogram];
+    if (start) {
+      let delta = Components.utils.now() - start;
+      return Math.round(delta);
+    }
+    return -1;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   finish: function(aHistogram, aObj) {
