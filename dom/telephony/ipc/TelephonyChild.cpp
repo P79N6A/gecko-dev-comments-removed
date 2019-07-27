@@ -58,15 +58,20 @@ TelephonyChild::RecvNotifyCallError(const uint32_t& aClientId,
 }
 
 bool
-TelephonyChild::RecvNotifyCallStateChanged(nsITelephonyCallInfo* const& aInfo)
+TelephonyChild::RecvNotifyCallStateChanged(nsTArray<nsITelephonyCallInfo*>&& aAllInfo)
 {
-  
-  
-  nsCOMPtr<nsITelephonyCallInfo> info = dont_AddRef(aInfo);
+  uint32_t length = aAllInfo.Length();
+  nsTArray<nsCOMPtr<nsITelephonyCallInfo>> results;
+  for (uint32_t i = 0; i < length; ++i) {
+    
+    
+    nsCOMPtr<nsITelephonyCallInfo> info = dont_AddRef(aAllInfo[i]);
+    results.AppendElement(info);
+  }
 
   MOZ_ASSERT(mService);
 
-  mService->CallStateChanged(aInfo);
+  mService->CallStateChanged(length, const_cast<nsITelephonyCallInfo**>(aAllInfo.Elements()));
 
   return true;
 }
