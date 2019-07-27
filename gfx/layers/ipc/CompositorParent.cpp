@@ -49,6 +49,7 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsIWidget.h"                  
+#include "nsIXULRuntime.h"              
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 #include "nsXULAppAPI.h"                
@@ -667,7 +668,7 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
       
       
       
-      aWidget->IsMultiProcessWindow() &&
+      mozilla::BrowserTabsRemoteAutostart() &&
 #endif
       (aWidget->WindowType() == eWindowType_toplevel || aWidget->WindowType() == eWindowType_child)) {
     mApzcTreeManager = new APZCTreeManager();

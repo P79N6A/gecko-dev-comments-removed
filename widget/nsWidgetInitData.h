@@ -105,8 +105,7 @@ struct nsWidgetInitData {
       mIsDragPopup(false),
       mIsAnimationSuppressed(false),
       mSupportTranslucency(false),
-      mMouseTransparent(false),
-      mMultiProcessWindow(false)
+      mMouseTransparent(false)
   {
   }
 
@@ -132,8 +131,6 @@ struct nsWidgetInitData {
   
   
   bool          mMouseTransparent;
-  
-  bool          mMultiProcessWindow;
 };
 
 #endif 

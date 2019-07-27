@@ -1751,8 +1751,6 @@ class nsIWidget : public nsISupports {
     NS_IMETHOD DispatchEvent(mozilla::WidgetGUIEvent* event,
                              nsEventStatus & aStatus) = 0;
 
-    virtual bool IsMultiProcessWindow() = 0;
-
     
 
 
