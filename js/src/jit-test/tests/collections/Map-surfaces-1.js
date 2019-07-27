@@ -46,4 +46,4 @@ assertEq(desc.set, undefined);
 checkMethod("clear", 0);
 
 
-assertEq(Map.prototype[std_iterator], Map.prototype.entries);
+assertEq(Map.prototype[Symbol.iterator], Map.prototype.entries);

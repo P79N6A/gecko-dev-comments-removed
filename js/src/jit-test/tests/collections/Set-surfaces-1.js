@@ -45,4 +45,4 @@ checkMethod("clear", 0);
 
 
 assertEq(Set.prototype.keys, Set.prototype.values);
-assertEq(Set.prototype[std_iterator], Set.prototype.values);
+assertEq(Set.prototype[Symbol.iterator], Set.prototype.values);

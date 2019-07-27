@@ -47,10 +47,10 @@ function assertBuiltinFunction(o, name, arity) {
 
 
 
-assertBuiltinFunction(String.prototype, std_iterator, 0);
+assertBuiltinFunction(String.prototype, Symbol.iterator, 0);
 
 
-var iter = ""[std_iterator]();
+var iter = ""[Symbol.iterator]();
 var iterProto = Object.getPrototypeOf(iter);
 
 
@@ -58,17 +58,17 @@ assertEq(Object.getPrototypeOf(iterProto), Object.prototype);
 
 
 arraysEqual(Object.getOwnPropertyNames(iterProto).sort(), ["next"]);
-assertEq(iterProto.hasOwnProperty(std_iterator), true);
+assertEq(iterProto.hasOwnProperty(Symbol.iterator), true);
 
 
-assertBuiltinFunction(iterProto, std_iterator, 0);
+assertBuiltinFunction(iterProto, Symbol.iterator, 0);
 
 
 assertBuiltinFunction(iterProto, "next", 0);
 
 
 for (var v of [void 0, null, true, false, "", 0, 1, {}, [], iter, iterProto]) {
-    assertEq(iterProto[std_iterator].call(v), v);
+    assertEq(iterProto[Symbol.iterator].call(v), v);
 }
 
 

@@ -876,5 +876,3 @@ function OptLevel( i ) {
   cx.setOptimizationLevel(i);
 }
 
-
-var std_iterator = Symbol.iterator;
