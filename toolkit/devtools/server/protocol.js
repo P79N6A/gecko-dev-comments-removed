@@ -770,7 +770,7 @@ let Pool = Class({
 
 
   unmanage: function(actor) {
-    this.__poolMap.delete(actor.actorID);
+    this.__poolMap && this.__poolMap.delete(actor.actorID);
   },
 
   
