@@ -703,9 +703,17 @@ def run_tests(tests, prefix, options):
     return ok
 
 def get_remote_results(tests, device, prefix, options):
-    for i in xrange(0, options.repeat):
-        for test in tests:
-            yield run_test_remote(test, device, prefix, options)
+    from mozdevice import devicemanager
+
+    try:
+        for i in xrange(0, options.repeat):
+            for test in tests:
+                yield run_test_remote(test, device, prefix, options)
+    except devicemanager.DMError as e:
+        
+        
+        
+        sys.stderr.write("Error running remote tests: %s" % e.message)
 
 def push_libs(options, device):
     
