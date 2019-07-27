@@ -3558,8 +3558,9 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
                 
                 
                 
+                
                 if (self.descriptor.interface.identifier.name == "Window" and
-                    m.identifier.name == "window"):
+                    (m.identifier.name == "window" or m.identifier.name == "self")):
                     continue
                 body += fill(
                     """
