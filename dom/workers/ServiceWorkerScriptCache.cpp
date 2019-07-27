@@ -32,29 +32,33 @@ namespace serviceWorkerScriptCache {
 
 namespace {
 
-
-
-
-
-
 already_AddRefed<CacheStorage>
-CreateCacheStorage(JSContext* aCx, nsIPrincipal* aPrincipal, ErrorResult& aRv,
-                   JS::MutableHandle<JSObject*> aSandbox)
+CreateCacheStorage(nsIPrincipal* aPrincipal, ErrorResult& aRv,
+                   nsIXPConnectJSObjectHolder** aHolder = nullptr)
 {
   AssertIsOnMainThread();
   MOZ_ASSERT(aPrincipal);
 
   nsIXPConnect* xpc = nsContentUtils::XPConnect();
   MOZ_ASSERT(xpc, "This should never be null!");
-  aRv = xpc->CreateSandbox(aCx, aPrincipal, aSandbox.address());
+
+  AutoJSAPI jsapi;
+  jsapi.Init();
+  nsCOMPtr<nsIXPConnectJSObjectHolder> sandbox;
+  aRv = xpc->CreateSandbox(jsapi.cx(), aPrincipal, getter_AddRefs(sandbox));
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
 
-  nsCOMPtr<nsIGlobalObject> sandboxGlobalObject = xpc::NativeGlobal(aSandbox);
+  nsCOMPtr<nsIGlobalObject> sandboxGlobalObject =
+    xpc::NativeGlobal(sandbox->GetJSObject());
   if (!sandboxGlobalObject) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
+  }
+
+  if (aHolder) {
+    sandbox.forget(aHolder);
   }
 
   
@@ -317,11 +321,8 @@ public:
 
     
     
-    AutoJSAPI jsapi;
-    jsapi.Init();
     ErrorResult result;
-    mSandbox.init(jsapi.cx());
-    mCacheStorage = CreateCacheStorage(jsapi.cx(), aPrincipal, result, &mSandbox);
+    mCacheStorage = CreateCacheStorage(aPrincipal, result, getter_AddRefs(mSandbox));
     if (NS_WARN_IF(result.Failed())) {
       MOZ_ASSERT(!result.IsErrorWithMessage());
       return result.StealNSResult();
@@ -622,7 +623,7 @@ private:
   }
 
   nsRefPtr<CompareCallback> mCallback;
-  JS::PersistentRooted<JSObject*> mSandbox;
+  nsCOMPtr<nsIXPConnectJSObjectHolder> mSandbox;
   nsRefPtr<CacheStorage> mCacheStorage;
 
   nsRefPtr<CompareNetwork> mCN;
@@ -958,11 +959,8 @@ PurgeCache(nsIPrincipal* aPrincipal, const nsAString& aCacheName)
     return NS_OK;
   }
 
-  AutoJSAPI jsapi;
-  jsapi.Init();
   ErrorResult rv;
-  JS::Rooted<JSObject*> sandboxObject(jsapi.cx());
-  nsRefPtr<CacheStorage> cacheStorage = CreateCacheStorage(jsapi.cx(), aPrincipal, rv, &sandboxObject);
+  nsRefPtr<CacheStorage> cacheStorage = CreateCacheStorage(aPrincipal, rv);
   if (NS_WARN_IF(rv.Failed())) {
     return rv.StealNSResult();
   }
