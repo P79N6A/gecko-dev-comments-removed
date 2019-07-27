@@ -27,7 +27,7 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
 {
     js::AsmJSActivation *activation_;
 
-    static const unsigned StorageSpace = 5 * sizeof(void*);
+    static const unsigned StorageSpace = 6 * sizeof(void*);
     mozilla::AlignedStorage<StorageSpace> storage_;
     js::AsmJSProfilingFrameIterator &iter() {
         JS_ASSERT(!done());
@@ -54,6 +54,13 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     ~ProfilingFrameIterator();
     void operator++();
     bool done() const { return !activation_; }
+
+    
+    
+    
+    
+    
+    void *stackAddress() const;
 
     enum Kind {
         Function,
