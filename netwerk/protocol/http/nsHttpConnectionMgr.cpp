@@ -85,6 +85,7 @@ nsHttpConnectionMgr::nsHttpConnectionMgr()
     , mNumSpdyActiveConns(0)
     , mNumHalfOpenConns(0)
     , mTimeOfNextWakeUp(UINT64_MAX)
+    , mPruningNoTraffic(false)
     , mTimeoutTickArmed(false)
     , mTimeoutTickNext(1)
 {
@@ -271,6 +272,8 @@ nsHttpConnectionMgr::Observe(nsISupports *subject,
         }
         else if (timer == mTimeoutTick) {
             TimeoutTick();
+        } else if (timer == mTrafficTimer) {
+            PruneNoTraffic();
         }
         else {
             MOZ_ASSERT(false, "unexpected timer-callback");
@@ -327,6 +330,25 @@ nsHttpConnectionMgr::PruneDeadConnections()
 {
     return PostEvent(&nsHttpConnectionMgr::OnMsgPruneDeadConnections);
 }
+
+
+
+
+nsresult
+nsHttpConnectionMgr::PruneNoTraffic()
+{
+    LOG(("nsHttpConnectionMgr::PruneNoTraffic\n"));
+    mPruningNoTraffic = true;
+    return PostEvent(&nsHttpConnectionMgr::OnMsgPruneNoTraffic);
+}
+
+nsresult
+nsHttpConnectionMgr::VerifyTraffic()
+{
+    LOG(("nsHttpConnectionMgr::VerifyTraffic\n"));
+    return PostEvent(&nsHttpConnectionMgr::OnMsgVerifyTraffic);
+}
+
 
 nsresult
 nsHttpConnectionMgr::DoShiftReloadConnectionCleanup(nsHttpConnectionInfo *aCI)
@@ -1006,6 +1028,53 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
     ent->mIdleConns.Compact();
     ent->mActiveConns.Compact();
     ent->mPendingQ.Compact();
+
+    return PL_DHASH_NEXT;
+}
+
+PLDHashOperator
+nsHttpConnectionMgr::VerifyTrafficCB(const nsACString &key,
+                                     nsAutoPtr<nsConnectionEntry> &ent,
+                                     void *closure)
+{
+    
+    for (uint32_t index = 0; index < ent->mActiveConns.Length(); ++index) {
+        nsHttpConnection *conn = ent->mActiveConns[index];
+        conn->CheckForTraffic(true);
+    }
+    
+    for (uint32_t index = 0; index < ent->mIdleConns.Length(); ++index) {
+        nsHttpConnection *conn = ent->mIdleConns[index];
+        conn->CheckForTraffic(false);
+    }
+
+    return PL_DHASH_NEXT;
+}
+
+PLDHashOperator
+nsHttpConnectionMgr::PruneNoTrafficCB(const nsACString &key,
+                                      nsAutoPtr<nsConnectionEntry> &ent,
+                                      void *closure)
+{
+    
+    nsHttpConnectionMgr *self = (nsHttpConnectionMgr *) closure;
+
+    LOG(("  pruning no traffic [ci=%s]\n", ent->mConnInfo->HashKey().get()));
+
+    uint32_t numConns = ent->mActiveConns.Length();
+    if (numConns) {
+        
+        for (int index = numConns-1; index >= 0; index--) {
+            if (ent->mActiveConns[index]->NoTraffic()) {
+              nsRefPtr<nsHttpConnection> conn = dont_AddRef(ent->mActiveConns[index]);
+              ent->mActiveConns.RemoveElementAt(index);
+              self->DecrementActiveConnCount(conn);
+              conn->Close(NS_ERROR_ABORT);
+              LOG(("  closed active connection due to no traffic [conn=%p]\n",
+                   conn.get()));
+            }
+        }
+    }
 
     return PL_DHASH_NEXT;
 }
@@ -2214,6 +2283,10 @@ nsHttpConnectionMgr::OnMsgShutdown(int32_t, void *param)
       mTimer->Cancel();
       mTimer = nullptr;
     }
+    if (mTrafficTimer) {
+      mTrafficTimer->Cancel();
+      mTrafficTimer = nullptr;
+    }
 
     
     nsRefPtr<nsIRunnable> runnable =
@@ -2412,6 +2485,50 @@ nsHttpConnectionMgr::OnMsgPruneDeadConnections(int32_t, void *)
     
     if (mNumIdleConns || (mNumActiveConns && gHttpHandler->IsSpdyEnabled()))
         mCT.Enumerate(PruneDeadConnectionsCB, this);
+}
+
+void
+nsHttpConnectionMgr::OnMsgPruneNoTraffic(int32_t, void *)
+{
+    MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+    LOG(("nsHttpConnectionMgr::OnMsgPruneNoTraffic\n"));
+
+    
+    mCT.Enumerate(PruneNoTrafficCB, this);
+
+    mPruningNoTraffic = false; 
+}
+
+void
+nsHttpConnectionMgr::OnMsgVerifyTraffic(int32_t, void *)
+{
+    MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+    LOG(("nsHttpConnectionMgr::OnMsgVerifyTraffic\n"));
+
+    if (mPruningNoTraffic) {
+      
+      
+      return;
+    }
+
+    
+    mCT.Enumerate(VerifyTrafficCB, this);
+
+    
+    if(!mTrafficTimer) {
+        mTrafficTimer = do_CreateInstance("@mozilla.org/timer;1");
+    }
+
+    
+    
+    if (mTrafficTimer) {
+        
+        
+        mTrafficTimer->Init(this, gHttpHandler->NetworkChangedTimeout(),
+                            nsITimer::TYPE_ONE_SHOT);
+    } else {
+        NS_WARNING("failed to create timer for VerifyTraffic!");
+    }
 }
 
 void
