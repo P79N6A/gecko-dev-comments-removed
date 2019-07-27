@@ -1224,14 +1224,15 @@ mozTXTToHTMLConv::ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOu
 
   
   
-
-
+  
+  
   for (int32_t i = 0; i < lengthOfInString;)
   {
     if (aInString[i] == '<')  
     {
-      uint32_t start = uint32_t(i);
-      if (nsCRT::ToLower((char)aInString[uint32_t(i) + 1]) == 'a')
+      int32_t start = i;
+      if (Substring(aInString, i + 1, 2).LowerCaseEqualsASCII("a "))
+           
            
       {
         i = aInString.Find("</a>", true, i);
@@ -1240,8 +1241,7 @@ mozTXTToHTMLConv::ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOu
         else
           i += 4;
       }
-      else if (aInString[uint32_t(i) + 1] == '!' && aInString[uint32_t(i) + 2] == '-' &&
-        aInString[uint32_t(i) + 3] == '-')
+      else if (Substring(aInString, i + 1, 3).LowerCaseEqualsASCII("!--"))
           
       {
         i = aInString.Find("-->", false, i);
@@ -1249,7 +1249,37 @@ mozTXTToHTMLConv::ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOu
           i = lengthOfInString;
         else
           i += 3;
-
+      }
+      else if (Substring(aInString, i + 1, 5).LowerCaseEqualsASCII("style") &&
+               (aInString.CharAt(i + 6) == ' ' || aInString.CharAt(i + 6) == '>'))
+           
+      {
+        i = aInString.Find("</style>", true, i);
+        if (i == kNotFound)
+          i = lengthOfInString;
+        else
+          i += 8;
+      }
+      else if (Substring(aInString, i + 1, 6).LowerCaseEqualsASCII("script") &&
+               (aInString.CharAt(i + 7) == ' ' || aInString.CharAt(i + 7) == '>'))
+           
+      {
+        i = aInString.Find("</script>", true, i);
+        if (i == kNotFound)
+          i = lengthOfInString;
+        else
+          i += 9;
+      }
+      else if (Substring(aInString, i + 1, 4).LowerCaseEqualsASCII("head") &&
+               (aInString.CharAt(i + 5) == ' ' || aInString.CharAt(i + 5) == '>'))
+           
+           
+      {
+        i = aInString.Find("</head>", true, i);
+        if (i == kNotFound)
+          i = lengthOfInString;
+        else
+          i += 7;
       }
       else  
       {
@@ -1259,7 +1289,7 @@ mozTXTToHTMLConv::ScanHTML(nsString& aInString, uint32_t whattodo, nsString &aOu
         else
           i++;
       }
-      aOutString.Append(&uniBuffer[start], uint32_t(i) - start);
+      aOutString.Append(&uniBuffer[start], i - start);
     }
     else
     {
