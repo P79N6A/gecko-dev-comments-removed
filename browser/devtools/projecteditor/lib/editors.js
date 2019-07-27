@@ -245,7 +245,9 @@ var TextEditor = Class({
 
   focus: function() {
     return this.appended.then(() => {
-      this.editor.focus();
+      if (this.editor) {
+        this.editor.focus();
+      }
     });
   }
 });
