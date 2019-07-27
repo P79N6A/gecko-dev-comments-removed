@@ -25,6 +25,7 @@
 #include "mozilla/Monitor.h"            
 #include "mozilla/RefPtr.h"             
 #include "mozilla/TimeStamp.h"          
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/LayersMessages.h"  
@@ -33,7 +34,6 @@
 #include "mozilla/layers/APZTestData.h"
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"
-#include "nsSize.h"                     
 #include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 #include "mozilla/VsyncDispatcher.h"
 

@@ -16,10 +16,10 @@
 #include "gfx2DGlue.h"                  
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Tools.h"
+#include "mozilla/gfx/Point.h"          
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
-#include "nsSize.h"                     
 #include "gfxUtils.h"
 
 namespace mozilla {

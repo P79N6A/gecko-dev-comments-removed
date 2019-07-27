@@ -24,7 +24,7 @@
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/ShadowLayers.h"  
 #include "mozilla/layers/TextureClient.h"  
-#include "nsSize.h"                     
+#include "mozilla/gfx/Point.h"          
 #include "gfx2DGlue.h"
 #include "nsLayoutUtils.h"              
 

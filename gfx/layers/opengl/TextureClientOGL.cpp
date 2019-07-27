@@ -7,7 +7,7 @@
 #include "mozilla/Assertions.h"         
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/TextureClientOGL.h"
-#include "nsSize.h"                     
+#include "mozilla/gfx/Point.h"          
 #include "GLLibraryEGL.h"
 
 using namespace mozilla::gl;

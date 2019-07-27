@@ -23,7 +23,6 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
-#include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "mozilla/Atomics.h"
 #include "mozilla/WeakPtr.h"

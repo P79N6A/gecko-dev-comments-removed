@@ -24,7 +24,6 @@
 #include "TextureClientPool.h"
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
-#include "nsSize.h"                     
 #include "gfxReusableSharedImageSurfaceWrapper.h"
 #include "nsExpirationTracker.h"        
 #include "nsMathUtils.h"               

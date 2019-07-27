@@ -27,7 +27,6 @@
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
-#include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "nsThreadUtils.h"              
 #include "nsXULAppAPI.h"                

@@ -9,10 +9,10 @@
 #include <stdint.h>                     
 #include "gfxColor.h"                   
 #include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Point.h"          
 #include "nsDebug.h"                    
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
-#include "nsSize.h"                     
 
 using namespace mozilla::gfx;
 

@@ -28,7 +28,6 @@
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
-#include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "nsXULAppAPI.h"                
 #include "mozilla/ReentrantMonitor.h"

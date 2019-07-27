@@ -7,6 +7,7 @@
 #include "PaintedLayerComposite.h"      
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/LayerMetricsWrapper.h" 
@@ -16,7 +17,6 @@
 #include "nsPoint.h"                    
 #include "nsPrintfCString.h"            
 #include "nsRect.h"                     
-#include "nsSize.h"                     
 #include "mozilla/layers/TiledContentClient.h"
 
 class gfxReusableSurfaceWrapper;

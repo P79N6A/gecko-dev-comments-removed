@@ -16,12 +16,12 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/BasePoint.h"      
 #include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/gfx/Point.h"          
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsRegion.h"                   
-#include "nsSize.h"                     
 
 using namespace mozilla::gfx;
 

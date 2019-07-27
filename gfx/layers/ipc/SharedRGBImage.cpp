@@ -7,6 +7,7 @@
 #include "Shmem.h"                      
 #include "gfx2DGlue.h"                  
 #include "gfxPlatform.h"                
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/ISurfaceAllocator.h"  
 #include "mozilla/layers/ImageClient.h"  
 #include "mozilla/layers/ImageDataSerializer.h"  
@@ -18,7 +19,6 @@
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
-#include "nsSize.h"                     
 
 
 #define MAX_FRAME_SIZE (16 * 1024 * 1024)

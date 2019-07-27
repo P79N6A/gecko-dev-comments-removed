@@ -39,7 +39,6 @@
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsRegion.h"                   
-#include "nsSize.h"                     
 #include "nsString.h"                   
 #include "nsTArray.h"                   
 #include "nsTArrayForwardDeclare.h"     
