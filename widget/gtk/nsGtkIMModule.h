@@ -59,7 +59,7 @@ public:
 
     
     
-    bool IsEnabled();
+    bool IsEnabled() const;
 
     
     void OnFocusWindow(nsWindow* aWindow);
@@ -246,7 +246,6 @@ protected:
     void OnStartCompositionNative(GtkIMContext *aContext);
     void OnEndCompositionNative(GtkIMContext *aContext);
 
-
     
 
 
@@ -255,7 +254,7 @@ protected:
 
 
 
-    GtkIMContext* GetContext();
+    GtkIMContext* GetCurrentContext() const;
 
     
     bool IsDestroyed() { return !mOwnerWindow; }
