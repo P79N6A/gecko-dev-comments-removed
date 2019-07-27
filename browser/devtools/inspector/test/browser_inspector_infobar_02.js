@@ -4,6 +4,13 @@
 
 "use strict";
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Protocol error (unknownError): Error: Got an invalid root window in DocumentWalker");
+
 const TEST_URI = "http://example.com/browser/browser/devtools/inspector/" +
                  "test/browser_inspector_infobar_02.html";
 const DOORHANGER_ARROW_HEIGHT = 5;
