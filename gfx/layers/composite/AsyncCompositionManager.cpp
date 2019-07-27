@@ -614,18 +614,6 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
   
   Maybe<ParentLayerIntRect> asyncClip = aLayer->GetClipRect();
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsTArray<Layer*> ancestorMaskLayers;
-
   for (uint32_t i = 0; i < aLayer->GetFrameMetricsCount(); i++) {
     AsyncPanZoomController* controller = aLayer->GetAsyncPanZoomController(i);
     if (!controller) {
@@ -688,21 +676,6 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
       }
     }
 
-    
-    
-    
-    for (Layer* ancestorMaskLayer : ancestorMaskLayers) {
-      SetShadowTransform(ancestorMaskLayer,
-          ancestorMaskLayer->GetLocalTransform() * asyncTransform);
-    }
-
-    
-    if (metrics.GetMaskLayerIndex()) {
-      size_t maskLayerIndex = metrics.GetMaskLayerIndex().value();
-      Layer* ancestorMaskLayer = aLayer->GetAncestorMaskLayerAt(maskLayerIndex);
-      ancestorMaskLayers.AppendElement(ancestorMaskLayer);
-    }
-
     combinedAsyncTransformWithoutOverscroll *= asyncTransformWithoutOverscroll;
     combinedAsyncTransform *= asyncTransform;
   }
@@ -718,12 +691,6 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     SetShadowTransform(aLayer,
         aLayer->GetLocalTransform() * AdjustForClip(combinedAsyncTransform, aLayer));
-
-    
-    if (Layer* maskLayer = aLayer->GetMaskLayer()) {
-      SetShadowTransform(maskLayer,
-          maskLayer->GetLocalTransform() * combinedAsyncTransform);
-    }
 
     const FrameMetrics& bottom = LayerMetricsWrapper::BottommostScrollableMetrics(aLayer);
     MOZ_ASSERT(bottom.IsScrollable());  

@@ -1062,18 +1062,6 @@ public:
 
 
 
-  void SetAncestorMaskLayers(const nsTArray<nsRefPtr<Layer>>& aLayers) {
-    if (aLayers != mAncestorMaskLayers) {
-      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) AncestorMaskLayers", this));
-      mAncestorMaskLayers = aLayers;
-      Mutated();
-    }
-  }
-
-  
-
-
-
 
   void SetBaseTransform(const gfx::Matrix4x4& aMatrix)
   {
@@ -1282,19 +1270,6 @@ public:
   float GetScrollbarThumbRatio() { return mScrollbarThumbRatio; }
   bool IsScrollbarContainer() { return mIsScrollbarContainer; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
-
-  
-  
-  size_t GetAncestorMaskLayerCount() const {
-    return mAncestorMaskLayers.Length();
-  }
-  Layer* GetAncestorMaskLayerAt(size_t aIndex) const {
-    return mAncestorMaskLayers.ElementAt(aIndex);
-  }
-
-  bool HasMaskLayers() const {
-    return GetMaskLayer() || mAncestorMaskLayers.Length() > 0;
-  }
 
   
 
@@ -1516,9 +1491,7 @@ public:
   
 
 
-  void ComputeEffectiveTransformForMaskLayers(const gfx::Matrix4x4& aTransformToSurface);
-  static void ComputeEffectiveTransformForMaskLayer(Layer* aMaskLayer,
-                                                    const gfx::Matrix4x4& aTransformToSurface);
+  void ComputeEffectiveTransformForMaskLayer(const gfx::Matrix4x4& aTransformToSurface);
 
   
 
@@ -1722,7 +1695,6 @@ protected:
   Layer* mPrevSibling;
   void* mImplData;
   nsRefPtr<Layer> mMaskLayer;
-  nsTArray<nsRefPtr<Layer>> mAncestorMaskLayers;
   gfx::UserData mUserData;
   gfx::IntRect mLayerBounds;
   nsIntRegion mVisibleRegion;
@@ -1834,7 +1806,7 @@ public:
                    "Residual translation out of range");
       mValidRegion.SetEmpty();
     }
-    ComputeEffectiveTransformForMaskLayers(aTransformToSurface);
+    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
   LayerManager::PaintedLayerCreationHint GetCreationHint() const { return mCreationHint; }
@@ -2145,7 +2117,7 @@ public:
   {
     gfx::Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
     mEffectiveTransform = SnapTransformTranslation(idealTransform, nullptr);
-    ComputeEffectiveTransformForMaskLayers(aTransformToSurface);
+    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
 protected:
@@ -2297,7 +2269,7 @@ public:
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
                       nullptr)*
         SnapTransformTranslation(aTransformToSurface, nullptr);
-    ComputeEffectiveTransformForMaskLayers(aTransformToSurface);
+    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
 protected:

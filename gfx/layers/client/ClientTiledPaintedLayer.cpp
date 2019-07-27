@@ -444,7 +444,9 @@ ClientTiledPaintedLayer::RenderLayer()
 
   if (!ClientManager()->IsRepeatTransaction()) {
     
-    RenderMaskLayers(this);
+    if (GetMaskLayer()) {
+      ToClientLayer(GetMaskLayer())->RenderLayer();
+    }
 
     
     
