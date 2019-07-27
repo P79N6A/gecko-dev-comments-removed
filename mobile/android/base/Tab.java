@@ -38,7 +38,7 @@ public class Tab {
     private long mLastUsed;
     private String mUrl;
     private String mBaseDomain;
-    private String mUserSearch;
+    private String mUserRequested; 
     private String mTitle;
     private Bitmap mFavicon;
     private String mFaviconUrl;
@@ -97,7 +97,7 @@ public class Tab {
         mId = id;
         mUrl = url;
         mBaseDomain = "";
-        mUserSearch = "";
+        mUserRequested = "";
         mExternal = external;
         mParentId = parentId;
         mTitle = title == null ? "" : title;
@@ -148,8 +148,8 @@ public class Tab {
     }
 
     
-    public synchronized String getUserSearch() {
-        return mUserSearch;
+    public synchronized String getUserRequested() {
+        return mUserRequested;
     }
 
     
@@ -268,8 +268,8 @@ public class Tab {
         }
     }
 
-    private synchronized void updateUserSearch(String userSearch) {
-        mUserSearch = userSearch;
+    public synchronized void updateUserRequested(String userRequested) {
+        mUserRequested = userRequested;
     }
 
     public void setErrorType(String type) {
@@ -654,7 +654,7 @@ public class Tab {
         }
 
         setContentType(message.getString("contentType"));
-        updateUserSearch(message.getString("userSearch"));
+        updateUserRequested(message.getString("userRequested"));
         mBaseDomain = message.optString("baseDomain");
 
         setHasFeeds(false);

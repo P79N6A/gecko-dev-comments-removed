@@ -961,7 +961,8 @@ var BrowserApp = {
 
     let tab = this.getTabForBrowser(aBrowser);
     if (tab) {
-      if ("userSearch" in aParams) tab.userSearch = aParams.userSearch;
+      if ("userRequested" in aParams) tab.userRequested = aParams.userRequested;
+      tab.isSearch = ("isSearch" in aParams) ? aParams.isSearch : false;
     }
 
     try {
@@ -1585,13 +1586,15 @@ var BrowserApp = {
           desktopMode: (data.desktopMode === true)
         };
 
+        params.userRequested = url;
+
         if (data.engine) {
           let engine = Services.search.getEngineByName(data.engine);
           if (engine) {
-            params.userSearch = url;
             let submission = engine.getSubmission(url);
             url = submission.uri.spec;
             params.postData = submission.postData;
+            params.isSearch = true;
           }
         }
 
@@ -1623,7 +1626,7 @@ var BrowserApp = {
         
         
         
-        this.selectedTab.userSearch = aData;
+        this.isSearch = true;
 
         
         let isPrivate = PrivateBrowsingUtils.isWindowPrivate(this.selectedTab.browser.contentWindow);
@@ -3265,7 +3268,8 @@ Tab.prototype = {
       let charset = "charset" in aParams ? aParams.charset : null;
 
       
-      this.userSearch = "userSearch" in aParams ? aParams.userSearch : "";
+      this.userRequested = "userRequested" in aParams ? aParams.userRequested : "";
+      this.isSearch = "isSearch" in aParams ? aParams.isSearch : false;
 
       try {
         this.browser.loadURIWithFlags(aURL, flags, referrerURI, charset, postData);
@@ -3794,16 +3798,6 @@ Tab.prototype = {
         else if (docURI.startsWith("about:neterror"))
           errorType = "neterror";
 
-        Messaging.sendRequest({
-          type: "DOMContentLoaded",
-          tabID: this.id,
-          bgColor: backgroundColor,
-          errorType: errorType,
-          metadata: this.metatags
-        });
-
-        this.metatags = null;
-
         
         
         
@@ -3811,6 +3805,17 @@ Tab.prototype = {
         if (docURI.startsWith("about:neterror")) {
           NetErrorHelper.attachToBrowser(this.browser);
         }
+
+        Messaging.sendRequest({
+          type: "DOMContentLoaded",
+          tabID: this.id,
+          bgColor: backgroundColor,
+          errorType: errorType,
+          metadata: this.metatags,
+        });
+
+        
+        this.metatags = null;
 
         if (docURI.startsWith("about:certerror") || docURI.startsWith("about:blocked")) {
           this.browser.addEventListener("click", ErrorPageEventHandler, true);
@@ -4081,10 +4086,20 @@ Tab.prototype = {
         if (aEvent.originalTarget.defaultView != this.browser.contentWindow)
           return;
 
+        let target = aEvent.originalTarget;
+        let docURI = target.documentURI;
+        if (!docURI.startsWith("about:neterror") && !this.isSearch) {
+          
+          this.userRequested = "";
+        }
+
         Messaging.sendRequest({
           type: "Content:PageShow",
-          tabID: this.id
+          tabID: this.id,
+          userRequested: this.userRequested
         });
+
+        this.isSearch = false;
 
         if (!aEvent.persisted && Services.prefs.getBoolPref("browser.ui.linkify.phone")) {
           if (!this._linkifier)
@@ -4268,16 +4283,13 @@ Tab.prototype = {
       type: "Content:LocationChange",
       tabID: this.id,
       uri: truncate(fixedURI.spec, MAX_URI_LENGTH),
-      userSearch: this.userSearch || "",
+      userRequested: this.userRequested || "",
       baseDomain: baseDomain,
       contentType: (contentType ? contentType : ""),
       sameDocument: sameDocument
     };
 
     Messaging.sendRequest(message);
-
-    
-    this.userSearch = "";
 
     if (!sameDocument) {
       

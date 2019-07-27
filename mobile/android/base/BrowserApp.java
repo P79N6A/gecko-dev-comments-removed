@@ -1813,11 +1813,11 @@ public class BrowserApp extends GeckoApp
 
         final Tab tab = Tabs.getInstance().getSelectedTab();
         if (tab != null) {
-            final String userSearch = tab.getUserSearch();
+            final String userRequested = tab.getUserRequested();
 
             
             
-            url = (TextUtils.isEmpty(userSearch) ? tab.getURL() : userSearch);
+            url = (TextUtils.isEmpty(userRequested) ? tab.getURL() : userRequested);
         }
 
         enterEditingMode(url);

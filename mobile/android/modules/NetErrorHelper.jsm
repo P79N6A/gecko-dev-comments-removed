@@ -62,6 +62,36 @@ NetErrorHelper.prototype = {
   },
 }
 
+handlers.searchbutton = {
+  onPageShown: function(browser) {
+    let search = browser.contentDocument.querySelector("#searchbox");
+    if (!search) {
+      return;
+    }
+
+    let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
+    let tab = browserWin.BrowserApp.getTabForBrowser(browser);
+
+    
+    if (!tab.userRequested) {
+      search.style.display = "none";
+    } else {
+      let text = browser.contentDocument.querySelector("#searchtext");
+      text.value = tab.userRequested;
+    }
+  },
+
+  handleClick: function(event) {
+    let engine = Services.search.defaultEngine;
+    let value = event.target.previousElementSibling.value;
+    let uri = engine.getSubmission(value).uri;
+
+    let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
+    
+    browserWin.BrowserApp.loadURI(uri.spec, undefined, { isSearch: true, userRequested: value });
+  }
+};
+
 handlers.wifi = {
   
   
