@@ -62,7 +62,14 @@ XPCOMUtils.defineLazyModuleGetter(this, 'Promise',
   'resource://gre/modules/Promise.jsm');
 
 
-const MAX_MULTITOUCH = 250;
+const SWIPE_MAX_DURATION = 200;
+
+
+const MAX_MULTITOUCH = 125;
+
+const MAX_CONSECUTIVE_GESTURE_DELAY = 200;
+
+const DWELL_THRESHOLD = 250;
 
 const SWIPE_MIN_DISTANCE = 0.4;
 
@@ -80,6 +87,8 @@ const ANDROID_TRIPLE_SWIPE_DELAY = 50;
 const MOUSE_ID = 'mouse';
 
 const EDGE = 0.1;
+
+const TIMEOUT_MULTIPLIER = 1;
 
 
 
@@ -142,19 +151,26 @@ this.GestureSettings = {
 
 
 
-  swipeMaxDuration: 400,
+  swipeMaxDuration: SWIPE_MAX_DURATION * TIMEOUT_MULTIPLIER,
 
   
 
 
 
-  maxConsecutiveGestureDelay: 400,
+  maxMultitouch: MAX_MULTITOUCH * TIMEOUT_MULTIPLIER,
 
   
 
 
 
-  dwellThreshold: 500,
+  maxConsecutiveGestureDelay:
+    MAX_CONSECUTIVE_GESTURE_DELAY * TIMEOUT_MULTIPLIER,
+
+  
+
+
+
+  dwellThreshold: DWELL_THRESHOLD * TIMEOUT_MULTIPLIER,
 
   
 
@@ -443,7 +459,7 @@ Gesture.prototype = {
   pointerdown: function Gesture_pointerdown(aPoints, aTimeStamp) {
     this._inProgress = true;
     this._update(aPoints, 'pointerdown',
-      aTimeStamp - this.startTime < MAX_MULTITOUCH);
+      aTimeStamp - this.startTime < GestureSettings.maxMultitouch);
   },
 
   
