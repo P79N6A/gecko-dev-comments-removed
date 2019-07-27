@@ -152,6 +152,17 @@ CSSAnimationPlayer::QueueEvents(EventArray& aEventsToDispatch)
   }
 }
 
+CommonAnimationManager*
+CSSAnimationPlayer::GetAnimationManager() const
+{
+  nsPresContext* context = GetPresContext();
+  if (!context) {
+    return nullptr;
+  }
+
+  return context->AnimationManager();
+}
+
  nsString
 CSSAnimationPlayer::PseudoTypeAsString(nsCSSPseudoElements::Type aPseudoType)
 {
