@@ -5109,15 +5109,10 @@ nsEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
       
       
       return false;
-    case NS_COMPOSITION_CHANGE:
-      
-      
-      widgetGUIEvent = aEvent->GetInternalNSEvent()->AsTextEvent();
-      needsWidget = true;
-      break;
     case NS_COMPOSITION_START:
     case NS_COMPOSITION_END:
     case NS_COMPOSITION_UPDATE:
+    case NS_COMPOSITION_CHANGE:
       
       
       widgetGUIEvent = aEvent->GetInternalNSEvent()->AsCompositionEvent();

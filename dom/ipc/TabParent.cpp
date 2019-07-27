@@ -1582,7 +1582,7 @@ TabParent::SendCompositionEvent(WidgetCompositionEvent& event)
 
 
 bool
-TabParent::SendTextEvent(WidgetTextEvent& event)
+TabParent::SendTextEvent(WidgetCompositionEvent& event)
 {
   if (mIsDestroyed) {
     return false;

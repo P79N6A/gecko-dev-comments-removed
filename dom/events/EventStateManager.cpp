@@ -798,7 +798,7 @@ EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     break;
   case NS_COMPOSITION_CHANGE:
     {
-      WidgetTextEvent *textEvent = aEvent->AsTextEvent();
+      WidgetCompositionEvent* textEvent = aEvent->AsCompositionEvent();
       if (IsTargetCrossProcess(textEvent)) {
         
         if (GetCrossProcessTarget()->SendTextEvent(*textEvent)) {

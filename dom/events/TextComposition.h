@@ -132,7 +132,7 @@ public:
   {
   public:
     TextEventHandlingMarker(TextComposition* aComposition,
-                            const WidgetTextEvent* aTextEvent)
+                            const WidgetCompositionEvent* aTextEvent)
       : mComposition(aComposition)
     {
       mComposition->EditorWillHandleTextEvent(aTextEvent);
@@ -235,7 +235,7 @@ private:
 
 
 
-  void EditorWillHandleTextEvent(const WidgetTextEvent* aTextEvent);
+  void EditorWillHandleTextEvent(const WidgetCompositionEvent* aTextEvent);
 
   
 
@@ -258,7 +258,7 @@ private:
 
 
 
-  bool MaybeDispatchCompositionUpdate(const WidgetTextEvent* aEvent);
+  bool MaybeDispatchCompositionUpdate(const WidgetCompositionEvent* aEvent);
 
   
 
