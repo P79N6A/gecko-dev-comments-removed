@@ -4609,15 +4609,13 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     Label handleZero;
     Label handleNeg;
     Label fin;
+
     
     
-    ma_vcmpz_f32(input);
-    
-    
-    ma_vabs_f32(input, tmp);
-    as_vmrs(pc);
+    compareFloat(input, NoVFPRegister);
     ma_b(&handleZero, Assembler::Equal);
     ma_b(&handleNeg, Assembler::Signed);
+
     
     ma_b(bail, Assembler::Overflow);
 
@@ -4630,8 +4628,11 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     
     
     ma_vimm_f32(GetBiggestNumberLessThan(0.5f), ScratchFloat32Reg);
-    ma_vadd_f32(ScratchFloat32Reg, tmp, tmp);
+    ma_vadd_f32(ScratchFloat32Reg, input, tmp);
 
+    
+    
+    
     ma_vcvt_F32_U32(tmp, ScratchFloat32Reg.uintOverlay());
     ma_vxfer(VFPRegister(ScratchFloat32Reg).uintOverlay(), output);
     ma_mov(output, output, SetCond);
@@ -4639,6 +4640,7 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     ma_b(&fin);
 
     bind(&handleZero);
+
     
     
     as_vxfer(output, InvalidReg, input, FloatToCore, Always, 0);
@@ -4649,22 +4651,35 @@ MacroAssemblerARMCompat::roundf(FloatRegister input, Register output, Label *bai
     bind(&handleNeg);
 
     
+    ma_vneg_f32(input, tmp);
     ma_vimm_f32(0.5f, ScratchFloat32Reg);
-    ma_vadd_f32(ScratchFloat32Reg, tmp, tmp);
+    ma_vadd_f32(tmp, ScratchFloat32Reg, ScratchFloat32Reg);
 
     
     
-    ma_vcvt_F32_U32(tmp, ScratchFloat32Reg.uintOverlay());
-    ma_vxfer(VFPRegister(ScratchFloat32Reg).uintOverlay(), output);
-
-    
-    
-    
-    ma_vcvt_U32_F32(ScratchFloat32Reg.uintOverlay(), ScratchFloat32Reg);
     compareFloat(ScratchFloat32Reg, tmp);
+
+    
+    
+    
+    
+    
+    ma_vcvt_F32_U32(ScratchFloat32Reg, tmp.uintOverlay());
+    ma_vxfer(VFPRegister(tmp).uintOverlay(), output);
+
+    Label flipSign;
+    ma_b(&flipSign, Equal);
+
+    
+    
+    
+    ma_vcvt_U32_F32(tmp.uintOverlay(), tmp);
+    compareFloat(tmp, ScratchFloat32Reg);
     ma_sub(output, Imm32(1), output, NoSetCond, Equal);
+
     
     
+    bind(&flipSign);
     ma_rsb(output, Imm32(0), output, SetCond);
 
     

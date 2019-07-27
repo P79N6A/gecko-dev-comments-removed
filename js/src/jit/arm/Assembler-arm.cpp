@@ -2214,8 +2214,7 @@ Assembler::as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c
         MOZ_ASSERT(idx == 0 || idx == 1);
         
         
-        if (vt2 == InvalidReg)
-            MOZ_ASSERT(f2c == FloatToCore);
+        MOZ_ASSERT_IF(vt2 == InvalidReg, f2c == FloatToCore);
         idx = idx << 21;
     } else {
         MOZ_ASSERT(idx == 0);
