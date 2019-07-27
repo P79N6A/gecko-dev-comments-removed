@@ -2333,6 +2333,39 @@ ObjectClient.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  enumProperties: DebuggerClient.requester({
+    type: "enumProperties",
+    options: args(0)
+  }, {
+    after: function(aResponse) {
+      if (aResponse.iterator) {
+        return { iterator: new PropertyIteratorClient(this._client, aResponse.iterator) };
+      }
+      return aResponse;
+    },
+    telemetry: "ENUMPROPERTIES"
+  }),
+
+  
+
+
+
+
+
   getProperty: DebuggerClient.requester({
     type: "property",
     name: args(0)
@@ -2378,6 +2411,74 @@ ObjectClient.prototype = {
     },
     telemetry: "SCOPE"
   })
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PropertyIteratorClient(aClient, aGrip) {
+  this._grip = aGrip;
+  this._client = aClient;
+  this.request = this._client.request;
+}
+
+PropertyIteratorClient.prototype = {
+  get actor() { return this._grip.actor; },
+
+  
+
+
+  get count() { return this._grip.count; },
+
+  
+
+
+
+
+
+
+
+
+  names: DebuggerClient.requester({
+    type: "names",
+    indexes: args(0)
+  }, {}),
+
+  
+
+
+
+
+
+
+
+
+
+  slice: DebuggerClient.requester({
+    type: "slice",
+    start: args(0),
+    count: args(1)
+  }, {}),
+
+  
+
+
+
+
+
+  all: DebuggerClient.requester({
+    type: "all"
+  }, {}),
 };
 
 

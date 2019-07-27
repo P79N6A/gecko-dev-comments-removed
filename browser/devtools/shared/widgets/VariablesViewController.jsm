@@ -32,7 +32,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
 
 const MAX_LONG_STRING_LENGTH = 200000;
+const MAX_PROPERTY_ITEMS = 2000;
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
+
+const ELLIPSIS = Services.prefs.getComplexValue("intl.ellipsis", Ci.nsIPrefLocalizedString).data
 
 this.EXPORTED_SYMBOLS = ["VariablesViewController", "StackFrameUtils"];
 
@@ -167,8 +170,180 @@ VariablesViewController.prototype = {
 
 
 
-  _populateFromObject: function(aTarget, aGrip) {
+
+
+  _populatePropertySlices: function(aTarget, aGrip, aIterator) {
+    if (aGrip.count < MAX_PROPERTY_ITEMS) {
+      return this._populateFromPropertyIterator(aTarget, aGrip);
+    }
+
+    
+    let items = Math.ceil(aGrip.count / 4);
+
+    let promises = [];
+    for(let i = 0; i < 4; i++) {
+      let start = aGrip.start + i * items;
+      let count = i != 3 ? items : aGrip.count - i * items;
+
+      
+      let sliceGrip = {
+        type: "property-iterator",
+        propertyIterator: aIterator,
+        start: start,
+        count: count
+      };
+
+      
+      let deferred = promise.defer();
+      aIterator.names([start, start + count - 1], ({ names }) => {
+        let label = "[" + names[0] + ELLIPSIS + names[1] + "]";
+        let item = aTarget.addItem(label);
+        item.showArrow();
+        this.addExpander(item, sliceGrip);
+        deferred.resolve();
+      });
+      promises.push(deferred.promise);
+    }
+
+    return promise.all(promises);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _populateFromPropertyIterator: function(aTarget, aGrip) {
+    if (aGrip.count >= MAX_PROPERTY_ITEMS) {
+      
+      return this._populatePropertySlices(aTarget, aGrip, aGrip.propertyIterator);
+    }
+    
     let deferred = promise.defer();
+    aGrip.propertyIterator.slice(aGrip.start, aGrip.count,
+      ({ ownProperties }) => {
+        
+        if (Object.keys(ownProperties).length > 0) {
+          aTarget.addItems(ownProperties, {
+            sorted: true,
+            
+            callback: this.addExpander
+          });
+        }
+        deferred.resolve();
+      });
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _populateFromObjectWithIterator: function(aTarget, aGrip, aQuery) {
+    
+    
+    let deferred = promise.defer();
+    let objectClient = this._getObjectClient(aGrip);
+    let isArray = aGrip.preview && aGrip.preview.kind === "ArrayLike";
+    if (isArray) {
+      
+      let options = {
+        ignoreNonIndexedProperties: true,
+        ignoreSafeGetters: true,
+        query: aQuery
+      };
+      objectClient.enumProperties(options, ({ iterator }) => {
+        let sliceGrip = {
+          type: "property-iterator",
+          propertyIterator: iterator,
+          start: 0,
+          count: iterator.count
+        };
+        this._populatePropertySlices(aTarget, sliceGrip, iterator)
+            .then(() => {
+          
+          let options = {
+            ignoreIndexedProperties: true,
+            sort: true,
+            query: aQuery
+          };
+          objectClient.enumProperties(options, ({ iterator }) => {
+            let sliceGrip = {
+              type: "property-iterator",
+              propertyIterator: iterator,
+              start: 0,
+              count: iterator.count
+            };
+            deferred.resolve(this._populatePropertySlices(aTarget, sliceGrip, iterator));
+          });
+        });
+      });
+    } else {
+      
+      objectClient.enumProperties({ sort: true, query: aQuery }, ({ iterator }) => {
+        let sliceGrip = {
+          type: "property-iterator",
+          propertyIterator: iterator,
+          start: 0,
+          count: iterator.count
+        };
+        deferred.resolve(this._populatePropertySlices(aTarget, sliceGrip, iterator));
+      });
+
+    }
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+  _populateObjectPrototype: function(aTarget, aPrototype) {
+    
+    if (aPrototype && aPrototype.type != "null") {
+      let proto = aTarget.addItem("__proto__", { value: aPrototype });
+      this.addExpander(proto, aPrototype);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _populateFromObject: function(aTarget, aGrip) {
+    
+    if ("ownPropertyLength" in aGrip && aGrip.ownPropertyLength >= MAX_PROPERTY_ITEMS) {
+      return this._populateFromObjectWithIterator(aTarget, aGrip)
+                 .then(() => {
+                   let deferred = promise.defer();
+                   let objectClient = this._getObjectClient(aGrip);
+                   objectClient.getPrototype(({ prototype }) => {
+                     this._populateObjectPrototype(aTarget, prototype);
+                     deferred.resolve();
+                   });
+                   return deferred.promise;
+                 });
+    }
 
     if (aGrip.class === "Promise" && aGrip.promiseState) {
       const { state, value, reason } = aGrip.promiseState;
@@ -179,10 +354,16 @@ VariablesViewController.prototype = {
         this.addExpander(aTarget.addItem("<reason>", { value: reason }), reason);
       }
     }
+    return this._populateProperties(aTarget, aGrip);
+  },
+
+  _populateProperties: function(aTarget, aGrip, aOptions) {
+    let deferred = promise.defer();
 
     let objectClient = this._getObjectClient(aGrip);
     objectClient.getPrototypeAndProperties(aResponse => {
-      let { ownProperties, prototype } = aResponse;
+      let ownProperties = aResponse.ownProperties || {};
+      let prototype = aResponse.prototype || null;
       
       let safeGetterValues = aResponse.safeGetterValues || {};
       let sortable = VariablesView.isSortable(aGrip.class);
@@ -200,21 +381,15 @@ VariablesViewController.prototype = {
       }
 
       
-      if (ownProperties) {
-        aTarget.addItems(ownProperties, {
-          
-          sorted: sortable,
-          
-          callback: this.addExpander
-        });
-      }
+      aTarget.addItems(ownProperties, {
+        
+        sorted: sortable,
+        
+        callback: this.addExpander
+      });
 
       
-      if (prototype && prototype.type != "null") {
-        let proto = aTarget.addItem("__proto__", { value: prototype });
-        
-        this.addExpander(proto, prototype);
-      }
+      this._populateObjectPrototype(aTarget, prototype);
 
       
       
@@ -389,6 +564,10 @@ VariablesViewController.prototype = {
     let deferred = promise.defer();
     aTarget._fetched = deferred.promise;
 
+    if (aSource.type === "property-iterator") {
+      return this._populateFromPropertyIterator(aTarget, aSource);
+    }
+
     
     if (VariablesView.isVariable(aTarget)) {
       this._populateFromObject(aTarget, aSource).then(() => {
@@ -436,6 +615,29 @@ VariablesViewController.prototype = {
     }
 
     return deferred.promise;
+  },
+
+  
+
+
+
+
+  supportsSearch: function () {
+    
+    
+    return this.objectActor && ("ownPropertyLength" in this.objectActor);
+  },
+
+  
+
+
+
+
+
+
+
+  performSearch: function(aScope, aToken) {
+    this._populateFromObjectWithIterator(aScope, this.objectActor, aToken);
   },
 
   
@@ -497,6 +699,8 @@ VariablesViewController.prototype = {
     let populated;
 
     if (aOptions.objectActor) {
+      
+      this.objectActor = aOptions.objectActor;
       populated = this.populate(variable, aOptions.objectActor);
       variable.expand();
     } else if (aOptions.rawObject) {
