@@ -2,7 +2,6 @@
 
 
 
-import os
 import platform
 
 from mozboot.base import BaseBootstrapper

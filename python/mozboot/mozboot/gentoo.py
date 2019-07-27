@@ -2,8 +2,6 @@
 
 
 
-import os
-
 from mozboot.base import BaseBootstrapper
 
 class GentooBootstrapper(BaseBootstrapper):
