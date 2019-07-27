@@ -1909,7 +1909,6 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
         
         
         
-        
         uint32_t userbufBase = lazyOuter->begin() - lazyOuter->column();
         tokenStream.advance(fun->lazyScript()->end() - userbufBase);
 
