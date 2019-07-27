@@ -450,11 +450,24 @@ public:
     OSXDisplay()
       : mDisplayLink(nullptr)
     {
+      MOZ_ASSERT(NS_IsMainThread());
+      mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
     }
 
     ~OSXDisplay()
     {
+      MOZ_ASSERT(NS_IsMainThread());
+      mTimer->Cancel();
+      mTimer = nullptr;
       DisableVsync();
+    }
+
+    static void RetryEnableVsync(nsITimer* aTimer, void* aOsxDisplay)
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+      OSXDisplay* osxDisplay = static_cast<OSXDisplay*>(aOsxDisplay);
+      MOZ_ASSERT(osxDisplay);
+      osxDisplay->EnableVsync();
     }
 
     virtual void EnableVsync() MOZ_OVERRIDE
@@ -469,18 +482,25 @@ public:
       
       
       if (CVDisplayLinkCreateWithActiveCGDisplays(&mDisplayLink) != kCVReturnSuccess) {
-        NS_WARNING("Could not create a display link with all active displays. Falling back to main display\n");
+        NS_WARNING("Could not create a display link with all active displays. Retrying\n");
         CVDisplayLinkRelease(mDisplayLink);
+        mDisplayLink = nullptr;
 
         
         
         
         
         
-        if (CVDisplayLinkCreateWithCGDisplay(CGMainDisplayID(), &mDisplayLink) != kCVReturnSuccess) {
-          MOZ_CRASH("Could not create a CVDisplayLink with either active displays or the main display");
-        }
-        NS_WARNING("Using the CVDisplayLink from the main display\n");
+        
+        
+        
+        
+        
+        
+        
+        uint32_t delay = 100;
+        mTimer->InitWithFuncCallback(RetryEnableVsync, this, delay, nsITimer::TYPE_ONE_SHOT);
+        return;
       }
 
       if (CVDisplayLinkSetOutputCallback(mDisplayLink, &VsyncCallback, this) != kCVReturnSuccess) {
@@ -528,6 +548,7 @@ public:
   private:
     
     CVDisplayLinkRef   mDisplayLink;
+    nsRefPtr<nsITimer> mTimer;
   }; 
 
 private:
