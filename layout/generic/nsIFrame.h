@@ -1482,8 +1482,8 @@ public:
 
 
 
-  struct InlineIntrinsicWidthData {
-    InlineIntrinsicWidthData()
+  struct InlineIntrinsicISizeData {
+    InlineIntrinsicISizeData()
       : line(nullptr)
       , lineContainer(nullptr)
       , prevLines(0)
@@ -1533,8 +1533,8 @@ public:
     nsTArray<FloatInfo> floats;
   };
 
-  struct InlineMinWidthData : public InlineIntrinsicWidthData {
-    InlineMinWidthData()
+  struct InlineMinISizeData : public InlineIntrinsicISizeData {
+    InlineMinISizeData()
       : trailingTextFrame(nullptr)
       , atStartOfLine(true)
     {}
@@ -1561,7 +1561,7 @@ public:
     bool atStartOfLine;
   };
 
-  struct InlinePrefWidthData : public InlineIntrinsicWidthData {
+  struct InlinePrefISizeData : public InlineIntrinsicISizeData {
     void ForceBreak(nsRenderingContext *aRenderingContext);
   };
 
@@ -1585,8 +1585,8 @@ public:
 
 
   virtual void
-  AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                    InlineMinWidthData *aData) = 0;
+  AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                    InlineMinISizeData *aData) = 0;
 
   
 
@@ -1599,8 +1599,8 @@ public:
 
 
   virtual void
-  AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                     InlinePrefWidthData *aData) = 0;
+  AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                     InlinePrefISizeData *aData) = 0;
 
   
 

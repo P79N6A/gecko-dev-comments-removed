@@ -210,17 +210,17 @@ nsInlineFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 
  void
-nsInlineFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                                 nsIFrame::InlineMinWidthData *aData)
+nsInlineFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                                 nsIFrame::InlineMinISizeData *aData)
 {
-  DoInlineIntrinsicWidth(aRenderingContext, aData, nsLayoutUtils::MIN_WIDTH);
+  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::MIN_WIDTH);
 }
 
  void
-nsInlineFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                                  nsIFrame::InlinePrefWidthData *aData)
+nsInlineFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                                  nsIFrame::InlinePrefISizeData *aData)
 {
-  DoInlineIntrinsicWidth(aRenderingContext, aData, nsLayoutUtils::PREF_WIDTH);
+  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::PREF_WIDTH);
 }
 
  nsSize

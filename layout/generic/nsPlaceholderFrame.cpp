@@ -57,8 +57,8 @@ nsPlaceholderFrame::GetMaxSize(nsBoxLayoutState& aBoxLayoutState)
 }
 
  void
-nsPlaceholderFrame::AddInlineMinWidth(nsRenderingContext* aRenderingContext,
-                                      nsIFrame::InlineMinWidthData* aData)
+nsPlaceholderFrame::AddInlineMinISize(nsRenderingContext* aRenderingContext,
+                                      nsIFrame::InlineMinISizeData* aData)
 {
   
   
@@ -73,13 +73,13 @@ nsPlaceholderFrame::AddInlineMinWidth(nsRenderingContext* aRenderingContext,
                                            mOutOfFlowFrame,
                                            nsLayoutUtils::MIN_WIDTH);
     aData->floats.AppendElement(
-      InlineIntrinsicWidthData::FloatInfo(mOutOfFlowFrame, floatWidth));
+      InlineIntrinsicISizeData::FloatInfo(mOutOfFlowFrame, floatWidth));
   }
 }
 
  void
-nsPlaceholderFrame::AddInlinePrefWidth(nsRenderingContext* aRenderingContext,
-                                       nsIFrame::InlinePrefWidthData* aData)
+nsPlaceholderFrame::AddInlinePrefISize(nsRenderingContext* aRenderingContext,
+                                       nsIFrame::InlinePrefISizeData* aData)
 {
   
   
@@ -94,7 +94,7 @@ nsPlaceholderFrame::AddInlinePrefWidth(nsRenderingContext* aRenderingContext,
                                            mOutOfFlowFrame,
                                            nsLayoutUtils::PREF_WIDTH);
     aData->floats.AppendElement(
-      InlineIntrinsicWidthData::FloatInfo(mOutOfFlowFrame, floatWidth));
+      InlineIntrinsicISizeData::FloatInfo(mOutOfFlowFrame, floatWidth));
   }
 }
 

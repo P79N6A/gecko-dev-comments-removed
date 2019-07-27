@@ -88,10 +88,10 @@ public:
   
   
   
-  virtual void AddInlineMinWidth(nsRenderingContext* aRenderingContext,
-                                 InlineMinWidthData* aData) MOZ_OVERRIDE;
-  virtual void AddInlinePrefWidth(nsRenderingContext* aRenderingContext,
-                                  InlinePrefWidthData* aData) MOZ_OVERRIDE;
+  virtual void AddInlineMinISize(nsRenderingContext* aRenderingContext,
+                                 InlineMinISizeData* aData) MOZ_OVERRIDE;
+  virtual void AddInlinePrefISize(nsRenderingContext* aRenderingContext,
+                                  InlinePrefISizeData* aData) MOZ_OVERRIDE;
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
   virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;

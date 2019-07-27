@@ -3944,10 +3944,10 @@ public:
   virtual nsIFrame* FirstInFlow() const MOZ_OVERRIDE;
   virtual nsIFrame* FirstContinuation() const MOZ_OVERRIDE;
 
-  virtual void AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                                 InlineMinWidthData *aData) MOZ_OVERRIDE;
-  virtual void AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                                  InlinePrefWidthData *aData) MOZ_OVERRIDE;
+  virtual void AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                                 InlineMinISizeData *aData) MOZ_OVERRIDE;
+  virtual void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                                  InlinePrefISizeData *aData) MOZ_OVERRIDE;
   
   virtual nsresult GetRenderedText(nsAString* aString = nullptr,
                                    gfxSkipChars* aSkipChars = nullptr,
@@ -4103,27 +4103,27 @@ nsContinuingTextFrame::FirstContinuation() const
  nscoord
 nsTextFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
-  return nsLayoutUtils::MinWidthFromInline(this, aRenderingContext);
+  return nsLayoutUtils::MinISizeFromInline(this, aRenderingContext);
 }
 
 
  nscoord
 nsTextFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
-  return nsLayoutUtils::PrefWidthFromInline(this, aRenderingContext);
+  return nsLayoutUtils::PrefISizeFromInline(this, aRenderingContext);
 }
 
  void
-nsContinuingTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                                         InlineMinWidthData *aData)
+nsContinuingTextFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                                         InlineMinISizeData *aData)
 {
   
   return;
 }
 
  void
-nsContinuingTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                                          InlinePrefWidthData *aData)
+nsContinuingTextFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                                          InlinePrefISizeData *aData)
 {
   
   return;
@@ -6948,7 +6948,7 @@ FindFirstLetterRange(const nsTextFragment* aFrag,
 
 static uint32_t
 FindStartAfterSkippingWhitespace(PropertyProvider* aProvider,
-                                 nsIFrame::InlineIntrinsicWidthData* aData,
+                                 nsIFrame::InlineIntrinsicISizeData* aData,
                                  const nsStyleText* aTextStyle,
                                  gfxSkipCharsIterator* aIterator,
                                  uint32_t aFlowEndInTextRun)
@@ -7007,8 +7007,8 @@ void nsTextFrame::MarkIntrinsicWidthsDirty()
 
 
 void
-nsTextFrame::AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
-                                      nsIFrame::InlineMinWidthData *aData,
+nsTextFrame::AddInlineMinISizeForFlow(nsRenderingContext *aRenderingContext,
+                                      nsIFrame::InlineMinISizeData *aData,
                                       TextRunType aTextRunType)
 {
   uint32_t flowEndInTextRun;
@@ -7140,8 +7140,8 @@ bool nsTextFrame::IsCurrentFontInflation(float aInflation) const {
 
 
  void
-nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
-                               nsIFrame::InlineMinWidthData *aData)
+nsTextFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                               nsIFrame::InlineMinISizeData *aData)
 {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
@@ -7164,14 +7164,14 @@ nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
       nsIFrame* lc;
       if (aData->lineContainer &&
           aData->lineContainer != (lc = FindLineContainer(f))) {
-        NS_ASSERTION(f != this, "wrong InlineMinWidthData container"
+        NS_ASSERTION(f != this, "wrong InlineMinISizeData container"
                                 " for first continuation");
         aData->line = nullptr;
         aData->lineContainer = lc;
       }
 
       
-      f->AddInlineMinWidthForFlow(aRenderingContext, aData, trtype);
+      f->AddInlineMinISizeForFlow(aRenderingContext, aData, trtype);
       lastTextRun = f->GetTextRun(trtype);
     }
   }
@@ -7180,8 +7180,8 @@ nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
 
 
 void
-nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
-                                       nsIFrame::InlinePrefWidthData *aData,
+nsTextFrame::AddInlinePrefISizeForFlow(nsRenderingContext *aRenderingContext,
+                                       nsIFrame::InlinePrefISizeData *aData,
                                        TextRunType aTextRunType)
 {
   uint32_t flowEndInTextRun;
@@ -7277,8 +7277,8 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
 
 
  void
-nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
-                                nsIFrame::InlinePrefWidthData *aData)
+nsTextFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                                nsIFrame::InlinePrefISizeData *aData)
 {
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
@@ -7301,14 +7301,14 @@ nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
       nsIFrame* lc;
       if (aData->lineContainer &&
           aData->lineContainer != (lc = FindLineContainer(f))) {
-        NS_ASSERTION(f != this, "wrong InlinePrefWidthData container"
+        NS_ASSERTION(f != this, "wrong InlinePrefISizeData container"
                                 " for first continuation");
         aData->line = nullptr;
         aData->lineContainer = lc;
       }
 
       
-      f->AddInlinePrefWidthForFlow(aRenderingContext, aData, trtype);
+      f->AddInlinePrefISizeForFlow(aRenderingContext, aData, trtype);
       lastTextRun = f->GetTextRun(trtype);
     }
   }

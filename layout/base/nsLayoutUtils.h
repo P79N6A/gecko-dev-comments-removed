@@ -1293,11 +1293,11 @@ public:
                                                        nscoord tentWidth, nscoord tentHeight);
 
   
-  static nscoord PrefWidthFromInline(nsIFrame* aFrame,
+  static nscoord PrefISizeFromInline(nsIFrame* aFrame,
                                      nsRenderingContext* aRenderingContext);
 
   
-  static nscoord MinWidthFromInline(nsIFrame* aFrame,
+  static nscoord MinISizeFromInline(nsIFrame* aFrame,
                                     nsRenderingContext* aRenderingContext);
 
   

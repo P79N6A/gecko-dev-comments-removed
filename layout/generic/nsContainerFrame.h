@@ -214,8 +214,8 @@ public:
                                  const nsSize& aMaxSize);
 
   
-  void DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
-                              InlineIntrinsicWidthData *aData,
+  void DoInlineIntrinsicISize(nsRenderingContext *aRenderingContext,
+                              InlineIntrinsicISizeData *aData,
                               nsLayoutUtils::IntrinsicWidthType aType);
 
   
