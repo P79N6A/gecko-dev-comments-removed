@@ -337,7 +337,16 @@ let SessionStoreInternal = {
   _deferredInitialState: null,
 
   
-  _deferredInitialized: Promise.defer(),
+  _deferredInitialized: (function () {
+    let deferred = {};
+
+    deferred.promise = new Promise((resolve, reject) => {
+      deferred.resolve = resolve;
+      deferred.reject = reject;
+    });
+
+    return deferred;
+  })(),
 
   
   _sessionInitialized: false,
