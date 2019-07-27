@@ -549,12 +549,20 @@ AbstractFile.removeRecursive = function(path, options = {}) {
 
 
 AbstractFile.makeDir = function(path, options = {}) {
-  if (!options.from) {
+  let from = options.from;
+  if (!from) {
     OS.File._makeDir(path, options);
     return;
   }
-  if (!path.startsWith(options.from)) {
-    throw new Error("Incorrect use of option |from|: " + path + " is not a descendant of " + options.from);
+  if (!path.startsWith(from)) {
+    
+    
+    
+    path = Path.normalize(path);
+    from = Path.normalize(from);
+    if (!path.startsWith(from)) {
+      throw new Error("Incorrect use of option |from|: " + path + " is not a descendant of " + from);
+    }
   }
   let innerOptions = Object.create(options, {
     ignoreExisting: {
@@ -562,8 +570,8 @@ AbstractFile.makeDir = function(path, options = {}) {
     }
   });
   
-  let items = Path.split(path).components.slice(Path.split(options.from).components.length);
-  let current = options.from;
+  let items = Path.split(path).components.slice(Path.split(from).components.length);
+  let current = from;
   for (let item of items) {
     current = Path.join(current, item);
     OS.File._makeDir(current, innerOptions);

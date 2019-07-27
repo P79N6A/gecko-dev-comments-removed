@@ -136,6 +136,9 @@ exports.dirname = dirname;
 
 
 
+
+
+
 let join = function(...path) {
   let paths = [];
   let root;
@@ -143,6 +146,9 @@ let join = function(...path) {
   for (let subpath of path) {
     if (subpath == null) {
       throw new TypeError("invalid path component");
+    }
+    if (subpath == "") {
+      continue;
     }
     let drive = this.winGetDrive(subpath);
     if (drive) {

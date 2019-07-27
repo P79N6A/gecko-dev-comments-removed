@@ -79,6 +79,9 @@ exports.dirname = dirname;
 
 
 
+
+
+
 let join = function(...path) {
   
   let paths = [];
@@ -86,7 +89,9 @@ let join = function(...path) {
     if (subpath == null) {
       throw new TypeError("invalid path component");
     }
-    if (subpath.length != 0 && subpath[0] == "/") {
+    if (subpath.length == 0) {
+      continue;
+    } else if (subpath[0] == "/") {
       paths = [subpath];
     } else {
       paths.push(subpath);
