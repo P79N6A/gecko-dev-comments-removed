@@ -23,6 +23,8 @@ public:
   nsFileChannel(nsIURI *uri);
 
 protected:
+  ~nsFileChannel();
+
   
   
   
