@@ -9,6 +9,7 @@
 #include "mozilla/layers/CompositableClient.h"  
 #include "mozilla/layers/PCompositableChild.h"  
 #include "mozilla/layers/PLayerChild.h"  
+#include "mozilla/layers/PImageContainerChild.h"
 #include "mozilla/layers/ShadowLayers.h"  
 #include "mozilla/mozalloc.h"           
 #include "nsDebug.h"                    

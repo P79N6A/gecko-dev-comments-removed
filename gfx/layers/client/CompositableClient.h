@@ -25,6 +25,7 @@ namespace layers {
 class CompositableClient;
 class BufferTextureClient;
 class ImageBridgeChild;
+class ImageContainer;
 class CompositableForwarder;
 class CompositableChild;
 class PCompositableChild;
@@ -146,7 +147,7 @@ public:
   
 
 
-  virtual bool Connect();
+  virtual bool Connect(ImageContainer* aImageContainer = nullptr);
 
   void Destroy();
 

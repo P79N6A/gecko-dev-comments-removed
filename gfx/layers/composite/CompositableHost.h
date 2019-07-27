@@ -37,7 +37,9 @@ class DataSourceSurface;
 namespace layers {
 
 class Layer;
+class LayerComposite;
 class Compositor;
+class ImageContainerParent;
 class ThebesBufferData;
 class TiledContentHost;
 class CompositableParentManager;
@@ -75,7 +77,8 @@ public:
   virtual void SetCompositor(Compositor* aCompositor);
 
   
-  virtual void Composite(EffectChain& aEffectChain,
+  virtual void Composite(LayerComposite* aLayer,
+                         EffectChain& aEffectChain,
                          float aOpacity,
                          const gfx::Matrix4x4& aTransform,
                          const gfx::Filter& aFilter,
@@ -131,6 +134,8 @@ public:
   Layer* GetLayer() const { return mLayer; }
   void SetLayer(Layer* aLayer) { mLayer = aLayer; }
 
+  virtual void SetImageContainer(ImageContainerParent* aImageContainer) {}
+
   virtual TiledContentHost* AsTiledContentHost() { return nullptr; }
 
   typedef uint32_t AttachFlags;
@@ -184,6 +189,8 @@ public:
     RefPtr<TextureHost> mTexture;
     TimeStamp mTimeStamp;
     gfx::IntRect mPictureRect;
+    int32_t mFrameID;
+    int32_t mProducerID;
   };
   virtual void UseTextureHost(const nsTArray<TimedTexture>& aTextures);
   virtual void UseComponentAlphaTextures(TextureHost* aTextureOnBlack,
@@ -202,7 +209,8 @@ public:
   static PCompositableParent*
   CreateIPDLActor(CompositableParentManager* mgr,
                   const TextureInfo& textureInfo,
-                  uint64_t asyncID);
+                  uint64_t asyncID,
+                  PImageContainerParent* aImageContainer = nullptr);
 
   static bool DestroyIPDLActor(PCompositableParent* actor);
 

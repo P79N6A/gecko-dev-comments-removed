@@ -19,6 +19,7 @@
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/Effects.h"     
+#include "mozilla/layers/LayersMessages.h"
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/Maybe.h"              
 #include "mozilla/RefPtr.h"
@@ -261,6 +262,15 @@ public:
 
   bool AsyncPanZoomEnabled() const override;
 
+  void AppendImageCompositeNotification(const ImageCompositeNotification& aNotification)
+  {
+    mImageCompositeNotifications.AppendElement(aNotification);
+  }
+  void ExtractImageCompositeNotifications(nsTArray<ImageCompositeNotification>* aNotifications)
+  {
+    aNotifications->MoveElementsFrom(mImageCompositeNotifications);
+  }
+
 private:
   
   nsIntRegion mClippingRegion;
@@ -306,6 +316,8 @@ private:
   bool mUnusedApzTransformWarning;
   RefPtr<Compositor> mCompositor;
   UniquePtr<LayerProperties> mClonedLayerTreeProperties;
+
+  nsTArray<ImageCompositeNotification> mImageCompositeNotifications;
 
   
 
@@ -367,6 +379,8 @@ public:
   virtual Layer* GetLayer() = 0;
 
   virtual void SetLayerManager(LayerManagerComposite* aManager);
+
+  LayerManagerComposite* GetLayerManager() const { return mCompositeManager; }
 
   
 

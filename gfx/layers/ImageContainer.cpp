@@ -14,6 +14,7 @@
 #include "mozilla/ipc/CrossProcessMutex.h"  
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ImageBridgeChild.h"  
+#include "mozilla/layers/PImageContainerChild.h"
 #include "mozilla/layers/ImageClient.h"  
 #include "nsISupportsUtils.h"           
 #include "YCbCrUtils.h"                 
@@ -139,27 +140,55 @@ BufferRecycleBin::GetBuffer(uint32_t aSize)
   return result;
 }
 
-ImageContainer::ImageContainer(ImageContainer::Mode flag)
+
+
+
+
+
+
+
+
+
+class ImageContainerChild : public PImageContainerChild {
+public:
+  explicit ImageContainerChild(ImageContainer* aImageContainer)
+    : mLock("ImageContainerChild"), mImageContainer(aImageContainer) {}
+  void ForgetImageContainer()
+  {
+    MutexAutoLock lock(mLock);
+    mImageContainer = nullptr;
+  }
+
+  
+  
+  Mutex mLock;
+  ImageContainer* mImageContainer;
+};
+
+ImageContainer::ImageContainer(Mode flag)
 : mReentrantMonitor("ImageContainer.mReentrantMonitor"),
   mGenerationCounter(++sGenerationCounter),
   mPaintCount(0),
   mPreviousImagePainted(false),
   mImageFactory(new ImageFactory()),
   mRecycleBin(new BufferRecycleBin()),
-  mImageClient(nullptr)
+  mImageClient(nullptr),
+  mIPDLChild(nullptr)
 {
   if (ImageBridgeChild::IsCreated()) {
     
     
-    switch(flag) {
+    switch (flag) {
       case SYNCHRONOUS:
         break;
       case ASYNCHRONOUS:
-        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE).take();
+        mIPDLChild = new ImageContainerChild(this);
+        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE, this).take();
         MOZ_ASSERT(mImageClient);
         break;
       case ASYNCHRONOUS_OVERLAY:
-        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE_OVERLAY).take();
+        mIPDLChild = new ImageContainerChild(this);
+        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE_OVERLAY, this).take();
         MOZ_ASSERT(mImageClient);
         break;
       default:
@@ -172,7 +201,8 @@ ImageContainer::ImageContainer(ImageContainer::Mode flag)
 ImageContainer::~ImageContainer()
 {
   if (IsAsync()) {
-    ImageBridgeChild::DispatchReleaseImageClient(mImageClient);
+    mIPDLChild->ForgetImageContainer();
+    ImageBridgeChild::DispatchReleaseImageClient(mImageClient, mIPDLChild);
   }
 }
 
@@ -187,7 +217,8 @@ ImageContainer::CreateImage(ImageFormat aFormat)
       
       if (ImageBridgeChild::IsCreated()) {
         ImageBridgeChild::DispatchReleaseImageClient(mImageClient);
-        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(CompositableType::IMAGE_OVERLAY).take();
+        mImageClient = ImageBridgeChild::GetSingleton()->CreateImageClient(
+            CompositableType::IMAGE_OVERLAY, this).take();
       }
     }
   }
@@ -295,7 +326,10 @@ ImageContainer::GetCurrentImages(nsTArray<OwningImage>* aImages,
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
   if (mActiveImage) {
-    aImages->AppendElement()->mImage = mActiveImage;
+    OwningImage* img = aImages->AppendElement();
+    img->mImage = mActiveImage;
+    img->mFrameID = mGenerationCounter;
+    img->mProducerID = 0;
   }
   if (aGenerationCounter) {
     *aGenerationCounter = mGenerationCounter;
@@ -550,6 +584,25 @@ CairoImage::GetTextureClient(CompositableClient *aClient)
 
   mTextureClients.Put(forwarder->GetSerial(), textureClient);
   return textureClient;
+}
+
+PImageContainerChild*
+ImageContainer::GetPImageContainerChild()
+{
+  return mIPDLChild;
+}
+
+ void
+ImageContainer::NotifyComposite(const ImageCompositeNotification& aNotification)
+{
+  ImageContainerChild* child =
+      static_cast<ImageContainerChild*>(aNotification.imageContainerChild());
+  if (child) {
+    MutexAutoLock lock(child->mLock);
+    if (child->mImageContainer) {
+      child->mImageContainer->NotifyCompositeInternal(aNotification);
+    }
+  }
 }
 
 } 

@@ -11,6 +11,7 @@
 #include "gfxUtils.h"
 #include "ImageHost.h"                  
 #include "TiledContentHost.h"           
+#include "mozilla/layers/ImageContainerParent.h"
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/TextureHost.h"  
 #include "nsRefPtr.h"                   
@@ -40,13 +41,18 @@ class CompositableParent : public PCompositableParent
 public:
   CompositableParent(CompositableParentManager* aMgr,
                      const TextureInfo& aTextureInfo,
-                     uint64_t aID = 0)
+                     uint64_t aID = 0,
+                     PImageContainerParent* aImageContainer = nullptr)
   {
     MOZ_COUNT_CTOR(CompositableParent);
     mHost = CompositableHost::Create(aTextureInfo);
     mHost->SetAsyncID(aID);
     if (aID) {
       CompositableMap::Set(aID, this);
+    }
+    if (aImageContainer) {
+      mHost->SetImageContainer(
+          static_cast<ImageContainerParent*>(aImageContainer));
     }
   }
 
@@ -87,9 +93,10 @@ CompositableHost::~CompositableHost()
 PCompositableParent*
 CompositableHost::CreateIPDLActor(CompositableParentManager* aMgr,
                                   const TextureInfo& aTextureInfo,
-                                  uint64_t aID)
+                                  uint64_t aID,
+                                  PImageContainerParent* aImageContainer)
 {
-  return new CompositableParent(aMgr, aTextureInfo, aID);
+  return new CompositableParent(aMgr, aTextureInfo, aID, aImageContainer);
 }
 
 bool

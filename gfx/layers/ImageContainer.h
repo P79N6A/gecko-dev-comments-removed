@@ -98,6 +98,9 @@ namespace mozilla {
 namespace layers {
 
 class ImageClient;
+class ImageCompositeNotification;
+class ImageContainerChild;
+class PImageContainerChild;
 class SharedPlanarYCbCrImage;
 class TextureClient;
 class CompositableClient;
@@ -285,6 +288,10 @@ public:
 
   explicit ImageContainer(ImageContainer::Mode flag = SYNCHRONOUS);
 
+  typedef int32_t FrameID;
+  typedef int32_t ProducerID;
+
+
   
 
 
@@ -377,6 +384,8 @@ public:
   struct OwningImage {
     nsRefPtr<Image> mImage;
     TimeStamp mTimeStamp;
+    FrameID mFrameID;
+    ProducerID mProducerID;
   };
   
 
@@ -462,6 +471,10 @@ public:
     }
   }
 
+  PImageContainerChild* GetPImageContainerChild();
+
+  static void NotifyComposite(const ImageCompositeNotification& aNotification);
+
 private:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
@@ -488,6 +501,8 @@ private:
     mPreviousImagePainted = !mPaintTime.IsNull();
     mPaintTime = TimeStamp();
   }
+
+  void NotifyCompositeInternal(const ImageCompositeNotification& aNotification) {}
 
   nsRefPtr<Image> mActiveImage;
   
@@ -522,6 +537,10 @@ private:
   
   
   ImageClient* mImageClient;
+
+  
+  
+  ImageContainerChild* mIPDLChild;
 
   static mozilla::Atomic<uint32_t> sGenerationCounter;
 };

@@ -20,6 +20,7 @@
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/PLayerChild.h"  
 #include "mozilla/layers/LayerTransactionChild.h"
+#include "mozilla/layers/ShadowLayerChild.h"
 #include "mozilla/layers/TextureClientPool.h" 
 #include "mozilla/layers/PersistentBufferProvider.h"
 #include "ClientReadbackLayer.h"        
@@ -601,7 +602,6 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
 
         break;
       }
-
       default:
         NS_RUNTIMEABORT("not reached");
       }

@@ -9,6 +9,7 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "CompositableTransactionParent.h"
+#include "ImageContainerParent.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/ipc/ProtocolUtils.h"
@@ -74,6 +75,7 @@ public:
   virtual bool IsAsync() const override { return true; }
 
   PCompositableParent* AllocPCompositableParent(const TextureInfo& aInfo,
+                                                PImageContainerParent* aImageContainer,
                                                 uint64_t*) override;
   bool DeallocPCompositableParent(PCompositableParent* aActor) override;
 
@@ -83,6 +85,8 @@ public:
 
   PMediaSystemResourceManagerParent* AllocPMediaSystemResourceManagerParent() override;
   bool DeallocPMediaSystemResourceManagerParent(PMediaSystemResourceManagerParent* aActor) override;
+  virtual PImageContainerParent* AllocPImageContainerParent() override;
+  virtual bool DeallocPImageContainerParent(PImageContainerParent* actor) override;
 
   virtual bool
   RecvChildAsyncMessages(InfallibleTArray<AsyncChildMessageData>&& aMessages) override;
@@ -138,6 +142,8 @@ public:
   static void SendPendingAsyncMessages(base::ProcessId aChildProcessId);
 
   static ImageBridgeParent* GetInstance(ProcessId aId);
+
+  static bool NotifyImageComposites(nsTArray<ImageCompositeNotification>& aNotifications);
 
   
   IToplevelProtocol*
