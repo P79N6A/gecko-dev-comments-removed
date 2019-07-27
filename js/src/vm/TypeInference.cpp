@@ -2765,7 +2765,7 @@ ObjectGroup::anyNewScript()
 }
 
 void
-ObjectGroup::detachNewScript(bool writeBarrier)
+ObjectGroup::detachNewScript(bool writeBarrier, ObjectGroup *replacement)
 {
     
     
@@ -2775,8 +2775,16 @@ ObjectGroup::detachNewScript(bool writeBarrier)
     MOZ_ASSERT(newScript);
 
     if (newScript->analyzed()) {
-        newScript->function()->compartment()->objectGroups.removeDefaultNewGroup(nullptr, proto(),
-                                                                                 newScript->function());
+        ObjectGroupCompartment &objectGroups = newScript->function()->compartment()->objectGroups;
+        if (replacement) {
+            MOZ_ASSERT(replacement->newScript()->function() == newScript->function());
+            objectGroups.replaceDefaultNewGroup(nullptr, proto(), newScript->function(),
+                                                replacement);
+        } else {
+            objectGroups.removeDefaultNewGroup(nullptr, proto(), newScript->function());
+        }
+    } else {
+        MOZ_ASSERT(!replacement);
     }
 
     if (this->newScript())
@@ -2800,13 +2808,13 @@ ObjectGroup::maybeClearNewScriptOnOOM()
     addFlags(OBJECT_FLAG_NEW_SCRIPT_CLEARED);
 
     
-    detachNewScript( false);
+    detachNewScript( false, nullptr);
 
     js_delete(newScript);
 }
 
 void
-ObjectGroup::clearNewScript(ExclusiveContext *cx)
+ObjectGroup::clearNewScript(ExclusiveContext *cx, ObjectGroup *replacement )
 {
     TypeNewScript *newScript = anyNewScript();
     if (!newScript)
@@ -2814,15 +2822,17 @@ ObjectGroup::clearNewScript(ExclusiveContext *cx)
 
     AutoEnterAnalysis enter(cx);
 
-    
-    setFlags(cx, OBJECT_FLAG_NEW_SCRIPT_CLEARED);
+    if (!replacement) {
+        
+        setFlags(cx, OBJECT_FLAG_NEW_SCRIPT_CLEARED);
 
-    
-    
-    if (!newScript->function()->setNewScriptCleared(cx))
-        cx->recoverFromOutOfMemory();
+        
+        
+        if (!newScript->function()->setNewScriptCleared(cx))
+            cx->recoverFromOutOfMemory();
+    }
 
-    detachNewScript( true);
+    detachNewScript( true, replacement);
 
     if (cx->isJSContext()) {
         bool found = newScript->rollbackPartiallyInitializedObjects(cx->asJSContext(), this);
@@ -3266,6 +3276,33 @@ TypeNewScript::make(JSContext *cx, ObjectGroup *group, JSFunction *fun)
     group->setNewScript(newScript.forget());
 
     gc::TraceTypeNewScript(group);
+}
+
+
+
+ TypeNewScript *
+TypeNewScript::makeNativeVersion(JSContext *cx, TypeNewScript *newScript,
+                                 PlainObject *templateObject)
+{
+    MOZ_ASSERT(cx->zone()->types.activeAnalysis);
+
+    ScopedJSDeletePtr<TypeNewScript> nativeNewScript(cx->new_<TypeNewScript>());
+    if (!nativeNewScript)
+        return nullptr;
+
+    nativeNewScript->function_ = newScript->function();
+    nativeNewScript->templateObject_ = templateObject;
+
+    Initializer *cursor = newScript->initializerList;
+    while (cursor->kind != Initializer::DONE) { cursor++; }
+    size_t initializerLength = cursor - newScript->initializerList + 1;
+
+    nativeNewScript->initializerList = cx->zone()->pod_calloc<Initializer>(initializerLength);
+    if (!nativeNewScript->initializerList)
+        return nullptr;
+    PodCopy(nativeNewScript->initializerList, newScript->initializerList, initializerLength);
+
+    return nativeNewScript.forget();
 }
 
 size_t

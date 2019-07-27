@@ -827,8 +827,6 @@ class TypeNewScript
 
   private:
     
-    
-    
     HeapPtrFunction function_;
 
     
@@ -902,6 +900,8 @@ class TypeNewScript
     bool rollbackPartiallyInitializedObjects(JSContext *cx, ObjectGroup *group);
 
     static void make(JSContext *cx, ObjectGroup *group, JSFunction *fun);
+    static TypeNewScript *makeNativeVersion(JSContext *cx, TypeNewScript *newScript,
+                                            PlainObject *templateObject);
 
     size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };

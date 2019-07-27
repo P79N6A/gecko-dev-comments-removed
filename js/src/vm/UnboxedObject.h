@@ -71,10 +71,18 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
     HeapPtrObjectGroup nativeGroup_;
     HeapPtrShape nativeShape_;
 
+    
+    
+    
+    
+    
+    
+    HeapPtrObjectGroup replacementNewGroup_;
+
   public:
     UnboxedLayout(const PropertyVector &properties, size_t size)
       : size_(size), newScript_(nullptr), traceList_(nullptr),
-        nativeGroup_(nullptr), nativeShape_(nullptr)
+        nativeGroup_(nullptr), nativeShape_(nullptr), replacementNewGroup_(nullptr)
     {
         properties_.appendAll(properties);
     }
