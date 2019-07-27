@@ -588,7 +588,11 @@ ShadowRoot::IsPooledNode(nsIContent* aContent, nsIContent* aContainer,
     return false;
   }
 
-  if (aContainer == aHost) {
+  if (aContainer == aHost &&
+      nsContentUtils::IsInSameAnonymousTree(aContainer, aContent)) {
+    
+    
+    
     
     return true;
   }

@@ -154,7 +154,8 @@ nsIContent::GetFlattenedTreeParent() const
 {
   nsIContent* parent = GetParent();
 
-  if (nsContentUtils::HasDistributedChildren(parent)) {
+  if (parent && nsContentUtils::HasDistributedChildren(parent) &&
+      nsContentUtils::IsInSameAnonymousTree(parent, this)) {
     
     
     
