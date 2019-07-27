@@ -8,6 +8,10 @@
 const PHONE_NUMBER_CONTAINERS = "td,div";
 const DEFER_CLOSE_TRIGGER_MS = 125; 
 
+
+const PREF_GECKO_TOUCHCARET_ENABLED = "touchcaret.enabled";
+const PREF_GECKO_SELECTIONCARETS_ENABLED = "selectioncaret.enabled";
+
 var SelectionHandler = {
 
   
@@ -21,9 +25,11 @@ var SelectionHandler = {
   START_ERROR_SELECT_ALL_PARAGRAPH_FAILED: "Select-All Paragraph failed.",
   START_ERROR_NO_SELECTION: "Selection performed, but nothing resulted.",
   START_ERROR_PROXIMITY: "Selection target and result seem unrelated.",
+  START_ERROR_SELECTIONCARETS_ENABLED: "Native selectionCarets requested while Gecko enabled.",
 
   
   ATTACH_ERROR_INCOMPATIBLE: "Element disabled, handled natively, or not editable.",
+  ATTACH_ERROR_TOUCHCARET_ENABLED: "Native touchCaret requested while Gecko enabled.",
 
   HANDLE_TYPE_ANCHOR: "ANCHOR",
   HANDLE_TYPE_CARET: "CARET",
@@ -35,6 +41,10 @@ var SelectionHandler = {
 
   SELECT_ALL: 0,
   SELECT_AT_POINT: 1,
+
+  
+  _touchCaretEnabledValue: null,
+  _selectionCaretEnabledValue: null,
 
   
   
@@ -89,6 +99,30 @@ var SelectionHandler = {
     delete this._idService;
     return this._idService = Cc["@mozilla.org/uuid-generator;1"].
       getService(Ci.nsIUUIDGenerator);
+  },
+
+  
+  get _touchCaretEnabled() {
+    if (this._touchCaretEnabledValue == null) {
+      this._touchCaretEnabledValue = Services.prefs.getBoolPref(PREF_GECKO_TOUCHCARET_ENABLED);
+      Services.prefs.addObserver(PREF_GECKO_TOUCHCARET_ENABLED, function() {
+        SelectionHandler._touchCaretEnabledValue =
+          Services.prefs.getBoolPref(PREF_GECKO_TOUCHCARET_ENABLED);
+      }, false);
+    }
+    return this._touchCaretEnabledValue;
+  },
+
+  
+  get _selectionCaretEnabled() {
+    if (this._selectionCaretEnabledValue == null) {
+      this._selectionCaretEnabledValue = Services.prefs.getBoolPref(PREF_GECKO_SELECTIONCARETS_ENABLED);
+      Services.prefs.addObserver(PREF_GECKO_SELECTIONCARETS_ENABLED, function() {
+        SelectionHandler._selectionCaretEnabledValue =
+          Services.prefs.getBoolPref(PREF_GECKO_SELECTIONCARETS_ENABLED);
+      }, false);
+    }
+    return this._selectionCaretEnabledValue;
   },
 
   _addObservers: function sh_addObservers() {
@@ -378,6 +412,11 @@ var SelectionHandler = {
 
 
   startSelection: function sh_startSelection(aElement, aOptions = { mode: SelectionHandler.SELECT_ALL }) {
+    
+    if (this._selectionCaretEnabled) {
+      return this.START_ERROR_SELECTIONCARETS_ENABLED;
+    }
+
     
     this._closeSelection();
 
@@ -837,6 +876,11 @@ var SelectionHandler = {
 
 
   attachCaret: function sh_attachCaret(aElement) {
+    
+    if (this._touchCaretEnabled) {
+      return this.ATTACH_ERROR_TOUCHCARET_ENABLED;
+    }
+
     
     this._closeSelection();
 
