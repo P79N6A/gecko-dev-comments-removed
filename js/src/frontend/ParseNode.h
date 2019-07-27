@@ -164,8 +164,7 @@ class UpvarCookie
     F(NEWTARGET) \
     \
     /* Unary operators. */ \
-    F(TYPEOFNAME) \
-    F(TYPEOFEXPR) \
+    F(TYPEOF) \
     F(VOID) \
     F(NOT) \
     F(BITNOT) \
@@ -240,7 +239,6 @@ IsDeleteKind(ParseNodeKind kind)
 {
     return PNK_DELETENAME <= kind && kind <= PNK_DELETEEXPR;
 }
-
 
 
 
