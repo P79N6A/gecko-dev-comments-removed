@@ -73,33 +73,46 @@ TryNewNurseryObject(JSContext *cx, size_t thingSize, size_t nDynamicSlots, const
     return nullptr;
 }
 
-static inline bool
-GCIfNeeded(ExclusiveContext *cx)
+template <AllowGC allowGC>
+inline JSObject *
+TryNewTenuredObject(ExclusiveContext *cx, AllocKind kind, size_t thingSize, size_t nDynamicSlots)
 {
-    if (cx->isJSContext()) {
-        JSContext *ncx = cx->asJSContext();
-        JSRuntime *rt = ncx->runtime();
+    UniqueSlots slots = MakeSlotArray(cx, nDynamicSlots);
+    if (nDynamicSlots && !slots)
+        return nullptr;
+
+    JSObject *obj = TryNewTenuredThing<JSObject, allowGC>(cx, kind, thingSize);
+
+    if (obj)
+        obj->setInitialSlotsMaybeNonNative(slots.release());
+
+    return obj;
+}
+
+static inline bool
+GCIfNeeded(JSContext *cx)
+{
+    JSRuntime *rt = cx->runtime();
 
 #ifdef JS_GC_ZEAL
-        if (rt->gc.needZealousGC())
-            rt->gc.runDebugGC();
+    if (rt->gc.needZealousGC())
+        rt->gc.runDebugGC();
 #endif
 
-        
-        
-        if (rt->hasPendingInterrupt())
-            rt->gc.gcIfRequested(ncx);
+    
+    
+    if (rt->hasPendingInterrupt())
+        rt->gc.gcIfRequested(cx);
 
-        
-        
-        
-        if (rt->gc.isIncrementalGCInProgress() &&
-            cx->zone()->usage.gcBytes() > cx->zone()->threshold.gcTriggerBytes())
-        {
-            PrepareZoneForGC(cx->zone());
-            AutoKeepAtoms keepAtoms(cx->perThreadData);
-            rt->gc.gc(GC_NORMAL, JS::gcreason::INCREMENTAL_TOO_SLOW);
-        }
+    
+    
+    
+    if (rt->gc.isIncrementalGCInProgress() &&
+        cx->zone()->usage.gcBytes() > cx->zone()->threshold.gcTriggerBytes())
+    {
+        PrepareZoneForGC(cx->zone());
+        AutoKeepAtoms keepAtoms(cx->perThreadData);
+        rt->gc.gc(GC_NORMAL, JS::gcreason::INCREMENTAL_TOO_SLOW);
     }
 
     return true;
@@ -107,20 +120,16 @@ GCIfNeeded(ExclusiveContext *cx)
 
 template <AllowGC allowGC>
 static inline bool
-CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
+CheckAllocatorState(JSContext *cx, AllocKind kind)
 {
     if (allowGC) {
         if (!GCIfNeeded(cx))
             return false;
     }
 
-    if (!cx->isJSContext())
-        return true;
-
-    JSContext *ncx = cx->asJSContext();
-    JSRuntime *rt = ncx->runtime();
+    JSRuntime *rt = cx->runtime();
 #if defined(JS_GC_ZEAL) || defined(DEBUG)
-    MOZ_ASSERT_IF(rt->isAtomsCompartment(ncx->compartment()),
+    MOZ_ASSERT_IF(rt->isAtomsCompartment(cx->compartment()),
                   kind == FINALIZE_STRING ||
                   kind == FINALIZE_FAT_INLINE_STRING ||
                   kind == FINALIZE_SYMBOL ||
@@ -135,7 +144,7 @@ CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
 
     
     if (js::oom::ShouldFailWithOOM()) {
-        ReportOutOfMemory(ncx);
+        ReportOutOfMemory(cx);
         return false;
     }
 
@@ -177,14 +186,16 @@ js::Allocate(ExclusiveContext *cx, AllocKind kind, size_t nDynamicSlots, Initial
     static_assert(sizeof(JSObject_Slots0) >= CellSize,
                   "All allocations must be at least the allocator-imposed minimum size.");
 
-    if (!CheckAllocatorState<allowGC>(cx, kind))
+    
+    if (!cx->isJSContext())
+        return TryNewTenuredObject<NoGC>(cx, kind, thingSize, nDynamicSlots);
+
+    JSContext *ncx = cx->asJSContext();
+    if (!CheckAllocatorState<allowGC>(ncx, kind))
         return nullptr;
 
-    if (cx->isJSContext() &&
-        ShouldNurseryAllocateObject(cx->asJSContext()->nursery(), heap))
-    {
-        JSObject *obj = TryNewNurseryObject<allowGC>(cx->asJSContext(), thingSize, nDynamicSlots,
-                                                     clasp);
+    if (ShouldNurseryAllocateObject(ncx->nursery(), heap)) {
+        JSObject *obj = TryNewNurseryObject<allowGC>(ncx, thingSize, nDynamicSlots, clasp);
         if (obj)
             return obj;
 
@@ -197,16 +208,7 @@ js::Allocate(ExclusiveContext *cx, AllocKind kind, size_t nDynamicSlots, Initial
             return nullptr;
     }
 
-    UniqueSlots slots = MakeSlotArray(cx, nDynamicSlots);
-    if (nDynamicSlots && !slots)
-        return nullptr;
-
-    JSObject *obj = TryNewTenuredThing<JSObject, allowGC>(cx, kind, thingSize);
-
-    if (obj)
-        obj->setInitialSlotsMaybeNonNative(slots.release());
-
-    return obj;
+    return TryNewTenuredObject<allowGC>(cx, kind, thingSize, nDynamicSlots);
 }
 template JSObject *js::Allocate<JSObject, NoGC>(ExclusiveContext *cx, gc::AllocKind kind,
                                                 size_t nDynamicSlots, gc::InitialHeap heap,
@@ -225,10 +227,12 @@ js::Allocate(ExclusiveContext *cx)
 
     AllocKind kind = MapTypeToFinalizeKind<T>::kind;
     size_t thingSize = sizeof(T);
-
     MOZ_ASSERT(thingSize == Arena::thingSize(kind));
-    if (!CheckAllocatorState<allowGC>(cx, kind))
-        return nullptr;
+
+    if (cx->isJSContext()) {
+        if (!CheckAllocatorState<allowGC>(cx->asJSContext(), kind))
+            return nullptr;
+    }
 
     return TryNewTenuredThing<T, allowGC>(cx, kind, thingSize);
 }
