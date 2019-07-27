@@ -223,6 +223,12 @@ void nsBaseWidget::DestroyCompositor()
     nsRefPtr<CompositorParent> compositorParent = mCompositorParent;
     mCompositorChild->Destroy();
   }
+
+  
+  
+  if (mCompositorVsyncDispatcher) {
+    mCompositorVsyncDispatcher->Shutdown();
+  }
 }
 
 void nsBaseWidget::DestroyLayerManager()
@@ -264,11 +270,6 @@ nsBaseWidget::~nsBaseWidget()
 #endif
 
   delete mOriginalBounds;
-
-  
-  if (mCompositorVsyncDispatcher) {
-    mCompositorVsyncDispatcher->Shutdown();
-  }
 }
 
 
