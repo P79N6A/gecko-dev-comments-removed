@@ -20,6 +20,8 @@ struct CSSFontFaceDescriptors;
 namespace dom {
 struct FontFaceDescriptors;
 class FontFaceSet;
+class FontFaceInitializer;
+class FontFaceStatusSetter;
 class Promise;
 class StringOrArrayBufferOrArrayBufferView;
 }
@@ -31,6 +33,8 @@ namespace dom {
 class FontFace MOZ_FINAL : public nsISupports,
                            public nsWrapperCache
 {
+  friend class mozilla::dom::FontFaceInitializer;
+  friend class mozilla::dom::FontFaceStatusSetter;
   friend class Entry;
 
 public:
@@ -79,7 +83,20 @@ public:
   gfxUserFontEntry* GetUserFontEntry() const { return mUserFontEntry; }
   void SetUserFontEntry(gfxUserFontEntry* aEntry);
 
+  
+
+
   bool IsInFontFaceSet() { return mInFontFaceSet; }
+
+  
+
+
+
+
+
+  bool IsInitialized() const { return mInitialized; }
+
+  FontFaceSet* GetFontFaceSet() const { return mFontFaceSet; }
 
   
 
@@ -134,6 +151,14 @@ private:
 
 
 
+
+
+  void Initialize(FontFaceInitializer* aInitializer);
+
+  
+
+
+
   bool ParseDescriptor(nsCSSFontDesc aDescID, const nsAString& aString,
                        nsCSSValue& aResult);
 
@@ -141,6 +166,19 @@ private:
   void SetDescriptor(nsCSSFontDesc aFontDesc,
                      const nsAString& aValue,
                      mozilla::ErrorResult& aRv);
+
+  
+
+
+
+  bool SetDescriptors(const nsAString& aFamily,
+                      const FontFaceDescriptors& aDescriptors);
+
+  
+
+
+
+  void OnInitialized();
 
   
 
@@ -173,6 +211,21 @@ private:
   mozilla::dom::FontFaceLoadStatus mStatus;
 
   
+  enum SourceType {
+    eSourceType_FontFaceRule = 1,
+    eSourceType_URLs,
+    eSourceType_Buffer
+  };
+
+  
+  SourceType mSourceType;
+
+  
+  
+  uint8_t* mSourceBuffer;
+  uint32_t mSourceBufferLength;
+
+  
   
   
   nsAutoPtr<mozilla::CSSFontFaceDescriptors> mDescriptors;
@@ -183,6 +236,16 @@ private:
 
   
   bool mInFontFaceSet;
+
+  
+  
+  
+  bool mInitialized;
+
+  
+  
+  
+  bool mLoadWhenInitialized;
 };
 
 } 

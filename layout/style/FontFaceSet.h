@@ -126,6 +126,15 @@ public:
 
   
 
+
+
+
+
+
+  void OnFontFaceInitialized(FontFace* aFontFace);
+
+  
+
   IMPL_EVENT_HANDLER(loading)
   IMPL_EVENT_HANDLER(loadingdone)
   IMPL_EVENT_HANDLER(loadingerror)
@@ -147,6 +156,11 @@ public:
 
 private:
   ~FontFaceSet();
+
+  
+
+
+  bool HasAvailableFontFace(FontFace* aFontFace);
 
   
   

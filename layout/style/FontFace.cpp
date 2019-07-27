@@ -8,12 +8,122 @@
 #include "mozilla/dom/FontFaceBinding.h"
 #include "mozilla/dom/FontFaceSet.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/TypedArray.h"
+#include "mozilla/dom/UnionTypes.h"
 #include "nsCSSParser.h"
 #include "nsCSSRules.h"
 #include "nsIDocument.h"
 #include "nsStyleUtil.h"
 
-using namespace mozilla::dom;
+namespace mozilla {
+namespace dom {
+
+
+
+
+
+
+
+
+class FontFaceInitializer : public nsIRunnable
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  FontFaceInitializer(FontFace* aFontFace)
+    : mFontFace(aFontFace)
+    , mSourceBuffer(nullptr)
+    , mSourceBufferLength(0) {}
+
+  void SetSource(const nsAString& aString);
+  void SetSource(const ArrayBuffer& aArrayBuffer);
+  void SetSource(const ArrayBufferView& aArrayBufferView);
+
+  NS_IMETHOD Run();
+
+  nsRefPtr<FontFace> mFontFace;
+  FontFace::SourceType mSourceType;
+  nsString mSourceString;
+  uint8_t* mSourceBuffer;  
+  uint32_t mSourceBufferLength;
+
+protected:
+  virtual ~FontFaceInitializer();
+};
+
+NS_IMPL_ISUPPORTS(FontFaceInitializer, nsIRunnable)
+
+FontFaceInitializer::~FontFaceInitializer()
+{
+  if (mSourceBuffer) {
+    NS_Free(mSourceBuffer);
+  }
+}
+
+void
+FontFaceInitializer::SetSource(const nsAString& aString)
+{
+  mSourceType = FontFace::eSourceType_URLs;
+  mSourceString = aString;
+}
+
+void
+FontFaceInitializer::SetSource(const ArrayBuffer& aArrayBuffer)
+{
+  mSourceType = FontFace::eSourceType_Buffer;
+  
+}
+
+void
+FontFaceInitializer::SetSource(const ArrayBufferView& aArrayBufferView)
+{
+  mSourceType = FontFace::eSourceType_Buffer;
+  
+}
+
+NS_IMETHODIMP
+FontFaceInitializer::Run()
+{
+  mFontFace->Initialize(this);
+  return NS_OK;
+}
+
+
+
+
+
+
+
+class FontFaceStatusSetter : public nsIRunnable
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  FontFaceStatusSetter(FontFace* aFontFace,
+                       FontFaceLoadStatus aStatus)
+    : mFontFace(aFontFace)
+    , mStatus(aStatus) {}
+
+  NS_IMETHOD Run();
+
+protected:
+  virtual ~FontFaceStatusSetter() {}
+
+private:
+  nsRefPtr<FontFace> mFontFace;
+  FontFaceLoadStatus mStatus;
+};
+
+NS_IMPL_ISUPPORTS(FontFaceStatusSetter, nsIRunnable)
+
+NS_IMETHODIMP
+FontFaceStatusSetter::Run()
+{
+  mFontFace->SetStatus(mStatus);
+  return NS_OK;
+}
+
+
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(FontFace)
 
@@ -52,8 +162,13 @@ FontFace::FontFace(nsISupports* aParent, nsPresContext* aPresContext)
   : mParent(aParent)
   , mPresContext(aPresContext)
   , mStatus(FontFaceLoadStatus::Unloaded)
+  , mSourceType(SourceType(0))
+  , mSourceBuffer(nullptr)
+  , mSourceBufferLength(0)
   , mFontFaceSet(aPresContext->Fonts())
   , mInFontFaceSet(false)
+  , mInitialized(false)
+  , mLoadWhenInitialized(false)
 {
   MOZ_COUNT_CTOR(FontFace);
 
@@ -75,6 +190,10 @@ FontFace::~FontFace()
 
   if (mFontFaceSet && !IsInFontFaceSet()) {
     mFontFaceSet->RemoveUnavailableFontFace(this);
+  }
+
+  if (mSourceBuffer) {
+    NS_Free(mSourceBuffer);
   }
 }
 
@@ -110,7 +229,9 @@ FontFace::CreateForRule(nsISupports* aGlobal,
   nsCOMPtr<nsIGlobalObject> globalObject = do_QueryInterface(aGlobal);
 
   nsRefPtr<FontFace> obj = new FontFace(aGlobal, aPresContext);
+  obj->mInitialized = true;
   obj->mRule = aRule;
+  obj->mSourceType = eSourceType_FontFaceRule;
   obj->mInFontFaceSet = true;
   obj->SetUserFontEntry(aUserFontEntry);
   return obj.forget();
@@ -145,7 +266,62 @@ FontFace::Constructor(const GlobalObject& aGlobal,
 
   nsRefPtr<FontFace> obj = new FontFace(global, presContext);
   obj->mFontFaceSet->AddUnavailableFontFace(obj);
+  if (!obj->SetDescriptors(aFamily, aDescriptors)) {
+    return obj.forget();
+  }
+
+  nsRefPtr<FontFaceInitializer> task = new FontFaceInitializer(obj);
+
+  if (aSource.IsArrayBuffer()) {
+    task->SetSource(aSource.GetAsArrayBuffer());
+  } else if (aSource.IsArrayBufferView()) {
+    task->SetSource(aSource.GetAsArrayBufferView());
+  } else {
+    MOZ_ASSERT(aSource.IsString());
+    task->SetSource(aSource.GetAsString());
+  }
+
+  NS_DispatchToMainThread(task);
+
   return obj.forget();
+}
+
+void
+FontFace::Initialize(FontFaceInitializer* aInitializer)
+{
+  MOZ_ASSERT(!IsConnected());
+  MOZ_ASSERT(mSourceType == SourceType(0));
+
+  if (aInitializer->mSourceType == eSourceType_URLs) {
+    if (!ParseDescriptor(eCSSFontDesc_Src,
+                         aInitializer->mSourceString,
+                         mDescriptors->mSrc)) {
+      if (mLoaded) {
+        
+        
+        
+        
+        mLoaded->MaybeReject(NS_ERROR_DOM_SYNTAX_ERR);
+      }
+
+      
+      nsCOMPtr<nsIRunnable> statusSetterTask =
+        new FontFaceStatusSetter(this, FontFaceLoadStatus::Error);
+      NS_DispatchToMainThread(statusSetterTask);
+      return;
+    }
+
+    mSourceType = eSourceType_URLs;
+
+    
+    OnInitialized();
+    return;
+  }
+
+  
+  MOZ_ASSERT(aInitializer->mSourceType == eSourceType_Buffer);
+
+  
 }
 
 void
@@ -159,7 +335,11 @@ FontFace::GetFamily(nsString& aResult)
 
   aResult.Truncate();
   nsDependentString family(value.GetStringBufferValue());
-  nsStyleUtil::AppendEscapedCSSString(family, aResult);
+  if (!family.IsEmpty()) {
+    
+    
+    nsStyleUtil::AppendEscapedCSSString(family, aResult);
+  }
 }
 
 void
@@ -284,13 +464,31 @@ FontFace::Load(ErrorResult& aRv)
     return nullptr;
   }
 
-  if (mStatus != FontFaceLoadStatus::Unloaded) {
+  
+  
+  
+  if (mSourceType == eSourceType_Buffer ||
+      mStatus != FontFaceLoadStatus::Unloaded) {
     return mLoaded;
   }
 
+  
+  
+  
   SetStatus(FontFaceLoadStatus::Loading);
 
-  mUserFontEntry->Load();
+  if (mInitialized) {
+    
+    
+    if (mUserFontEntry) {
+      mUserFontEntry->Load();
+    }
+  } else {
+    
+    
+    mLoadWhenInitialized = true;
+  }
+
   return mLoaded;
 }
 
@@ -367,8 +565,9 @@ FontFace::SetDescriptor(nsCSSFontDesc aFontDesc,
                         const nsAString& aValue,
                         ErrorResult& aRv)
 {
-  NS_ASSERTION(!mRule, "we don't handle rule-connected FontFace objects yet");
-  if (mRule) {
+  NS_ASSERTION(!IsConnected(),
+               "we don't handle rule-connected FontFace objects yet");
+  if (IsConnected()) {
     return;
   }
 
@@ -384,10 +583,70 @@ FontFace::SetDescriptor(nsCSSFontDesc aFontDesc,
   
 }
 
+bool
+FontFace::SetDescriptors(const nsAString& aFamily,
+                         const FontFaceDescriptors& aDescriptors)
+{
+  MOZ_ASSERT(!IsConnected());
+  MOZ_ASSERT(!mDescriptors);
+
+  mDescriptors = new CSSFontFaceDescriptors;
+
+  
+  
+  if (!ParseDescriptor(eCSSFontDesc_Family,
+                       aFamily,
+                       mDescriptors->mFamily) ||
+      *mDescriptors->mFamily.GetStringBufferValue() == 0 ||
+      !ParseDescriptor(eCSSFontDesc_Style,
+                       aDescriptors.mStyle,
+                       mDescriptors->mStyle) ||
+      !ParseDescriptor(eCSSFontDesc_Weight,
+                       aDescriptors.mWeight,
+                       mDescriptors->mWeight) ||
+      !ParseDescriptor(eCSSFontDesc_Stretch,
+                       aDescriptors.mStretch,
+                       mDescriptors->mStretch) ||
+      !ParseDescriptor(eCSSFontDesc_UnicodeRange,
+                       aDescriptors.mUnicodeRange,
+                       mDescriptors->mUnicodeRange) ||
+      !ParseDescriptor(eCSSFontDesc_FontFeatureSettings,
+                       aDescriptors.mFeatureSettings,
+                       mDescriptors->mFontFeatureSettings)) {
+    
+
+    
+    
+    mDescriptors = new CSSFontFaceDescriptors;
+
+    if (mLoaded) {
+      mLoaded->MaybeReject(NS_ERROR_DOM_SYNTAX_ERR);
+    }
+
+    SetStatus(FontFaceLoadStatus::Error);
+    return false;
+  }
+
+  return true;
+}
+
+void
+FontFace::OnInitialized()
+{
+  MOZ_ASSERT(!mInitialized);
+
+  mInitialized = true;
+
+  if (mInFontFaceSet) {
+    mFontFaceSet->OnFontFaceInitialized(this);
+  }
+}
+
 void
 FontFace::GetDesc(nsCSSFontDesc aDescID, nsCSSValue& aResult) const
 {
-  if (mRule) {
+  if (IsConnected()) {
+    MOZ_ASSERT(mRule);
     MOZ_ASSERT(!mDescriptors);
     mRule->GetDesc(aDescID, aResult);
   } else {
@@ -487,3 +746,6 @@ FontFace::Entry::SetLoadState(UserFontLoadState aLoadState)
     mFontFaces[i]->SetStatus(LoadStateToStatus(aLoadState));
   }
 }
+
+} 
+} 

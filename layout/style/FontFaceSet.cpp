@@ -171,6 +171,13 @@ FontFaceSet::Delete(FontFace& aFontFace, ErrorResult& aRv)
 }
 
 bool
+FontFaceSet::HasAvailableFontFace(FontFace* aFontFace)
+{
+  return aFontFace->GetFontFaceSet() == this &&
+         aFontFace->IsInFontFaceSet();
+}
+
+bool
 FontFaceSet::Has(FontFace& aFontFace)
 {
   return false;
@@ -482,6 +489,14 @@ void
 FontFaceSet::InsertUnconnectedFontFace(FontFace* aFontFace,
                                        bool& aFontSetModified)
 {
+  if (!aFontFace->IsInitialized()) {
+    
+    
+    
+    
+    return;
+  }
+
   nsAutoString fontfamily;
   if (!aFontFace->GetFamilyName(fontfamily)) {
     
@@ -1101,6 +1116,7 @@ FontFaceSet::FontFaceForRule(nsCSSFontFaceRule* aRule)
 void
 FontFaceSet::AddUnavailableFontFace(FontFace* aFontFace)
 {
+  MOZ_ASSERT(!aFontFace->IsConnected());
   MOZ_ASSERT(!aFontFace->IsInFontFaceSet());
   MOZ_ASSERT(!mUnavailableFaces.Contains(aFontFace));
 
@@ -1119,6 +1135,16 @@ FontFaceSet::RemoveUnavailableFontFace(FontFace* aFontFace)
   mUnavailableFaces.RemoveElement(aFontFace);
 
   MOZ_ASSERT(!mUnavailableFaces.Contains(aFontFace));
+}
+
+void
+FontFaceSet::OnFontFaceInitialized(FontFace* aFontFace)
+{
+  MOZ_ASSERT(HasAvailableFontFace(aFontFace));
+  MOZ_ASSERT(!aFontFace->IsConnected());
+  MOZ_ASSERT(aFontFace->IsInitialized());
+
+  mPresContext->RebuildUserFontSet();
 }
 
 
