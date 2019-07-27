@@ -5869,10 +5869,15 @@ CheckModuleReturn(ModuleCompiler &m)
 static void
 LoadAsmJSActivationIntoRegister(MacroAssembler &masm, Register reg)
 {
-    masm.movePtr(AsmJSImmPtr(AsmJSImm_Runtime), reg);
-    size_t offset = offsetof(JSRuntime, mainThread) +
-                    PerThreadData::offsetOfAsmJSActivationStackReadOnly();
-    masm.loadPtr(Address(reg, offset), reg);
+#if defined(JS_CODEGEN_X64)
+    CodeOffsetLabel label = masm.loadRipRelativeInt64(reg);
+    masm.append(AsmJSGlobalAccess(label, AsmJSModule::activationGlobalDataOffset()));
+#elif defined(JS_CODEGEN_X86)
+    CodeOffsetLabel label = masm.movlWithPatch(PatchedAbsoluteAddress(), reg);
+    masm.append(AsmJSGlobalAccess(label, AsmJSModule::activationGlobalDataOffset()));
+#else
+    masm.loadPtr(Address(GlobalReg, AsmJSModule::activationGlobalDataOffset()), reg);
+#endif
 }
 
 static void
@@ -5971,14 +5976,6 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
     
     
     
-    
-    Register activation = ABIArgGenerator::NonArgReturnVolatileReg0;
-    LoadAsmJSActivationIntoRegister(masm, activation);
-    masm.storePtr(StackPointer, Address(activation, AsmJSActivation::offsetOfErrorRejoinSP()));
-
-    
-    
-    
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     masm.movePtr(IntArgReg1, GlobalReg);
     masm.loadConstantDouble(GenericNaN(), NANReg);
@@ -5989,6 +5986,14 @@ GenerateEntry(ModuleCompiler &m, const AsmJSModule::ExportedFunction &exportedFu
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
     masm.loadPtr(Address(IntArgReg1, AsmJSModule::heapGlobalDataOffset()), HeapReg);
 #endif
+
+    
+    
+    
+    
+    Register activation = ABIArgGenerator::NonArgReturnVolatileReg0;
+    LoadAsmJSActivationIntoRegister(masm, activation);
+    masm.storePtr(StackPointer, Address(activation, AsmJSActivation::offsetOfErrorRejoinSP()));
 
     
     Register argv = ABIArgGenerator::NonArgReturnVolatileReg0;

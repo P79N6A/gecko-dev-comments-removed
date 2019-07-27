@@ -919,21 +919,32 @@ class AsmJSModule
         return code_ + offsetOfGlobalData();
     }
     size_t globalDataBytes() const {
-        return sizeof(uint64_t) +
+        return sizeof(void*) +
+               sizeof(void*) +
                pod.numGlobalVars_ * sizeof(uint64_t) +
                pod.funcPtrTableAndExitBytes_;
     }
-    static unsigned heapGlobalDataOffset() {
+    static unsigned activationGlobalDataOffset() {
         return 0;
+    }
+    AsmJSActivation *&activation() const {
+        return *(AsmJSActivation**)(globalData() + activationGlobalDataOffset());
+    }
+    static unsigned heapGlobalDataOffset() {
+        return sizeof(void*);
     }
     uint8_t *&heapDatum() const {
         JS_ASSERT(isFinished());
         return *(uint8_t**)(globalData() + heapGlobalDataOffset());
     }
+    unsigned globalVariableOffset() const {
+        static_assert((2 * sizeof(void*)) % sizeof(double) == 0, "Global data should be aligned");
+        return 2 * sizeof(void*);
+    }
     unsigned globalVarIndexToGlobalDataOffset(unsigned i) const {
         JS_ASSERT(isFinishedWithModulePrologue());
         JS_ASSERT(i < pod.numGlobalVars_);
-        return sizeof(uint64_t) +
+        return globalVariableOffset() +
                i * sizeof(uint64_t);
     }
     void *globalVarIndexToGlobalDatum(unsigned i) const {
