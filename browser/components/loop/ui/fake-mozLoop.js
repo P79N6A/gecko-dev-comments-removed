@@ -54,6 +54,7 @@ navigator.mozLoop = {
     switch(pref) {
       
       case "gettingStarted.seen":
+      case "screenshare.enabled":
         return true;
     }
   },

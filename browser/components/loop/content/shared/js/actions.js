@@ -161,6 +161,9 @@ loop.shared.actions = (function() {
       
       getLocalElementFunc: Function,
       
+      
+      
+      
       getRemoteElementFunc: Function
     }),
 
@@ -193,6 +196,26 @@ loop.shared.actions = (function() {
       type: String,
       
       enabled: Boolean
+    }),
+
+    
+
+
+    StartScreenShare: Action.define("startScreenShare", {
+    }),
+
+    
+
+
+    EndScreenShare: Action.define("endScreenShare", {
+    }),
+
+    
+
+
+    ScreenSharingState: Action.define("screenSharingState", {
+      
+      state: String
     }),
 
     

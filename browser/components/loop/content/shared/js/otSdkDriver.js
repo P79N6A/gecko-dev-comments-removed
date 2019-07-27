@@ -10,6 +10,7 @@ loop.OTSdkDriver = (function() {
   var sharedActions = loop.shared.actions;
   var FAILURE_DETAILS = loop.shared.utils.FAILURE_DETAILS;
   var STREAM_PROPERTIES = loop.shared.utils.STREAM_PROPERTIES;
+  var SCREEN_SHARE_STATES = loop.shared.utils.SCREEN_SHARE_STATES;
 
   
 
@@ -30,11 +31,21 @@ loop.OTSdkDriver = (function() {
 
       this.dispatcher.register(this, [
         "setupStreamElements",
-        "setMute"
+        "setMute",
+        "startScreenShare",
+        "endScreenShare"
       ]);
   };
 
   OTSdkDriver.prototype = {
+    
+
+
+
+    _getCopyPublisherConfig: function() {
+      return _.extend({}, this.publisherConfig);
+    },
+
     
 
 
@@ -44,6 +55,7 @@ loop.OTSdkDriver = (function() {
 
     setupStreamElements: function(actionData) {
       this.getLocalElement = actionData.getLocalElementFunc;
+      this.getScreenShareElementFunc = actionData.getScreenShareElementFunc;
       this.getRemoteElement = actionData.getRemoteElementFunc;
       this.publisherConfig = actionData.publisherConfig;
 
@@ -51,7 +63,7 @@ loop.OTSdkDriver = (function() {
       
       
       this.publisher = this.sdk.initPublisher(this.getLocalElement(),
-        this.publisherConfig);
+        this._getCopyPublisherConfig());
       this.publisher.on("streamCreated", this._onLocalStreamCreated.bind(this));
       this.publisher.on("accessAllowed", this._onPublishComplete.bind(this));
       this.publisher.on("accessDenied", this._onPublishDenied.bind(this));
@@ -72,6 +84,41 @@ loop.OTSdkDriver = (function() {
       } else {
         this.publisher.publishVideo(actionData.enabled);
       }
+    },
+
+    
+
+
+    startScreenShare: function() {
+      this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
+        state: SCREEN_SHARE_STATES.PENDING
+      }));
+
+      var config = this._getCopyPublisherConfig();
+      
+      config.videoSource = "window";
+
+      this.screenshare = this.sdk.initPublisher(this.getScreenShareElementFunc(),
+        config);
+      this.screenshare.on("accessAllowed", this._onScreenShareGranted.bind(this));
+      this.screenshare.on("accessDenied", this._onScreenShareDenied.bind(this));
+    },
+
+    
+
+
+    endScreenShare: function() {
+      if (!this.screenshare) {
+        return;
+      }
+
+      this.session.unpublish(this.screenshare);
+      this.screenshare.off("accessAllowed accessDenied");
+      this.screenshare.destroy();
+      delete this.screenshare;
+      this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
+        state: SCREEN_SHARE_STATES.INACTIVE
+      }));
     },
 
     
@@ -104,6 +151,8 @@ loop.OTSdkDriver = (function() {
 
 
     disconnectSession: function() {
+      this.endScreenShare();
+
       if (this.session) {
         this.session.off("streamCreated streamDestroyed connectionDestroyed " +
           "sessionDisconnected streamPropertyChanged");
@@ -246,8 +295,16 @@ loop.OTSdkDriver = (function() {
         }));
       }
 
+      var remoteElement;
+      if (event.stream.videoType === "screen") {
+        
+        remoteElement = "null";
+      } else {
+        remoteElement = this.getRemoteElement();
+      }
+
       this.session.subscribe(event.stream,
-        this.getRemoteElement(), this.publisherConfig);
+        remoteElement, this._getCopyPublisherConfig());
 
       this._subscribedRemoteStream = true;
       if (this._checkAllStreamsConnected()) {
@@ -347,6 +404,25 @@ loop.OTSdkDriver = (function() {
     _checkAllStreamsConnected: function() {
       return this._publishedLocalStream &&
         this._subscribedRemoteStream;
+    },
+
+    
+
+
+    _onScreenShareGranted: function() {
+      this.session.publish(this.screenshare);
+      this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
+        state: SCREEN_SHARE_STATES.ACTIVE
+      }));
+    },
+
+    
+
+
+    _onScreenShareDenied: function() {
+      this.dispatcher.dispatch(new sharedActions.ScreenSharingState({
+        state: SCREEN_SHARE_STATES.INACTIVE
+      }));
     }
   };
 

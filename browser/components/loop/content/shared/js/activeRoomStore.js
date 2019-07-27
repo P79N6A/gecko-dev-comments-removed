@@ -12,12 +12,14 @@ loop.store.ActiveRoomStore = (function() {
 
   var sharedActions = loop.shared.actions;
   var FAILURE_DETAILS = loop.shared.utils.FAILURE_DETAILS;
+  var SCREEN_SHARE_STATES = loop.shared.utils.SCREEN_SHARE_STATES;
 
   
   
   var REST_ERRNOS = loop.shared.utils.REST_ERRNOS;
 
   var ROOM_STATES = loop.store.ROOM_STATES;
+
   
 
 
@@ -70,7 +72,8 @@ loop.store.ActiveRoomStore = (function() {
         
         used: false,
         localVideoDimensions: {},
-        remoteVideoDimensions: {}
+        remoteVideoDimensions: {},
+        screenSharingState: SCREEN_SHARE_STATES.INACTIVE
       };
     },
 
@@ -117,6 +120,7 @@ loop.store.ActiveRoomStore = (function() {
         "connectedToSdkServers",
         "connectionFailure",
         "setMute",
+        "screenSharingState",
         "remotePeerDisconnected",
         "remotePeerConnected",
         "windowUnload",
@@ -367,6 +371,13 @@ loop.store.ActiveRoomStore = (function() {
       var muteState = {};
       muteState[actionData.type + "Muted"] = !actionData.enabled;
       this.setStoreState(muteState);
+    },
+
+    
+
+
+    screenSharingState: function(actionData) {
+      this.setStoreState({screenSharingState: actionData.state});
     },
 
     
