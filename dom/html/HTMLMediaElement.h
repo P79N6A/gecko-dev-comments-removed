@@ -260,7 +260,10 @@ public:
 
   
   
-  void UpdateMediaSize(nsIntSize size);
+  void UpdateMediaSize(const nsIntSize& aSize);
+  
+  
+  void UpdateInitialMediaSize(const nsIntSize& aSize);
 
   
   
@@ -642,6 +645,7 @@ protected:
   class MediaLoadListener;
   class MediaStreamTracksAvailableCallback;
   class StreamListener;
+  class StreamSizeListener;
 
   virtual void GetItemValueText(DOMString& text) override;
   virtual void SetItemValueText(const nsAString& text) override;
@@ -1048,7 +1052,11 @@ protected:
   nsTArray<OutputMediaStream> mOutputStreams;
 
   
-  nsRefPtr<StreamListener> mSrcStreamListener;
+  
+  nsRefPtr<StreamListener> mMediaStreamListener;
+  
+  
+  nsRefPtr<StreamSizeListener> mMediaStreamSizeListener;
 
   
   nsRefPtr<MediaSource> mMediaSource;
