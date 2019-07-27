@@ -809,7 +809,7 @@ class B2GOptions(MochitestOptions):
         defaults["testPath"] = ""
         defaults["extensionsToExclude"] = ["specialpowers"]
         
-        defaults["defaultLeakThreshold"] = 5180
+        defaults["defaultLeakThreshold"] = 5308
         self.set_defaults(**defaults)
 
     def verifyRemoteOptions(self, options):
