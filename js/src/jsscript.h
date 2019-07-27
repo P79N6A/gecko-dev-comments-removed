@@ -919,6 +919,11 @@ class JSScript : public js::gc::TenuredCell
     bool compileAndGo_:1;
 
     
+    
+    
+    bool hasPollutedGlobalScope_:1;
+
+    
     bool selfHosted_:1;
 
     
@@ -1141,6 +1146,10 @@ class JSScript : public js::gc::TenuredCell
 
     bool compileAndGo() const {
         return compileAndGo_;
+    }
+
+    bool hasPollutedGlobalScope() const {
+        return hasPollutedGlobalScope_;
     }
 
     bool selfHosted() const { return selfHosted_; }
