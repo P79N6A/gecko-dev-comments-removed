@@ -1231,6 +1231,42 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   nscoord blockEndEdgeOfChildren;
   ComputeFinalSize(*reflowState, state, aMetrics, &blockEndEdgeOfChildren);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (wm.GetBlockDir() == WritingMode::BlockDir::eBlockRL) {
+    nscoord deltaX = aMetrics.Width() - state.mContainerWidth;
+    if (deltaX) {
+      for (line_iterator line = begin_lines(), end = end_lines();
+           line != end; line++) {
+        SlideLine(state, line, -deltaX);
+      }
+      for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
+        nsPoint physicalDelta(deltaX, 0);
+        f->MovePositionBy(physicalDelta);
+      }
+      nsFrameList* bulletList = GetOutsideBulletList();
+      if (bulletList) {
+        nsPoint physicalDelta(deltaX, 0);
+        for (nsIFrame* f = bulletList->FirstChild(); f;
+             f = f->GetNextSibling()) {
+          f->MovePositionBy(physicalDelta);
+        }
+      }
+    }
+  }
+
   nsRect areaBounds = nsRect(0, 0, aMetrics.Width(), aMetrics.Height());
   ComputeOverflowAreas(areaBounds, reflowState->mStyleDisplay,
                        blockEndEdgeOfChildren, aMetrics.mOverflowAreas);
