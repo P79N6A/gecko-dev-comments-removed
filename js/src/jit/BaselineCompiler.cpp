@@ -3003,6 +3003,17 @@ static const VMFunction PopBlockScopeInfo = FunctionInfo<PopBlockScopeFn>(jit::P
 bool
 BaselineCompiler::emit_JSOP_POPBLOCKSCOPE()
 {
+#ifdef DEBUG
+    
+    
+    
+    
+    PCMappingEntry &prevEntry = pcMappingEntries_[pcMappingEntries_.length() - 2];
+    PCMappingEntry &curEntry = pcMappingEntries_[pcMappingEntries_.length() - 1];
+    MOZ_ASSERT(curEntry.pcOffset == script->pcToOffset(pc));
+    MOZ_ASSERT(curEntry.nativeOffset > prevEntry.nativeOffset);
+#endif
+
     
     prepareVMCall();
 
@@ -3018,8 +3029,12 @@ static const VMFunction DebugLeaveBlockInfo = FunctionInfo<DebugLeaveBlockFn>(ji
 bool
 BaselineCompiler::emit_JSOP_DEBUGLEAVEBLOCK()
 {
-    if (!compileDebugInstrumentation_)
+    if (!compileDebugInstrumentation_) {
+        
+        if (*GetNextPc(pc) == JSOP_POPBLOCKSCOPE)
+            masm.nop();
         return true;
+    }
 
     prepareVMCall();
     masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
