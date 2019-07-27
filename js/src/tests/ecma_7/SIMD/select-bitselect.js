@@ -133,5 +133,4 @@ function test() {
         reportCompare(true, true);
 }
 
-
-
+test();
