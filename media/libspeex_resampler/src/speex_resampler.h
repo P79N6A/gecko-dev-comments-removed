@@ -39,7 +39,7 @@
 #ifndef SPEEX_RESAMPLER_H
 #define SPEEX_RESAMPLER_H
 
-#ifdef OUTSIDE_SPEEX
+#if 1 
 
 
 
@@ -47,6 +47,7 @@
 
 
 
+#define RANDOM_PREFIX moz_speex
 #ifndef RANDOM_PREFIX
 #error "Please define RANDOM_PREFIX (above) to something specific to your project to prevent symbol name clashes"
 #endif
