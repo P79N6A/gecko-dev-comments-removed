@@ -203,6 +203,17 @@ BrowserToolboxProcess.prototype = {
     dumpn("Running chrome debugging process.");
     let args = ["-no-remote", "-foreground", "-profile", this._dbgProfilePath, "-chrome", xulURI];
 
+    
+    
+    
+    
+    
+    
+    
+    if (!Services.appinfo.isOfficial) {
+      args.push("-purgecaches");
+    }
+
     process.runwAsync(args, args.length, { observe: () => this.close() });
 
     this._telemetry.toolOpened("jsbrowserdebugger");
