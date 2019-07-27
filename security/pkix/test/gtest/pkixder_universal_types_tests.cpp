@@ -344,9 +344,6 @@ YMDHMS(int16_t year, int16_t month, int16_t day,
 
 
 
-#define TWO_CHARS(t) ('0' + ((t) / 10u)), ('0' + ((t) % 10u))
-
-
 
 static const uint16_t GT_VALUE_OFFSET = 2;
 
@@ -401,6 +398,7 @@ ExpectBadTime(const uint8_t (&generalizedTimeDER)[LENGTH])
 {
   static_assert(LENGTH >= UTC_VALUE_OFFSET,
                 "ExpectBadTime requires input at least UTC_VALUE_OFFSET bytes");
+
 
   
   {
@@ -540,116 +538,7 @@ TEST_F(pkixder_universal_types_tests, TimeTooManyDigits)
   ExpectBadTime(DER_GENERALIZED_TIME_TOO_MANY_DIGITS);
 }
 
-
-
-TEST_F(pkixder_universal_types_tests, GeneralizedTimeYearValidRange)
-{
-  
-  
-  
-
-  for (uint16_t i = 1970; i <= 9999; ++i) {
-    const uint8_t DER[] = {
-      0x18,                           
-      15,                             
-      TWO_CHARS(i / 100), TWO_CHARS(i % 100), 
-      '1', '2', '3', '1', 
-      '2', '3', '5', '9', '5', '9', 'Z' 
-    };
-
-    PRTime expectedValue = YMDHMS(i, 12, 31, 23, 59, 59);
-
-    
-    
-    
-
-    
-    {
-      Input input;
-      ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
-      PRTime value = 0;
-      ASSERT_EQ(Success, GeneralizedTime(input, value));
-      EXPECT_EQ(expectedValue, value);
-    }
-
-    
-    {
-      Input input;
-      ASSERT_EQ(Success, input.Init(DER + GT_VALUE_OFFSET,
-                                    sizeof(DER) - GT_VALUE_OFFSET));
-      PRTime value = 0;
-      ASSERT_EQ(Success, TimeChoice(siGeneralizedTime, input, value));
-      EXPECT_EQ(expectedValue, value);
-    }
-
-    
-    if (i <= 2049) {
-      Input input;
-      ASSERT_EQ(Success, input.Init(DER + UTC_VALUE_OFFSET,
-                                    sizeof(DER) - UTC_VALUE_OFFSET));
-      PRTime value = 0;
-      ASSERT_EQ(Success, TimeChoice(siUTCTime, input, value));
-      EXPECT_EQ(expectedValue, value);
-    }
-  }
-}
-
-
-
-TEST_F(pkixder_universal_types_tests, TimeYearInvalid1969)
-{
-  static const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '1', '9', '6', '9', '1', '2', '3', '1', 
-    '2', '3', '5', '9', '5', '9', 'Z' 
-  };
-  ExpectBadTime(DER);
-}
-
-static const uint8_t DAYS_IN_MONTH[] = {
-  0,  
-  31, 
-  28, 
-  31, 
-  30, 
-  31, 
-  30, 
-  31, 
-  31, 
-  30, 
-  31, 
-  30, 
-  31, 
-};
-
-TEST_F(pkixder_universal_types_tests, TimeMonthDaysValidRange)
-{
-  for (uint8_t month = 1; month <= 12; ++month) {
-    for (uint8_t day = 1; day <= DAYS_IN_MONTH[month]; ++day) {
-      const uint8_t DER[] = {
-        0x18,                           
-        15,                             
-        '2', '0', '1', '5', TWO_CHARS(month), TWO_CHARS(day), 
-        '1', '6', '4', '5', '4', '0', 'Z' 
-      };
-      ExpectGoodTime(YMDHMS(2015, month, day, 16, 45, 40), DER);
-    }
-  }
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMonthInvalid0)
-{
-  static const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '2', '0', '1', '5', '0', '0', '1', '5', 
-    '1', '6', '4', '5', '4', '0', 'Z' 
-  };
-  ExpectBadTime(DER);
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMonthInvalid13)
+TEST_F(pkixder_universal_types_tests, Time13thMonth)
 {
   const uint8_t DER_GENERALIZED_TIME_13TH_MONTH[] = {
     0x18,                           
@@ -661,213 +550,75 @@ TEST_F(pkixder_universal_types_tests, TimeMonthInvalid13)
   ExpectBadTime(DER_GENERALIZED_TIME_13TH_MONTH);
 }
 
-TEST_F(pkixder_universal_types_tests, TimeDayInvalid0)
+TEST_F(pkixder_universal_types_tests, TimeInvalidDayFeb)
 {
-  static const uint8_t DER[] = {
+  const uint8_t DER_GENERALIZED_TIME_INVALID_DAY_FEB[] = {
     0x18,                           
     15,                             
-    '2', '0', '1', '5', '0', '1', '0', '0', 
-    '1', '6', '4', '5', '4', '0', 'Z' 
+    '1', '9', '9', '1', 
+    '0', '2', 
+    '3', '0', 
+    '1', '6', '4', '5', '4', '0', 'Z'
   };
-  ExpectBadTime(DER);
+  ExpectBadTime(DER_GENERALIZED_TIME_INVALID_DAY_FEB);
 }
 
-TEST_F(pkixder_universal_types_tests, TimeMonthDayInvalidPastEndOfMonth)
+TEST_F(pkixder_universal_types_tests, TimeInvalidDayDec)
 {
-  for (uint8_t month = 1; month <= 12; ++month) {
-    const uint8_t DER[] = {
-      0x18,                           
-      15,                             
-      '1', '9', '9', '1', 
-      TWO_CHARS(month), 
-      TWO_CHARS(1 + (month == 2 ? 29 : DAYS_IN_MONTH[month])), 
-      '1', '6', '4', '5', '4', '0', 'Z' 
-    };
-    ExpectBadTime(DER);
-  }
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMonthFebLeapYear2016)
-{
-  static const uint8_t DER[] = {
+  const uint8_t DER_GENERALIZED_TIME_INVALID_DAY_DEC[] = {
     0x18,                           
     15,                             
-    '2', '0', '1', '6', '0', '2', '2', '9', 
-    '1', '6', '4', '5', '4', '0', 'Z' 
+    '1', '9', '9', '1', 
+    '1', '2', 
+    '3', '2', 
+    '1', '6', '4', '5', '4', '0', 'Z'
   };
-  ExpectGoodTime(YMDHMS(2016, 2, 29, 16, 45, 40), DER);
+  ExpectBadTime(DER_GENERALIZED_TIME_INVALID_DAY_DEC);
 }
 
-TEST_F(pkixder_universal_types_tests, TimeMonthFebLeapYear2000)
+TEST_F(pkixder_universal_types_tests, TimeLeapSecondJune)
 {
-  static const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '2', '0', '0', '0', '0', '2', '2', '9', 
-    '1', '6', '4', '5', '4', '0', 'Z' 
-  };
-  ExpectGoodTime(YMDHMS(2000, 2, 29, 16, 45, 40), DER);
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMonthFebLeapYear2400)
-{
-  static const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '2', '4', '0', '0', '0', '2', '2', '9', 
-    '1', '6', '4', '5', '4', '0', 'Z' 
-  };
-
   
-
-  PRTime expectedValue = YMDHMS(2400, 2, 29, 16, 45, 40);
-
-  
-  {
-    Input input;
-    ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
-    PRTime value = 0;
-    ASSERT_EQ(Success, GeneralizedTime(input, value));
-    EXPECT_EQ(expectedValue, value);
-  }
-
-  
-  {
-    Input input;
-    ASSERT_EQ(Success, input.Init(DER + GT_VALUE_OFFSET,
-                                  sizeof(DER) - GT_VALUE_OFFSET));
-    PRTime value = 0;
-    ASSERT_EQ(Success, TimeChoice(siGeneralizedTime, input, value));
-    EXPECT_EQ(expectedValue, value);
-  }
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMonthFebNotLeapYear2014)
-{
-  static const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '2', '0', '1', '4', '0', '2', '2', '9', 
-    '1', '6', '4', '5', '4', '0', 'Z' 
-  };
-  ExpectBadTime(DER);
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMonthFebNotLeapYear2100)
-{
-  static const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '2', '1', '0', '0', '0', '2', '2', '9', 
-    '1', '6', '4', '5', '4', '0', 'Z' 
-  };
-
-  
-
-  
-  {
-    Input input;
-    ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
-    PRTime value;
-    ASSERT_EQ(Failure, GeneralizedTime(input, value));
-    EXPECT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
-  }
-
-  
-  {
-    Input input;
-    ASSERT_EQ(Success,
-              input.Init(DER + GT_VALUE_OFFSET,
-                         sizeof(DER) - GT_VALUE_OFFSET));
-    PRTime value;
-    ASSERT_EQ(Failure, TimeChoice(siGeneralizedTime, input, value));
-    EXPECT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
-  }
-}
-
-TEST_F(pkixder_universal_types_tests, TimeHoursValidRange)
-{
-  for (uint8_t i = 0; i <= 23; ++i) {
-    const uint8_t DER[] = {
-      0x18,                           
-      15,                             
-      '2', '0', '1', '2', '0', '6', '3', '0', 
-      TWO_CHARS(i), '5', '9', '0', '1', 'Z' 
-    };
-    ExpectGoodTime(YMDHMS(2012, 6, 30, i, 59, 1), DER);
-  }
-}
-
-TEST_F(pkixder_universal_types_tests, TimeHoursInvalid_24_00_00)
-{
-  static const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '2', '0', '1', '2', '0', '6', '3', '0', 
-    '2', '4', '0', '0', '0', '0', 'Z' 
-  };
-  ExpectBadTime(DER);
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMinutesValidRange)
-{
-  for (uint8_t i = 0; i <= 59; ++i) {
-    const uint8_t DER[] = {
-      0x18,                           
-      15,                             
-      '2', '0', '1', '2', '0', '6', '3', '0', 
-      '2', '3', TWO_CHARS(i), '0', '1', 'Z' 
-    };
-    ExpectGoodTime(YMDHMS(2012, 6, 30, 23, i, 1), DER);
-  }
-}
-
-TEST_F(pkixder_universal_types_tests, TimeMinutesInvalid60)
-{
-  const uint8_t DER[] = {
-    0x18,                           
-    15,                             
-    '2', '0', '1', '2', '0', '6', '3', '0', 
-    '2', '3', '6', '0', '5', '9', 'Z' 
-  };
-  ExpectBadTime(DER);
-}
-
-TEST_F(pkixder_universal_types_tests, TimeSecondsValidRange)
-{
-  for (uint8_t i = 0; i <= 59; ++i) {
-    const uint8_t DER[] = {
-      0x18,                           
-      15,                             
-      '2', '0', '1', '2', '0', '6', '3', '0', 
-      '2', '3', '5', '9', TWO_CHARS(i), 'Z' 
-    };
-    ExpectGoodTime(YMDHMS(2012, 6, 30, 23, 59, i), DER);
-  }
-}
-
-
-TEST_F(pkixder_universal_types_tests, TimeSecondsInvalid60)
-{
-  static const uint8_t DER[] = {
+  const uint8_t DER_GENERALIZED_TIME_LEAP_SECOND_JUNE[] = {
     0x18,                           
     15,                             
     '2', '0', '1', '2', '0', '6', '3', '0', 
     '2', '3', '5', '9', '6', '0', 'Z' 
   };
-  ExpectBadTime(DER);
+  ExpectBadTime(DER_GENERALIZED_TIME_LEAP_SECOND_JUNE);
 }
 
-
-TEST_F(pkixder_universal_types_tests, TimeSecondsInvalid61)
+TEST_F(pkixder_universal_types_tests, TimeInvalidHours)
 {
-  static const uint8_t DER[] = {
+  const uint8_t DER_GENERALIZED_TIME_INVALID_HOURS[] = {
+    0x18,                           
+    15,                             
+    '2', '0', '1', '2', '0', '6', '3', '0', 
+    '2', '5', '5', '9', '0', '1', 'Z' 
+  };
+  ExpectBadTime(DER_GENERALIZED_TIME_INVALID_HOURS);
+}
+
+TEST_F(pkixder_universal_types_tests, TimeInvalidMinutes)
+{
+  const uint8_t DER_GENERALIZED_TIME_INVALID_MINUTES[] = {
+    0x18,                           
+    15,                             
+    '2', '0', '1', '2', '0', '6', '3', '0', 
+    '2', '3', '6', '0', '5', '9', 'Z' 
+  };
+  ExpectBadTime(DER_GENERALIZED_TIME_INVALID_MINUTES);
+}
+
+TEST_F(pkixder_universal_types_tests, TimeInvalidSeconds)
+{
+  const uint8_t DER_GENERALIZED_TIME_INVALID_SECONDS[] = {
     0x18,                           
     15,                             
     '2', '0', '1', '2', '0', '6', '3', '0', 
     '2', '3', '5', '9', '6', '1', 'Z' 
   };
-  ExpectBadTime(DER);
+  ExpectBadTime(DER_GENERALIZED_TIME_INVALID_SECONDS);
 }
 
 TEST_F(pkixder_universal_types_tests, TimeInvalidZulu)
