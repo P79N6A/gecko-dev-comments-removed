@@ -263,6 +263,10 @@ Request::Constructor(const GlobalObject& aGlobal,
   }
 
   requestHeaders->Clear();
+  
+  
+  requestHeaders->SetGuard(HeadersGuardEnum::Request, aRv);
+  MOZ_ASSERT(!aRv.Failed());
 
   if (request->Mode() == RequestMode::No_cors) {
     if (!request->HasSimpleMethod()) {
