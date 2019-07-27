@@ -18,6 +18,27 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+#if defined(PR_LOG) && !defined(ALLOW_LATE_HTTPLOG_H_INCLUDE)
+#error "If HttpLog.h #included it must come before any IPDL-generated files or other files that #include prlog.h"
+#endif
+
+
+
+#if defined(MOZ_LOGGING)
+#define FORCE_PR_LOG
+#endif
+
 #include "mozilla/net/NeckoChild.h"
 
 

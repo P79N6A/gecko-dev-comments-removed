@@ -26,6 +26,11 @@
 #include "mozilla/VisualEventTracer.h"
 #include "URIUtils.h"
 
+#ifdef MOZ_LOGGING
+
+#define FORCE_PR_LOG 1
+#endif
+
 #include "nsIContent.h"
 #include "nsIContentInlines.h"
 #include "nsIDocument.h"

@@ -8,9 +8,11 @@
 #ifndef nsPluginLogging_h__
 #define nsPluginLogging_h__
 
-#include "prlog.h"
+#define FORCE_PR_LOG
+#define PR_LOGGING 1
 
 #ifdef PR_LOGGING
+#include "prlog.h"
 
 #ifndef PLUGIN_LOGGING    
 #define PLUGIN_LOGGING 1  // master compile-time switch for pluging logging

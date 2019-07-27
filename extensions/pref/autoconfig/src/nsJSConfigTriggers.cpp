@@ -3,6 +3,10 @@
 
 
 
+#ifdef MOZ_LOGGING
+
+#define FORCE_PR_LOG
+#endif
 #include "jsapi.h"
 #include "nsIXPConnect.h"
 #include "nsIJSRuntimeService.h"

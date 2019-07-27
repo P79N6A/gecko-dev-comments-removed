@@ -4,6 +4,10 @@
 
 
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG 1
+#endif
+
 #include "AppTrustDomain.h"
 #include "certdb.h"
 #include "pkix/pkixnss.h"

@@ -3,6 +3,10 @@
 
 
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG
+#endif
+
 #include "mozilla/layers/AsyncTransactionTracker.h" 
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/CompositorParent.h"

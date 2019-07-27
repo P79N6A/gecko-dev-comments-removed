@@ -3,6 +3,9 @@
 
 
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG 1 /* Allow logging in the release build */
+#endif 
 #include "prlog.h"
 
 #include "plstr.h"

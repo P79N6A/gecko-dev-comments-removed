@@ -20,6 +20,9 @@
 #include "nsIContentPolicy.h"
 #include "nsContentUtils.h"
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG
+#endif 
 #include "prlog.h"
 
 #include "nsString.h"

@@ -4,6 +4,10 @@
 
 
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG 1
+#endif
+
 #include "nsNSSCertificateDB.h"
 
 #include "pkix/pkix.h"

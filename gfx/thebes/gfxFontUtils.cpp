@@ -3,6 +3,11 @@
 
 
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG
+#include "prlog.h"
+#endif
+
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BinarySearch.h"
 

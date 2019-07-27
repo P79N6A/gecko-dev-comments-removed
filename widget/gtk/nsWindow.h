@@ -37,6 +37,9 @@
 #undef LOG
 #ifdef MOZ_LOGGING
 
+
+#define FORCE_PR_LOG
+
 #include "prlog.h"
 #include "nsTArray.h"
 

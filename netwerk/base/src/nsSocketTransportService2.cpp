@@ -3,6 +3,10 @@
 
 
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG
+#endif
+
 #include "nsSocketTransportService2.h"
 #include "nsSocketTransport2.h"
 #include "nsError.h"
