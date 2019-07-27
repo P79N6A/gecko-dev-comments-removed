@@ -130,6 +130,11 @@ typedef struct {
 } cubeb_stream_params;
 
 
+typedef struct {
+  char * name; 
+} cubeb_output_device;
+
+
 typedef enum {
   CUBEB_STATE_STARTED, 
   CUBEB_STATE_STOPPED, 
@@ -284,6 +289,27 @@ int cubeb_stream_set_volume(cubeb_stream * stream, float volume);
 
 
 int cubeb_stream_set_panning(cubeb_stream * stream, float panning);
+
+
+
+
+
+
+
+
+
+int cubeb_stream_get_current_output_device(cubeb_stream * stm,
+                                           cubeb_output_device ** const device);
+
+
+
+
+
+
+
+
+int cubeb_stream_output_device_destroy(cubeb_stream * stream,
+                                       cubeb_output_device * devices);
 
 #if defined(__cplusplus)
 }
