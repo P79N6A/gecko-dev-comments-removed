@@ -5,7 +5,7 @@
 
 
 
-function spawnTest() {
+add_task(function*() {
   let { target, panel } = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
   let { panelWin } = panel;
   let { gFront, $, $$, EVENTS } = panelWin;
@@ -31,7 +31,5 @@ function spawnTest() {
   ok(findGraphNode(panelWin, gain.actorID).classList.contains("selected"),
     "Node still selected after rerender.");
 
-  yield teardown(panel);
-  finish();
-}
-
+  yield teardown(target);
+});

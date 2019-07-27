@@ -5,7 +5,7 @@
 
 
 
-function spawnTest() {
+add_task(function*() {
   let { target, panel } = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
   let { panelWin } = panel;
   let { gFront, $, $$, EVENTS, ContextView } = panelWin;
@@ -39,7 +39,5 @@ function spawnTest() {
   is(ContextView.getCurrentTranslation()[0], 20, "After refresh, x-translation is 20.");
   is(ContextView.getCurrentTranslation()[1], 20, "After refresh, y-translation is 20.");
 
-  yield teardown(panel);
-  finish();
-}
-
+  yield teardown(target);
+});

@@ -5,7 +5,7 @@
 
 
 
-function spawnTest() {
+add_task(function*() {
   let { target, panel } = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
   let { panelWin } = panel;
   let { gFront, $, $$, EVENTS, InspectorView } = panelWin;
@@ -38,6 +38,5 @@ function spawnTest() {
   ok(isVisible($("#properties-tabpanel-content-empty")),
     "Empty message shown when no AudioParams exist.");
 
-  yield teardown(panel);
-  finish();
-}
+  yield teardown(target);
+});
