@@ -2889,15 +2889,9 @@ var WalkerActor = protocol.ActorClass({
 
 
 
+
   getStyleSheetOwnerNode: method(function(styleSheetActorID) {
-    let styleSheetActor = this.conn.getActor(styleSheetActorID);
-    let ownerNode = styleSheetActor.ownerNode;
-
-    if (!styleSheetActor || !ownerNode) {
-      return null;
-    }
-
-    return this.attachElement(ownerNode);
+    return this.getNodeFromActor(styleSheetActorID, ["ownerNode"]);
   }, {
     request: {
       styleSheetActorID: Arg(0, "string")
@@ -2906,6 +2900,60 @@ var WalkerActor = protocol.ActorClass({
       ownerNode: RetVal("nullable:disconnectedNode")
     }
   }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getNodeFromActor: method(function(actorID, path) {
+    let actor = this.conn.getActor(actorID);
+    if (!actor) {
+      return null;
+    }
+
+    let obj = actor;
+    for (let name of path) {
+      if (!(name in obj)) {
+        return null;
+      }
+      obj = obj[name];
+    }
+
+    return this.attachElement(obj);
+  }, {
+    request: {
+      actorID: Arg(0, "string"),
+      path: Arg(1, "array:string")
+    },
+    response: {
+      node: RetVal("nullable:disconnectedNode")
+    }
+  })
 });
 
 
@@ -3061,6 +3109,14 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     });
   }, {
     impl: "_getStyleSheetOwnerNode"
+  }),
+
+  getNodeFromActor: protocol.custom(function(actorID, path) {
+    return this._getNodeFromActor(actorID, path).then(response => {
+      return response ? response.node : null;
+    });
+  }, {
+    impl: "_getNodeFromActor"
   }),
 
   _releaseFront: function(node, force) {

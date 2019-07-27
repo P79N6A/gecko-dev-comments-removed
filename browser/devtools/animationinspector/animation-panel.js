@@ -6,6 +6,13 @@
 
 "use strict";
 
+const {
+  PlayerMetaDataHeader,
+  PlaybackRateSelector,
+  AnimationTargetNode,
+  createNode
+} = require("devtools/animationinspector/components");
+
 
 
 
@@ -199,6 +206,9 @@ function PlayerWidget(player, containerEl) {
   if (AnimationsController.hasSetPlaybackRate) {
     this.rateComponent = new PlaybackRateSelector();
   }
+  if (AnimationsController.hasTargetNode) {
+    this.targetNodeComponent = new AnimationTargetNode(gInspector);
+  }
 }
 
 PlayerWidget.prototype = {
@@ -223,6 +233,9 @@ PlayerWidget.prototype = {
     this.metaDataComponent.destroy();
     if (this.rateComponent) {
       this.rateComponent.destroy();
+    }
+    if (this.targetNodeComponent) {
+      this.targetNodeComponent.destroy();
     }
 
     this.el.remove();
@@ -261,10 +274,16 @@ PlayerWidget.prototype = {
     let state = this.player.state;
 
     this.el = createNode({
+      parent: this.containerEl,
       attributes: {
         "class": "player-widget " + state.playState
       }
     });
+
+    if (this.targetNodeComponent) {
+      this.targetNodeComponent.init(this.el);
+      this.targetNodeComponent.render(this.player);
+    }
 
     this.metaDataComponent.init(this.el);
     this.metaDataComponent.render(state);
@@ -358,8 +377,6 @@ PlayerWidget.prototype = {
         "class": "time-display"
       }
     });
-
-    this.containerEl.appendChild(this.el);
 
     
     this.displayTime(state.currentTime);
@@ -571,261 +588,3 @@ PlayerWidget.prototype = {
     }
   }
 };
-
-
-
-
-
-
-
-function PlayerMetaDataHeader() {
-  
-  
-  this.state = {};
-}
-
-PlayerMetaDataHeader.prototype = {
-  init: function(containerEl) {
-    
-    this.el = createNode({
-      parent: containerEl,
-      attributes: {
-        "class": "animation-title"
-      }
-    });
-
-    
-    this.nameLabel = createNode({
-      parent: this.el,
-      nodeType: "span"
-    });
-
-    this.nameValue = createNode({
-      parent: this.el,
-      nodeType: "strong",
-      attributes: {
-        "style": "display:none;"
-      }
-    });
-
-    
-    let metaData = createNode({
-      parent: this.el,
-      nodeType: "span",
-      attributes: {
-        "class": "meta-data"
-      }
-    });
-
-    
-    this.durationLabel = createNode({
-      parent: metaData,
-      nodeType: "span"
-    });
-    this.durationLabel.textContent = L10N.getStr("player.animationDurationLabel");
-
-    this.durationValue = createNode({
-      parent: metaData,
-      nodeType: "strong"
-    });
-
-    
-    this.delayLabel = createNode({
-      parent: metaData,
-      nodeType: "span",
-      attributes: {
-        "style": "display:none;"
-      }
-    });
-    this.delayLabel.textContent = L10N.getStr("player.animationDelayLabel");
-
-    this.delayValue = createNode({
-      parent: metaData,
-      nodeType: "strong"
-    });
-
-    
-    
-    this.iterationLabel = createNode({
-      parent: metaData,
-      nodeType: "span",
-      attributes: {
-        "style": "display:none;"
-      }
-    });
-    this.iterationLabel.textContent = L10N.getStr("player.animationIterationCountLabel");
-
-    this.iterationValue = createNode({
-      parent: metaData,
-      nodeType: "strong",
-      attributes: {
-        "style": "display:none;"
-      }
-    });
-  },
-
-  destroy: function() {
-    this.state = null;
-    this.el.remove();
-    this.el = null;
-    this.nameLabel = this.nameValue = null;
-    this.durationLabel = this.durationValue = null;
-    this.delayLabel = this.delayValue = null;
-    this.iterationLabel = this.iterationValue = null;
-  },
-
-  render: function(state) {
-    
-    if (state.name !== this.state.name) {
-      if (state.name) {
-        
-        this.nameLabel.textContent = L10N.getStr("player.animationNameLabel");
-        this.nameValue.style.display = "inline";
-        this.nameValue.textContent = state.name;
-      } else {
-        
-        this.nameLabel.textContent = L10N.getStr("player.transitionNameLabel");
-        this.nameValue.style.display = "none";
-      }
-    }
-
-    
-    if (state.duration !== this.state.duration) {
-      this.durationValue.textContent = L10N.getFormatStr("player.timeLabel",
-        L10N.numberWithDecimals(state.duration / 1000, 2));
-    }
-
-    
-    if (state.delay !== this.state.delay) {
-      if (state.delay) {
-        this.delayLabel.style.display = "inline";
-        this.delayValue.style.display = "inline";
-        this.delayValue.textContent = L10N.getFormatStr("player.timeLabel",
-          L10N.numberWithDecimals(state.delay / 1000, 2));
-      } else {
-        
-        this.delayLabel.style.display = "none";
-        this.delayValue.style.display = "none";
-      }
-    }
-
-    
-    if (state.iterationCount !== this.state.iterationCount) {
-      if (state.iterationCount !== 1) {
-        this.iterationLabel.style.display = "inline";
-        this.iterationValue.style.display = "inline";
-        let count = state.iterationCount ||
-                    L10N.getStr("player.infiniteIterationCount");
-        this.iterationValue.innerHTML = count;
-      } else {
-        
-        this.iterationLabel.style.display = "none";
-        this.iterationValue.style.display = "none";
-      }
-    }
-
-    this.state = state;
-  }
-};
-
-
-
-
-
-
-
-
-function PlaybackRateSelector() {
-  this.currentRate = null;
-  this.onSelectionChanged = this.onSelectionChanged.bind(this);
-  EventEmitter.decorate(this);
-}
-
-PlaybackRateSelector.prototype = {
-  PRESETS: [.1, .5, 1, 2, 5, 10],
-
-  init: function(containerEl) {
-    
-    
-    this.parentEl = containerEl;
-  },
-
-  destroy: function() {
-    this.removeSelect();
-    this.parentEl = this.el = null;
-  },
-
-  removeSelect: function() {
-    if (this.el) {
-      this.el.removeEventListener("change", this.onSelectionChanged);
-      this.el.remove();
-    }
-  },
-
-  
-
-
-
-  getCurrentPresets: function({playbackRate}) {
-    return [...new Set([...this.PRESETS, playbackRate])].sort((a,b) => a > b);
-  },
-
-  render: function(state) {
-    if (state.playbackRate === this.currentRate) {
-      return;
-    }
-
-    this.removeSelect();
-
-    this.el = createNode({
-      parent: this.parentEl,
-      nodeType: "select",
-      attributes: {
-        "class": "rate devtools-button"
-      }
-    });
-
-    for (let preset of this.getCurrentPresets(state)) {
-      let option = createNode({
-        parent: this.el,
-        nodeType: "option",
-        attributes: {
-          value: preset,
-        }
-      });
-      option.textContent = L10N.getFormatStr("player.playbackRateLabel", preset);
-      if (preset === state.playbackRate) {
-        option.setAttribute("selected", "");
-      }
-    }
-
-    this.el.addEventListener("change", this.onSelectionChanged);
-
-    this.currentRate = state.playbackRate;
-  },
-
-  onSelectionChanged: function(e) {
-    this.emit("rate-changed", parseFloat(this.el.value));
-  }
-};
-
-
-
-
-
-
-function createNode(options) {
-  let type = options.nodeType || "div";
-  let node = document.createElement(type);
-
-  for (let name in options.attributes || {}) {
-    let value = options.attributes[name];
-    node.setAttribute(name, value);
-  }
-
-  if (options.parent) {
-    options.parent.appendChild(node);
-  }
-
-  return node;
-}
