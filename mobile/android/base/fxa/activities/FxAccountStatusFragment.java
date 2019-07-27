@@ -348,7 +348,7 @@ public class FxAccountStatusFragment
     }
     this.fxAccount = fxAccount;
     try {
-      this.clientsDataDelegate = new SharedPreferencesClientsDataDelegate(fxAccount.getSyncPrefs());
+      this.clientsDataDelegate = new SharedPreferencesClientsDataDelegate(fxAccount.getSyncPrefs(), getActivity().getApplicationContext());
     } catch (Exception e) {
       Logger.error(LOG_TAG, "Got exception fetching Sync prefs associated to Firefox Account; aborting.", e);
       
