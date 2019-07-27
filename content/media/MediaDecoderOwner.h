@@ -142,8 +142,8 @@ public:
   
   
   
-  virtual void DispatchNeedKey(const nsTArray<uint8_t>& aInitData,
-                               const nsAString& aInitDataType) = 0;
+  virtual void DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
+                                 const nsAString& aInitDataType) = 0;
 #endif
 };
 
