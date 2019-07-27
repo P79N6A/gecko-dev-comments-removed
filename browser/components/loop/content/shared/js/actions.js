@@ -292,7 +292,6 @@ loop.shared.actions = (function() {
 
 
 
-
     ReceivingScreenShare: Action.define("receivingScreenShare", {
       receiving: Boolean
       

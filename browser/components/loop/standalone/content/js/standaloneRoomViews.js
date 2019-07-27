@@ -330,6 +330,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
 
 
+
+
+
     shouldRenderRemoteVideo: function() {
       switch(this.state.roomState) {
         case ROOM_STATES.HAS_PARTICIPANTS:
@@ -365,6 +368,43 @@ loop.standaloneRoomViews = (function(mozL10n) {
           return true;
 
       }
+    },
+
+    
+
+
+
+
+
+
+    _shouldRenderLocalLoading: function () {
+      return this.state.roomState === ROOM_STATES.MEDIA_WAIT &&
+             !this.state.localSrcVideoObject;
+    },
+
+    
+
+
+
+
+
+
+    _shouldRenderRemoteLoading: function() {
+      return this.state.roomState === ROOM_STATES.HAS_PARTICIPANTS &&
+             !this.state.remoteSrcVideoObject &&
+             !this.state.mediaConnected;
+    },
+
+    
+
+
+
+
+
+
+    _shouldRenderScreenShareLoading: function() {
+      return this.state.receivingScreenShare &&
+             !this.state.screenShareVideoObject;
     },
 
     render: function() {
@@ -406,12 +446,14 @@ loop.standaloneRoomViews = (function(mozL10n) {
               React.createElement("div", {className: remoteStreamClasses}, 
                 React.createElement(sharedViews.MediaView, {displayAvatar: !this.shouldRenderRemoteVideo(), 
                   posterUrl: this.props.remotePosterUrl, 
+                  isLoading: this._shouldRenderRemoteLoading(), 
                   mediaType: "remote", 
                   srcVideoObject: this.state.remoteSrcVideoObject})
               ), 
               React.createElement("div", {className: screenShareStreamClasses}, 
                 React.createElement(sharedViews.MediaView, {displayAvatar: false, 
                   posterUrl: this.props.screenSharePosterUrl, 
+                  isLoading: this._shouldRenderScreenShareLoading(), 
                   mediaType: "screen-share", 
                   srcVideoObject: this.state.screenShareVideoObject})
               ), 
@@ -422,6 +464,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
               React.createElement("div", {className: "local"}, 
                 React.createElement(sharedViews.MediaView, {displayAvatar: this.state.videoMuted, 
                   posterUrl: this.props.localPosterUrl, 
+                  isLoading: this._shouldRenderLocalLoading(), 
                   mediaType: "local", 
                   srcVideoObject: this.state.localSrcVideoObject})
               )

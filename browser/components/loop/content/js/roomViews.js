@@ -649,6 +649,9 @@ loop.roomViews = (function(mozL10n) {
 
 
 
+
+
+
     shouldRenderRemoteVideo: function() {
       switch(this.state.roomState) {
         case ROOM_STATES.HAS_PARTICIPANTS:
@@ -682,6 +685,31 @@ loop.roomViews = (function(mozL10n) {
             " unexpected roomState: ", this.state.roomState);
           return true;
       }
+    },
+
+    
+
+
+
+
+
+
+    _shouldRenderLocalLoading: function () {
+      return this.state.roomState === ROOM_STATES.MEDIA_WAIT &&
+             !this.state.localSrcVideoObject;
+    },
+
+    
+
+
+
+
+
+
+    _shouldRenderRemoteLoading: function() {
+      return this.state.roomState === ROOM_STATES.HAS_PARTICIPANTS &&
+             !this.state.remoteSrcVideoObject &&
+             !this.state.mediaConnected;
     },
 
     render: function() {
@@ -742,6 +770,7 @@ loop.roomViews = (function(mozL10n) {
                       React.createElement("div", {className: "video_inner remote focus-stream"}, 
                         React.createElement(sharedViews.MediaView, {displayAvatar: !this.shouldRenderRemoteVideo(), 
                           posterUrl: this.props.remotePosterUrl, 
+                          isLoading: this._shouldRenderRemoteLoading(), 
                           mediaType: "remote", 
                           srcVideoObject: this.state.remoteSrcVideoObject})
                       )
@@ -749,6 +778,7 @@ loop.roomViews = (function(mozL10n) {
                     React.createElement("div", {className: localStreamClasses}, 
                       React.createElement(sharedViews.MediaView, {displayAvatar: this.state.videoMuted, 
                         posterUrl: this.props.localPosterUrl, 
+                        isLoading: this._shouldRenderLocalLoading(), 
                         mediaType: "local", 
                         srcVideoObject: this.state.localSrcVideoObject})
                     )

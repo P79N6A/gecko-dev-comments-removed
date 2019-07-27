@@ -992,9 +992,7 @@ describe("loop.OTSdkDriver", function () {
             new sharedActions.ReceivingScreenShare({receiving: true}));
         });
 
-      
-      
-      it.skip("should dispatch a ReceivingScreenShare action for screen" +
+      it("should dispatch a ReceivingScreenShare action for screen" +
         " sharing streams", function() {
           fakeStream.videoType = "screen";
 

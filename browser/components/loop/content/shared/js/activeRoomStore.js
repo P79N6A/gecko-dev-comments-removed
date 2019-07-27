@@ -614,7 +614,6 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
-
     receivingScreenShare: function(actionData) {
       if (!actionData.receiving &&
           this.getStoreState().remoteVideoDimensions.screen) {

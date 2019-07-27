@@ -512,16 +512,9 @@ loop.OTSdkDriver = (function() {
 
     _handleRemoteScreenShareCreated: function(stream) {
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+      this.dispatcher.dispatch(new sharedActions.ReceivingScreenShare({
+        receiving: true
+      }));
 
       
       this._mockScreenShareEl = document.createElement("div");
