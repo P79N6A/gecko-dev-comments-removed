@@ -37,9 +37,21 @@ public:
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
 
   
-  nsresult ClipPaint(nsRenderingContext* aContext,
-                     nsIFrame* aParent,
-                     const gfxMatrix &aMatrix);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
+                                    nsIFrame* aClippedFrame,
+                                    const gfxMatrix &aMatrix);
 
   
 
