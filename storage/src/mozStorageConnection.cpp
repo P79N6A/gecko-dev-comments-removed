@@ -1218,6 +1218,7 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
     "journal_size_limit",
     "synchronous",
     "wal_autocheckpoint",
+    "busy_timeout"
   };
   for (uint32_t i = 0; i < ArrayLength(pragmas); ++i) {
     
