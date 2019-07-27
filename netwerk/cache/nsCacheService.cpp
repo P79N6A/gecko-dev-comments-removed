@@ -1153,8 +1153,7 @@ nsCacheService::Init()
     }
 
     
-    rv = mActiveEntries.Init();
-    if (NS_FAILED(rv)) return rv;
+    mActiveEntries.Init();
 
     
     if (!mObserver) {
