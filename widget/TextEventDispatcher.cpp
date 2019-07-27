@@ -151,6 +151,14 @@ TextEventDispatcher::CommitComposition(nsEventStatus& aStatus,
     return rv;
   }
 
+  
+  
+  
+  if (NS_WARN_IF(!IsComposing() &&
+                 (!aCommitString || aCommitString->IsEmpty()))) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsCOMPtr<nsIWidget> widget(mWidget);
   rv = StartCompositionAutomaticallyIfNecessary(aStatus);
   if (NS_WARN_IF(NS_FAILED(rv))) {
