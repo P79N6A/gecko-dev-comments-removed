@@ -54,7 +54,7 @@ public:
 
   virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
-  Element* GetFormElement()
+  Element* GetFormElement() const
   {
     nsCOMPtr<nsIFormControl> fieldsetControl = do_QueryInterface(GetFieldSet());
 
@@ -83,6 +83,12 @@ public:
                 : nsGenericHTMLElement::GetParentObject();
   }
 
+  nsINode* GetScopeChainParent() const MOZ_OVERRIDE
+  {
+    Element* form = GetFormElement();
+    return form ? form : nsGenericHTMLElement::GetScopeChainParent();
+  }
+
 protected:
   virtual ~HTMLLegendElement();
 
@@ -92,7 +98,7 @@ protected:
 
 
 
-  nsIContent* GetFieldSet();
+  nsIContent* GetFieldSet() const;
 };
 
 } 
