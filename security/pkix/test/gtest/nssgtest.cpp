@@ -39,14 +39,6 @@ NSSTest::SetUpTestCase()
   }
 }
 
-NSSTest::NSSTest()
-  : arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE))
-{
-  if (!arena) {
-    abort();
-  }
-}
-
 
 
 const std::time_t now(time(nullptr));
