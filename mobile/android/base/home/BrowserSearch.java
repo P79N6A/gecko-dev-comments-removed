@@ -56,7 +56,10 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
 
 
 
@@ -105,7 +108,13 @@ public class BrowserSearch extends HomeFragment
     private volatile SuggestClient mSuggestClient;
 
     
-    private ArrayList<SearchEngine> mSearchEngines;
+    
+    
+    private List<SearchEngine> mSearchEngines;
+
+    
+    
+    private Locale mLastLocale;
 
     
     private boolean mSuggestionsEnabled;
@@ -227,6 +236,11 @@ public class BrowserSearch extends HomeFragment
     public void onResume() {
         super.onResume();
 
+        
+        if (mSearchEngines.isEmpty() || !Locale.getDefault().equals(mLastLocale)) {
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
+        }
+
         Telemetry.startUISession(TelemetryContract.Session.FRECENCY);
     }
 
@@ -325,8 +339,6 @@ public class BrowserSearch extends HomeFragment
         registerForContextMenu(mList);
         EventDispatcher.getInstance().registerGeckoThreadListener(this,
             "SearchEngines:Data");
-
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:GetVisible", null));
     }
 
     @Override
@@ -506,11 +518,15 @@ public class BrowserSearch extends HomeFragment
     }
 
     private void setSuggestions(ArrayList<String> suggestions) {
+        ThreadUtils.assertOnUiThread();
+
         mSearchEngines.get(0).setSuggestions(suggestions);
         mAdapter.notifyDataSetChanged();
     }
 
     private void setSearchEngines(JSONObject data) {
+        ThreadUtils.assertOnUiThread();
+
         
         
         
@@ -555,7 +571,8 @@ public class BrowserSearch extends HomeFragment
                 }
             }
 
-            mSearchEngines = searchEngines;
+            mSearchEngines = Collections.unmodifiableList(searchEngines);
+            mLastLocale = Locale.getDefault();
 
             if (mAdapter != null) {
                 mAdapter.notifyDataSetChanged();
