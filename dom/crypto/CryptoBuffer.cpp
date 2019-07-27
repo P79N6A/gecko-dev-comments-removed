@@ -59,7 +59,7 @@ CryptoBuffer::Assign(const ArrayBufferViewOrArrayBuffer& aData)
 
   
   MOZ_ASSERT(false);
-  SetLength(0);
+  Clear();
   return nullptr;
 }
 
@@ -74,7 +74,7 @@ CryptoBuffer::Assign(const OwningArrayBufferViewOrArrayBuffer& aData)
 
   
   MOZ_ASSERT(false);
-  SetLength(0);
+  Clear();
   return nullptr;
 }
 
