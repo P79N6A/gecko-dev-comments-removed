@@ -873,10 +873,12 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             MOZ_ASSERT(cx->compartment()->isDebuggee());
-            if (iter.moreFrames() || HasLiveIteratorAtStackDepth(script, pc, i + 1))
+            if (iter.moreFrames() || HasLiveIteratorAtStackDepth(script, pc, i + 1)) {
                 v = iter.read();
-            else
+            } else {
+                iter.skip();
                 v = MagicValue(JS_OPTIMIZED_OUT);
+            }
         } else {
             v = iter.read();
         }
