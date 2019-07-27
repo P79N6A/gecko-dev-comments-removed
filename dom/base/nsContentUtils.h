@@ -2182,6 +2182,14 @@ public:
 
 
 
+  static nsRect GetSelectionBoundingRect(mozilla::dom::Selection* aSel);
+
+  
+
+
+
+
+
 
 
 
