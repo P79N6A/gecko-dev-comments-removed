@@ -184,6 +184,11 @@ private:
   VertexShaderConstants mVSConstants;
   PixelShaderConstants mPSConstants;
   bool mDisableSequenceForNextFrame;
+
+  gfx::IntRect mInvalidRect;
+  
+  gfx::IntRect mCurrentClip;
+  nsIntRegion mInvalidRegion;
 };
 
 }
