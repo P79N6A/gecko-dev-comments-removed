@@ -481,7 +481,11 @@ class JitcodeGlobalTable
     EntryVector entries_;
 
   public:
-    JitcodeGlobalTable() : treeAlloc_(LIFO_CHUNK_SIZE), tree_(&treeAlloc_), entries_() {}
+    JitcodeGlobalTable() : treeAlloc_(LIFO_CHUNK_SIZE), tree_(&treeAlloc_), entries_() {
+        
+        
+        tree_.disableCheckCoherency();
+    }
     ~JitcodeGlobalTable() {}
 
     bool empty() const {
