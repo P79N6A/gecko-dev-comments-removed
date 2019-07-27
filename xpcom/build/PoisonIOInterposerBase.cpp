@@ -6,9 +6,9 @@
 
 #include "mozilla/Mutex.h"
 #include "mozilla/Scoped.h"
+#include "mozilla/UniquePtr.h"
 
 #include <algorithm>
-#include <vector>
 
 #include "PoisonIOInterposer.h"
 
@@ -81,15 +81,130 @@ DebugFilesAutoLock::Clear()
 
 
 
-std::vector<intptr_t>*
+
+
+
+
+
+
+
+
+template <typename T, size_t chunk_size=64>
+class ChunkedList {
+  struct ListChunk {
+    static const size_t kLength = \
+      (chunk_size - sizeof(ListChunk*)) / sizeof(mozilla::Atomic<T>);
+
+    mozilla::Atomic<T> mElements[kLength];
+    mozilla::UniquePtr<ListChunk> mNext;
+
+    ListChunk() : mNext(nullptr) {}
+  };
+
+  ListChunk mList;
+  mozilla::Atomic<size_t> mLength;
+
+public:
+  ChunkedList() : mLength(0) {}
+
+  ~ChunkedList() {
+    
+    
+    
+    
+    
+    MOZ_RELEASE_ASSERT(mLength <= ListChunk::kLength);
+  }
+
+  
+  
+  
+  void Add(T aValue)
+  {
+    ListChunk *list = &mList;
+    size_t position = mLength;
+    for (; position >= ListChunk::kLength; position -= ListChunk::kLength) {
+      if (!list->mNext) {
+        list->mNext.reset(new ListChunk());
+      }
+      list = list->mNext.get();
+    }
+    
+    
+    list->mElements[position] = aValue;
+    mLength++;
+  }
+
+  
+  
+  
+  void Remove(T aValue)
+  {
+    if (!mLength) {
+      return;
+    }
+    ListChunk *list = &mList;
+    size_t last = mLength - 1;
+    do {
+      size_t position = 0;
+      
+      for (; position < ListChunk::kLength; position++) {
+        if (aValue == list->mElements[position]) {
+          ListChunk *last_list = list;
+          
+          
+          for (; last >= ListChunk::kLength; last -= ListChunk::kLength) {
+            last_list = last_list->mNext.get();
+          }
+          
+          
+          T value = last_list->mElements[last];
+          list->mElements[position] = value;
+          mLength--;
+          return;
+        }
+      }
+      last -= ListChunk::kLength;
+      list = list->mNext.get();
+    } while (list);
+  }
+
+  
+  
+  
+  bool Contains(T aValue)
+  {
+    ListChunk *list = &mList;
+    
+    
+    size_t length = mLength;
+    do {
+      size_t list_length = ListChunk::kLength;
+      list_length = std::min(list_length, length);
+      for (size_t position = 0; position < list_length; position++) {
+        if (aValue == list->mElements[position]) {
+          return true;
+        }
+      }
+      length -= ListChunk::kLength;
+      list = list->mNext.get();
+    } while (list);
+
+    return false;
+  }
+};
+
+typedef ChunkedList<intptr_t> FdList;
+
+
+
+FdList&
 getDebugFileIDs()
 {
-  PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(DebugFilesAutoLock::getDebugFileIDsLock());
-  
-  
-  static std::vector<intptr_t>* DebugFileIDs = new std::vector<intptr_t>();
+  static FdList DebugFileIDs;
   return DebugFileIDs;
 }
+
 
 } 
 
@@ -100,27 +215,8 @@ namespace mozilla {
 bool
 IsDebugFile(intptr_t aFileID)
 {
-  DebugFilesAutoLock lockedScope;
-
-  std::vector<intptr_t>& Vec = *getDebugFileIDs();
-  return std::find(Vec.begin(), Vec.end(), aFileID) != Vec.end();
+  return getDebugFileIDs().Contains(aFileID);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 } 
 
@@ -130,9 +226,9 @@ void
 MozillaRegisterDebugHandle(intptr_t aHandle)
 {
   DebugFilesAutoLock lockedScope;
-  std::vector<intptr_t>& Vec = *getDebugFileIDs();
-  MOZ_ASSERT(std::find(Vec.begin(), Vec.end(), aHandle) == Vec.end());
-  Vec.push_back(aHandle);
+  FdList& DebugFileIDs = getDebugFileIDs();
+  MOZ_ASSERT(!DebugFileIDs.Contains(aHandle));
+  DebugFileIDs.Add(aHandle);
 }
 
 void
@@ -155,11 +251,9 @@ void
 MozillaUnRegisterDebugHandle(intptr_t aHandle)
 {
   DebugFilesAutoLock lockedScope;
-  std::vector<intptr_t>& Vec = *getDebugFileIDs();
-  std::vector<intptr_t>::iterator i =
-    std::find(Vec.begin(), Vec.end(), aHandle);
-  MOZ_ASSERT(i != Vec.end());
-  Vec.erase(i);
+  FdList& DebugFileIDs = getDebugFileIDs();
+  MOZ_ASSERT(DebugFileIDs.Contains(aHandle));
+  DebugFileIDs.Remove(aHandle);
 }
 
 void
