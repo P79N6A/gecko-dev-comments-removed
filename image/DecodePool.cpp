@@ -237,10 +237,6 @@ public:
         return work;
       }
 
-#ifdef MOZ_NUWA_PROCESS
-      nsThreadManager::get()->SetThreadIdle(nullptr);
-#endif 
-
       
       mMonitor.Wait();
     } while (true);
@@ -255,10 +251,6 @@ private:
     work.mType = Work::Type::DECODE;
     work.mDecoder = aQueue.ElementAt(0);
     aQueue.RemoveElementAt(0);
-
-#ifdef MOZ_NUWA_PROCESS
-    nsThreadManager::get()->SetThreadWorking();
-#endif 
 
     return work;
   }
