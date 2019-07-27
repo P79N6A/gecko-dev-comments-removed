@@ -211,6 +211,7 @@ let MozLoopServiceInternal = {
 
   set fxAOAuthProfile(aProfileData) {
     setJSONPref("loop.fxa_oauth.profile", aProfileData);
+    this.notifyStatusChanged(aProfileData ? "login" : undefined);
   },
 
   
@@ -247,8 +248,11 @@ let MozLoopServiceInternal = {
 
 
 
-  setError: function(errorType, error) {
-    let messageString, detailsString, detailsButtonLabelString;
+
+
+  setError: function(errorType, error, actionCallback = null) {
+    log.debug("setError", errorType, error);
+    let messageString, detailsString, detailsButtonLabelString, detailsButtonCallback;
     const NETWORK_ERRORS = [
       Cr.NS_ERROR_CONNECTION_REFUSED,
       Cr.NS_ERROR_NET_INTERRUPT,
@@ -275,6 +279,7 @@ let MozLoopServiceInternal = {
         messageString = "could_not_authenticate"; 
         detailsString = "password_changed_question";
         detailsButtonLabelString = "retry_button";
+        detailsButtonCallback = () => MozLoopService.logInToFxA();
       } else {
         messageString = "session_expired_error_description";
       }
@@ -294,13 +299,17 @@ let MozLoopServiceInternal = {
                                          this.localizedStrings[detailsButtonLabelString].textContent :
                                          null;
 
+    error.friendlyDetailsButtonCallback = actionCallback || detailsButtonCallback || null;
+
     gErrors.set(errorType, error);
     this.notifyStatusChanged();
   },
 
   clearError: function(errorType) {
-    gErrors.delete(errorType);
-    this.notifyStatusChanged();
+    if (gErrors.has(errorType)) {
+      gErrors.delete(errorType);
+      this.notifyStatusChanged();
+    }
   },
 
   get errors() {
@@ -580,7 +589,14 @@ let MozLoopServiceInternal = {
         }
 
         log.error("Failed to register with the loop server. Error: ", error);
-        this.setError("registration", error);
+        let deferred = Promise.defer();
+        deferred.promise.then(() => {
+          log.debug("registration retry succeeded");
+        },
+        error => {
+          log.debug("registration retry failed");
+        });
+        this.setError("registration", error, () => MozLoopService.delayedInitialize(deferred));
         throw error;
       }
     );
@@ -936,7 +952,6 @@ this.MozLoopService = {
     };
   },
 
-
   set initializeTimerFunc(value) {
     gInitializeTimerFunc = value;
   },
@@ -992,6 +1007,7 @@ this.MozLoopService = {
 
 
   delayedInitialize: Task.async(function*(deferredInitialization) {
+    log.debug("delayedInitialize");
     
     
     let completedPromise = deferredInitialization.promise.then(result => {
@@ -1001,7 +1017,7 @@ this.MozLoopService = {
     error => {
       
       if (typeof(error) == "object") {
-        MozLoopServiceInternal.setError("initialization", error);
+        MozLoopServiceInternal.setError("initialization", error, () => MozLoopService.delayedInitialize(Promise.defer()));
       }
     });
 
@@ -1259,7 +1275,6 @@ this.MozLoopService = {
       });
       client.fetchProfile().then(result => {
         MozLoopServiceInternal.fxAOAuthProfile = result;
-        MozLoopServiceInternal.notifyStatusChanged("login");
       }, error => {
         log.error("Failed to retrieve profile", error);
         this.setError("profile", error);
