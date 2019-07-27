@@ -18,6 +18,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/Effects.h"     
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/Maybe.h"              
 #include "mozilla/RefPtr.h"
@@ -454,6 +455,138 @@ protected:
   gfx::IntRect mClearRect;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename RenderCallbackType>
+void
+RenderWithAllMasks(Layer* aLayer, Compositor* aCompositor,
+                   const gfx::IntRect& aClipRect,
+                   RenderCallbackType aRenderCallback)
+{
+  Layer* firstMask = nullptr;
+  size_t maskLayerCount = 0;
+  size_t nextAncestorMaskLayer = 0;
+
+  size_t ancestorMaskLayerCount = aLayer->GetAncestorMaskLayerCount();
+  if (Layer* ownMask = aLayer->GetMaskLayer()) {
+    firstMask = ownMask;
+    maskLayerCount = ancestorMaskLayerCount + 1;
+    nextAncestorMaskLayer = 0;
+  } else if (ancestorMaskLayerCount > 0) {
+    firstMask = aLayer->GetAncestorMaskLayerAt(0);
+    maskLayerCount = ancestorMaskLayerCount;
+    nextAncestorMaskLayer = 1;
+  } else {
+    
+  }
+
+  bool firstMaskIs3D = false;
+  if (ContainerLayer* container = aLayer->AsContainerLayer()) {
+    firstMaskIs3D = !container->GetTransform().CanDraw2D();
+  }
+
+  if (maskLayerCount <= 1) {
+    
+    EffectChain effectChain(aLayer);
+    LayerManagerComposite::AutoAddMaskEffect
+      autoMaskEffect(firstMask, effectChain, firstMaskIs3D);
+    aLayer->AsLayerComposite()->AddBlendModeEffect(effectChain);
+    aRenderCallback(effectChain, gfx::Rect(aClipRect));
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  gfx::Rect visibleRect(aLayer->GetEffectiveVisibleRegion().GetBounds());
+  gfx::Matrix4x4 transform = aLayer->GetEffectiveTransform();
+  
+  gfx::IntRect surfaceRect =
+    RoundedOut(transform.TransformBounds(visibleRect)).Intersect(aClipRect);
+  if (surfaceRect.IsEmpty()) {
+    return;
+  }
+
+  RefPtr<CompositingRenderTarget> originalTarget =
+    aCompositor->GetCurrentRenderTarget();
+
+  RefPtr<CompositingRenderTarget> firstTarget =
+    aCompositor->CreateRenderTarget(surfaceRect, INIT_MODE_CLEAR);
+  if (!firstTarget) {
+    return;
+  }
+
+  
+  aCompositor->SetRenderTarget(firstTarget);
+  {
+    EffectChain firstEffectChain(aLayer);
+    LayerManagerComposite::AutoAddMaskEffect
+      firstMaskEffect(firstMask, firstEffectChain, firstMaskIs3D);
+    aRenderCallback(firstEffectChain, gfx::Rect(aClipRect - surfaceRect.TopLeft()));
+    
+    
+  }
+
+  
+  gfx::Rect intermediateClip(surfaceRect - surfaceRect.TopLeft());
+  RefPtr<CompositingRenderTarget> previousTarget = firstTarget;
+  for (size_t i = nextAncestorMaskLayer; i < ancestorMaskLayerCount - 1; i++) {
+    Layer* intermediateMask = aLayer->GetAncestorMaskLayerAt(i);
+    RefPtr<CompositingRenderTarget> intermediateTarget =
+      aCompositor->CreateRenderTarget(surfaceRect, INIT_MODE_CLEAR);
+    if (!intermediateTarget) {
+      break;
+    }
+    aCompositor->SetRenderTarget(intermediateTarget);
+    EffectChain intermediateEffectChain(aLayer);
+    LayerManagerComposite::AutoAddMaskEffect
+      intermediateMaskEffect(intermediateMask, intermediateEffectChain);
+    if (intermediateMaskEffect.Failed()) {
+      continue;
+    }
+    intermediateEffectChain.mPrimaryEffect = new EffectRenderTarget(previousTarget);
+    aCompositor->DrawQuad(gfx::Rect(surfaceRect), intermediateClip,
+                          intermediateEffectChain, 1.0, gfx::Matrix4x4());
+    previousTarget = intermediateTarget;
+  }
+
+  aCompositor->SetRenderTarget(originalTarget);
+
+  
+  EffectChain finalEffectChain(aLayer);
+  finalEffectChain.mPrimaryEffect = new EffectRenderTarget(previousTarget);
+  Layer* finalMask = aLayer->GetAncestorMaskLayerAt(ancestorMaskLayerCount - 1);
+
+  
+  
+  aLayer->AsLayerComposite()->AddBlendModeEffect(finalEffectChain);
+  LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(finalMask, finalEffectChain);
+  if (!autoMaskEffect.Failed()) {
+    aCompositor->DrawQuad(gfx::Rect(surfaceRect), gfx::Rect(aClipRect),
+                          finalEffectChain, 1.0, gfx::Matrix4x4());
+  }
+}
 
 } 
 } 
