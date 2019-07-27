@@ -45,7 +45,7 @@ class ArrayObject;
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseEmptyArray(JSContext *cx, JSObject *proto = nullptr,
+NewDenseEmptyArray(JSContext *cx, HandleObject proto = NullPtr(),
                    NewObjectKind newKind = GenericObject);
 
 
@@ -53,7 +53,7 @@ NewDenseEmptyArray(JSContext *cx, JSObject *proto = nullptr,
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseUnallocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
+NewDenseUnallocatedArray(ExclusiveContext *cx, uint32_t length, HandleObject proto = NullPtr(),
                          NewObjectKind newKind = GenericObject);
 
 
@@ -61,12 +61,12 @@ NewDenseUnallocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto 
 
 
 extern ArrayObject * JS_FASTCALL
-NewDensePartlyAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
+NewDensePartlyAllocatedArray(ExclusiveContext *cx, uint32_t length, HandleObject proto = NullPtr(),
                              NewObjectKind newKind = GenericObject);
 
 
 extern ArrayObject * JS_FASTCALL
-NewDenseFullyAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
+NewDenseFullyAllocatedArray(ExclusiveContext *cx, uint32_t length, HandleObject proto = NullPtr(),
                             NewObjectKind newKind = GenericObject);
 
 enum AllocatingBehaviour {
@@ -86,12 +86,12 @@ NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleObjectGroup group,
 
 extern ArrayObject *
 NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleArrayObject src,
-                    uint32_t elementOffset, JSObject *proto = nullptr);
+                    uint32_t elementOffset, HandleObject proto = NullPtr());
 
 
 extern ArrayObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, JSObject *proto = nullptr,
-                    NewObjectKind newKind = GenericObject);
+NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values,
+                    HandleObject proto = NullPtr(), NewObjectKind newKind = GenericObject);
 
 
 extern ArrayObject *

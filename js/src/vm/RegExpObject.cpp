@@ -831,7 +831,7 @@ RegExpCompartment::createMatchResultTemplateObject(JSContext *cx)
     MOZ_ASSERT(!matchResultTemplateObject_);
 
     
-    RootedArrayObject templateObject(cx, NewDenseUnallocatedArray(cx, 0, nullptr, TenuredObject));
+    RootedArrayObject templateObject(cx, NewDenseUnallocatedArray(cx, 0, NullPtr(), TenuredObject));
     if (!templateObject)
         return matchResultTemplateObject_; 
 
