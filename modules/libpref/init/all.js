@@ -276,10 +276,6 @@ pref("media.wakelock_timeout", 2000);
 
 pref("media.play-stand-alone", true);
 
-
-
-pref("media.block-play-until-visible", false);
-
 pref("media.hardware-video-decoding.enabled", true);
 
 pref("media.decoder.heuristic.dormant.enabled", true);
@@ -819,21 +815,15 @@ pref("toolkit.asyncshutdown.log", false);
 pref("devtools.errorconsole.deprecation_warnings", true);
 
 
-#ifdef MOZ_DEV_EDITION
-sticky_pref("devtools.chrome.enabled", true);
-#else
-sticky_pref("devtools.chrome.enabled", false);
-#endif
+pref("devtools.chrome.enabled", false);
 
 
 pref("devtools.debugger.log", false);
 pref("devtools.debugger.log.verbose", false);
 
-#ifdef MOZ_DEV_EDITION
-sticky_pref("devtools.debugger.remote-enabled", true);
-#else
-sticky_pref("devtools.debugger.remote-enabled", false);
-#endif
+
+pref("devtools.debugger.remote-enabled", false);
+
 pref("devtools.debugger.remote-port", 6000);
 
 pref("devtools.debugger.force-local", true);
@@ -906,9 +896,6 @@ pref("nglayout.debug.paint_flashing_chrome", false);
 
 
 pref("nglayout.debug.widget_update_flashing", false);
-
-
-pref("nglayout.debug.invalidation", false);
 
 
 
@@ -4028,7 +4015,7 @@ pref("image.cache.timeweight", 500);
 
 
 
-pref("image.decode-only-on-draw.enabled", false);
+pref("image.decode-only-on-draw.enabled", true);
 
 
 
