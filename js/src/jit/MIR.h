@@ -1285,6 +1285,40 @@ class MSimdValueX4 : public MQuaternaryInstruction
 };
 
 
+class MSimdSplatX4 : public MUnaryInstruction
+{
+  protected:
+    MSimdSplatX4(MIRType type, MDefinition *v)
+      : MUnaryInstruction(v)
+    {
+        JS_ASSERT(IsSimdType(type));
+        mozilla::DebugOnly<MIRType> scalarType = SimdTypeToScalarType(type);
+        JS_ASSERT(scalarType == v->type());
+
+        setMovable();
+        setResultType(type);
+    }
+
+  public:
+    INSTRUCTION_HEADER(SimdSplatX4)
+
+    static MSimdSplatX4 *New(TempAllocator &alloc, MIRType type, MDefinition *v)
+    {
+        return new(alloc) MSimdSplatX4(type, v);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+
+    bool congruentTo(const MDefinition *ins) const {
+        return congruentIfOperandsEqual(ins);
+    }
+
+    MDefinition *foldsTo(TempAllocator &alloc);
+};
+
+
 class MSimdConstant : public MNullaryInstruction
 {
     SimdConstant value_;

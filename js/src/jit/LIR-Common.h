@@ -148,6 +148,21 @@ class LSimdValueX4 : public LInstructionHelper<1, 4, 0>
 };
 
 
+class LSimdSplatX4 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(SimdSplatX4)
+    explicit LSimdSplatX4(const LAllocation &v)
+    {
+        setOperand(0, v);
+    }
+
+    MSimdSplatX4 *mir() const {
+        return mir_->toSimdSplatX4();
+    }
+};
+
+
 class LSimdExtractElementI : public LInstructionHelper<1, 1, 0>
 {
     SimdLane lane_;
