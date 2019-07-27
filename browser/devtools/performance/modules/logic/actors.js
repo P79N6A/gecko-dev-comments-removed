@@ -14,7 +14,7 @@ loader.lazyRequireGetter(this, "Poller",
 loader.lazyRequireGetter(this, "CompatUtils",
   "devtools/performance/compatibility");
 loader.lazyRequireGetter(this, "RecordingUtils",
-  "devtools/performance/recording-utils", true);
+  "devtools/performance/recording-utils");
 loader.lazyRequireGetter(this, "TimelineFront",
   "devtools/server/actors/timeline", true);
 loader.lazyRequireGetter(this, "MemoryFront",
@@ -208,10 +208,6 @@ ProfilerFrontFacade.prototype = {
 };
 
 
-PROFILER_ACTOR_METHODS.forEach(method => ProfilerFrontFacade.prototype[method] = CompatUtils.actorCompatibilityBridge(method));
-exports.ProfilerFront = ProfilerFrontFacade;
-
-
 
 
 function TimelineFrontFacade (target) {
@@ -257,10 +253,6 @@ TimelineFrontFacade.prototype = {
 
   toString: () => "[object TimelineFrontFacade]"
 };
-
-
-TIMELINE_ACTOR_METHODS.forEach(method => TimelineFrontFacade.prototype[method] = CompatUtils.actorCompatibilityBridge(method));
-exports.TimelineFront = TimelineFrontFacade;
 
 
 
@@ -378,5 +370,10 @@ MemoryFrontFacade.prototype = {
 };
 
 
-MEMORY_ACTOR_METHODS.forEach(method => MemoryFrontFacade.prototype[method] = CompatUtils.actorCompatibilityBridge(method));
+PROFILER_ACTOR_METHODS.forEach(m => ProfilerFrontFacade.prototype[m] = CompatUtils.actorCompatibilityBridge(m));
+TIMELINE_ACTOR_METHODS.forEach(m => TimelineFrontFacade.prototype[m] = CompatUtils.actorCompatibilityBridge(m));
+MEMORY_ACTOR_METHODS.forEach(m => MemoryFrontFacade.prototype[m] = CompatUtils.actorCompatibilityBridge(m));
+
+exports.ProfilerFront = ProfilerFrontFacade;
+exports.TimelineFront = TimelineFrontFacade;
 exports.MemoryFront = MemoryFrontFacade;

@@ -20,10 +20,6 @@ loader.lazyRequireGetter(this, "JITOptimizations",
 loader.lazyRequireGetter(this, "FrameUtils",
   "devtools/performance/frame-utils");
 
-exports.ThreadNode = ThreadNode;
-exports.FrameNode = FrameNode;
-exports.FrameNode.isContent = FrameUtils.isContent;
-
 
 
 
@@ -502,3 +498,7 @@ FrameNode.prototype = {
     return new JITOptimizations(this._optimizations, this._stringTable);
   }
 };
+
+exports.ThreadNode = ThreadNode;
+exports.FrameNode = FrameNode;
+exports.FrameNode.isContent = FrameUtils.isContent;

@@ -34,7 +34,6 @@ function MockMemoryFront () {
     ["getAllocations", createMockAllocations],
   ]);
 }
-exports.MockMemoryFront = MockMemoryFront;
 
 function MockTimelineFront () {
   MockFront.call(this, [
@@ -43,7 +42,6 @@ function MockTimelineFront () {
     ["stop", 0],
   ]);
 }
-exports.MockTimelineFront = MockTimelineFront;
 
 
 
@@ -84,7 +82,6 @@ function memoryActorSupported (target) {
   
   return !!target.getTrait("memoryActorAllocations") && target.hasActor("memory");
 }
-exports.memoryActorSupported = memoryActorSupported;
 
 
 
@@ -102,7 +99,6 @@ function timelineActorSupported(target) {
 
   return target.hasActor("timeline");
 }
-exports.timelineActorSupported = timelineActorSupported;
 
 
 
@@ -129,7 +125,6 @@ function getProfiler (target) {
   }
   return deferred.promise;
 }
-exports.getProfiler = getProfiler;
 
 
 
@@ -174,4 +169,10 @@ function actorCompatibilityBridge (method) {
     }
   };
 }
+
+exports.MockMemoryFront = MockMemoryFront;
+exports.MockTimelineFront = MockTimelineFront;
+exports.memoryActorSupported = memoryActorSupported;
+exports.timelineActorSupported = timelineActorSupported;
+exports.getProfiler = getProfiler;
 exports.actorCompatibilityBridge = actorCompatibilityBridge;

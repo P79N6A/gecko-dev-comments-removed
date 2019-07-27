@@ -28,7 +28,6 @@ function getMarkerLabel (marker) {
   
   return typeof blueprint.label === "function" ? blueprint.label(marker) : blueprint.label;
 }
-exports.getMarkerLabel = getMarkerLabel;
 
 
 
@@ -57,7 +56,6 @@ function getMarkerClassName (type) {
 
   return className;
 }
-exports.getMarkerClassName = getMarkerClassName;
 
 
 
@@ -92,12 +90,11 @@ function getMarkerFields (marker) {
     return fields;
   }, []);
 }
-exports.getMarkerFields = getMarkerFields;
 
 
 
 
-const DOM = exports.DOM = {
+const DOM = {
   
 
 
@@ -272,3 +269,8 @@ const DOM = exports.DOM = {
     return container;
   }
 };
+
+exports.getMarkerLabel = getMarkerLabel;
+exports.getMarkerClassName = getMarkerClassName;
+exports.getMarkerFields = getMarkerFields;
+exports.DOM = DOM;

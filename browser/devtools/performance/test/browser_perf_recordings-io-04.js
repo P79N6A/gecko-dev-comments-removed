@@ -5,7 +5,7 @@
 
 
 
-let { RecordingUtils } = devtools.require("devtools/performance/recording-utils");
+let RecordingUtils = devtools.require("devtools/performance/recording-utils");
 
 let TICKS_DATA = (function () {
   let ticks = [];

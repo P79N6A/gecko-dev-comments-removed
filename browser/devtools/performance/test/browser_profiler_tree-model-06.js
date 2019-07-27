@@ -6,7 +6,7 @@
 
 
 
-const { RecordingUtils } = devtools.require("devtools/performance/recording-utils");
+const RecordingUtils = devtools.require("devtools/performance/recording-utils");
 
 let gUniqueStacks = new RecordingUtils.UniqueStacks();
 

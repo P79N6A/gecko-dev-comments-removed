@@ -557,7 +557,7 @@ function getFrameNodePath(root, path) {
 
 
 function synthesizeProfileForTest(samples) {
-  const { RecordingUtils } = devtools.require("devtools/performance/recording-utils");
+  const RecordingUtils = devtools.require("devtools/performance/recording-utils");
 
   samples.unshift({
     time: 0,

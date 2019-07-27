@@ -100,8 +100,6 @@ MarkerDetails.prototype = {
   },
 };
 
-exports.MarkerDetails = MarkerDetails;
-
 
 
 
@@ -123,3 +121,5 @@ function findActionFromEvent (target, container) {
   }
   return null;
 }
+
+exports.MarkerDetails = MarkerDetails;

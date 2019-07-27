@@ -42,7 +42,7 @@ const gInflatedFrameStore = new WeakMap();
 
 
 
-exports.parseLocation = function parseLocation(location, fallbackLine, fallbackColumn) {
+function parseLocation(location, fallbackLine, fallbackColumn) {
   
 
   let line, column, url;
@@ -190,7 +190,6 @@ function isContent({ location, category }) {
   
   return isContentScheme(location, 0);
 }
-exports.isContent = isContent;
 
 
 
@@ -199,7 +198,7 @@ exports.isContent = isContent;
 
 
 
-exports.getInflatedFrameCache = function getInflatedFrameCache(frameTable) {
+function getInflatedFrameCache(frameTable) {
   let inflatedCache = gInflatedFrameStore.get(frameTable);
   if (inflatedCache !== undefined) {
     return inflatedCache;
@@ -220,7 +219,7 @@ exports.getInflatedFrameCache = function getInflatedFrameCache(frameTable) {
 
 
 
-exports.getOrAddInflatedFrame = function getOrAddInflatedFrame(cache, index, frameTable, stringTable, allocationsTable) {
+function getOrAddInflatedFrame(cache, index, frameTable, stringTable, allocationsTable) {
   let inflatedFrame = cache[index];
   if (inflatedFrame === null) {
     inflatedFrame = cache[index] = new InflatedFrame(index, frameTable, stringTable, allocationsTable);
@@ -291,8 +290,6 @@ InflatedFrame.prototype.getFrameKey = function getFrameKey(options) {
   
   return "";
 };
-
-exports.InflatedFrame = InflatedFrame;
 
 
 
@@ -420,3 +417,9 @@ function isChromeScheme(location, i) {
 function isNumeric(c) {
   return c >= CHAR_CODE_0 && c <= CHAR_CODE_9;
 }
+
+exports.parseLocation = parseLocation;
+exports.isContent = isContent;
+exports.getInflatedFrameCache = getInflatedFrameCache;
+exports.getOrAddInflatedFrame = getOrAddInflatedFrame;
+exports.InflatedFrame = InflatedFrame;

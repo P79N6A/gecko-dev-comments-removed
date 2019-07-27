@@ -6,7 +6,7 @@
 
 
 
-const { RecordingUtils } = devtools.require("devtools/performance/recording-utils");
+const RecordingUtils = devtools.require("devtools/performance/recording-utils");
 
 Services.prefs.setBoolPref(INVERT_PREF, false);
 
