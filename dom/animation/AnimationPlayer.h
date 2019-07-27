@@ -13,6 +13,7 @@
 #include "mozilla/dom/Animation.h" 
 #include "mozilla/dom/AnimationPlayerBinding.h" 
 #include "mozilla/dom/AnimationTimeline.h" 
+#include "mozilla/dom/Promise.h" 
 #include "nsCSSProperty.h" 
 
 
@@ -66,6 +67,7 @@ public:
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
   Nullable<TimeDuration> GetCurrentTime() const;
   AnimationPlayState PlayState() const;
+  Promise* GetReady(ErrorResult& aRv);
   virtual void Play();
   virtual void Pause();
   bool IsRunningOnCompositor() const { return mIsRunningOnCompositor; }
@@ -141,6 +143,12 @@ protected:
   
   Nullable<TimeDuration> mStartTime; 
   Nullable<TimeDuration> mHoldTime;  
+
+  
+  
+  
+  nsRefPtr<Promise> mReady;
+
   bool mIsRunningOnCompositor;
   
   
