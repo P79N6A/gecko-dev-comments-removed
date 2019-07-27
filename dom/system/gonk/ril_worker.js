@@ -2788,8 +2788,10 @@ RilObject.prototype = {
     if (options.address) {
       GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_ADDRESS |
                                  COMPREHENSIONTLV_FLAG_CR);
+      let addressLength = options.address[0] == '+' ? options.address.length - 1
+                                                    : options.address.length;
       ComprehensionTlvHelper.writeLength(
-        Math.ceil(options.address.length/2) + 1 
+        Math.ceil(addressLength / 2) + 1 
       );
       this.context.ICCPDUHelper.writeDiallingNumber(options.address);
     }
@@ -11379,18 +11381,28 @@ ComprehensionTlvHelperObject.prototype = {
     let GsmPDUHelper = this.context.GsmPDUHelper;
 
     let cause = -1;
-    for (let errorNo in RIL_ERROR_TO_GECKO_ERROR) {
-      if (geckoError == RIL_ERROR_TO_GECKO_ERROR[errorNo]) {
+    for (let errorNo in RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR) {
+      if (geckoError == RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[errorNo]) {
         cause = errorNo;
         break;
       }
     }
+
+    
+    
+    
+    if (cause > 127) {
+      return;
+    }
+
     cause = (cause == -1) ? ERROR_SUCCESS : cause;
 
     GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_CAUSE |
                                COMPREHENSIONTLV_FLAG_CR);
     GsmPDUHelper.writeHexOctet(2);  
 
+    
+    
     
     GsmPDUHelper.writeHexOctet(0x60);
 
@@ -11442,7 +11454,7 @@ ComprehensionTlvHelperObject.prototype = {
     
     GsmPDUHelper.writeSwappedNibbleBCDNum(Math.floor(seconds / 60 / 60));
     GsmPDUHelper.writeSwappedNibbleBCDNum(Math.floor(seconds / 60) % 60);
-    GsmPDUHelper.writeSwappedNibbleBCDNum(seconds % 60);
+    GsmPDUHelper.writeSwappedNibbleBCDNum(Math.floor(seconds) % 60);
   },
 
   writeTextStringTlv: function(text, coding) {
