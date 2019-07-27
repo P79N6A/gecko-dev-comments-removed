@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_BackgroundHangMonitor_h
 #define mozilla_BackgroundHangMonitor_h
 

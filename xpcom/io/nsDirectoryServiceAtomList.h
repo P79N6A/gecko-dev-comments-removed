@@ -3,6 +3,7 @@
 
 
 
+
 DIR_ATOM(sCurrentProcess, NS_XPCOM_CURRENT_PROCESS_DIR)
 DIR_ATOM(sGRE_Directory, NS_GRE_DIR)
 DIR_ATOM(sOS_DriveDirectory, NS_OS_DRIVE_DIR)

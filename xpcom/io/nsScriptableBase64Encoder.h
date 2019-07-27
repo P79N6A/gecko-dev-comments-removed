@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsScriptableBase64Encoder_h__
 #define nsScriptableBase64Encoder_h__
 

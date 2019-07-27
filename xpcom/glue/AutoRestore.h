@@ -5,6 +5,7 @@
 
 
 
+
 #ifndef mozilla_AutoRestore_h_
 #define mozilla_AutoRestore_h_
 

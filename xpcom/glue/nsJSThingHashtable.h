@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsJSThingHashtable_h__
 #define nsJSThingHashtable_h__
 

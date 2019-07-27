@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "nsSecurityConsoleMessage.h"
 
 NS_IMPL_ISUPPORTS(nsSecurityConsoleMessage, nsISecurityConsoleMessage)

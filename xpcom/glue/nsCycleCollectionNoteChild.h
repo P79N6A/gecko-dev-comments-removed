@@ -6,6 +6,7 @@
 
 
 
+
 #ifndef nsCycleCollectionNoteChild_h__
 #define nsCycleCollectionNoteChild_h__
 

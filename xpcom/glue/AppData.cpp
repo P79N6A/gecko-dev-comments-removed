@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/AppData.h"
 #include "nsXULAppAPI.h"
 #include "nsINIParser.h"

@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsIClassInfoImpl_h__
 #define nsIClassInfoImpl_h__
 

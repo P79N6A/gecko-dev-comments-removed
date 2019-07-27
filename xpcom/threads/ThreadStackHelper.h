@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_ThreadStackHelper_h
 #define mozilla_ThreadStackHelper_h
 
