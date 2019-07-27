@@ -9644,7 +9644,8 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
         if (nsCSSProps::IsShorthand(aPropID)) {
           
           
-          CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aPropID) {
+          CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aPropID,
+                                               nsCSSProps::eEnabledForAllContent) {
             nsCSSValueTokenStream* tokenStream = new nsCSSValueTokenStream;
             tokenStream->mPropertyID = *p;
             tokenStream->mShorthandPropertyID = aPropID;
@@ -14743,7 +14744,11 @@ CSSParserImpl::ParseAll()
     return false;
   }
 
-  CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, eCSSProperty_all) {
+  
+  
+  
+  CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, eCSSProperty_all,
+                                       nsCSSProps::eEnabledForAllContent) {
     AppendValue(*p, value);
   }
   return true;
