@@ -2854,6 +2854,15 @@ nsHttpChannel::CheckPartial(nsICacheEntry* aEntry, int64_t *aSize, int64_t *aCon
     return NS_OK;
 }
 
+void
+nsHttpChannel::UntieValidationRequest()
+{
+    
+    mRequestHead.ClearHeader(nsHttp::If_Modified_Since);
+    mRequestHead.ClearHeader(nsHttp::If_None_Match);
+    mRequestHead.ClearHeader(nsHttp::ETag);
+}
+
 NS_IMETHODIMP
 nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appCache,
                                  uint32_t* aResult)
@@ -3205,10 +3214,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
             
             
             if (mDidReval) {
-                
-                mRequestHead.ClearHeader(nsHttp::If_Modified_Since);
-                mRequestHead.ClearHeader(nsHttp::If_None_Match);
-                mRequestHead.ClearHeader(nsHttp::ETag);
+                UntieValidationRequest();
                 mDidReval = false;
             }
             mCachedContentIsValid = false;
@@ -3299,12 +3305,14 @@ nsHttpChannel::OnCacheEntryAvailableInternal(nsICacheEntry *entry,
         return NS_ERROR_DOCUMENT_NOT_CACHED;
     }
 
-    if (NS_FAILED(rv))
-      return rv;
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
 
     
-    if (AwaitingCacheCallbacks())
-      return NS_OK;
+    if (AwaitingCacheCallbacks()) {
+        return NS_OK;
+    }
 
     return ContinueConnect();
 }
@@ -3320,6 +3328,14 @@ nsHttpChannel::OnNormalCacheEntryAvailable(nsICacheEntry *aEntry,
         
         
         mCachedContentIsValid = false;
+
+        
+        
+        if (mDidReval) {
+            LOG(("  Removing conditional request headers"));
+            UntieValidationRequest();
+            mDidReval = false;
+        }
 
         if (mLoadFlags & LOAD_ONLY_FROM_CACHE) {
             
