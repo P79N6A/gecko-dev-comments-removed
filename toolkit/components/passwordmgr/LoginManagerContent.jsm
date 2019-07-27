@@ -267,7 +267,6 @@ var LoginManagerContent = {
     let autofillForm = gAutofillForms && !PrivateBrowsingUtils.isContentWindowPrivate(doc.defaultView);
 
     this._fillForm(form, autofillForm, false, false, loginsFound);
-    Services.obs.notifyObservers(form, "passwordmgr-processed-form", null);
   },
 
   
@@ -311,7 +310,6 @@ var LoginManagerContent = {
       this._asyncFindLogins(acForm, { showMasterPassword: false })
           .then(({ form, loginsFound }) => {
               this._fillForm(form, true, true, true, loginsFound);
-              Services.obs.notifyObservers(form, "passwordmgr-processed-form", null);
           })
           .then(null, Cu.reportError);
     } else {
@@ -610,172 +608,176 @@ var LoginManagerContent = {
       autofillResultHist.add(result);
     }
 
-    
-    if (foundLogins.length == 0) {
+    try {
       
-      recordAutofillResult(AUTOFILL_RESULT.NO_SAVED_LOGINS);
-      return;
-    }
-
-    
-    
-    
-    
-    var [usernameField, passwordField, ignored] =
-        this._getFormFields(form, false);
-
-    
-    if (passwordField == null) {
-      log("not filling form, no password field found");
-      recordAutofillResult(AUTOFILL_RESULT.NO_PASSWORD_FIELD);
-      return;
-    }
-
-    
-    if (passwordField.disabled || passwordField.readOnly) {
-      log("not filling form, password field disabled or read-only");
-      recordAutofillResult(AUTOFILL_RESULT.PASSWORD_DISABLED_READONLY);
-      return;
-    }
-
-    
-    
-    
-    
-    var maxUsernameLen = Number.MAX_VALUE;
-    var maxPasswordLen = Number.MAX_VALUE;
-
-    
-    if (usernameField && usernameField.maxLength >= 0)
-      maxUsernameLen = usernameField.maxLength;
-    if (passwordField.maxLength >= 0)
-      maxPasswordLen = passwordField.maxLength;
-
-    var logins = foundLogins.filter(function (l) {
-      var fit = (l.username.length <= maxUsernameLen &&
-                 l.password.length <= maxPasswordLen);
-      if (!fit)
-        log("Ignored", l.username, "login: won't fit");
-
-      return fit;
-    }, this);
-
-    if (logins.length == 0) {
-      log("form not filled, none of the logins fit in the field");
-      recordAutofillResult(AUTOFILL_RESULT.NO_LOGINS_FIT);
-      return;
-    }
-
-    
-    
-    
-    if (usernameField)
-      this._formFillService.markAsLoginManagerField(usernameField);
-
-    
-    if (passwordField.value && !clobberPassword) {
-      log("form not filled, the password field was already filled");
-      recordAutofillResult(AUTOFILL_RESULT.EXISTING_PASSWORD);
-      return;
-    }
-
-    
-    
-    
-    
-    var isFormDisabled = false;
-    if (!ignoreAutocomplete &&
-        (this._isAutocompleteDisabled(form) ||
-         this._isAutocompleteDisabled(usernameField) ||
-         this._isAutocompleteDisabled(passwordField))) {
-
-      isFormDisabled = true;
-      log("form not filled, has autocomplete=off");
-    }
-
-    
-    var selectedLogin;
-    if (usernameField && (usernameField.value || usernameField.disabled || usernameField.readOnly)) {
-      
-      
-      var username = usernameField.value.toLowerCase();
-
-      let matchingLogins = logins.filter(function(l)
-                                         l.username.toLowerCase() == username);
-      if (matchingLogins.length == 0) {
-        log("Password not filled. None of the stored logins match the username already present.");
-        recordAutofillResult(AUTOFILL_RESULT.EXISTING_USERNAME);
+      if (foundLogins.length == 0) {
+        
+        recordAutofillResult(AUTOFILL_RESULT.NO_SAVED_LOGINS);
         return;
       }
 
       
-      for (let l of matchingLogins) {
-        if (l.username == usernameField.value) {
-          selectedLogin = l;
-        }
-      }
       
-      if (!selectedLogin) {
+      
+      
+      var [usernameField, passwordField, ignored] =
+          this._getFormFields(form, false);
+
+      
+      if (passwordField == null) {
+        log("not filling form, no password field found");
+        recordAutofillResult(AUTOFILL_RESULT.NO_PASSWORD_FIELD);
+        return;
+      }
+
+      
+      if (passwordField.disabled || passwordField.readOnly) {
+        log("not filling form, password field disabled or read-only");
+        recordAutofillResult(AUTOFILL_RESULT.PASSWORD_DISABLED_READONLY);
+        return;
+      }
+
+      
+      
+      
+      
+      var maxUsernameLen = Number.MAX_VALUE;
+      var maxPasswordLen = Number.MAX_VALUE;
+
+      
+      if (usernameField && usernameField.maxLength >= 0)
+        maxUsernameLen = usernameField.maxLength;
+      if (passwordField.maxLength >= 0)
+        maxPasswordLen = passwordField.maxLength;
+
+      var logins = foundLogins.filter(function (l) {
+        var fit = (l.username.length <= maxUsernameLen &&
+                   l.password.length <= maxPasswordLen);
+        if (!fit)
+          log("Ignored", l.username, "login: won't fit");
+
+        return fit;
+      }, this);
+
+      if (logins.length == 0) {
+        log("form not filled, none of the logins fit in the field");
+        recordAutofillResult(AUTOFILL_RESULT.NO_LOGINS_FIT);
+        return;
+      }
+
+      
+      
+      
+      if (usernameField)
+        this._formFillService.markAsLoginManagerField(usernameField);
+
+      
+      if (passwordField.value && !clobberPassword) {
+        log("form not filled, the password field was already filled");
+        recordAutofillResult(AUTOFILL_RESULT.EXISTING_PASSWORD);
+        return;
+      }
+
+      
+      
+      
+      
+      var isFormDisabled = false;
+      if (!ignoreAutocomplete &&
+          (this._isAutocompleteDisabled(form) ||
+           this._isAutocompleteDisabled(usernameField) ||
+           this._isAutocompleteDisabled(passwordField))) {
+
+        isFormDisabled = true;
+        log("form not filled, has autocomplete=off");
+      }
+
+      
+      var selectedLogin;
+      if (usernameField && (usernameField.value || usernameField.disabled || usernameField.readOnly)) {
+        
+        
+        var username = usernameField.value.toLowerCase();
+
+        let matchingLogins = logins.filter(function(l)
+                                           l.username.toLowerCase() == username);
+        if (matchingLogins.length == 0) {
+          log("Password not filled. None of the stored logins match the username already present.");
+          recordAutofillResult(AUTOFILL_RESULT.EXISTING_USERNAME);
+          return;
+        }
+
+        
+        for (let l of matchingLogins) {
+          if (l.username == usernameField.value) {
+            selectedLogin = l;
+          }
+        }
+        
+        if (!selectedLogin) {
+          selectedLogin = matchingLogins[0];
+        }
+      } else if (logins.length == 1) {
+        selectedLogin = logins[0];
+      } else {
+        
+        
+        
+        
+        let matchingLogins;
+        if (usernameField)
+          matchingLogins = logins.filter(function(l) l.username);
+        else
+          matchingLogins = logins.filter(function(l) !l.username);
+
+        if (matchingLogins.length != 1) {
+          log("Multiple logins for form, so not filling any.");
+          recordAutofillResult(AUTOFILL_RESULT.MULTIPLE_LOGINS);
+          return;
+        }
+
         selectedLogin = matchingLogins[0];
       }
-    } else if (logins.length == 1) {
-      selectedLogin = logins[0];
-    } else {
-      
-      
-      
-      
-      let matchingLogins;
-      if (usernameField)
-        matchingLogins = logins.filter(function(l) l.username);
-      else
-        matchingLogins = logins.filter(function(l) !l.username);
 
-      if (matchingLogins.length != 1) {
-        log("Multiple logins for form, so not filling any.");
-        recordAutofillResult(AUTOFILL_RESULT.MULTIPLE_LOGINS);
+      
+
+      if (!autofillForm) {
+        log("autofillForms=false but form can be filled; notified observers");
+        recordAutofillResult(AUTOFILL_RESULT.NO_AUTOFILL_FORMS);
         return;
       }
 
-      selectedLogin = matchingLogins[0];
-    }
-
-    
-
-    if (!autofillForm) {
-      log("autofillForms=false but form can be filled; notified observers");
-      recordAutofillResult(AUTOFILL_RESULT.NO_AUTOFILL_FORMS);
-      return;
-    }
-
-    if (isFormDisabled) {
-      log("autocomplete=off but form can be filled; notified observers");
-      recordAutofillResult(AUTOFILL_RESULT.AUTOCOMPLETE_OFF);
-      return;
-    }
-
-    
-
-    if (usernameField) {
-      
-      let disabledOrReadOnly = usernameField.disabled || usernameField.readOnly;
-
-      let userNameDiffers = selectedLogin.username != usernameField.value;
-      
-      
-      
-      let userEnteredDifferentCase = userTriggered && userNameDiffers &&
-             usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase();
-
-      if (!disabledOrReadOnly && !userEnteredDifferentCase && userNameDiffers) {
-        usernameField.setUserInput(selectedLogin.username);
+      if (isFormDisabled) {
+        log("autocomplete=off but form can be filled; notified observers");
+        recordAutofillResult(AUTOFILL_RESULT.AUTOCOMPLETE_OFF);
+        return;
       }
-    }
-    if (passwordField.value != selectedLogin.password) {
-      passwordField.setUserInput(selectedLogin.password);
-    }
 
-    recordAutofillResult(AUTOFILL_RESULT.FILLED);
+      
+
+      if (usernameField) {
+      
+        let disabledOrReadOnly = usernameField.disabled || usernameField.readOnly;
+
+        let userNameDiffers = selectedLogin.username != usernameField.value;
+        
+        
+        
+        let userEnteredDifferentCase = userTriggered && userNameDiffers &&
+               usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase();
+
+        if (!disabledOrReadOnly && !userEnteredDifferentCase && userNameDiffers) {
+          usernameField.setUserInput(selectedLogin.username);
+        }
+      }
+      if (passwordField.value != selectedLogin.password) {
+        passwordField.setUserInput(selectedLogin.password);
+      }
+
+      recordAutofillResult(AUTOFILL_RESULT.FILLED);
+    } finally {
+      Services.obs.notifyObservers(form, "passwordmgr-processed-form", null);
+    }
   },
 
 };
