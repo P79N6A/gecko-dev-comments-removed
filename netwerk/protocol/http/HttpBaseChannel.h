@@ -240,7 +240,9 @@ protected:
   
   void ReleaseListeners();
 
-  nsresult ApplyContentConversions();
+  NS_IMETHOD DoApplyContentConversions(nsIStreamListener *aNextListener,
+                                     nsIStreamListener **aNewNextListener,
+                                     nsISupports *aCtxt);
 
   void AddCookiesToRequest();
   virtual nsresult SetupReplacementChannel(nsIURI *,
