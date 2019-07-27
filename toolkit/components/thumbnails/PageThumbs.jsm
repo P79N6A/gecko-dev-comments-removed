@@ -380,69 +380,8 @@ this.PageThumbs = {
 
 
 
-  _determineCropSize: function PageThumbs_determineCropSize(aWindow, aCanvas) {
-    let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                       .getInterface(Ci.nsIDOMWindowUtils);
-    let sbWidth = {}, sbHeight = {};
-
-    try {
-      utils.getScrollbarSize(false, sbWidth, sbHeight);
-    } catch (e) {
-      
-      Cu.reportError("Unable to get scrollbar size in _determineCropSize.");
-      sbWidth.value = sbHeight.value = 0;
-    }
-
-    
-    
-    let sw = aWindow.innerWidth - sbWidth.value;
-    let sh = aWindow.innerHeight - sbHeight.value;
-
-    let {width: thumbnailWidth, height: thumbnailHeight} = aCanvas;
-    let scale = Math.min(Math.max(thumbnailWidth / sw, thumbnailHeight / sh), 1);
-    let scaledWidth = sw * scale;
-    let scaledHeight = sh * scale;
-
-    if (scaledHeight > thumbnailHeight)
-      sh -= Math.floor(Math.abs(scaledHeight - thumbnailHeight) * scale);
-
-    if (scaledWidth > thumbnailWidth)
-      sw -= Math.floor(Math.abs(scaledWidth - thumbnailWidth) * scale);
-
-    return [sw, sh, scale];
-  },
-
-  
-
-
-
-
-
   createCanvas: function PageThumbs_createCanvas(aWindow) {
-    let doc = (aWindow || Services.appShell.hiddenDOMWindow).document;
-    let canvas = doc.createElementNS(HTML_NAMESPACE, "canvas");
-    canvas.mozOpaque = true;
-    canvas.mozImageSmoothingEnabled = true;
-    let [thumbnailWidth, thumbnailHeight] = this._getThumbnailSize();
-    canvas.width = thumbnailWidth;
-    canvas.height = thumbnailHeight;
-    return canvas;
-  },
-
-  
-
-
-
-  _getThumbnailSize: function PageThumbs_getThumbnailSize() {
-    if (!this._thumbnailWidth || !this._thumbnailHeight) {
-      let screenManager = Cc["@mozilla.org/gfx/screenmanager;1"]
-                            .getService(Ci.nsIScreenManager);
-      let left = {}, top = {}, width = {}, height = {};
-      screenManager.primaryScreen.GetRectDisplayPix(left, top, width, height);
-      this._thumbnailWidth = Math.round(width.value / 3);
-      this._thumbnailHeight = Math.round(height.value / 3);
-    }
-    return [this._thumbnailWidth, this._thumbnailHeight];
+    return PageThumbUtils.createCanvas(aWindow);
   },
 
   
