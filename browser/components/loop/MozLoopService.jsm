@@ -167,7 +167,9 @@ let MozLoopServiceInternal = {
 
     let credentials;
     if (sessionToken) {
-      credentials = deriveHawkCredentials(sessionToken, "sessionToken", 2 * 32);
+      
+      credentials = deriveHawkCredentials(sessionToken, "sessionToken",
+                                          2 * 32, true);
     }
 
     return this._hawkClient.request(path, method, credentials, payloadObj);
