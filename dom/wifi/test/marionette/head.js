@@ -4,11 +4,16 @@
 let Promise = SpecialPowers.Cu.import('resource://gre/modules/Promise.jsm').Promise;
 
 const STOCK_HOSTAPD_NAME = 'goldfish-hostapd';
-const HOSTAPD_CONFIG_PATH = '/data/misc/wifi/hostapd/';
+const HOSTAPD_CONFIG_PATH = '/data/misc/wifi/remote-hostapd/';
+
+const SETTINGS_RIL_DATA_ENABLED = 'ril.data.enabled';
+const SETTINGS_TETHERING_WIFI_ENABLED = 'tethering.wifi.enabled';
+const SETTINGS_TETHERING_WIFI_IP = 'tethering.wifi.ip';
+const SETTINGS_TETHERING_WIFI_SECURITY = 'tethering.wifi.security.type';
 
 const HOSTAPD_COMMON_CONFIG = {
   driver: 'test',
-  ctrl_interface: '/data/misc/wifi/hostapd',
+  ctrl_interface: '/data/misc/wifi/remote-hostapd',
   test_socket: 'DIR:/data/misc/wifi/sockets',
   hw_mode: 'b',
   channel: '2',
@@ -37,6 +42,29 @@ let gTestSuite = (function() {
   let wifiManager;
   let wifiOrigEnabled;
   let pendingEmulatorShellCount = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function isOrThrow(value1, value2, message) {
+    is(value1, value2, message);
+    if (value1 !== value2) {
+      throw message;
+    }
+  }
 
   
 
@@ -110,6 +138,34 @@ let gTestSuite = (function() {
 
 
 
+  function waitForMobileConnectionEventOnce(aEventName, aServiceId) {
+    aServiceId = aServiceId || 0;
+
+    let deferred = Promise.defer();
+    let mobileconnection = navigator.mozMobileConnections[aServiceId];
+
+    mobileconnection.addEventListener(aEventName, function onevent(aEvent) {
+      mobileconnection.removeEventListener(aEventName, onevent);
+
+      ok(true, "Mobile connection event '" + aEventName + "' got.");
+      deferred.resolve(aEvent);
+    });
+
+    return deferred.promise;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
 
   function getProcessDetail(aProcessName) {
     return runEmulatorShellSafe(['ps'])
@@ -151,7 +207,9 @@ let gTestSuite = (function() {
     let deferred = Promise.defer();
 
     let permissions = [{ 'type': 'wifi-manage', 'allow': 1, 'context': window.document },
-                       { 'type': 'settings-write', 'allow': 1, 'context': window.document }];
+                       { 'type': 'settings-write', 'allow': 1, 'context': window.document },
+                       { 'type': 'settings-read', 'allow': 1, 'context': window.document },
+                       { 'type': 'mobileconnection', 'allow': 1, 'context': window.document }];
 
     SpecialPowers.pushPermissions(permissions, function() {
       deferred.resolve();
@@ -224,6 +282,71 @@ let gTestSuite = (function() {
       waitForWifiManagerEventOnce(aEnabled ? 'enabled' : 'disabled'),
       setSettings({ 'wifi.enabled': aEnabled }),
     ]);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function waitForRilDataConnected(aConnected, aServiceId) {
+    aServiceId = aServiceId || 0;
+    return waitForMobileConnectionEventOnce('datachange', aServiceId)
+      .then(function () {
+        let mobileconnection = navigator.mozMobileConnections[aServiceId];
+        if (mobileconnection.data.connected !== aConnected) {
+          return waitForRilDataConnected(aConnected, aServiceId);
+        }
+      });
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function requestTetheringEnabled(aEnabled) {
+    let RETRY_INTERVAL_MS = 1000;
+    let retryCnt = 20;
+
+    return setSettings1(SETTINGS_TETHERING_WIFI_ENABLED, aEnabled)
+      .then(function waitForRoutingVerified() {
+        return verifyTetheringRouting(aEnabled)
+          .then(null, function onreject(aReason) {
+
+            log('verifyTetheringRouting rejected due to ' + aReason +
+                ' (' + retryCnt + ')');
+
+            if (!retryCnt--) {
+              throw aReason;
+            }
+
+            return waitForTimeout(RETRY_INTERVAL_MS).then(waitForRoutingVerified);
+          });
+      });
   }
 
   
@@ -458,6 +581,61 @@ let gTestSuite = (function() {
         ok(aAllowError, "setSettings(" + JSON.stringify(aSettings) + ")");
       });
   }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function setSettings1(aKey, aValue, aAllowError) {
+    let settings = {};
+    settings[aKey] = aValue;
+    return setSettings(settings, aAllowError);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function getSettings(aKey, aAllowError) {
+    let request =
+      navigator.mozSettings.createLock().get(aKey);
+    return wrapDomRequestAsPromise(request)
+      .then(function resolve(aEvent) {
+        ok(true, "getSettings(" + aKey + ") - success");
+        return aEvent.target.result[aKey];
+      }, function reject(aEvent) {
+        ok(aAllowError, "getSettings(" + aKey + ") - error");
+      });
+  }
+
 
   
 
@@ -773,6 +951,159 @@ let gTestSuite = (function() {
 
 
 
+
+
+
+
+  function verifyTetheringRouting(aEnabled) {
+    let netcfgResult = {};
+    let ipRouteResult = {};
+
+    
+    
+    function exeAndParseNetcfg() {
+      return runEmulatorShellSafe(['netcfg'])
+        .then(function (aLines) {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          aLines.forEach(function (aLine) {
+            let tokens = aLine.split(/\s+/);
+            if (tokens.length < 5) {
+              return;
+            }
+            let ifname = tokens[0];
+            let ip = (tokens[2].split('/'))[0];
+            netcfgResult[ifname] = { ip: ip };
+          });
+        });
+    }
+
+    
+    
+    function exeAndParseIpRoute() {
+      return runEmulatorShellSafe(['ip', 'route'])
+        .then(function (aLines) {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+
+          
+          aLines.forEach(function (aLine) {
+            let tokens = aLine.trim().split(/\s+/);
+            let srcIndex = tokens.indexOf('src');
+            if (srcIndex < 0 || srcIndex + 1 >= tokens.length) {
+              return;
+            }
+            let ifname = tokens[2];
+            let src = tokens[srcIndex + 1];
+            ipRouteResult[ifname] = { src: src, default: false };
+          });
+
+          
+          aLines.forEach(function (aLine) {
+            let tokens = aLine.split(/\s+/);
+            if (tokens.length < 2) {
+              return;
+            }
+            if ('default' === tokens[0]) {
+              let ifnameIndex = tokens.indexOf('dev');
+              if (ifnameIndex < 0 || ifnameIndex + 1 >= tokens.length) {
+                return;
+              }
+              let ifname = tokens[ifnameIndex + 1];
+              if (ipRouteResult[ifname]) {
+                ipRouteResult[ifname].default = true;
+              }
+              return;
+            }
+          });
+
+        });
+
+    }
+
+    
+    
+    
+    function verifyIptables() {
+      return runEmulatorShellSafe(['iptables', '-t', 'nat', '-L', 'POSTROUTING'])
+        .then(function(aLines) {
+          
+          
+          
+          
+          
+          
+          
+          
+          let found = (function find_MASQUERADE() {
+            
+            for (let i = 2; i < aLines.length; i++) {
+              if (-1 !== aLines[i].indexOf('MASQUERADE')) {
+                return true;
+              }
+            }
+            return false;
+          })();
+
+          if ((aEnabled && !found) || (!aEnabled && found)) {
+            throw 'MASQUERADE' + (found ? '' : ' not') + ' found while tethering is ' +
+                  (aEnabled ? 'enabled' : 'disabled');
+          }
+        });
+    }
+
+    function verifyDefaultRouteAndIp(aExpectedWifiTetheringIp) {
+      log(JSON.stringify(ipRouteResult));
+      log(JSON.stringify(netcfgResult));
+
+      if (aEnabled) {
+        isOrThrow(ipRouteResult['rmnet0'].src, netcfgResult['rmnet0'].ip, 'rmnet0.ip');
+        isOrThrow(ipRouteResult['rmnet0'].default, true, 'rmnet0.default');
+
+        isOrThrow(ipRouteResult['wlan0'].src, netcfgResult['wlan0'].ip, 'wlan0.ip');
+        isOrThrow(ipRouteResult['wlan0'].src, aExpectedWifiTetheringIp, 'expected ip');
+        isOrThrow(ipRouteResult['wlan0'].default, false, 'wlan0.default');
+      }
+    }
+
+    return verifyIptables()
+      .then(exeAndParseNetcfg)
+      .then(exeAndParseIpRoute)
+      .then(() => getSettings(SETTINGS_TETHERING_WIFI_IP))
+      .then(ip => verifyDefaultRouteAndIp(ip));
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   function cleanUp() {
     waitFor(function() {
       return ensureWifiEnabled(true)
@@ -829,6 +1160,8 @@ let gTestSuite = (function() {
   suite.waitForConnected = waitForConnected;
   suite.forgetNetwork = forgetNetwork;
   suite.waitForTimeout = waitForTimeout;
+  suite.waitForRilDataConnected = waitForRilDataConnected;
+  suite.requestTetheringEnabled = requestTetheringEnabled;
 
   
 
@@ -875,6 +1208,57 @@ let gTestSuite = (function() {
       return stopStockHostapd()
         .then(aTestCaseChain)
         .then(startStockHostapd);
+    });
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  suite.doTestTethering = function(aTestCaseChain) {
+
+    function verifyInitialState() {
+      return getSettings(SETTINGS_RIL_DATA_ENABLED)
+        .then(enabled => isOrThrow(enabled, false, SETTINGS_RIL_DATA_ENABLED))
+        .then(() => getSettings(SETTINGS_TETHERING_WIFI_ENABLED))
+        .then(enabled => isOrThrow(enabled, false, SETTINGS_TETHERING_WIFI_ENABLED));
+    }
+
+    function initTetheringTestEnvironment() {
+      
+      return Promise.all([waitForRilDataConnected(true),
+                          setSettings1(SETTINGS_RIL_DATA_ENABLED, true)])
+        .then(setSettings1(SETTINGS_TETHERING_WIFI_SECURITY, 'open'));
+    }
+
+    function restoreToInitialState() {
+      return setSettings1(SETTINGS_RIL_DATA_ENABLED, false)
+        .then(() => getSettings(SETTINGS_TETHERING_WIFI_ENABLED))
+        .then(enabled => is(enabled, false, 'Tethering should be turned off.'));
+    }
+
+    return suite.doTest(function() {
+      return verifyInitialState()
+        .then(initTetheringTestEnvironment)
+        .then(aTestCaseChain)
+        .then(restoreToInitialState, function onreject(aReason) {
+          return restoreToInitialState()
+            .then(() => { throw aReason; }); 
+        });
     });
   };
 
