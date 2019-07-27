@@ -42,9 +42,21 @@ let WebAudioEditorController = {
 
 
   initialize: Task.async(function* () {
+    
+    
+    this.queue = new Queue();
+
     telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
+    this._onStartContext = this._onStartContext.bind(this);
+
+    this._onCreateNode = this.queue.addHandler(this._onCreateNode.bind(this));
+    this._onConnectNode = this.queue.addHandler(this._onConnectNode.bind(this));
+    this._onConnectParam = this.queue.addHandler(this._onConnectParam.bind(this));
+    this._onDisconnectNode = this.queue.addHandler(this._onDisconnectNode.bind(this));
+    this._onChangeParam = this.queue.addHandler(this._onChangeParam.bind(this));
+    this._onDestroyNode = this.queue.addHandler(this._onDestroyNode.bind(this));
 
     gTarget.on("will-navigate", this._onTabNavigated);
     gTarget.on("navigate", this._onTabNavigated);
@@ -75,7 +87,7 @@ let WebAudioEditorController = {
   
 
 
-  destroy: function() {
+  destroy: Task.async(function*() {
     telemetry.toolClosed("webaudioeditor");
     gTarget.off("will-navigate", this._onTabNavigated);
     gTarget.off("navigate", this._onTabNavigated);
@@ -87,7 +99,9 @@ let WebAudioEditorController = {
     gFront.off("change-param", this._onChangeParam);
     gFront.off("destroy-node", this._onDestroyNode);
     gDevTools.off("pref-changed", this._onThemeChange);
-  },
+    yield this.queue.clear();
+    this.queue = null;
+  }),
 
   
 
@@ -101,22 +115,11 @@ let WebAudioEditorController = {
   },
 
   
-  
-  
-  getNode: function* (nodeActor) {
+
+
+  getNode: function (nodeActor) {
     let id = nodeActor.actorID;
     let node = gAudioNodes.get(id);
-
-    if (!node) {
-      let { resolve, promise } = defer();
-      gAudioNodes.on("add", function createNodeListener (createdNode) {
-        if (createdNode.id === id) {
-          gAudioNodes.off("add", createNodeListener);
-          resolve(createdNode);
-        }
-      });
-      node = yield promise;
-    }
     return node;
   },
 
@@ -135,13 +138,16 @@ let WebAudioEditorController = {
   _onTabNavigated: Task.async(function* (event, {isFrameSwitching}) {
     switch (event) {
       case "will-navigate": {
+        yield this.queue.clear();
+        gAudioNodes.reset();
+
         
         if (!isFrameSwitching) {
           yield gFront.setup({ reload: false });
         }
 
         
-        this.reset();
+        yield this.reset();
 
         
         
@@ -155,9 +161,6 @@ let WebAudioEditorController = {
           $("#reload-notice").hidden = true;
           $("#waiting-notice").hidden = false;
         }
-
-        
-        gAudioNodes.reset();
 
         window.emit(EVENTS.UI_RESET);
         break;
@@ -200,34 +203,34 @@ let WebAudioEditorController = {
   
 
 
-  _onConnectNode: Task.async(function* ({ source: sourceActor, dest: destActor }) {
-    let source = yield WebAudioEditorController.getNode(sourceActor);
-    let dest = yield WebAudioEditorController.getNode(destActor);
+  _onConnectNode: function ({ source: sourceActor, dest: destActor }) {
+    let source = this.getNode(sourceActor);
+    let dest = this.getNode(destActor);
     source.connect(dest);
-  }),
+  },
 
   
 
 
-  _onConnectParam: Task.async(function* ({ source: sourceActor, dest: destActor, param }) {
-    let source = yield WebAudioEditorController.getNode(sourceActor);
-    let dest = yield WebAudioEditorController.getNode(destActor);
+  _onConnectParam: function ({ source: sourceActor, dest: destActor, param }) {
+    let source = this.getNode(sourceActor);
+    let dest = this.getNode(destActor);
     source.connect(dest, param);
-  }),
+  },
 
   
 
 
-  _onDisconnectNode: Task.async(function* (nodeActor) {
-    let node = yield WebAudioEditorController.getNode(nodeActor);
+  _onDisconnectNode: function (nodeActor) {
+    let node = this.getNode(nodeActor);
     node.disconnect();
-  }),
+  },
 
   
 
 
-  _onChangeParam: Task.async(function* ({ actor, param, value }) {
-    let node = yield WebAudioEditorController.getNode(actor);
+  _onChangeParam: function ({ actor, param, value }) {
+    let node = this.getNode(actor);
     window.emit(EVENTS.CHANGE_PARAM, node, param, value);
-  })
+  }
 };

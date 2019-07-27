@@ -53,6 +53,7 @@ add_task(function*() {
   reload(target);
 
   yield Promise.all([navigating, started]);
+  let rendered = waitForGraphRendered(panel.panelWin, 3, 2);
 
   is($("#reload-notice").hidden, true,
     "The 'reload this page' notice should be hidden after context found after reload.");
@@ -60,6 +61,8 @@ add_task(function*() {
     "The 'waiting for an audio context' notice should be hidden after context found after reload.");
   is($("#content").hidden, false,
     "The tool's content should reappear without closing and reopening the toolbox.");
+
+  yield rendered;
 
   yield teardown(target);
 });
