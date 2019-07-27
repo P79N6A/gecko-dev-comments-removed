@@ -93,7 +93,7 @@ public class BookmarksListView extends HomeListView
             
             final String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
 
-            Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL);
+            Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM);
 
             
             getOnUrlOpenListener().onUrlOpen(url, EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB));
