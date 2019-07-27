@@ -32,3 +32,9 @@ function MapForEach(callbackfn, thisArg = undefined) {
         callFunction(callbackfn, thisArg, entry[1], entry[0], M);
     }
 }
+
+
+function MapSpecies() {
+    
+    return this;
+}

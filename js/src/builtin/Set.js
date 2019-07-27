@@ -32,3 +32,9 @@ function SetForEach(callbackfn, thisArg = undefined) {
         callFunction(callbackfn, thisArg, value, value, S);
     }
 }
+
+
+function SetSpecies() {
+    
+    return this;
+}
