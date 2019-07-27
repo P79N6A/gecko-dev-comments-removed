@@ -138,7 +138,13 @@ EnsureMinCDMVersion(mozIGeckoMediaPluginService* aGMPService,
   if (NS_FAILED(aGMPService->GetPluginVersionForAPI(NS_LITERAL_CSTRING(GMP_API_DECRYPTOR),
                                                     &tags,
                                                     &hasPlugin,
-                                                    versionStr))) {
+                                                    versionStr)) ||
+      
+      (aCheckForV6 && !hasPlugin &&
+       NS_FAILED(aGMPService->GetPluginVersionForAPI(NS_LITERAL_CSTRING(GMP_API_DECRYPTOR_COMPAT),
+                                                     &tags,
+                                                     &hasPlugin,
+                                                     versionStr)))) {
     return MediaKeySystemStatus::Error;
   }
 
@@ -254,15 +260,25 @@ IsPlayableWithGMP(mozIGeckoMediaPluginService* aGMPS,
     return false;
   }
   return (!hasAAC ||
-          !HaveGMPFor(aGMPS,
-                      NS_ConvertUTF16toUTF8(aKeySystem),
-                      NS_LITERAL_CSTRING(GMP_API_DECRYPTOR),
-                      NS_LITERAL_CSTRING("aac"))) &&
+          !(HaveGMPFor(aGMPS,
+                       NS_ConvertUTF16toUTF8(aKeySystem),
+                       NS_LITERAL_CSTRING(GMP_API_DECRYPTOR),
+                       NS_LITERAL_CSTRING("aac")) ||
+            
+            HaveGMPFor(aGMPS,
+                       NS_ConvertUTF16toUTF8(aKeySystem),
+                       NS_LITERAL_CSTRING(GMP_API_DECRYPTOR_COMPAT),
+                       NS_LITERAL_CSTRING("aac")))) &&
          (!hasH264 ||
-          HaveGMPFor(aGMPS,
-                     NS_ConvertUTF16toUTF8(aKeySystem),
-                     NS_LITERAL_CSTRING(GMP_API_DECRYPTOR),
-                     NS_LITERAL_CSTRING("h264")));
+          !(HaveGMPFor(aGMPS,
+                       NS_ConvertUTF16toUTF8(aKeySystem),
+                       NS_LITERAL_CSTRING(GMP_API_DECRYPTOR),
+                       NS_LITERAL_CSTRING("h264")) ||
+            
+            HaveGMPFor(aGMPS,
+                       NS_ConvertUTF16toUTF8(aKeySystem),
+                       NS_LITERAL_CSTRING(GMP_API_DECRYPTOR_COMPAT),
+                       NS_LITERAL_CSTRING("h264"))));
 #else
   return false;
 #endif

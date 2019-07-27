@@ -241,6 +241,9 @@ enum GMPSessionType {
 #define GMP_API_DECRYPTOR "eme-decrypt-v7"
 
 
+#define GMP_API_DECRYPTOR_COMPAT "eme-decrypt-v6"
+
+
 
 
 
