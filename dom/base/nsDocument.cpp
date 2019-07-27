@@ -4713,7 +4713,23 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
   
   
   
+  dom::VisibilityState oldState = mVisibilityState;
   mVisibilityState = GetVisibilityState();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (oldState != mVisibilityState) {
+    EnumerateActivityObservers(NotifyActivityChanged, nullptr);
+  }
 
   
   if (mTemplateContentsOwner && mTemplateContentsOwner != this) {
