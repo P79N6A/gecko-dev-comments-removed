@@ -142,6 +142,8 @@ public:
 
   ID3D11Device* GetDevice() { return mDevice; }
 
+  ID3D11DeviceContext* GetDC() { return mContext; }
+
 private:
   
   void EnsureSize();
