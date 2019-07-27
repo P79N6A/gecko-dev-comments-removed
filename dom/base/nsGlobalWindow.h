@@ -971,7 +971,7 @@ public:
   int32_t RequestAnimationFrame(mozilla::dom::FrameRequestCallback& aCallback,
                                 mozilla::ErrorResult& aError);
   void CancelAnimationFrame(int32_t aHandle, mozilla::ErrorResult& aError);
-  nsPerformance* GetPerformance(mozilla::ErrorResult& aError);
+  nsPerformance* GetPerformance();
 #ifdef MOZ_WEBSPEECH
   mozilla::dom::SpeechSynthesis*
     GetSpeechSynthesis(mozilla::ErrorResult& aError);
@@ -1397,6 +1397,8 @@ protected:
 
   inline int32_t DOMMinTimeoutValue() const;
 
+  
+  void ClearDocumentDependentSlots(JSContext* aCx);
 
   
   already_AddRefed<mozilla::dom::StorageEvent>
