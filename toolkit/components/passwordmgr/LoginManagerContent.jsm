@@ -164,7 +164,7 @@ var LoginManagerContent = {
     return deferred.promise;
   },
 
-  receiveMessage: function (msg) {
+  receiveMessage: function (msg, window) {
     
     
     function jsLoginsToXPCOM(logins) {
@@ -177,6 +177,16 @@ var LoginManagerContent = {
                        login.passwordField);
         return formLogin;
       });
+    }
+
+    if (msg.name == "RemoteLogins:fillForm") {
+      this.fillForm({
+        topDocument: window.document,
+        loginFormOrigin: msg.data.loginFormOrigin,
+        loginsFound: jsLoginsToXPCOM(msg.data.logins),
+        recipes: msg.data.recipes,
+      });
+      return;
     }
 
     let request = this._takeRequest(msg);
@@ -253,35 +263,145 @@ var LoginManagerContent = {
                              messageData);
   },
 
+  onDOMFormHasPassword(event, window) {
+    if (!event.isTrusted) {
+      return;
+    }
+
+    let form = event.target;
+
+    
+    this.stateForDocument(form.ownerDocument).loginForm = form;
+
+    this._updateLoginFormPresence(window);
+
+    let messageManager = messageManagerFromWindow(window);
+    messageManager.sendAsyncMessage("LoginStats:LoginEncountered");
+
+    if (!gEnabled) {
+      return;
+    }
+
+    log("onDOMFormHasPassword for", form.ownerDocument.documentURI);
+    this._getLoginDataFromParent(form, { showMasterPassword: true })
+        .then(this.loginsFound.bind(this))
+        .then(null, Cu.reportError);
+  },
+
+  onPageShow(event, window) {
+    this._updateLoginFormPresence(window);
+  },
+
+  
+
+
+
+  loginFormStateByDocument: new WeakMap(),
+
+  
+
+
+
+  stateForDocument(document) {
+    let loginFormState = this.loginFormStateByDocument.get(document);
+    if (!loginFormState) {
+      loginFormState = {};
+      this.loginFormStateByDocument.set(document, loginFormState);
+    }
+    return loginFormState;
+  },
+
   
 
 
 
 
-  onFormPassword: function (event) {
-    if (!event.isTrusted)
+  _updateLoginFormPresence(topWindow) {
+    
+    
+    
+    let loginFormOrigin =
+        LoginUtils._getPasswordOrigin(topWindow.document.documentURI);
+
+    
+    
+    let getFirstLoginForm = thisWindow => {
+      let loginForm = this.stateForDocument(thisWindow.document).loginForm;
+      if (loginForm) {
+        return loginForm;
+      }
+      for (let i = 0; i < thisWindow.frames.length; i++) {
+        let frame = thisWindow.frames[i];
+        if (LoginUtils._getPasswordOrigin(frame.document.documentURI) !=
+            loginFormOrigin) {
+          continue;
+        }
+        let loginForm = getFirstLoginForm(frame);
+        if (loginForm) {
+          return loginForm;
+        }
+      }
+      return null;
+    };
+
+    
+    let topState = this.stateForDocument(topWindow.document);
+    topState.loginFormForFill = getFirstLoginForm(topWindow);
+
+    
+    let messageManager = messageManagerFromWindow(topWindow);
+    messageManager.sendAsyncMessage("RemoteLogins:updateLoginFormPresence", {
+      loginFormOrigin,
+      loginFormPresent: !!topState.loginFormForFill,
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  fillForm({ topDocument, loginFormOrigin, loginsFound, recipes }) {
+    let topState = this.stateForDocument(topDocument);
+    if (!topState.loginFormForFill) {
+      log("fillForm: There is no login form anymore. The form may have been",
+          "removed or the document may have changed.");
       return;
-    let form = event.target;
-
-    let doc = form.ownerDocument;
-    let win = doc.defaultView;
-    let messageManager = messageManagerFromWindow(win);
-    messageManager.sendAsyncMessage("LoginStats:LoginEncountered");
-
-    if (!gEnabled)
+    }
+    if (LoginUtils._getPasswordOrigin(topDocument.documentURI) !=
+        loginFormOrigin) {
+      log("fillForm: The requested origin doesn't match the one form the",
+          "document. This may mean we navigated to a document from a different",
+          "site before we had a chance to indicate this change in the user",
+          "interface.");
       return;
-
-    log("onFormPassword for", form.ownerDocument.documentURI);
-    this._getLoginDataFromParent(form, { showMasterPassword: true })
-        .then(this.loginsFound.bind(this))
-        .then(null, Cu.reportError);
+    }
+    this._fillForm(topState.loginFormForFill, true, true, true, true,
+                   loginsFound, recipes);
   },
 
   loginsFound: function({ form, loginsFound, recipes }) {
     let doc = form.ownerDocument;
     let autofillForm = gAutofillForms && !PrivateBrowsingUtils.isContentWindowPrivate(doc.defaultView);
 
-    this._fillForm(form, autofillForm, false, false, loginsFound, recipes);
+    this._fillForm(form, autofillForm, false, false, false, loginsFound, recipes);
   },
 
   
@@ -324,7 +444,7 @@ var LoginManagerContent = {
     if (usernameField == acInputField && passwordField) {
       this._getLoginDataFromParent(acForm, { showMasterPassword: false })
           .then(({ form, loginsFound, recipes }) => {
-            this._fillForm(form, true, true, true, loginsFound, recipes);
+            this._fillForm(form, true, false, true, true, loginsFound, recipes);
           })
           .then(null, Cu.reportError);
     } else {
@@ -633,7 +753,9 @@ var LoginManagerContent = {
 
 
 
-  _fillForm : function (form, autofillForm, clobberPassword,
+
+
+  _fillForm : function (form, autofillForm, clobberUsername, clobberPassword,
                         userTriggered, foundLogins, recipes) {
     let ignoreAutocomplete = true;
     const AUTOFILL_RESULT = {
@@ -737,7 +859,9 @@ var LoginManagerContent = {
 
       
       var selectedLogin;
-      if (usernameField && (usernameField.value || usernameField.disabled || usernameField.readOnly)) {
+      if (!clobberUsername && usernameField && (usernameField.value ||
+                                                usernameField.disabled ||
+                                                usernameField.readOnly)) {
         
         
         var username = usernameField.value.toLowerCase();

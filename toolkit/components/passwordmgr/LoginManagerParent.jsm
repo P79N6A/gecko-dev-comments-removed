@@ -15,6 +15,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "UserAutoCompleteResult",
                                   "resource://gre/modules/LoginManagerContent.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AutoCompleteE10S",
                                   "resource://gre/modules/AutoCompleteE10S.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
+                                  "resource://gre/modules/DeferredTask.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "LoginDoorhangers",
+                                  "resource://gre/modules/LoginDoorhangers.jsm");
 
 this.EXPORTED_SYMBOLS = [ "LoginManagerParent", "PasswordsMetricsProvider" ];
 
@@ -168,6 +172,7 @@ var LoginManagerParent = {
     mm.addMessageListener("RemoteLogins:findLogins", this);
     mm.addMessageListener("RemoteLogins:onFormSubmit", this);
     mm.addMessageListener("RemoteLogins:autoCompleteLogins", this);
+    mm.addMessageListener("RemoteLogins:updateLoginFormPresence", this);
     mm.addMessageListener("LoginStats:LoginEncountered", this);
     mm.addMessageListener("LoginStats:LoginFillSuccessful", this);
     Services.obs.addObserver(this, "LoginStats:NewSavedPassword", false);
@@ -216,6 +221,11 @@ var LoginManagerParent = {
         break;
       }
 
+      case "RemoteLogins:updateLoginFormPresence": {
+        this.updateLoginFormPresence(msg.target, data);
+        break;
+      }
+
       case "RemoteLogins:autoCompleteLogins": {
         this.doAutocompleteSearch(data, msg.target);
         break;
@@ -240,6 +250,33 @@ var LoginManagerParent = {
       }
     }
   },
+
+  
+
+
+
+  fillForm: Task.async(function* ({ browser, loginFormOrigin, login }) {
+    let recipes = [];
+    if (loginFormOrigin) {
+      let formHost;
+      try {
+        formHost = (new URL(loginFormOrigin)).host;
+        let recipeManager = yield this.recipeParentPromise;
+        recipes = recipeManager.getRecipesForHost(formHost);
+      } catch (ex) {
+        
+      }
+    }
+
+    
+    
+    let jsLogins = JSON.parse(JSON.stringify([login]));
+    browser.messageManager.sendAsyncMessage("RemoteLogins:fillForm", {
+      loginFormOrigin,
+      logins: jsLogins,
+      recipes,
+    });
+  }),
 
   
 
@@ -281,14 +318,14 @@ var LoginManagerParent = {
     
     
     if (Services.logins.uiBusy) {
-      log("deferring onFormPassword for", formOrigin);
+      log("deferring sendLoginDataToChild for", formOrigin);
       let self = this;
       let observer = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                                Ci.nsISupportsWeakReference]),
 
         observe: function (subject, topic, data) {
-          log("Got deferred onFormPassword notification:", topic);
+          log("Got deferred sendLoginDataToChild notification:", topic);
           
           Services.obs.removeObserver(this, "passwordmgr-crypto-login");
           Services.obs.removeObserver(this, "passwordmgr-crypto-loginCanceled");
@@ -507,5 +544,101 @@ var LoginManagerParent = {
     
     prompter = getPrompter();
     prompter.promptToSavePassword(formLogin);
-  }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  loginFormStateByBrowser: new WeakMap(),
+
+  
+
+
+
+  stateForBrowser(browser) {
+    let loginFormState = this.loginFormStateByBrowser.get(browser);
+    if (!loginFormState) {
+      loginFormState = {};
+      this.loginFormStateByBrowser.set(browser, loginFormState);
+    }
+    return loginFormState;
+  },
+
+  
+
+
+
+
+  updateLoginFormPresence(browser, { loginFormOrigin, loginFormPresent }) {
+    const ANCHOR_DELAY_MS = 200;
+
+    let state = this.stateForBrowser(browser);
+
+    
+    
+    state.loginFormOrigin = loginFormOrigin;
+    state.loginFormPresent = loginFormPresent;
+
+    
+    if (!state.anchorDeferredTask) {
+      state.anchorDeferredTask = new DeferredTask(
+        () => this.updateLoginAnchor(browser),
+        ANCHOR_DELAY_MS
+      );
+    }
+    state.anchorDeferredTask.arm();
+  },
+  updateLoginAnchor: Task.async(function* (browser) {
+    
+    
+    
+    let { loginFormOrigin, loginFormPresent } = this.stateForBrowser(browser);
+
+    yield Services.logins.initializationPromise;
+
+    
+    let hasLogins = loginFormOrigin &&
+                    Services.logins.countLogins(loginFormOrigin, "", null) > 0;
+
+    
+    
+    if (!Services.prefs.getBoolPref("signon.ui.experimental")) {
+      return;
+    }
+
+    let showLoginAnchor = loginFormPresent || hasLogins;
+
+    let fillDoorhanger = LoginDoorhangers.FillDoorhanger.find({ browser });
+    if (fillDoorhanger) {
+      if (!showLoginAnchor) {
+        fillDoorhanger.remove();
+        return;
+      }
+      
+      yield fillDoorhanger.promiseHidden;
+      fillDoorhanger.loginFormPresent = loginFormPresent;
+      fillDoorhanger.loginFormOrigin = loginFormOrigin;
+      fillDoorhanger.filterString = loginFormOrigin;
+      return;
+    }
+    if (showLoginAnchor) {
+      fillDoorhanger = new LoginDoorhangers.FillDoorhanger({
+        browser,
+        loginFormPresent,
+        loginFormOrigin,
+        filterString: loginFormOrigin,
+      });
+    }
+  }),
 };

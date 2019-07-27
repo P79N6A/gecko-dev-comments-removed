@@ -133,6 +133,12 @@ pref("dom.workers.maxPerDomain", 20);
 pref("dom.workers.sharedWorkers.enabled", true);
 
 
+
+
+
+pref("dom.workers.websocket.enabled", true);
+
+
 pref("dom.serviceWorkers.enabled", false);
 
 
@@ -3806,6 +3812,7 @@ pref("signon.rememberSignons",              true);
 pref("signon.autofillForms",                true);
 pref("signon.autologin.proxy",              false);
 pref("signon.storeWhenAutocompleteOff",     true);
+pref("signon.ui.experimental",              false);
 pref("signon.debug",                        false);
 
 

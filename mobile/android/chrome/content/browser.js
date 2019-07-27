@@ -4223,7 +4223,8 @@ Tab.prototype = {
       }
 
       case "DOMFormHasPassword": {
-        LoginManagerContent.onFormPassword(aEvent);
+        LoginManagerContent.onDOMFormHasPassword(aEvent,
+                                                 this.browser.contentWindow);
         break;
       }
 
@@ -4365,6 +4366,8 @@ Tab.prototype = {
       }
 
       case "pageshow": {
+        LoginManagerContent.onPageShow(aEvent, this.browser.contentWindow);
+
         
         if (aEvent.originalTarget.defaultView != this.browser.contentWindow)
           return;
