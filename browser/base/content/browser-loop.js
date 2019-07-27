@@ -49,6 +49,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       
       Services.obs.addObserver(this, "loop-status-changed", false);
 
+      
+      if (Services.prefs.getBoolPref("loop.throttled")) {
+        this.toolbarButton.node.hidden = true;
+        MozLoopService.checkSoftStart(this.toolbarButton.node);
+        return;
+      }
 
       MozLoopService.initialize();
       this.updateToolbarState();
