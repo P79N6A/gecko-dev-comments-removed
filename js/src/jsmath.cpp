@@ -742,6 +742,9 @@ random_generateSeed()
 
 
     int fd = open("/dev/urandom", O_RDONLY);
+    if (fd < 0) {
+        perror("FITZGEN: error opening /dev/urandom: ");
+    }
     MOZ_ASSERT(fd >= 0, "Can't open /dev/urandom");
     if (fd >= 0) {
         (void)read(fd, seed.u8, mozilla::ArrayLength(seed.u8));
