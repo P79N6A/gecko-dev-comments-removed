@@ -254,6 +254,17 @@ uint32_t GeckoChildProcessHost::GetSupportedArchitecturesForProcessType(GeckoPro
   return base::GetCurrentProcessArchitecture();
 }
 
+
+
+uint32_t GeckoChildProcessHost::sNextUniqueID = 1;
+
+
+uint32_t
+GeckoChildProcessHost::GetUniqueID()
+{
+  return sNextUniqueID++;
+}
+
 void
 GeckoChildProcessHost::PrepareLaunch()
 {

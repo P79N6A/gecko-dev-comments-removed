@@ -47,6 +47,8 @@ public:
 
   static uint32_t GetSupportedArchitecturesForProcessType(GeckoProcessType type);
 
+  static uint32_t GetUniqueID();
+
   
   
   
@@ -196,6 +198,8 @@ private:
   
   
   std::queue<IPC::Message> mQueue;
+
+  static uint32_t sNextUniqueID;
 };
 
 #ifdef MOZ_NUWA_PROCESS
