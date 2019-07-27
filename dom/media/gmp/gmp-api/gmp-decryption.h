@@ -79,9 +79,11 @@ enum GMPSessionMessageType {
 enum GMPMediaKeyStatus {
   kGMPUsable = 0,
   kGMPExpired = 1,
-  kGMPOutputNotAllowed = 2,
-  kGMPUnknown = 3,
-  kGMPMediaKeyStatusInvalid = 4 
+  kGMPOutputDownscaled = 2,
+  kGMPOutputNotAllowed = 3,
+  kGMPInternalError = 4,
+  kGMPUnknown = 5,
+  kGMPMediaKeyStatusInvalid = 6 
 };
 
 
@@ -222,7 +224,7 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 
 };
 
-#define GMP_API_DECRYPTOR "eme-decrypt-v5"
+#define GMP_API_DECRYPTOR "eme-decrypt-v6"
 
 
 
