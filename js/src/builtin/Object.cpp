@@ -11,6 +11,7 @@
 
 #include "jscntxt.h"
 
+#include "builtin/Eval.h"
 #include "frontend/BytecodeCompiler.h"
 #include "vm/StringBuffer.h"
 
@@ -321,7 +322,7 @@ JS_BasicObjectToString(JSContext *cx, HandleObject obj)
 {
     
     
-    if (obj->is<JSObject>())
+    if (obj->is<PlainObject>())
         return cx->names().objectObject;
     if (obj->is<StringObject>())
         return cx->names().objectString;
@@ -429,7 +430,7 @@ DefineAccessor(JSContext *cx, unsigned argc, Value *vp)
     if (!ValueToId<CanGC>(cx, args[0], &id))
         return false;
 
-    RootedObject descObj(cx, NewBuiltinClassInstance(cx, &JSObject::class_));
+    RootedObject descObj(cx, NewBuiltinClassInstance<PlainObject>(cx));
     if (!descObj)
         return false;
 
@@ -812,7 +813,7 @@ js::obj_create(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-    RootedObject obj(cx, NewObjectWithGivenProto(cx, &JSObject::class_, proto, &args.callee().global()));
+    RootedObject obj(cx, NewObjectWithGivenProto<PlainObject>(cx, proto, &args.callee().global()));
     if (!obj)
         return false;
 
@@ -1183,8 +1184,7 @@ ProtoSetter(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-
-const JSFunctionSpec js::object_methods[] = {
+static const JSFunctionSpec object_methods[] = {
 #if JS_HAS_TOSOURCE
     JS_FN(js_toSource_str,             obj_toSource,                0,0),
 #endif
@@ -1207,14 +1207,14 @@ const JSFunctionSpec js::object_methods[] = {
     JS_FS_END
 };
 
-const JSPropertySpec js::object_properties[] = {
+static const JSPropertySpec object_properties[] = {
 #if JS_HAS_OBJ_PROTO_PROP
     JS_PSGS("__proto__", ProtoGetter, ProtoSetter, 0),
 #endif
     JS_PS_END
 };
 
-const JSFunctionSpec js::object_static_methods[] = {
+static const JSFunctionSpec object_static_methods[] = {
     JS_FN("getPrototypeOf",            obj_getPrototypeOf,          1,0),
     JS_FN("setPrototypeOf",            obj_setPrototypeOf,          2,0),
     JS_FN("getOwnPropertyDescriptor",  obj_getOwnPropertyDescriptor,2,0),
@@ -1239,8 +1239,134 @@ const JSFunctionSpec js::object_static_methods[] = {
 
 
 
-const JSFunctionSpec js::object_static_selfhosted_methods[] = {
+static const JSFunctionSpec object_static_selfhosted_methods[] = {
     JS_SELF_HOSTED_FN("assign",        "ObjectStaticAssign",        2,0),
     JS_FS_END
 };
 
+static JSObject *
+CreateObjectConstructor(JSContext *cx, JSProtoKey key)
+{
+    Rooted<GlobalObject*> self(cx, cx->global());
+    if (!GlobalObject::ensureConstructor(cx, self, JSProto_Function))
+        return nullptr;
+
+    RootedObject functionProto(cx, &self->getPrototype(JSProto_Function).toObject());
+
+    
+    RootedObject ctor(cx, NewObjectWithGivenProto(cx, &JSFunction::class_, functionProto,
+                                                  self, SingletonObject));
+    if (!ctor)
+        return nullptr;
+    return NewFunction(cx, ctor, obj_construct, 1, JSFunction::NATIVE_CTOR, self,
+                       HandlePropertyName(cx->names().Object));
+}
+
+static JSObject *
+CreateObjectPrototype(JSContext *cx, JSProtoKey key)
+{
+    Rooted<GlobalObject*> self(cx, cx->global());
+
+    MOZ_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
+    MOZ_ASSERT(self->isNative());
+
+    
+
+
+
+    RootedPlainObject objectProto(cx, NewObjectWithGivenProto<PlainObject>(cx, nullptr,
+                                                                           self, SingletonObject));
+    if (!objectProto)
+        return nullptr;
+
+    
+
+
+
+
+    if (!JSObject::setNewTypeUnknown(cx, &PlainObject::class_, objectProto))
+        return nullptr;
+
+    return objectProto;
+}
+
+static bool
+FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject proto)
+{
+    Rooted<GlobalObject*> self(cx, cx->global());
+
+    
+    RootedId evalId(cx, NameToId(cx->names().eval));
+    JSObject *evalobj = DefineFunction(cx, self, evalId, IndirectEval, 1, JSFUN_STUB_GSOPS);
+    if (!evalobj)
+        return false;
+    self->setOriginalEval(evalobj);
+
+    RootedObject intrinsicsHolder(cx);
+    bool isSelfHostingGlobal = cx->runtime()->isSelfHostingGlobal(self);
+    if (isSelfHostingGlobal) {
+        intrinsicsHolder = self;
+    } else {
+        intrinsicsHolder = NewObjectWithGivenProto<PlainObject>(cx, proto, self, TenuredObject);
+        if (!intrinsicsHolder)
+            return false;
+    }
+    self->setIntrinsicsHolder(intrinsicsHolder);
+    
+    RootedValue global(cx, ObjectValue(*self));
+    if (!JSObject::defineProperty(cx, intrinsicsHolder, cx->names().global,
+                                  global, JS_PropertyStub, JS_StrictPropertyStub,
+                                  JSPROP_PERMANENT | JSPROP_READONLY))
+    {
+        return false;
+    }
+
+    
+
+
+
+    if (!isSelfHostingGlobal) {
+        if (!JS_DefineFunctions(cx, ctor, object_static_selfhosted_methods))
+            return false;
+    }
+
+    
+
+
+
+
+
+
+
+    Rooted<TaggedProto> tagged(cx, TaggedProto(proto));
+    if (self->shouldSplicePrototype(cx) && !self->splicePrototype(cx, self->getClass(), tagged))
+        return false;
+    return true;
+}
+
+const Class PlainObject::class_ = {
+    js_Object_str,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
+    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    {
+        CreateObjectConstructor,
+        CreateObjectPrototype,
+        object_static_methods,
+        object_methods,
+        object_properties,
+        FinishObjectClassInit
+    }
+};
+
+const Class* const js::ObjectClassPtr = &PlainObject::class_;

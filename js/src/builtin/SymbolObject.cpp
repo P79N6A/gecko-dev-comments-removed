@@ -63,7 +63,7 @@ SymbolObject::initClass(JSContext *cx, HandleObject obj)
     
     
     
-    RootedObject proto(cx, global->createBlankPrototype(cx, &JSObject::class_));
+    RootedObject proto(cx, global->createBlankPrototype<PlainObject>(cx));
     if (!proto)
         return nullptr;
 

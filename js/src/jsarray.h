@@ -99,7 +99,7 @@ NewDenseFullyAllocatedArrayWithTemplate(JSContext *cx, uint32_t length, JSObject
 
 
 extern JSObject *
-NewDenseCopyOnWriteArray(JSContext *cx, HandleNativeObject templateObject, gc::InitialHeap heap);
+NewDenseCopyOnWriteArray(JSContext *cx, HandleArrayObject templateObject, gc::InitialHeap heap);
 
 
 
