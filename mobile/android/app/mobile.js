@@ -280,12 +280,14 @@ pref("browser.search.noCurrentEngine", true);
 
 
 pref("browser.casting.enabled", true);
-pref("browser.mirroring.enabled", true);
 #ifdef RELEASE_BUILD
 
 pref("browser.mirroring.enabled.roku", false);
+
+pref("browser.mirroring.enabled", false);
 #else
 pref("browser.mirroring.enabled.roku", true);
+pref("browser.mirroring.enabled", true);
 #endif
 
 
