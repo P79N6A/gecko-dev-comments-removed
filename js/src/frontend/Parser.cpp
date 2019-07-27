@@ -4528,13 +4528,6 @@ Parser<FullParseHandler>::exportDeclaration()
         return handler.newExportDefaultDeclaration(kid, TokenPos(begin, pos().end));
       }
 
-      case TOK_NAME:
-        
-        
-        
-        
-        
-        tokenStream.ungetToken();
       case TOK_LET:
       case TOK_CONST:
         kid = lexicalDeclaration(YieldIsName, tt == TOK_CONST);
