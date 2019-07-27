@@ -1,69 +1,116 @@
-let rootDir = getRootDirectory(gTestPath);
-const gTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
+var rootDir = getRootDirectory(gTestPath);
+const gTestRoot = rootDir;
+const gHttpTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
 
-add_task(function* () {
-  registerCleanupFunction(function () {
+var gTestBrowser = null;
+var gNextTest = null;
+var gPluginHost = Components.classes["@mozilla.org/plugin/host;1"].getService(Components.interfaces.nsIPluginHost);
+
+Components.utils.import("resource://gre/modules/Services.jsm");
+
+function test() {
+  waitForExplicitFinish();
+  registerCleanupFunction(function() {
     clearAllPluginPermissions();
-    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Test Plug-in");
-    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Second Test Plug-in");
-    Services.prefs.clearUserPref("plugins.click_to_play");
     Services.prefs.clearUserPref("extensions.blocklist.suppressUI");
-    gBrowser.removeCurrentTab();
-    window.focus();
   });
-});
-
-
-add_task(function* () {
   Services.prefs.setBoolPref("extensions.blocklist.suppressUI", true);
 
-  gBrowser.selectedTab = gBrowser.addTab();
+  let newTab = gBrowser.addTab();
+  gBrowser.selectedTab = newTab;
+  gTestBrowser = gBrowser.selectedBrowser;
+  gTestBrowser.addEventListener("load", pageLoad, true);
 
   Services.prefs.setBoolPref("plugins.click_to_play", true);
-  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY, "Test Plug-in");
-  let bindingPromise = waitForEvent(gBrowser.selectedBrowser, "PluginBindingAttached", null, true, true);
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_test.html");
-  yield promiseUpdatePluginBindings(gBrowser.selectedBrowser);
-  yield bindingPromise;
+  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY);
 
-  let popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gBrowser.selectedBrowser);
+  prepareTest(runAfterPluginBindingAttached(test1), gHttpTestRoot + "plugin_test.html");
+}
+
+function finishTest() {
+  clearAllPluginPermissions();
+  gTestBrowser.removeEventListener("load", pageLoad, true);
+  gBrowser.removeCurrentTab();
+  window.focus();
+  finish();
+}
+
+function pageLoad() {
+  
+  
+  executeSoon(gNextTest);
+}
+
+function prepareTest(nextTest, url) {
+  gNextTest = nextTest;
+  gTestBrowser.contentWindow.location = url;
+}
+
+
+
+
+
+function runAfterPluginBindingAttached(func) {
+  return function() {
+    let doc = gTestBrowser.contentDocument;
+    let elems = doc.getElementsByTagName('embed');
+    if (elems.length < 1) {
+      elems = doc.getElementsByTagName('object');
+    }
+    elems[0].clientTop;
+    executeSoon(func);
+  };
+}
+
+
+function test1() {
+  let popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   ok(popupNotification, "Test 1, Should have a click-to-play notification");
 
-  
-  let pluginInfo = yield promiseForPluginInfo("test", gBrowser.selectedBrowser);
-  ok(!pluginInfo.activated, "plugin should not be activated");
-   
-  
-  
-  yield ContentTask.spawn(gBrowser.selectedBrowser, {}, function* () {
-    let plugin = content.document.getElementById("test");
-    let bounds = plugin.getBoundingClientRect();
-    let left = (bounds.left + bounds.right) / 2;
-    let top = (bounds.top + bounds.bottom) / 2;
-    let utils = content.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                       .getInterface(Components.interfaces.nsIDOMWindowUtils);
-    utils.sendMouseEvent("contextmenu", left, top, 2, 1, 0);
-  });
-
-  popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gBrowser.selectedBrowser);
-  ok(popupNotification, "Should have a click-to-play notification");
-  ok(popupNotification.dismissed, "notification should be dismissed");
+  let plugin = gTestBrowser.contentDocument.getElementById("test");
+  let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+  ok(!objLoadingContent.activated, "Test 1, Plugin should not be activated");
 
   
-  yield promiseForCondition(() => document.getElementById("context-ctp-play"));
+  
+  
+  let goToNext = function(aEvent) {
+    window.document.removeEventListener("popupshown", goToNext, false);
+    executeSoon(function() {
+      test2();
+      aEvent.target.hidePopup();
+    });
+  };
+  window.document.addEventListener("popupshown", goToNext, false);
+  EventUtils.synthesizeMouseAtCenter(plugin,
+                                     { type: "contextmenu", button: 2 },
+                                     gTestBrowser.contentWindow);
+}
 
-  let actMenuItem = document.getElementById("context-ctp-play");
-  ok(actMenuItem, "Should have a context menu entry for activating the plugin");
+function test2() {
+  let activate = window.document.getElementById("context-ctp-play");
+  ok(activate, "Test 2, Should have a context menu entry for activating the plugin");
+
+  let notification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  ok(notification, "Test 2, Should have a click-to-play notification");
+  ok(notification.dismissed, "Test 2, notification should be dismissed");
 
   
-  EventUtils.synthesizeMouseAtCenter(actMenuItem, {});
+  activate.doCommand();
 
-  yield promiseForCondition(() => !PopupNotifications.panel.dismissed && PopupNotifications.panel.firstChild);
+  waitForCondition(() => !notification.dismissed,
+		   test3, "Test 2, waited too long for context activation");
+}
 
+function test3() {
   
   PopupNotifications.panel.firstChild._primaryButton.click();
 
-  
-  pluginInfo = yield promiseForPluginInfo("test", gBrowser.selectedBrowser);
-  ok(pluginInfo.activated, "plugin should not be activated");
-});
+  let plugin = gTestBrowser.contentDocument.getElementById("test");
+  let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+  waitForCondition(() => objLoadingContent.activated, test4, "Waited too long for plugin to activate");
+}
+
+function test4() {
+  finishTest();
+}

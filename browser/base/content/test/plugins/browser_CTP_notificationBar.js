@@ -1,154 +1,171 @@
-let rootDir = getRootDirectory(gTestPath);
-const gTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
-let gTestBrowser = null;
+var rootDir = getRootDirectory(gTestPath);
+const gTestRoot = rootDir;
+const gHttpTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
 
-add_task(function* () {
-  registerCleanupFunction(function () {
+var gTestBrowser = null;
+var gNextTest = null;
+
+Components.utils.import("resource://gre/modules/Services.jsm");
+
+function test() {
+  waitForExplicitFinish();
+  registerCleanupFunction(function() {
     clearAllPluginPermissions();
-    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Test Plug-in");
-    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Second Test Plug-in");
-    Services.prefs.clearUserPref("plugins.click_to_play");
     Services.prefs.clearUserPref("extensions.blocklist.suppressUI");
-    gBrowser.removeCurrentTab();
-    window.focus();
-    gTestBrowser = null;
   });
-
   Services.prefs.setBoolPref("extensions.blocklist.suppressUI", true);
 
-  let newTab = gBrowser.addTab();
+  var newTab = gBrowser.addTab();
   gBrowser.selectedTab = newTab;
   gTestBrowser = gBrowser.selectedBrowser;
-});
+  gTestBrowser.addEventListener("load", pageLoad, true);
 
-add_task(function* () {
   Services.prefs.setBoolPref("plugins.click_to_play", true);
-  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY, "Test Plug-in");
+  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY);
 
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_small.html");
+  prepareTest(runAfterPluginBindingAttached(test1), gHttpTestRoot + "plugin_small.html");
+}
 
+function finishTest() {
+  gTestBrowser.removeEventListener("load", pageLoad, true);
+  gBrowser.removeCurrentTab();
+  window.focus();
+  finish();
+}
+
+function pageLoad() {
   
-  yield promiseUpdatePluginBindings(gTestBrowser);
-
-  yield promisePopupNotification("click-to-play-plugins");
-
   
-  yield promiseForNotificationBar("plugin-hidden", gTestBrowser);
-});
+  executeSoon(gNextTest);
+}
 
-add_task(function* () {
-  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Test Plug-in");
+function prepareTest(nextTest, url) {
+  gNextTest = nextTest;
+  gTestBrowser.contentWindow.location = url;
+}
 
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_small.html");
 
-  
-  yield promiseUpdatePluginBindings(gTestBrowser);
 
-  let notificationBox = gBrowser.getNotificationBox(gTestBrowser);
-  yield promiseForCondition(() => notificationBox.getNotificationWithValue("plugin-hidden") === null);
-});
 
-add_task(function* () {
-  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY, "Test Plug-in");
 
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_overlayed.html");
+function runAfterPluginBindingAttached(func) {
+  return function() {
+    let doc = gTestBrowser.contentDocument;
+    let elems = doc.getElementsByTagName('embed');
+    if (elems.length < 1) {
+      elems = doc.getElementsByTagName('object');
+    }
+    elems[0].clientTop;
+    executeSoon(func);
+  };
+}
 
-  
-  yield promiseUpdatePluginBindings(gTestBrowser);
 
-  
-  yield promiseForNotificationBar("plugin-hidden", gTestBrowser);
-});
 
-add_task(function* () {
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_overlayed.html");
-
-  
-  yield promiseUpdatePluginBindings(gTestBrowser);
-
-  let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
-    let doc = content.document;
-    let plugin = doc.getElementById("test");
-    plugin.QueryInterface(Ci.nsIObjectLoadingContent);
-    return plugin.pluginFallbackType;
+function test1() {
+  info("Test 1 - expecting a notification bar for hidden plugins.");
+  waitForNotificationPopup("click-to-play-plugins", gTestBrowser, () => {
+    waitForNotificationBar("plugin-hidden", gTestBrowser, () => {
+      
+      
+      getTestPlugin().enabledState = Ci.nsIPluginTag.STATE_ENABLED;
+      prepareTest(test2, gTestRoot + "plugin_small.html");
+    });
   });
-  is(result, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY,
+}
+
+function test2() {
+  info("Test 2 - expecting no plugin notification bar on visible plugins.");
+  waitForNotificationPopup("click-to-play-plugins", gTestBrowser, () => {
+    let notificationBox = gBrowser.getNotificationBox(gTestBrowser);
+
+    waitForCondition(() => notificationBox.getNotificationWithValue("plugin-hidden") === null,
+      () => {
+        getTestPlugin().enabledState = Ci.nsIPluginTag.STATE_CLICKTOPLAY;
+        prepareTest(test3, gTestRoot + "plugin_overlayed.html");
+      },
+      "expected to not have a plugin notification bar"
+    );
+  });
+}
+
+function test3() {
+  info("Test 3 - expecting a plugin notification bar when plugins are overlaid");
+  waitForNotificationPopup("click-to-play-plugins", gTestBrowser, () => {
+    waitForNotificationBar("plugin-hidden", gTestBrowser, test3b);
+  });
+}
+
+function test3b()
+{
+  let doc = gTestBrowser.contentDocument;
+  let plugin = doc.getElementById("test");
+  ok(plugin, "Test 3b, Found plugin in page");
+  plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+  is(plugin.pluginFallbackType, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY,
      "Test 3b, plugin fallback type should be PLUGIN_CLICK_TO_PLAY");
+  ok(!plugin.activated, "Test 3b, Plugin should not be activated");
+  let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
+  ok(!overlay.classList.contains("visible"), "Test 3b, Plugin overlay should be hidden");
 
-  let pluginInfo = yield promiseForPluginInfo("test");
-  ok(!pluginInfo.activated, "Test 1a, plugin should not be activated");
+  prepareTest(test4, gTestRoot + "plugin_positioned.html");
+}
 
-  result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
-    let doc = content.document;
-    let plugin = doc.getElementById("test");
-    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-    return overlay && overlay.classList.contains("visible");
+function test4() {
+  info("Test 4 - expecting a plugin notification bar when plugins are overlaid offscreen")
+  waitForNotificationPopup("click-to-play-plugins", gTestBrowser, () => {
+    waitForNotificationBar("plugin-hidden", gTestBrowser, test4b);
   });
-  ok(!result, "Test 3b, overlay should be hidden.");
-});
+}
 
-add_task(function* () {
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_positioned.html");
-
-  
-  yield promiseUpdatePluginBindings(gTestBrowser);
-
-  
-  yield promisePopupNotification("click-to-play-plugins");
-  yield promiseForNotificationBar("plugin-hidden", gTestBrowser);
-
-  let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
-    let doc = content.document;
-    let plugin = doc.getElementById("test");
-    plugin.QueryInterface(Ci.nsIObjectLoadingContent);
-    return plugin.pluginFallbackType;
-  });
-  is(result, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY,
+function test4b() {
+  let doc = gTestBrowser.contentDocument;
+  let plugin = doc.getElementById("test");
+  ok(plugin, "Test 4b, Found plugin in page");
+  plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+  is(plugin.pluginFallbackType, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY,
      "Test 4b, plugin fallback type should be PLUGIN_CLICK_TO_PLAY");
+  ok(!plugin.activated, "Test 4b, Plugin should not be activated");
+  let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
+  ok(!overlay.classList.contains("visible"), "Test 4b, Plugin overlay should be hidden");
 
-  result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
-    let doc = content.document;
-    let plugin = doc.getElementById("test");
-    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-    return overlay && overlay.classList.contains("visible");
-  });
-  ok(!result, "Test 4b, overlay should be hidden.");
-});
+  prepareTest(runAfterPluginBindingAttached(test5), gHttpTestRoot + "plugin_small.html");
+}
 
-
-
-
-add_task(function* () {
-  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_small.html");
-
-  
-  yield promiseUpdatePluginBindings(gTestBrowser);
-
-  
-  yield promisePopupNotification("click-to-play-plugins");
-
-  let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
-    let doc = content.document;
-    let plugin = doc.getElementById("test");
-    plugin.QueryInterface(Ci.nsIObjectLoadingContent);
-    return plugin.pluginFallbackType;
-  });
-  is(result, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY,
-     "Test 6, Plugin should be click-to-play");
-
-  yield promisePopupNotification("click-to-play-plugins");
-
-  let notification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
-  ok(notification, "Test 6, Should have a click-to-play notification");
-
-  
-  yield promiseForNotificationShown(notification);
-
-  PopupNotifications.panel.firstChild._primaryButton.click();
-
+function test5() {
   let notificationBox = gBrowser.getNotificationBox(gTestBrowser);
-  yield promiseForCondition(() => notificationBox.getNotificationWithValue("plugin-hidden") === null);
+  waitForCondition(() => notificationBox.getNotificationWithValue("plugin-hidden") !== null,
+    test6,
+    "Test 5, expected a notification bar for hidden plugins");
+}
 
-  let pluginInfo = yield promiseForPluginInfo("test");
-  ok(pluginInfo.activated, "Test 7, plugin should be activated");
-});
+
+
+
+function test6() {
+  info("Test 6 - expecting the doorhanger to be dismissed when directly activating plugins.");
+  waitForNotificationPopup("click-to-play-plugins", gTestBrowser, (notification) => {
+    let plugin = gTestBrowser.contentDocument.getElementById("test");
+    ok(plugin, "Test 6, Found plugin in page");
+    let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+    is(objLoadingContent.pluginFallbackType, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY,
+       "Test 6, Plugin should be click-to-play");
+
+    
+    notification.reshow();
+    PopupNotifications.panel.firstChild._primaryButton.click();
+
+    let notificationBox = gBrowser.getNotificationBox(gTestBrowser);
+    waitForCondition(() => notificationBox.getNotificationWithValue("plugin-hidden") === null,
+      test7,
+      "Test 6, expected the notification bar for hidden plugins to get dismissed");
+  });
+}
+
+function test7() {
+  let plugin = gTestBrowser.contentDocument.getElementById("test");
+  ok(plugin, "Test 7, Found plugin in page");
+  let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+  waitForCondition(() => objLoadingContent.activated, finishTest,
+    "Test 7, Waited too long for plugin to activate");
+}
