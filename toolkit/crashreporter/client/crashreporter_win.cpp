@@ -1296,6 +1296,24 @@ void UIShowDefaultUI()
              MB_OK | MB_ICONSTOP);
 }
 
+static bool CanUseMainCrashReportServer()
+{
+  
+  if (IsWindowsVersionOrGreater(6, 0, 0)) {
+    return true;
+  }
+
+  
+  if (IsWindowsServer()) {
+    return IsWindowsVersionOrGreater(5, 2, 2);
+  }
+
+  
+  
+  return (IsWindowsVersionOrGreater(5, 1, 3) &&
+         !IsWindowsVersionOrGreater(5, 2, 0));
+}
+
 bool UIShowCrashUI(const StringTable& files,
                    const StringTable& queryParameters,
                    const string& sendURL,
@@ -1306,7 +1324,7 @@ bool UIShowCrashUI(const StringTable& files,
 
   
   
-  if (!IsWindowsXPSP3OrGreater() &&
+  if (!CanUseMainCrashReportServer() &&
       gSendData.sendURL.find(SENDURL_ORIGINAL) == 0) {
     gSendData.sendURL.replace(0, ARRAYSIZE(SENDURL_ORIGINAL) - 1,
                               SENDURL_XPSP2);
