@@ -1107,7 +1107,7 @@ static nr_socket_vtbl nr_socket_local_vtbl={
 };
 
 int nr_socket_local_create(nr_transport_addr *addr, nr_socket **sockp) {
-  NrSocketBase *sock = nullptr;
+  RefPtr<NrSocketBase> sock;
 
   
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
@@ -1129,15 +1129,12 @@ int nr_socket_local_create(nr_transport_addr *addr, nr_socket **sockp) {
   if (r)
     ABORT(r);
 
-  
-  sock->AddRef();
-
   _status = 0;
+  
+  
+  sock.forget().drop();
 
 abort:
-  if (_status) {
-    delete sock;
-  }
   return _status;
 }
 
