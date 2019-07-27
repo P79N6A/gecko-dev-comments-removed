@@ -57,8 +57,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     bool unreachable_;
 
-    MResumePoint *callerResumePoint_;
-
     
     void pushVariable(uint32_t slot);
 
@@ -547,11 +545,11 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         discardResumePoint(outerResumePoint_);
         outerResumePoint_ = nullptr;
     }
-    MResumePoint *callerResumePoint() const {
-        return callerResumePoint_;
+    MResumePoint *callerResumePoint() {
+        return entryResumePoint() ? entryResumePoint()->caller() : nullptr;
     }
     void setCallerResumePoint(MResumePoint *caller) {
-        callerResumePoint_ = caller;
+        entryResumePoint()->setCaller(caller);
     }
     size_t numEntrySlots() const {
         return entryResumePoint()->stackDepth();
