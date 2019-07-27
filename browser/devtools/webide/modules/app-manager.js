@@ -85,6 +85,48 @@ let AppManager = exports.AppManager = {
     this.connection = null;
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   update: function(what, details) {
     
     this.emit("app-manager-update", what, details);
@@ -132,7 +174,7 @@ let AppManager = exports.AppManager = {
             
             this._appsFront = front;
             this._listTabsResponse = response;
-            this.update("list-tabs-response");
+            this.update("runtime-global-actors");
           })
           .then(() => {
             this.checkIfProjectIsRunning();
@@ -141,7 +183,7 @@ let AppManager = exports.AppManager = {
           });
         } else {
           this._listTabsResponse = response;
-          this.update("list-tabs-response");
+          this.update("runtime-global-actors");
         }
       });
     }
@@ -150,7 +192,8 @@ let AppManager = exports.AppManager = {
   },
 
   get connected() {
-    return this.connection.status == Connection.Status.CONNECTED;
+    return this.connection &&
+           this.connection.status == Connection.Status.CONNECTED;
   },
 
   get apps() {
@@ -178,9 +221,9 @@ let AppManager = exports.AppManager = {
   checkIfProjectIsRunning: function() {
     if (this.selectedProject) {
       if (this.isProjectRunning()) {
-        this.update("project-is-running");
+        this.update("project-started");
       } else {
-        this.update("project-is-not-running");
+        this.update("project-stopped");
       }
     }
   },
@@ -373,7 +416,7 @@ let AppManager = exports.AppManager = {
          this.selectedProject.type == "tab")) {
       this.selectedProject = null;
     }
-    this.update("runtime-changed");
+    this.update("runtime");
   },
 
   get selectedRuntime() {
@@ -580,7 +623,7 @@ let AppManager = exports.AppManager = {
       if (!app.running) {
         let deferred = promise.defer();
         self.on("app-manager-update", function onUpdate(event, what) {
-          if (what == "project-is-running") {
+          if (what == "project-started") {
             self.off("app-manager-update", onUpdate);
             deferred.resolve();
           }
@@ -720,7 +763,7 @@ let AppManager = exports.AppManager = {
     }
 
     this.update("runtime-details");
-    this.update("runtimelist");
+    this.update("runtime-list");
   },
 
   
