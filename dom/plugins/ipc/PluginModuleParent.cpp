@@ -2386,7 +2386,12 @@ bool
 PluginModuleParent::DoShutdown(NPError* error)
 {
     bool ok = true;
-    if (IsChrome()) {
+    if (IsChrome() && mHadLocalInstance) {
+        
+        
+        
+        
+        
         ok = CallNP_Shutdown(error);
     }
 

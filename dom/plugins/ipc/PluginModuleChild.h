@@ -177,6 +177,8 @@ public:
 
     void CleanUp();
 
+    NPError NP_Shutdown();
+
     const char* GetUserAgent();
 
     static const NPNetscapeFuncs sBrowserFuncs;
@@ -327,6 +329,7 @@ private:
     int mQuirks;
 
     bool mIsChrome;
+    bool mHasShutdown; 
     Transport* mTransport;
 
     
