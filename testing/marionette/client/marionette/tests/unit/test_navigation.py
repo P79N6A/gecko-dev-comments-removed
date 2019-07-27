@@ -2,7 +2,7 @@
 
 
 
-from marionette_test import MarionetteTestCase
+from marionette_test import MarionetteTestCase, skip_if_b2g
 from errors import MarionetteException, TimeoutException
 
 class TestNavigate(MarionetteTestCase):
@@ -61,6 +61,7 @@ class TestNavigate(MarionetteTestCase):
         self.assertTrue(self.marionette.execute_script("return window.document.getElementById('someDiv') == undefined;"))
 
     ''' Disabled due to Bug 977899
+    @skip_if_b2g
     def test_navigate_frame(self):
         self.marionette.navigate(self.marionette.absolute_url("test_iframe.html"))
         self.marionette.switch_to_frame(0)
