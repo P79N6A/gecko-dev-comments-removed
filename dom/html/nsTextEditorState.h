@@ -13,6 +13,7 @@
 #include "nsITextControlFrame.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/WeakPtr.h"
 
 class nsTextInputListener;
@@ -269,7 +270,9 @@ private:
   friend class InitializationGuard;
   friend class PrepareEditorEvent;
 
-  nsITextControlElement* const mTextCtrlElement;
+  
+  
+  nsITextControlElement* const MOZ_NON_OWNING_REF mTextCtrlElement;
   nsRefPtr<nsTextInputSelectionImpl> mSelCon;
   nsRefPtr<RestoreSelectionState> mRestoringSelection;
   nsCOMPtr<nsIEditor> mEditor;
