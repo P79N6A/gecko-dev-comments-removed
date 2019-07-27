@@ -1344,7 +1344,7 @@ nsContextMenu.prototype = {
 
   
   saveMedia: function() {
-    var doc =  this.target.ownerDocument;
+    let doc = this.ownerDoc;
     let referrerURI = gContextMenuContentData.documentURIObject;
     if (this.onCanvas) {
       
