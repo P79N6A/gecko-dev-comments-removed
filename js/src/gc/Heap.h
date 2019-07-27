@@ -505,16 +505,18 @@ class FreeList
 };
 
 
-struct ArenaHeader : public JS::shadow::ArenaHeader
+struct ArenaHeader
 {
     friend struct FreeLists;
+
+    JS::Zone *zone;
 
     
 
 
 
 
-    ArenaHeader     *next;
+    ArenaHeader *next;
 
   private:
     
@@ -645,6 +647,8 @@ struct ArenaHeader : public JS::shadow::ArenaHeader
     size_t countFreeCells();
 #endif
 };
+static_assert(ArenaZoneOffset == offsetof(ArenaHeader, zone),
+              "The hardcoded API zone offset must match the actual offset.");
 
 struct Arena
 {
