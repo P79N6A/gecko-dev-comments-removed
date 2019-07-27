@@ -26,6 +26,7 @@
 
 
 
+
 function workerTestExec(script) {
   SimpleTest.waitForExplicitFinish();
   var worker = new Worker('worker_wrapper.js');
@@ -69,6 +70,11 @@ function workerTestExec(script) {
       worker.postMessage({
         type: 'returnUserAgent',
         result: navigator.userAgent
+      });
+    } else if (event.data.type == 'getOSCPU') {
+      worker.postMessage({
+        type: 'returnOSCPU',
+        result: navigator.oscpu
       });
     }
   }

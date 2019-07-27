@@ -243,6 +243,7 @@ private:
   bool mMainThreadObjectsForgotten;
   WorkerType mWorkerType;
   TimeStamp mCreationTimeStamp;
+  TimeStamp mNowBaseTimeStamp;
 
 protected:
   
@@ -513,6 +514,11 @@ public:
   TimeStamp CreationTimeStamp() const
   {
     return mCreationTimeStamp;
+  }
+
+  TimeStamp NowBaseTimeStamp() const
+  {
+    return mNowBaseTimeStamp;
   }
 
   nsIPrincipal*

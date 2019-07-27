@@ -102,6 +102,8 @@ var interfaceNamesInGlobalScope =
 
     "MessagePort",
 
+    "Performance",
+
     "Promise",
 
     "TextDecoder",
