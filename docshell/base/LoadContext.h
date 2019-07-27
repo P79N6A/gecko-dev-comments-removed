@@ -107,7 +107,8 @@ public:
 
   
   
-  explicit LoadContext(nsIPrincipal* aPrincipal);
+  explicit LoadContext(nsIPrincipal* aPrincipal,
+                       nsILoadContext* aOptionalBase = nullptr);
 
 private:
   ~LoadContext() {}
