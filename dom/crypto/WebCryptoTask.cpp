@@ -2451,9 +2451,110 @@ private:
 
   virtual nsresult DoCrypto() MOZ_OVERRIDE
   {
+    
+    
     ScopedPK11SymKey symKey(PK11_PubDeriveWithKDF(
       mPrivKey, mPubKey, PR_FALSE, nullptr, nullptr, CKM_ECDH1_DERIVE,
-      CKM_CONCATENATE_DATA_AND_BASE, CKA_DERIVE, 0, CKD_NULL, nullptr, nullptr));
+      CKM_SHA512_HMAC, CKA_SIGN, 0, CKD_NULL, nullptr, nullptr));
+
+    if (!symKey.get()) {
+      return NS_ERROR_DOM_OPERATION_ERR;
+    }
+
+    nsresult rv = MapSECStatus(PK11_ExtractKeyValue(symKey));
+    if (NS_FAILED(rv)) {
+      return NS_ERROR_DOM_OPERATION_ERR;
+    }
+
+    
+    
+    
+    ATTEMPT_BUFFER_ASSIGN(mResult, PK11_GetKeyData(symKey));
+
+    if (mLength > mResult.Length()) {
+      return NS_ERROR_DOM_DATA_ERR;
+    }
+
+    if (!mResult.SetLength(mLength)) {
+      return NS_ERROR_DOM_UNKNOWN_ERR;
+    }
+
+    return NS_OK;
+  }
+};
+
+class DeriveDhBitsTask : public ReturnArrayBufferViewTask
+{
+public:
+  DeriveDhBitsTask(JSContext* aCx,
+      const ObjectOrString& aAlgorithm, CryptoKey& aKey, uint32_t aLength)
+    : mLength(aLength),
+      mPrivKey(aKey.GetPrivateKey())
+  {
+    Init(aCx, aAlgorithm, aKey);
+  }
+
+  DeriveDhBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+                   CryptoKey& aKey, const ObjectOrString& aTargetAlgorithm)
+    : mPrivKey(aKey.GetPrivateKey())
+  {
+    mEarlyRv = GetKeyLengthForAlgorithm(aCx, aTargetAlgorithm, mLength);
+    if (NS_SUCCEEDED(mEarlyRv)) {
+      Init(aCx, aAlgorithm, aKey);
+    }
+  }
+
+  void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey)
+  {
+    CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_DH);
+
+    
+    if (!mPrivKey) {
+      mEarlyRv = NS_ERROR_DOM_INVALID_ACCESS_ERR;
+      return;
+    }
+
+    mLength = mLength >> 3; 
+
+    
+    RootedDictionary<DhKeyDeriveParams> params(aCx);
+    mEarlyRv = Coerce(aCx, params, aAlgorithm);
+    if (NS_FAILED(mEarlyRv)) {
+      mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
+      return;
+    }
+
+    CryptoKey* publicKey = params.mPublic;
+    mPubKey = publicKey->GetPublicKey();
+    if (!mPubKey) {
+      mEarlyRv = NS_ERROR_DOM_INVALID_ACCESS_ERR;
+      return;
+    }
+
+    KeyAlgorithmProxy alg1 = publicKey->Algorithm();
+    CHECK_KEY_ALGORITHM(alg1, WEBCRYPTO_ALG_DH);
+
+    
+    KeyAlgorithmProxy alg2 = aKey.Algorithm();
+    if (alg1.mDh.mPrime != alg2.mDh.mPrime ||
+        alg1.mDh.mGenerator != alg2.mDh.mGenerator) {
+      mEarlyRv = NS_ERROR_DOM_DATA_ERR;
+      return;
+    }
+  }
+
+private:
+  size_t mLength;
+  ScopedSECKEYPrivateKey mPrivKey;
+  ScopedSECKEYPublicKey mPubKey;
+
+  virtual nsresult DoCrypto() MOZ_OVERRIDE
+  {
+    
+    
+    ScopedPK11SymKey symKey(PK11_PubDeriveWithKDF(
+      mPrivKey, mPubKey, PR_FALSE, nullptr, nullptr, CKM_DH_PKCS_DERIVE,
+      CKM_SHA512_HMAC, CKA_SIGN, 0, CKD_NULL, nullptr, nullptr));
 
     if (!symKey.get()) {
       return NS_ERROR_DOM_OPERATION_ERR;
@@ -2872,6 +2973,10 @@ WebCryptoTask::CreateDeriveBitsTask(JSContext* aCx,
 
   if (algName.EqualsASCII(WEBCRYPTO_ALG_ECDH)) {
     return new DeriveEcdhBitsTask(aCx, aAlgorithm, aKey, aLength);
+  }
+
+  if (algName.EqualsASCII(WEBCRYPTO_ALG_DH)) {
+    return new DeriveDhBitsTask(aCx, aAlgorithm, aKey, aLength);
   }
 
   return new FailureTask(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
