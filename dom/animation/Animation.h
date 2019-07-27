@@ -256,6 +256,12 @@ public:
   }
   bool IsRelevant() const { return mIsRelevant; }
   void UpdateRelevance();
+
+  
+
+
+  bool HasLowerCompositeOrderThan(const Animation& aOther) const;
+
   void SetIsRunningOnCompositor() { mIsRunningOnCompositor = true; }
   void ClearIsRunningOnCompositor() { mIsRunningOnCompositor = false; }
   
