@@ -509,6 +509,13 @@ pref("dom.disable_window_flip",                   true);
 
 pref("dom.w3c_touch_events.enabled",        0);
 
+#ifdef NIGHTLY_BUILD
+
+pref("dom.w3c_pointer_events.enabled", true);
+
+pref("layout.css.touch_action.enabled", true);
+#endif
+
 
 pref("privacy.popups.policy",               1);
 pref("privacy.popups.usecustom",            true);
