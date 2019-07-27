@@ -247,8 +247,14 @@ nsBlockReflowContext::ReflowBlock(const LogicalRect&  aSpace,
 
     
     
-    if (NS_UNCONSTRAINEDSIZE != aFrameRS.AvailableBSize()) {
-      aFrameRS.AvailableBSize() -= mBStartMargin.get() + aClearance;
+    if (mWritingMode.IsOrthogonalTo(mFrame->GetWritingMode())) {
+      if (NS_UNCONSTRAINEDSIZE != aFrameRS.AvailableISize()) {
+        aFrameRS.AvailableISize() -= mBStartMargin.get() + aClearance;
+      }
+    } else {
+      if (NS_UNCONSTRAINEDSIZE != aFrameRS.AvailableBSize()) {
+        aFrameRS.AvailableBSize() -= mBStartMargin.get() + aClearance;
+      }
     }
   }
 
