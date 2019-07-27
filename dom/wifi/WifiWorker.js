@@ -3644,15 +3644,14 @@ WifiWorker.prototype = {
     case kMozSettingsChangedObserverTopic:
       
       
-
-      let setting = JSON.parse(data);
-      
-      
-      if (setting.isInternalChange) {
+      if ("wrappedJSObject" in subject) {
+        subject = subject.wrappedJSObject;
+      }
+      if (subject.isInternalChange) {
         return;
       }
 
-      this.handle(setting.key, setting.value);
+      this.handle(subject.key, subject.value);
       break;
 
     case "xpcom-shutdown":

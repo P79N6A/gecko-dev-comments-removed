@@ -372,7 +372,7 @@ protected:
 
 
   nsresult
-  HandleSettingsChanged(const nsAString& aData);
+  HandleSettingsChanged(nsISupports* aSubject);
 
   
 
