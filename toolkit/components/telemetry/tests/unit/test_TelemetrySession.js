@@ -1064,7 +1064,7 @@ add_task(function* test_savedSessionData() {
 
   
   
-  const expectedSubsessions = sessionState.profileSubsessionCounter + 2;
+  const expectedSubsessions = sessionState.profileSubsessionCounter + 3;
   const expectedUUID = "009fd1ad-b85e-4817-b3e5-000000003785";
   fakeGenerateUUID(generateUUID, () => expectedUUID);
 
@@ -1075,6 +1075,8 @@ add_task(function* test_savedSessionData() {
 
   
   yield TelemetrySession.reset();
+  
+
   
   TelemetryEnvironment._watchPreferences(prefsToWatch);
   let changePromise = new Promise(resolve =>
