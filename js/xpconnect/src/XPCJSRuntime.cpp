@@ -575,6 +575,25 @@ WindowGlobalOrNull(JSObject *aObj)
     return WindowOrNull(glob);
 }
 
+nsGlobalWindow*
+AddonWindowOrNull(JSObject *aObj)
+{
+    if (!IsInAddonScope(aObj))
+        return nullptr;
+
+    JSObject *global = js::GetGlobalForObjectCrossCompartment(aObj);
+    JSObject *proto = js::GetPrototypeNoProxy(global);
+
+    
+    
+    
+    MOZ_RELEASE_ASSERT(js::IsCrossCompartmentWrapper(proto));
+    JSObject *mainGlobal = js::UncheckedUnwrap(proto,  false);
+    MOZ_RELEASE_ASSERT(JS_IsGlobalObject(mainGlobal));
+
+    return WindowOrNull(mainGlobal);
+}
+
 }
 
 static void
