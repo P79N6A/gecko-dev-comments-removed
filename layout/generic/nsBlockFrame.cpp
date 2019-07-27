@@ -1248,12 +1248,14 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (wm.GetBlockDir() == WritingMode::BlockDir::eBlockRL) {
-    nscoord deltaX = aMetrics.Width() - state.mContainerWidth;
+  if (wm.IsVerticalRL()) {
+    nscoord containerWidth = aMetrics.Width();
+    nscoord deltaX = containerWidth - state.mContainerWidth;
     if (deltaX) {
       for (line_iterator line = begin_lines(), end = end_lines();
            line != end; line++) {
         SlideLine(state, line, -deltaX);
+        line->mContainerWidth = containerWidth;
       }
       for (nsIFrame* f = mFloats.FirstChild(); f; f = f->GetNextSibling()) {
         nsPoint physicalDelta(deltaX, 0);
