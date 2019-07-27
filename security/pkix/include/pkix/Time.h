@@ -118,6 +118,9 @@ inline Time TimeFromElapsedSecondsAD(uint64_t elapsedSecondsAD)
 
 Time Now();
 
+
+Time TimeFromEpochInSeconds(uint64_t secondsSinceEpoch);
+
 } } 
 
 #endif
