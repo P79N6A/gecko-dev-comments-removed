@@ -865,7 +865,6 @@ bool WebMReader::DecodeVideoFrame(bool &aKeyframeSkip,
   if (r == -1) {
     return false;
   }
-  mLastVideoFrameTime = tstamp;
 
   
   
@@ -883,6 +882,7 @@ bool WebMReader::DecodeVideoFrame(bool &aKeyframeSkip,
     next_tstamp = tstamp;
     next_tstamp += tstamp - mLastVideoFrameTime;
   }
+  mLastVideoFrameTime = tstamp;
 
   int64_t tstamp_usecs = tstamp / NS_PER_USEC;
   for (uint32_t i = 0; i < count; ++i) {
