@@ -49,7 +49,6 @@ class ServiceWorkerJobQueue;
 
 class ServiceWorkerJob : public nsISupports
 {
-protected:
   
   
   ServiceWorkerJobQueue* mQueue;
@@ -152,6 +151,7 @@ public:
   
   
   bool mPendingUninstall;
+  bool mWaitingToActivate;
 
   explicit ServiceWorkerRegistrationInfo(const nsACString& aScope,
                                          nsIPrincipal* aPrincipal);
@@ -289,9 +289,12 @@ class ServiceWorkerManager MOZ_FINAL
   : public nsIServiceWorkerManager
   , public nsIIPCBackgroundChildCreateCallback
 {
+  friend class ActivationRunnable;
   friend class GetReadyPromiseRunnable;
   friend class GetRegistrationsRunnable;
   friend class GetRegistrationRunnable;
+  friend class QueueFireUpdateFoundRunnable;
+  friend class ServiceWorkerActivateAfterUnloadingJob;
   friend class ServiceWorkerRegisterJob;
   friend class ServiceWorkerRegistrationInfo;
   friend class ServiceWorkerUnregisterJob;
@@ -490,9 +493,6 @@ private:
                                       void* aUnused);
 
   nsClassHashtable<nsISupportsHashKey, PendingReadyPromise> mPendingReadyPromises;
- 
-  void
-  MaybeRemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration);
 
   mozilla::ipc::PBackgroundChild* mActor;
 
