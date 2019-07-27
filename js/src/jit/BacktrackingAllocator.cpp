@@ -1545,15 +1545,36 @@ BacktrackingAllocator::annotateMoveGroups()
                     
                     
                     
+                    
+                    
 
+                    if (iter->toMoveGroup()->uses(reg.reg.gpr()))
+                        continue;
                     bool found = false;
-                    LGeneralReg alloc(reg.reg.gpr());
-                    for (size_t j = 0; j < iter->toMoveGroup()->numMoves(); j++) {
-                        LMove move = iter->toMoveGroup()->getMove(j);
-                        if (*move.from() == alloc || *move.to() == alloc) {
-                            found = true;
+                    LInstructionIterator niter(iter);
+                    for (niter++; niter != block->end(); niter++) {
+                        if (niter->isMoveGroup()) {
+                            if (niter->toMoveGroup()->uses(reg.reg.gpr())) {
+                                found = true;
+                                break;
+                            }
+                        } else {
                             break;
                         }
+                    }
+                    if (iter != block->begin()) {
+                        LInstructionIterator riter(iter);
+                        do {
+                            riter--;
+                            if (riter->isMoveGroup()) {
+                                if (riter->toMoveGroup()->uses(reg.reg.gpr())) {
+                                    found = true;
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        } while (riter != block->begin());
                     }
 
                     if (found || reg.allocations.contains(search, &existing))
