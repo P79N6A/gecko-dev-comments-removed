@@ -721,15 +721,6 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
     rect = gfx::Rect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
   } else {
     rect = gfx::Rect(aRenderBounds.x, aRenderBounds.y, aRenderBounds.width, aRenderBounds.height);
-    
-    if (rect.width == 0 || rect.height == 0) {
-      
-      
-      
-      nsIntRect intRect;
-      mWidget->GetClientBounds(intRect);
-      rect = gfx::Rect(0, 0, intRect.width, intRect.height);
-    }
   }
 
   rect = aTransform.TransformBounds(rect);
