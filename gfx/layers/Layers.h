@@ -2140,8 +2140,7 @@ class CanvasLayer : public Layer {
 public:
   struct Data {
     Data()
-      : mDrawTarget(nullptr)
-      , mBufferProvider(nullptr)
+      : mBufferProvider(nullptr)
       , mGLContext(nullptr)
       , mFrontbufferGLTex(0)
       , mSize(0,0)
@@ -2150,7 +2149,6 @@ public:
     { }
 
     
-    mozilla::gfx::DrawTarget* mDrawTarget; 
     PersistentBufferProvider* mBufferProvider; 
     mozilla::gl::GLContext* mGLContext; 
 
