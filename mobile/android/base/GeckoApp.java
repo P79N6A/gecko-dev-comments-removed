@@ -158,6 +158,7 @@ public abstract class GeckoApp
     
     private static final int CLEANUP_DEFERRAL_SECONDS = 15;
 
+    protected RelativeLayout mRootLayout;
     protected RelativeLayout mMainLayout;
     protected RelativeLayout mGeckoLayout;
     private View mCameraView;
@@ -1076,12 +1077,21 @@ public abstract class GeckoApp
             public void run() {
                 
                 Window window = getWindow();
-                window.setFlags(fullscreen ?
-                                WindowManager.LayoutParams.FLAG_FULLSCREEN : 0,
-                                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
                 if (Versions.feature11Plus) {
-                    window.getDecorView().setSystemUiVisibility(fullscreen ? 1 : 0);
+                    final int newVis;
+                    if (fullscreen) {
+                        newVis = View.SYSTEM_UI_FLAG_FULLSCREEN |
+                                 View.SYSTEM_UI_FLAG_LOW_PROFILE;
+                    } else {
+                        newVis = View.SYSTEM_UI_FLAG_VISIBLE;
+                    }
+
+                    window.getDecorView().setSystemUiVisibility(newVis);
+                } else {
+                    window.setFlags(fullscreen ?
+                                    WindowManager.LayoutParams.FLAG_FULLSCREEN : 0,
+                                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
                 }
             }
         });
@@ -1262,6 +1272,7 @@ public abstract class GeckoApp
         setContentView(getLayout());
 
         
+        mRootLayout = (RelativeLayout) findViewById(R.id.root_layout);
         mGeckoLayout = (RelativeLayout) findViewById(R.id.gecko_layout);
         mMainLayout = (RelativeLayout) findViewById(R.id.main_layout);
 
