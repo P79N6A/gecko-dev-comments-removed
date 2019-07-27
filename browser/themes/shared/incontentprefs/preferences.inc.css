@@ -257,6 +257,9 @@ description > html|a {
 #FHRLearnMore,
 #crashReporterLearnMore {
   
+  
+  -moz-margin-start: 20px !important;
+  
   margin-top: 8px;
   margin-bottom: 8px;
 }
