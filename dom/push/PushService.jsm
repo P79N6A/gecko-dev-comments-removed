@@ -47,9 +47,9 @@ const prefs = new Preferences("dom.push.");
 
 gDebuggingEnabled = prefs.get("debug");
 
-const kPUSHDB_DB_NAME = "push";
+const kPUSHDB_DB_NAME = "pushapi";
 const kPUSHDB_DB_VERSION = 1; 
-const kPUSHDB_STORE_NAME = "push";
+const kPUSHDB_STORE_NAME = "pushapi";
 
 const kUDP_WAKEUP_WS_STATUS_CODE = 4774;  
                                           
