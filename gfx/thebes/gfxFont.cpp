@@ -3385,9 +3385,26 @@ gfxFont::DrawGlyphs(gfxShapedText            *aShapedText,
                             gfxFloat height = GetMetrics().maxAscent;
                             gfxRect glyphRect(pt.x, pt.y - height,
                                               advanceDevUnits, height);
+
+                            
+                            
+                            
+                            Matrix oldMat;
+                            if (aFontParams.passedInvMatrix) {
+                                oldMat = aRunParams.dt->GetTransform();
+                                aRunParams.dt->SetTransform(
+                                    *aFontParams.passedInvMatrix * oldMat);
+                            }
+
                             gfxFontMissingGlyphs::DrawMissingGlyph(
                                 aRunParams.context, glyphRect, details->mGlyphID,
                                 aShapedText->GetAppUnitsPerDevUnit());
+
+                            
+                            
+                            if (aFontParams.passedInvMatrix) {
+                                aRunParams.dt->SetTransform(oldMat);
+                            }
                         }
                     } else {
                         gfxPoint glyphXY(*aPt);
