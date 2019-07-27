@@ -132,17 +132,16 @@ WeaveCrypto.prototype = {
 
         
         var nsslib;
-        try {
-            this.log("Trying NSS library without path");
-            nsslib = ctypes.open(path);
-        } catch(e) {
-            
-            
-            let file = Services.dirsvc.get("GreBinD", Ci.nsILocalFile);
-            file.append(path);
-            this.log("Trying again with path " + file.path);
-            nsslib = ctypes.open(file.path);
-        }
+#ifdef MOZ_NATIVE_NSS
+        
+        this.log("Trying NSS library without path");
+        nsslib = ctypes.open(path);
+#else
+        let file = Services.dirsvc.get("GreBinD", Ci.nsILocalFile);
+        file.append(path);
+        this.log("Trying NSS library with path " + file.path);
+        nsslib = ctypes.open(file.path);
+#endif
 
         this.log("Initializing NSS types and function declarations...");
 
