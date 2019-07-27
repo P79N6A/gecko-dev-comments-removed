@@ -17,6 +17,9 @@ let passwordResetOnServer = false;
 let deletedOnServer = false;
 
 
+let principal = {origin: 'app://settings.gaiamobile.org', appId: 27}
+
+
 const kFxAccountsUIGlueUUID = "{8f6d5d87-41ed-4bb5-aa28-625de57564c5}";
 const kFxAccountsUIGlueContractID =
   "@mozilla.org/fxaccounts/fxaccounts-ui-glue;1";
@@ -304,7 +307,7 @@ add_test(function(test_getAssertion_no_audience) {
 add_test(function(test_getAssertion_no_session_ui_error) {
   do_print("= getAssertion no session, UI error =");
   FxAccountsUIGlue._reject = true;
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     () => {
       do_throw("Unexpected success");
     },
@@ -319,7 +322,7 @@ add_test(function(test_getAssertion_no_session_ui_error) {
 
 add_test(function(test_getAssertion_no_session_ui_success) {
   do_print("= getAssertion no session, UI success =");
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     () => {
       do_throw("Unexpected success");
     },
@@ -334,7 +337,7 @@ add_test(function(test_getAssertion_no_session_ui_success) {
 
 add_test(function(test_getAssertion_active_session_unverified_account) {
   do_print("= getAssertion active session, unverified account =");
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     result => {
       do_throw("Unexpected success");
     },
@@ -350,7 +353,7 @@ add_test(function(test_getAssertion_active_session_verified_account) {
   do_print("= getAssertion active session, verified account =");
   FxAccountsManager._fxAccounts._signedInUser.verified = true;
   FxAccountsManager._activeSession.verified = true;
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     result => {
       do_check_false(FxAccountsUIGlue._signInFlowCalled);
       do_check_eq(result, "assertion");
@@ -375,7 +378,7 @@ add_test(function(test_getAssertion_refreshAuth) {
   FxAccountsManager._activeSession.verified = true;
   FxAccountsManager._activeSession.authAt =
     (Date.now() / 1000) - gracePeriod;
-  FxAccountsManager.getAssertion("audience", {
+  FxAccountsManager.getAssertion("audience", principal, {
     "refreshAuthentication": gracePeriod
   }).then(
     result => {
@@ -396,7 +399,7 @@ add_test(function(test_getAssertion_server_state_change) {
   FxAccountsManager._fxAccounts._signedInUser.verified = true;
   FxAccountsManager._activeSession.verified = true;
   passwordResetOnServer = true;
-  FxAccountsManager.getAssertion("audience").then(
+  FxAccountsManager.getAssertion("audience", principal).then(
     (result) => {
       
       
@@ -408,7 +411,7 @@ add_test(function(test_getAssertion_server_state_change) {
   ).then(
     () => {
       deletedOnServer = true;
-      FxAccountsManager.getAssertion("audience").then(
+      FxAccountsManager.getAssertion("audience", principal).then(
         (result) => {
           
           do_check_true(FxAccountsUIGlue._signInFlowCalled)
@@ -427,7 +430,7 @@ add_test(function(test_getAssertion_server_state_change) {
 add_test(function(test_getAssertion_refreshAuth_NaN) {
   do_print("= getAssertion refreshAuth NaN=");
   let gracePeriod = "NaN";
-  FxAccountsManager.getAssertion("audience", {
+  FxAccountsManager.getAssertion("audience", principal, {
     "refreshAuthentication": gracePeriod
   }).then(
     result => {
@@ -449,7 +452,7 @@ add_test(function(test_getAssertion_refresh_auth_no_refresh) {
   FxAccountsManager._activeSession.verified = true;
   FxAccountsManager._activeSession.authAt =
     (Date.now() / 1000) + 10000;
-  FxAccountsManager.getAssertion("audience", {
+  FxAccountsManager.getAssertion("audience", principal, {
     "refreshAuthentication": 1
   }).then(
     result => {
