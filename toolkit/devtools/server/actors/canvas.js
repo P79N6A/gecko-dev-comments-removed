@@ -80,6 +80,7 @@ protocol.types.addDictType("snapshot-image", {
   index: "number",
   width: "number",
   height: "number",
+  scaling: "number",
   flipped: "boolean",
   pixels: "uint32-array"
 });
@@ -156,16 +157,17 @@ let FrameSnapshotActor = protocol.ActorClass({
       last: index
     });
 
-    let { replayContext, lastDrawCallIndex, doCleanup } = replayData;
+    let { replayContext, replayContextScaling, lastDrawCallIndex, doCleanup } = replayData;
+    let [left, top, width, height] = replayData.replayViewport;
     let screenshot;
 
     
     
     if (global == CallWatcherFront.CANVAS_WEBGL_CONTEXT) {
-      screenshot = ContextUtils.getPixelsForWebGL(replayContext);
+      screenshot = ContextUtils.getPixelsForWebGL(replayContext, left, top, width, height);
       screenshot.flipped = true;
     } else if (global == CallWatcherFront.CANVAS_2D_CONTEXT) {
-      screenshot = ContextUtils.getPixelsFor2D(replayContext);
+      screenshot = ContextUtils.getPixelsFor2D(replayContext, left, top, width, height);
       screenshot.flipped = false;
     }
 
@@ -173,6 +175,7 @@ let FrameSnapshotActor = protocol.ActorClass({
     
     doCleanup();
 
+    screenshot.scaling = replayContextScaling;
     screenshot.index = lastDrawCallIndex;
     return screenshot;
   }, {
@@ -375,6 +378,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
       index: index,
       width: width,
       height: height,
+      scaling: 1,
       flipped: flipped,
       pixels: pixels.subarray(0, width * height)
     };
@@ -407,7 +411,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     let h = this._lastContentCanvasHeight = contentCanvas.height;
 
     
-    let dimensions = CanvasFront.THUMBNAIL_HEIGHT;
+    let dimensions = CanvasFront.THUMBNAIL_SIZE;
     let thumbnail;
 
     
@@ -528,7 +532,7 @@ let ContextUtils = {
 
   resizePixels: function(srcPixels, srcWidth, srcHeight, dstHeight) {
     let screenshotRatio = dstHeight / srcHeight;
-    let dstWidth = Math.floor(srcWidth * screenshotRatio);
+    let dstWidth = (srcWidth * screenshotRatio) | 0;
 
     
     let dstPixels = new Array(dstWidth * dstHeight);
@@ -539,8 +543,8 @@ let ContextUtils = {
 
     for (let dstX = 0; dstX < dstWidth; dstX++) {
       for (let dstY = 0; dstY < dstHeight; dstY++) {
-        let srcX = Math.floor(dstX / screenshotRatio);
-        let srcY = Math.floor(dstY / screenshotRatio);
+        let srcX = (dstX / screenshotRatio) | 0;
+        let srcY = (dstY / screenshotRatio) | 0;
         let cPos = srcX + srcWidth * srcY;
         let dPos = dstX + dstWidth * dstY;
         let color = dstPixels[dPos] = srcPixels[cPos];
@@ -594,6 +598,8 @@ let ContextUtils = {
     let h = canvas.height;
 
     let replayContext;
+    let replayContextScaling;
+    let customViewport;
     let customFramebuffer;
     let lastDrawCallIndex = -1;
     let doCleanup = () => {};
@@ -605,10 +611,27 @@ let ContextUtils = {
     
     
     if (contextType == CallWatcherFront.CANVAS_WEBGL_CONTEXT) {
+      
+      
+      let scaling = Math.min(CanvasFront.WEBGL_SCREENSHOT_MAX_HEIGHT, h) / h;
+      replayContextScaling = scaling;
+      w = (w * scaling) | 0;
+      h = (h * scaling) | 0;
+
+      
       let gl = replayContext = this.getWebGLContext(canvas);
       let { newFramebuffer, oldFramebuffer } = this.createBoundFramebuffer(gl, w, h);
       customFramebuffer = newFramebuffer;
-      doCleanup = () => gl.bindFramebuffer(gl.FRAMEBUFFER, oldFramebuffer);
+
+      
+      let { newViewport, oldViewport } = this.setCustomViewport(gl, w, h);
+      customViewport = newViewport;
+
+      
+      doCleanup = () => {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, oldFramebuffer);
+        gl.viewport.apply(gl, oldViewport);
+      };
     }
     
     else if (contextType == CallWatcherFront.CANVAS_2D_CONTEXT) {
@@ -617,7 +640,8 @@ let ContextUtils = {
       replayCanvas.width = w;
       replayCanvas.height = h;
       replayContext = replayCanvas.getContext("2d");
-      replayContext.clearRect(0, 0, w, h);
+      replayContextScaling = 1;
+      customViewport = [0, 0, w, h];
     }
 
     
@@ -629,6 +653,15 @@ let ContextUtils = {
       if (name == "bindFramebuffer" && args[1] == null) {
         replayContext.bindFramebuffer(replayContext.FRAMEBUFFER, customFramebuffer);
         continue;
+      }
+      
+      
+      if (name == "viewport") {
+        let framebufferBinding = replayContext.getParameter(replayContext.FRAMEBUFFER_BINDING);
+        if (framebufferBinding == customFramebuffer) {
+          replayContext.viewport.apply(replayContext, customViewport);
+          continue;
+        }
       }
       if (type == CallWatcherFront.METHOD_FUNCTION) {
         replayContext[name].apply(replayContext, args);
@@ -644,6 +677,8 @@ let ContextUtils = {
 
     return {
       replayContext: replayContext,
+      replayContextScaling: replayContextScaling,
+      replayViewport: customViewport,
       lastDrawCallIndex: lastDrawCallIndex,
       doCleanup: doCleanup
     };
@@ -728,6 +763,20 @@ let ContextUtils = {
     gl.bindRenderbuffer(gl.RENDERBUFFER, oldRenderbufferBinding);
 
     return { oldFramebuffer, newFramebuffer };
+  },
+
+  
+
+
+
+
+
+  setCustomViewport: function(gl, width, height) {
+    let oldViewport = XPCNativeWrapper.unwrap(gl.getParameter(gl.VIEWPORT));
+    let newViewport = [0, 0, width, height];
+    gl.viewport.apply(gl, newViewport);
+
+    return { oldViewport, newViewport };
   }
 };
 
@@ -748,8 +797,8 @@ CanvasFront.CANVAS_CONTEXTS = new Set(CANVAS_CONTEXTS);
 CanvasFront.ANIMATION_GENERATORS = new Set(ANIMATION_GENERATORS);
 CanvasFront.DRAW_CALLS = new Set(DRAW_CALLS);
 CanvasFront.INTERESTING_CALLS = new Set(INTERESTING_CALLS);
-CanvasFront.THUMBNAIL_HEIGHT = 50; 
-CanvasFront.SCREENSHOT_HEIGHT_MAX = 256; 
+CanvasFront.THUMBNAIL_SIZE = 50; 
+CanvasFront.WEBGL_SCREENSHOT_MAX_HEIGHT = 256; 
 CanvasFront.INVALID_SNAPSHOT_IMAGE = {
   index: -1,
   width: 0,
