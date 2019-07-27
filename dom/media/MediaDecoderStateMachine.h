@@ -1217,10 +1217,6 @@ protected:
 
   
   
-  bool mStopAudioThread;
-
-  
-  
   
   
   
