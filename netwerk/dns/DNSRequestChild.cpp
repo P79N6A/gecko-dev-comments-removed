@@ -4,8 +4,10 @@
 
 
 
+#include "mozilla/net/ChildDNSService.h"
 #include "mozilla/net/DNSRequestChild.h"
 #include "mozilla/net/NeckoChild.h"
+#include "mozilla/unused.h"
 #include "nsIDNSRecord.h"
 #include "nsHostResolver.h"
 #include "nsTArray.h"
@@ -150,6 +152,32 @@ ChildDNSRecord::ReportUnusable(uint16_t aPort)
 
 
 
+class CancelDNSRequestEvent : public nsRunnable
+{
+public:
+  CancelDNSRequestEvent(DNSRequestChild* aDnsReq, nsresult aReason)
+    : mDnsRequest(aDnsReq)
+    , mReasonForCancel(aReason)
+  {}
+
+  NS_IMETHOD Run()
+  {
+    if (mDnsRequest->mIPCOpen) {
+      
+      mDnsRequest->SendCancelDNSRequest(mDnsRequest->mHost, mDnsRequest->mFlags,
+                                      mReasonForCancel);
+    }
+    return NS_OK;
+  }
+private:
+  nsRefPtr<DNSRequestChild> mDnsRequest;
+  nsresult mReasonForCancel;
+};
+
+
+
+
+
 DNSRequestChild::DNSRequestChild(const nsCString& aHost,
                                  const uint32_t& aFlags,
                                  nsIDNSListener *aListener,
@@ -159,6 +187,7 @@ DNSRequestChild::DNSRequestChild(const nsCString& aHost,
   , mResultStatus(NS_OK)
   , mHost(aHost)
   , mFlags(aFlags)
+  , mIPCOpen(false)
 {
 }
 
@@ -174,6 +203,7 @@ DNSRequestChild::StartRequest()
 
   
   gNeckoChild->SendPDNSRequestConstructor(this, mHost, mFlags);
+  mIPCOpen = true;
 
   
   AddIPDLReference();
@@ -183,13 +213,13 @@ void
 DNSRequestChild::CallOnLookupComplete()
 {
   MOZ_ASSERT(mListener);
-
   mListener->OnLookupComplete(this, mResultRecord, mResultStatus);
 }
 
 bool
-DNSRequestChild::Recv__delete__(const DNSRequestResponse& reply)
+DNSRequestChild::RecvLookupCompleted(const DNSRequestResponse& reply)
 {
+  mIPCOpen = false;
   MOZ_ASSERT(mListener);
 
   switch (reply.type()) {
@@ -223,7 +253,26 @@ DNSRequestChild::Recv__delete__(const DNSRequestResponse& reply)
     mTarget->Dispatch(event, NS_DISPATCH_NORMAL);
   }
 
+  unused << Send__delete__(this);
+
   return true;
+}
+
+void
+DNSRequestChild::ReleaseIPDLReference()
+{
+  
+  nsRefPtr<ChildDNSService> dnsServiceChild =
+    dont_AddRef(ChildDNSService::GetSingleton());
+  dnsServiceChild->NotifyRequestDone(this);
+
+  Release();
+}
+
+void
+DNSRequestChild::ActorDestroy(ActorDestroyReason why)
+{
+  mIPCOpen = false;
 }
 
 
@@ -240,7 +289,11 @@ NS_IMPL_ISUPPORTS(DNSRequestChild,
 NS_IMETHODIMP
 DNSRequestChild::Cancel(nsresult reason)
 {
-  
+  if(mIPCOpen) {
+    
+    NS_DispatchToMainThread(
+      new CancelDNSRequestEvent(this, reason));
+  }
   return NS_OK;
 }
 

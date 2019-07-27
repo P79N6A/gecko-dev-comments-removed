@@ -26,6 +26,13 @@ public:
 
   void DoAsyncResolve(const nsACString  &hostname, uint32_t flags);
 
+  
+  
+  bool RecvCancelDNSRequest(const nsCString& hostName,
+                            const uint32_t& flags,
+                            const nsresult& reason);
+  bool Recv__delete__();
+
 protected:
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 private:

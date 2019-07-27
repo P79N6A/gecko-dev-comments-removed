@@ -30,21 +30,19 @@ public:
   void AddIPDLReference() {
     AddRef();
   }
-  void ReleaseIPDLReference() {
-    
-    
-    
-    Release();
-  }
+  void ReleaseIPDLReference();
 
   
   void StartRequest();
   void CallOnLookupComplete();
 
-private:
+protected:
+  friend class CancelDNSRequestEvent;
+  friend class ChildDNSService;
   virtual ~DNSRequestChild() {}
 
-  virtual bool Recv__delete__(const DNSRequestResponse& reply) MOZ_OVERRIDE;
+  virtual bool RecvLookupCompleted(const DNSRequestResponse& reply) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
   nsCOMPtr<nsIDNSListener>  mListener;
   nsCOMPtr<nsIEventTarget>  mTarget;
@@ -52,6 +50,7 @@ private:
   nsresult                  mResultStatus;
   nsCString                 mHost;
   uint16_t                  mFlags;
+  bool                      mIPCOpen;
 };
 
 } 

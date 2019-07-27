@@ -11,7 +11,6 @@
 #include "nsIPrefService.h"
 #include "nsIProtocolProxyService.h"
 #include "mozilla/net/NeckoChild.h"
-#include "mozilla/net/DNSRequestChild.h"
 #include "mozilla/net/DNSListenerProxy.h"
 
 namespace mozilla {
@@ -44,6 +43,7 @@ NS_IMPL_ISUPPORTS(ChildDNSService,
 ChildDNSService::ChildDNSService()
   : mFirstTime(true)
   , mOffline(false)
+  , mPendingRequestsLock("DNSPendingRequestsLock")
 {
   MOZ_ASSERT(IsNeckoChild());
 }
@@ -51,6 +51,17 @@ ChildDNSService::ChildDNSService()
 ChildDNSService::~ChildDNSService()
 {
 
+}
+
+void
+ChildDNSService::GetDNSRecordHashKey(const nsACString &aHost,
+                                     uint32_t aFlags,
+                                     nsIDNSListener* aListener,
+                                     nsACString &aHashKey)
+{
+  aHashKey.Assign(aHost);
+  aHashKey.AppendInt(aFlags);
+  aHashKey.AppendPrintf("%p", aListener);
 }
 
 
@@ -71,10 +82,16 @@ ChildDNSService::AsyncResolve(const nsACString  &hostname,
   }
 
   
+  uint32_t originalFlags = flags;
+
+  
   
   if (mOffline) {
     flags |= RESOLVE_OFFLINE;
   }
+
+  
+  nsIDNSListener *originalListener = listener;
 
   
   nsCOMPtr<nsIEventTarget> target = target_;
@@ -93,6 +110,20 @@ ChildDNSService::AsyncResolve(const nsACString  &hostname,
   nsRefPtr<DNSRequestChild> childReq =
     new DNSRequestChild(nsCString(hostname), flags, listener, target);
 
+  {
+    MutexAutoLock lock(mPendingRequestsLock);
+    nsCString key;
+    GetDNSRecordHashKey(hostname, originalFlags, originalListener, key);
+    nsTArray<nsRefPtr<DNSRequestChild>> *hashEntry;
+    if (mPendingRequests.Get(key, &hashEntry)) {
+      hashEntry->AppendElement(childReq);
+    } else {
+      hashEntry = new nsTArray<nsRefPtr<DNSRequestChild>>();
+      hashEntry->AppendElement(childReq);
+      mPendingRequests.Put(key, hashEntry);
+    }
+  }
+
   childReq->StartRequest();
 
   childReq.forget(result);
@@ -109,10 +140,16 @@ ChildDNSService::CancelAsyncResolve(const nsACString  &aHostname,
     return NS_ERROR_DNS_LOOKUP_QUEUE_FULL;
   }
 
-  
-  
-  
-  return NS_ERROR_NOT_AVAILABLE;
+  MutexAutoLock lock(mPendingRequestsLock);
+  nsTArray<nsRefPtr<DNSRequestChild>> *hashEntry;
+  nsCString key;
+  GetDNSRecordHashKey(aHostname, aFlags, aListener, key);
+  if (mPendingRequests.Get(key, &hashEntry)) {
+    
+    hashEntry->ElementAt(0)->Cancel(aReason);
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -138,6 +175,39 @@ ChildDNSService::GetMyHostName(nsACString &result)
 {
   
   return NS_ERROR_NOT_AVAILABLE;
+}
+
+void
+ChildDNSService::NotifyRequestDone(DNSRequestChild *aDnsRequest)
+{
+  
+  uint32_t originalFlags = aDnsRequest->mFlags & ~RESOLVE_OFFLINE;
+  nsCOMPtr<nsIDNSListener> originalListener = aDnsRequest->mListener;
+  nsCOMPtr<nsIDNSListenerProxy> wrapper = do_QueryInterface(originalListener);
+  if (wrapper) {
+    wrapper->GetOriginalListener(getter_AddRefs(originalListener));
+    if (NS_WARN_IF(!originalListener)) {
+      MOZ_ASSERT(originalListener);
+      return;
+    }
+  }
+
+  MutexAutoLock lock(mPendingRequestsLock);
+
+  nsCString key;
+  GetDNSRecordHashKey(aDnsRequest->mHost, originalFlags, originalListener, key);
+
+  nsTArray<nsRefPtr<DNSRequestChild>> *hashEntry;
+
+  if (mPendingRequests.Get(key, &hashEntry)) {
+    int idx;
+    if ((idx = hashEntry->IndexOf(aDnsRequest))) {
+      hashEntry->RemoveElementAt(idx);
+      if (hashEntry->IsEmpty()) {
+        mPendingRequests.Remove(key);
+      }
+    }
+  }
 }
 
 
