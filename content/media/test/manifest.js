@@ -819,11 +819,13 @@ function MediaTestManager() {
       if (this.onFinished) {
         this.onFinished();
       }
-      mediaTestCleanup();
-      var end = new Date();
-      SimpleTest.info("Finished at " + end + " (" + (end.getTime() / 1000) + "s)");
-      SimpleTest.info("Running time: " + (end.getTime() - this.startTime.getTime())/1000 + "s");
-      SimpleTest.finish();
+      var onCleanup = function() {
+        var end = new Date();
+        SimpleTest.info("Finished at " + end + " (" + (end.getTime() / 1000) + "s)");
+        SimpleTest.info("Running time: " + (end.getTime() - this.startTime.getTime())/1000 + "s");
+        SimpleTest.finish();
+      }.bind(this);
+      mediaTestCleanup(onCleanup);
       return;
     }
   }
@@ -832,7 +834,7 @@ function MediaTestManager() {
 
 
 
-function mediaTestCleanup() {
+function mediaTestCleanup(callback) {
     var V = document.getElementsByTagName("video");
     for (i=0; i<V.length; i++) {
       removeNodeAndSource(V[i]);
@@ -843,7 +845,12 @@ function mediaTestCleanup() {
       removeNodeAndSource(A[i]);
       A[i] = null;
     }
-    SpecialPowers.forceGC();
+    var cb = function() {
+      if (callback) {
+        callback();
+      }
+    }
+    SpecialPowers.exactGC(window, cb);
 }
 
 (function() {
