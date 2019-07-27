@@ -89,7 +89,8 @@ class SearchEngineRow extends AnimatedHeightLayout {
                     if (v == mUserEnteredView) {
                         Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.SUGGESTION, "user");
                     } else {
-                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.SUGGESTION, "engine");
+                        final String extras = "engine." + (String) v.getTag();
+                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.SUGGESTION, extras);
                     }
                     mSearchListener.onSearch(mSearchEngine, suggestion);
                 }
@@ -197,6 +198,9 @@ class SearchEngineRow extends AnimatedHeightLayout {
 
                 suggestionItem.setOnClickListener(mClickListener);
                 suggestionItem.setOnLongClickListener(mLongClickListener);
+
+                
+                suggestionItem.setTag(String.valueOf(suggestionCounter));
 
                 final ImageView magnifier =
                         (ImageView) suggestionItem.findViewById(R.id.suggestion_magnifier);
