@@ -85,28 +85,27 @@ nsSVGFilterInstance::ComputeBounds()
   XYWH[3] = *mFilterFrame->GetLengthValue(SVGFilterElement::ATTR_HEIGHT);
   uint16_t filterUnits =
     mFilterFrame->GetEnumValue(SVGFilterElement::FILTERUNITS);
-  mUserSpaceBounds = nsSVGUtils::GetRelativeRect(filterUnits,
+  gfxRect userSpaceBounds = nsSVGUtils::GetRelativeRect(filterUnits,
     XYWH, mTargetBBox, mTargetFrame);
 
   
   
   
-  mUserSpaceBounds = UserSpaceToFilterSpace(mUserSpaceBounds);
-  mUserSpaceBounds.RoundOut();
-  if (mUserSpaceBounds.Width() <= 0 || mUserSpaceBounds.Height() <= 0) {
+  gfxRect filterSpaceBounds = UserSpaceToFilterSpace(userSpaceBounds);
+  filterSpaceBounds.RoundOut();
+  if (filterSpaceBounds.width <= 0 || filterSpaceBounds.height <= 0) {
     
     
     return NS_ERROR_FAILURE;
   }
 
   
-  if (!gfxUtils::GfxRectToIntRect(mUserSpaceBounds, &mFilterSpaceBounds)) {
+  if (!gfxUtils::GfxRectToIntRect(filterSpaceBounds, &mFilterSpaceBounds)) {
     
     return NS_ERROR_FAILURE;
   }
 
-  
-  mUserSpaceBounds = FilterSpaceToUserSpace(mUserSpaceBounds);
+  mUserSpaceBounds = FilterSpaceToUserSpace(filterSpaceBounds);
 
   return NS_OK;
 }
