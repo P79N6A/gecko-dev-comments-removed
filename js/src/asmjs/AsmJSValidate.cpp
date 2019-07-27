@@ -2009,7 +2009,10 @@ IsFloatLiteral(ModuleCompiler &m, ParseNode *pn)
 {
     ParseNode *coercedExpr;
     AsmJSCoercion coercion;
-    if (!IsCoercionCall(m, pn, &coercion, &coercedExpr) || coercion != AsmJS_FRound)
+    if (!IsCoercionCall(m, pn, &coercion, &coercedExpr))
+        return false;
+    
+    if (coercion != AsmJS_FRound)
         return false;
     return IsNumericNonFloatLiteral(coercedExpr);
 }
