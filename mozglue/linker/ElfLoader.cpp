@@ -497,49 +497,17 @@ ElfLoader::Init()
 
 
   if (dladdr(_DYNAMIC, &info) != 0) {
-    
-
-
-    UniquePtr<BaseElf> elf = mozilla::MakeUnique<BaseElf>(info.dli_fname);
-    elf->base.Assign(info.dli_fbase, -1);
-    size_t symnum = 0;
-    for (const Elf::Dyn *dyn = _DYNAMIC; dyn->d_tag; dyn++) {
-      switch (dyn->d_tag) {
-        case DT_HASH:
-          {
-            DEBUG_LOG("%s 0x%08" PRIxAddr, "DT_HASH", dyn->d_un.d_val);
-            const Elf::Word *hash_table_header = \
-              elf->GetPtr<Elf::Word>(dyn->d_un.d_ptr);
-            symnum = hash_table_header[1];
-            elf->buckets.Init(&hash_table_header[2], hash_table_header[0]);
-            elf->chains.Init(&*elf->buckets.end());
-          }
-          break;
-        case DT_STRTAB:
-          DEBUG_LOG("%s 0x%08" PRIxAddr, "DT_STRTAB", dyn->d_un.d_val);
-          elf->strtab.Init(elf->GetPtr(dyn->d_un.d_ptr));
-          break;
-        case DT_SYMTAB:
-          DEBUG_LOG("%s 0x%08" PRIxAddr, "DT_SYMTAB", dyn->d_un.d_val);
-          elf->symtab.Init(elf->GetPtr(dyn->d_un.d_ptr));
-          break;
-      }
-    }
-    if (!elf->buckets || !symnum) {
-      ERROR("%s: Missing or broken DT_HASH", info.dli_fname);
-    } else if (!elf->strtab) {
-      ERROR("%s: Missing DT_STRTAB", info.dli_fname);
-    } else if (!elf->symtab) {
-      ERROR("%s: Missing DT_SYMTAB", info.dli_fname);
-    } else {
-      self_elf = Move(elf);
-    }
+    self_elf = LoadedElf::Create(info.dli_fname, info.dli_fbase);
   }
 }
 
 ElfLoader::~ElfLoader()
 {
   LibHandleList list;
+
+  
+  self_elf = nullptr;
+
   
 
 
@@ -578,10 +546,6 @@ ElfLoader::~ElfLoader()
       }
     }
   }
-  
-
-  if (self_elf)
-    self_elf->base.release();
 }
 
 void

@@ -103,4 +103,39 @@ public:
 #endif
 };
 
+
+
+
+
+class LoadedElf: public BaseElf
+{
+public:
+  
+
+
+
+  static mozilla::TemporaryRef<LibHandle> Create(const char *path,
+                                                 void *base_addr);
+
+private:
+  LoadedElf(const char *path)
+  : BaseElf(path) { }
+
+  ~LoadedElf()
+  {
+    
+
+    base.release();
+    ElfLoader::Singleton.Forget(this);
+  }
+
+  
+
+
+
+
+  bool InitDyn(const Elf::Phdr *pt_dyn);
+};
+
+
 #endif 

@@ -461,7 +461,7 @@ private:
 
   
 
-  mozilla::UniquePtr<BaseElf> self_elf;
+  mozilla::RefPtr<LibHandle> self_elf;
 
   
   typedef std::vector<LibHandle *> LibHandleList;
@@ -469,6 +469,7 @@ private:
 
 protected:
   friend class CustomElf;
+  friend class LoadedElf;
   
 
 

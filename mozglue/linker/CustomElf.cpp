@@ -329,7 +329,8 @@ CustomElf::GetSymbolPtrInDeps(const char *symbol) const
   if (ElfLoader::Singleton.self_elf) {
     
 
-    sym = ElfLoader::Singleton.self_elf->GetSymbolPtr(symbol, hash);
+    sym = static_cast<BaseElf *>(
+      ElfLoader::Singleton.self_elf.get())->GetSymbolPtr(symbol, hash);
     if (sym)
       return sym;
   }
@@ -342,6 +343,10 @@ CustomElf::GetSymbolPtrInDeps(const char *symbol) const
 
   for (std::vector<RefPtr<LibHandle> >::const_iterator it = dependencies.begin();
        it < dependencies.end(); ++it) {
+    
+
+    if (*it == ElfLoader::Singleton.self_elf)
+      continue;
     if (BaseElf *be = (*it)->AsBaseElf()) {
       sym = be->GetSymbolPtr(symbol, hash);
     } else {
