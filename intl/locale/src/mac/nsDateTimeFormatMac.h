@@ -45,9 +45,10 @@ public:
                                   nsAString& stringOut); 
 
   nsDateTimeFormatMac() {}
-  
+
+protected:
   virtual ~nsDateTimeFormatMac() {}
-  
+
 private:
   
   NS_IMETHOD Initialize(nsILocale* locale);
