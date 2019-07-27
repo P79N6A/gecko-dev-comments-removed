@@ -3618,6 +3618,12 @@ js::PrimitiveToObject(JSContext *cx, const Value &v)
 }
 
 
+
+
+
+
+
+
 JSObject *
 js::ToObjectSlow(JSContext *cx, HandleValue val, bool reportScanStack)
 {

@@ -1143,29 +1143,12 @@ PrimitiveToObject(JSContext *cx, const Value &v);
 namespace js {
 
 
-
-
-
-
-extern JSObject *
-ToObjectSlow(JSContext *cx, HandleValue vp, bool reportScanStack);
-
-
-MOZ_ALWAYS_INLINE JSObject *
-ToObject(JSContext *cx, HandleValue vp)
-{
-    if (vp.isObject())
-        return &vp.toObject();
-    return ToObjectSlow(cx, vp, false);
-}
-
-
 MOZ_ALWAYS_INLINE JSObject *
 ToObjectFromStack(JSContext *cx, HandleValue vp)
 {
     if (vp.isObject())
         return &vp.toObject();
-    return ToObjectSlow(cx, vp, true);
+    return js::ToObjectSlow(cx, vp, true);
 }
 
 template<XDRMode mode>
