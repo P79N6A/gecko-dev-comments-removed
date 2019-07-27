@@ -55,6 +55,9 @@ GetNativeFromGeckoAccessible(mozilla::a11y::Accessible* aAccessible)
 }
 
 
+- (mozilla::a11y::AccessibleWrap*) getGeckoAccessible;
+
+
 - (id)initWithAccessible:(mozilla::a11y::AccessibleWrap*)geckoParent;
 
 
