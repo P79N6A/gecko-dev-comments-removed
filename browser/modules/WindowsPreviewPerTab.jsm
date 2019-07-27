@@ -86,7 +86,7 @@ function _imageFromURI(doc, uri, privateMode, callback) {
   } catch (e) {
     
   }
-  NetUtil.asyncFetch2(channel, function(inputStream, resultCode) {
+  NetUtil.asyncFetch(channel, function(inputStream, resultCode) {
     if (!Components.isSuccessCode(resultCode))
       return;
     try {

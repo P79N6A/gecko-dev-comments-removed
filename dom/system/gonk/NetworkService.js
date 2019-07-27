@@ -240,7 +240,10 @@ NetworkService.prototype = {
       return;
     }
 
-    NetUtil.asyncFetch2(file, function(inputStream, status) {
+    NetUtil.asyncFetch({
+      uri: NetUtil.newURI(file),
+      loadUsingSystemPrincipal: true
+    }, function(inputStream, status) {
       let rxBytes = 0,
           txBytes = 0,
           now = Date.now();
@@ -263,12 +266,7 @@ NetworkService.prototype = {
 
       
       callback.networkStatsAvailable(true, rxBytes, txBytes, now);
-    },
-    null,      
-    Services.scriptSecurityManager.getSystemPrincipal(),
-    null,      
-    Ci.nsILoadInfo.SEC_NORMAL,
-    Ci.nsIContentPolicy.TYPE_OTHER);
+    });
   },
 
   setNetworkInterfaceAlarm: function(networkName, threshold, callback) {

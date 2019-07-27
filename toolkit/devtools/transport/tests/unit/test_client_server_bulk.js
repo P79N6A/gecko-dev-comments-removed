@@ -62,18 +62,14 @@ TestBulkActor.prototype = {
       type: type,
       length: really_long().length
     }).then(({copyFrom}) => {
-      NetUtil.asyncFetch2(
-        getTestTempFile("bulk-input"),
-        input => {
+      NetUtil.asyncFetch({
+        uri: NetUtil.newURI(getTestTempFile("bulk-input")),
+        loadUsingSystemPrincipal: true
+      }, input => {
           copyFrom(input).then(() => {
             input.close();
           });
-        },
-        null,      
-        Services.scriptSecurityManager.getSystemPrincipal(),
-        null,      
-        Ci.nsILoadInfo.SEC_NORMAL,
-        Ci.nsIContentPolicy.TYPE_OTHER);
+        });
     });
   },
 
@@ -168,19 +164,15 @@ let test_bulk_request_cs = Task.async(function*(transportFactory, actorType, rep
 
     
     request.on("bulk-send-ready", ({copyFrom}) => {
-      NetUtil.asyncFetch2(
-        getTestTempFile("bulk-input"),
-        input => {
+      NetUtil.asyncFetch({
+        uri: NetUtil.newURI(getTestTempFile("bulk-input")),
+        loadUsingSystemPrincipal: true
+      }, input => {
           copyFrom(input).then(() => {
             input.close();
             bulkCopyDeferred.resolve();
           });
-        },
-        null,      
-        Services.scriptSecurityManager.getSystemPrincipal(),
-        null,      
-        Ci.nsILoadInfo.SEC_NORMAL,
-        Ci.nsIContentPolicy.TYPE_OTHER);
+        });
     });
 
     
@@ -257,20 +249,16 @@ function verify_files() {
 
   
   let compareDeferred = promise.defer();
-  NetUtil.asyncFetch2(
-    getTestTempFile("bulk-output"),
-    input => {
+  NetUtil.asyncFetch({
+    uri: NetUtil.newURI(getTestTempFile("bulk-output")),
+    loadUsingSystemPrincipal: true
+  }, input => {
       let outputData = NetUtil.readInputStreamToString(input, reallyLong.length);
       
       do_check_true(outputData === reallyLong);
       input.close();
       compareDeferred.resolve();
-    },
-    null,      
-    Services.scriptSecurityManager.getSystemPrincipal(),
-    null,      
-    Ci.nsILoadInfo.SEC_NORMAL,
-    Ci.nsIContentPolicy.TYPE_OTHER);
+    });
 
   return compareDeferred.promise.then(cleanup_files);
 }
