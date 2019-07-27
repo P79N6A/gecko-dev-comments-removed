@@ -15,6 +15,7 @@
 #include "gfxTextRun.h"
 #include "nsDisplayList.h"
 #include "JustificationUtils.h"
+#include "RubyUtils.h"
 
 
 #if defined(XP_WIN) && defined(DrawText)
@@ -120,6 +121,18 @@ public:
     
     return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced |
                                              nsIFrame::eLineParticipant));
+  }
+
+  bool ShouldSuppressLineBreak() const
+  {
+    
+    
+    
+    
+    if (mozilla::RubyUtils::IsRubyContentBox(GetParent()->GetType())) {
+      return true;
+    }
+    return StyleContext()->ShouldSuppressLineBreak();
   }
 
   virtual void InvalidateFrame(uint32_t aDisplayItemKey = 0) override;

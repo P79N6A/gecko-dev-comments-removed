@@ -30,6 +30,7 @@
 #include "CounterStyleManager.h"
 
 class nsIFrame;
+class nsTextFrame;
 class nsIURI;
 class imgIContainer;
 
@@ -1666,7 +1667,7 @@ struct nsStyleText {
   
   
   
-  inline bool NewlineIsSignificant(const nsIFrame* aContextFrame) const;
+  inline bool NewlineIsSignificant(const nsTextFrame* aContextFrame) const;
   inline bool WhiteSpaceCanWrap(const nsIFrame* aContextFrame) const;
   inline bool WordCanWrap(const nsIFrame* aContextFrame) const;
 };

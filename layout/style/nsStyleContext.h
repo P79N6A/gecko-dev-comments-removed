@@ -157,6 +157,8 @@ public:
   
   
   
+  
+  
   bool ShouldSuppressLineBreak() const
     { return !!(mBits & NS_STYLE_SUPPRESS_LINEBREAK); }
 
