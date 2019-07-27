@@ -585,8 +585,16 @@ bool WebMReader::DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset)
       }
 
       VorbisPCMValue** pcm = 0;
-      int32_t frames = 0;
-      while ((frames = vorbis_synthesis_pcmout(&mVorbisDsp, &pcm)) > 0) {
+      int32_t frames = vorbis_synthesis_pcmout(&mVorbisDsp, &pcm);
+      
+      
+      
+      
+      
+      if (frames == 0 && mAudioFrames == 0) {
+        AudioQueue().Push(new AudioData(aOffset, tstamp_usecs, 0, 0, nullptr, mChannels, rate));
+      }
+      while (frames > 0) {
         nsAutoArrayPtr<AudioDataValue> buffer(new AudioDataValue[frames * mChannels]);
         for (uint32_t j = 0; j < mChannels; ++j) {
           VorbisPCMValue* channel = pcm[j];
@@ -624,6 +632,8 @@ bool WebMReader::DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset)
         if (vorbis_synthesis_read(&mVorbisDsp, frames) != 0) {
           return false;
         }
+
+        frames = vorbis_synthesis_pcmout(&mVorbisDsp, &pcm);
       }
     } else if (mAudioCodec == NESTEGG_CODEC_OPUS) {
 #ifdef MOZ_OPUS
