@@ -58,6 +58,8 @@ public class LocalBrowserDB {
     
     
     private static final String LOGTAG = "GeckoLocalBrowserDB";
+    private static final Integer FAVICON_ID_NOT_FOUND = Integer.MIN_VALUE;
+
     private static final boolean logDebug = Log.isLoggable(LOGTAG, Log.DEBUG);
     protected static void debug(String message) {
         if (logDebug) {
@@ -998,19 +1000,38 @@ public class LocalBrowserDB {
         return FaviconDecoder.decodeFavicon(b);
     }
 
-    public String getFaviconUrlForHistoryUrl(ContentResolver cr, String uri) {
-        final Cursor c = cr.query(mHistoryUriWithProfile,
-                                  new String[] { History.FAVICON_URL },
-                                  Combined.URL + " = ?",
-                                  new String[] { uri },
-                                  null);
+    
+
+
+    public String getFaviconURLFromPageURL(ContentResolver cr, String uri) {
+        
+        Cursor c = cr.query(mHistoryUriWithProfile,
+                            new String[] { History.FAVICON_URL },
+                            Combined.URL + " = ?",
+                            new String[] { uri },
+                            null);
 
         try {
-            if (!c.moveToFirst()) {
-                return null;
+            if (c.moveToFirst()) {
+                return c.getString(c.getColumnIndexOrThrow(History.FAVICON_URL));
+            }
+        } finally {
+            c.close();
+        }
+
+        
+        c = cr.query(mBookmarksUriWithProfile,
+                     new String[] { Bookmarks.FAVICON_URL },
+                     Bookmarks.URL + " = ?",
+                     new String[] { uri },
+                     null);
+
+        try {
+            if (c.moveToFirst()) {
+                return c.getString(c.getColumnIndexOrThrow(Bookmarks.FAVICON_URL));
             }
 
-            return c.getString(c.getColumnIndexOrThrow(History.FAVICON_URL));
+            return null;
         } finally {
             c.close();
         }
@@ -1027,10 +1048,66 @@ public class LocalBrowserDB {
         Uri faviconsUri = getAllFaviconsUri().buildUpon().
                 appendQueryParameter(BrowserContract.PARAM_INSERT_IF_NEEDED, "true").build();
 
-        cr.update(faviconsUri,
-                  values,
-                  Favicons.URL + " = ?",
-                  new String[] { faviconUri });
+        final int updated = cr.update(faviconsUri,
+                                      values,
+                                      Favicons.URL + " = ?",
+                                      new String[] { faviconUri });
+
+        if (updated == 0) {
+            return;
+        }
+
+        
+        
+        final Integer id = getIDForFaviconURL(cr, faviconUri);
+        if (id == FAVICON_ID_NOT_FOUND) {
+            return;
+        }
+
+        updateHistoryAndBookmarksFaviconID(cr, pageUri, id);
+    }
+
+    
+
+
+    private Integer getIDForFaviconURL(ContentResolver cr, String faviconURL) {
+        final Cursor c = cr.query(mFaviconsUriWithProfile,
+                                  new String[] { Favicons._ID },
+                                  Favicons.URL + " = ? AND " + Favicons.DATA + " IS NOT NULL",
+                                  new String[] { faviconURL },
+                                  null);
+
+        try {
+            final int col = c.getColumnIndexOrThrow(Favicons._ID);
+            if (c.moveToFirst() && !c.isNull(col)) {
+                return c.getInt(col);
+            }
+
+            
+            return FAVICON_ID_NOT_FOUND;
+        } finally {
+            c.close();
+        }
+    }
+
+    
+
+
+
+    private void updateHistoryAndBookmarksFaviconID(ContentResolver cr, String pageURL, int id) {
+        final ContentValues bookmarkValues = new ContentValues();
+        bookmarkValues.put(Bookmarks.FAVICON_ID, id);
+        cr.update(mBookmarksUriWithProfile,
+                  bookmarkValues,
+                  Bookmarks.URL + " = ?",
+                  new String[] { pageURL });
+
+        final ContentValues historyValues = new ContentValues();
+        historyValues.put(History.FAVICON_ID, id);
+        cr.update(mHistoryUriWithProfile,
+                  historyValues,
+                  History.URL + " = ?",
+                  new String[] { pageURL });
     }
 
     public void updateThumbnailForUrl(ContentResolver cr, String uri,

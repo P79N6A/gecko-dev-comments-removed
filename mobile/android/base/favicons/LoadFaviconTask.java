@@ -46,7 +46,6 @@ public class LoadFaviconTask {
     private static final HashMap<String, LoadFaviconTask> loadsInFlight = new HashMap<>();
 
     public static final int FLAG_PERSIST = 1;
-    public static final int FLAG_SCALE = 2;
     private static final int MAX_REDIRECTS_TO_FOLLOW = 5;
     
     
