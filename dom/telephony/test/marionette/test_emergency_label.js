@@ -9,6 +9,12 @@ const DEFAULT_ECC_LIST = "112,911";
 function setEccListProperty(list) {
   log("Set property ril.ecclist: " + list);
 
+  
+  
+  if (!list) {
+    list = "''";
+  }
+
   let deferred = Promise.defer();
   try {
     emulator.runShellCmd(["setprop","ril.ecclist", list]).then(function() {
