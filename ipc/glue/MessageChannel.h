@@ -135,6 +135,14 @@ class MessageChannel : HasResultCodes
         return !mCxxStackFrames.empty();
     }
 
+    
+
+
+
+
+
+    int32_t GetTopmostMessageRoutingId() const;
+
     void FlushPendingInterruptQueue();
 
     
