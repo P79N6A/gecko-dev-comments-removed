@@ -5372,7 +5372,6 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
 
 
 
-
 typedef void
 (* LargeAllocationFailureCallback)(void *data);
 
