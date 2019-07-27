@@ -400,6 +400,16 @@ CertErrorRunnable::CheckCertOverrides()
                                                mDefaultErrorCodeToReport);
   }
 
+  nsCOMPtr<nsISSLSocketControl> sslSocketControl = do_QueryInterface(
+    NS_ISUPPORTS_CAST(nsITransportSecurityInfo*, mInfoObject));
+  if (sslSocketControl &&
+      sslSocketControl->GetBypassAuthentication()) {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("[%p][%p] Bypass Auth in CheckCertOverrides\n",
+            mFdForLogging, this));
+    return new SSLServerCertVerificationResult(mInfoObject, 0);
+  }
+
   int32_t port;
   mInfoObject->GetPort(&port);
 
@@ -490,8 +500,6 @@ CertErrorRunnable::CheckCertOverrides()
   
 
   
-  nsCOMPtr<nsISSLSocketControl> sslSocketControl = do_QueryInterface(
-    NS_ISUPPORTS_CAST(nsITransportSecurityInfo*, mInfoObject));
   if (sslSocketControl) {
     nsCOMPtr<nsIInterfaceRequestor> cb;
     sslSocketControl->GetNotificationCallbacks(getter_AddRefs(cb));
