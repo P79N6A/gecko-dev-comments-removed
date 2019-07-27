@@ -60,6 +60,10 @@
 
 
 
+
+
+
+
 var gPrintSettingsAreGlobal = false;
 var gSavePrintSettings = false;
 var gFocusedElement = null;
@@ -124,6 +128,8 @@ var PrintUtils = {
 
 
 
+
+
   print: function (aWindow, aBrowser)
   {
     if (this.bailOut()) {
@@ -170,6 +176,9 @@ var PrintUtils = {
   },
 
   
+
+
+
 
 
 
