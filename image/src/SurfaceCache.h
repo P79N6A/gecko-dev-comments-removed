@@ -135,9 +135,9 @@ struct SurfaceCache
 
 
 
-  static void Insert(mozilla::gfx::DrawTarget* aTarget,
-                     const ImageKey            aImageKey,
-                     const SurfaceKey&         aSurfaceKey);
+  static void Insert(gfx::DrawTarget*  aTarget,
+                     const ImageKey    aImageKey,
+                     const SurfaceKey& aSurfaceKey);
 
   
 

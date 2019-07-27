@@ -61,7 +61,7 @@ public:
 
 
 
-  RefreshResult RequestRefresh(const mozilla::TimeStamp& aTime);
+  RefreshResult RequestRefresh(const TimeStamp& aTime);
 
   
 
@@ -136,14 +136,14 @@ private:
 
 
 
-  RefreshResult AdvanceFrame(mozilla::TimeStamp aTime);
+  RefreshResult AdvanceFrame(TimeStamp aTime);
 
   
 
 
 
 
-  mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
+  TimeStamp GetCurrentImgFrameEndTime() const;
 
 private: 
   

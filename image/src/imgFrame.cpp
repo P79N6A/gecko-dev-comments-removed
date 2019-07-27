@@ -23,9 +23,12 @@ static bool gDisableOptimize = false;
 #include "mozilla/CheckedInt.h"
 #include "mozilla/gfx/Tools.h"
 
-using namespace mozilla;
-using namespace mozilla::gfx;
-using namespace mozilla::image;
+
+namespace mozilla {
+
+using namespace gfx;
+
+namespace image {
 
 static UserDataKey kVolatileBuffer;
 
@@ -750,7 +753,7 @@ void imgFrame::SetCompositingFailed(bool val)
 
 
 size_t
-imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocation, mozilla::MallocSizeOf aMallocSizeOf) const
+imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocation, MallocSizeOf aMallocSizeOf) const
 {
   
   
@@ -787,3 +790,6 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
 
   return n;
 }
+
+} 
+} 
