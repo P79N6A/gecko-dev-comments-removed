@@ -17,6 +17,8 @@ class nsIWidget;
 namespace mozilla {
 namespace widget {
 
+struct IMENotification;
+
 
 
 
@@ -62,6 +64,12 @@ public:
 
 
   nsresult GetState() const;
+
+  
+
+
+
+  bool IsComposing() const { return mIsComposing; }
 
   
 
@@ -135,6 +143,11 @@ public:
     return mPendingComposition.Flush(this, aStatus);
   }
 
+  
+
+
+  nsresult NotifyIME(const IMENotification& aIMENotification);
+
 private:
   
   
@@ -168,6 +181,8 @@ private:
 
   bool mInitialized;
   bool mForTests;
+  
+  bool mIsComposing;
 
   
 

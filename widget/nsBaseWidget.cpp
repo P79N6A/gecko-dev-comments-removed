@@ -73,6 +73,7 @@ nsIRollupListener* nsBaseWidget::gRollupListener = nullptr;
 
 using namespace mozilla::layers;
 using namespace mozilla::ipc;
+using namespace mozilla::widget;
 using namespace mozilla;
 using base::Thread;
 
@@ -1582,6 +1583,25 @@ nsBaseWidget::NotifyUIStateChanged(UIStateChangeType aShowAccelerators,
     if (win) {
       win->SetKeyboardIndicators(aShowAccelerators, aShowFocusRings);
     }
+  }
+}
+
+NS_IMETHODIMP
+nsBaseWidget::NotifyIME(const IMENotification& aIMENotification)
+{
+  switch (aIMENotification.mMessage) {
+    case REQUEST_TO_COMMIT_COMPOSITION:
+    case REQUEST_TO_CANCEL_COMPOSITION:
+      
+      
+      
+      
+      if (mTextEventDispatcher && mTextEventDispatcher->IsComposing()) {
+        return mTextEventDispatcher->NotifyIME(aIMENotification);
+      }
+      
+    default:
+      return NotifyIMEInternal(aIMENotification);
   }
 }
 

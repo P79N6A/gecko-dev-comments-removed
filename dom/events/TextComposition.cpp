@@ -340,35 +340,14 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
       mIsRequestingCancel = false;
       mIsRequestingCommit = true;
     }
-    if (!mIsSynthesizedForTests) {
-      
-      
-      nsresult rv =
-        aWidget->NotifyIME(IMENotification(aDiscard ?
-                                             REQUEST_TO_CANCEL_COMPOSITION :
-                                             REQUEST_TO_COMMIT_COMPOSITION));
-      if (rv == NS_ERROR_NOT_IMPLEMENTED) {
-        return rv;
-      }
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-    } else {
-      
-      
-      
-      nsCOMPtr<nsIWidget> widget(aWidget);
-      nsAutoString commitData(aDiscard ? EmptyString() : lastData);
-      bool isChanging = commitData != mLastData;
-      uint32_t message =
-        isChanging ? NS_COMPOSITION_COMMIT : NS_COMPOSITION_COMMIT_AS_IS;
-      WidgetCompositionEvent commitEvent(true, message, widget);
-      if (commitEvent.message == NS_COMPOSITION_COMMIT) {
-        commitEvent.mData = commitData;
-      }
-      commitEvent.mFlags.mIsSynthesizedForTests = true;
-      nsEventStatus status = nsEventStatus_eIgnore;
-      widget->DispatchEvent(&commitEvent, status);
+    
+    
+    nsresult rv =
+      aWidget->NotifyIME(IMENotification(aDiscard ?
+                                           REQUEST_TO_CANCEL_COMPOSITION :
+                                           REQUEST_TO_COMMIT_COMPOSITION));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
   }
 
