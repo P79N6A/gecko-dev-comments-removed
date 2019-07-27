@@ -24,6 +24,13 @@ class TempAllocator
     LifoAllocScope lifoScope_;
 
   public:
+    
+    
+    
+    
+    static const size_t BallastSize;            
+    static const size_t PreferredLifoChunkSize; 
+
     explicit TempAllocator(LifoAlloc *lifoAlloc)
       : lifoScope_(lifoAlloc)
     { }
@@ -58,9 +65,7 @@ class TempAllocator
     }
 
     bool ensureBallast() {
-        
-        
-        return lifoScope_.alloc().ensureUnusedApproximate(16 * 1024);
+        return lifoScope_.alloc().ensureUnusedApproximate(BallastSize);
     }
 };
 
