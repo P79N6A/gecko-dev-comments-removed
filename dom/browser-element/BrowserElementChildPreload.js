@@ -15,16 +15,6 @@ Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
 
 let kLongestReturnedString = 128;
 
-
-let whitelistedEvents = [
-  Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE,   
-  Ci.nsIDOMKeyEvent.DOM_VK_SLEEP,    
-  Ci.nsIDOMKeyEvent.DOM_VK_CONTEXT_MENU,
-  Ci.nsIDOMKeyEvent.DOM_VK_F5,       
-  Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP,  
-  Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN 
-];
-
 function debug(msg) {
   
 }
@@ -240,15 +230,6 @@ BrowserElementChild.prototype = {
 
     
     
-    els.addSystemEventListener(global, 'keydown',
-                               this._keyEventHandler.bind(this),
-                                true);
-    els.addSystemEventListener(global, 'keypress',
-                               this._keyEventHandler.bind(this),
-                                true);
-    els.addSystemEventListener(global, 'keyup',
-                               this._keyEventHandler.bind(this),
-                                true);
     els.addSystemEventListener(global, 'DOMWindowClose',
                                this._windowCloseHandler.bind(this),
                                 false);
@@ -1142,16 +1123,6 @@ BrowserElementChild.prototype = {
       msgData.errorMsg = 'Cannot access mozInputMethod.';
     }
     sendAsyncMsg('got-set-input-method-active', msgData);
-  },
-
-  _keyEventHandler: function(e) {
-    if (whitelistedEvents.indexOf(e.keyCode) != -1 && !e.defaultPrevented) {
-      sendAsyncMsg('keyevent', {
-        type: e.type,
-        keyCode: e.keyCode,
-        charCode: e.charCode,
-      });
-    }
   },
 
   
