@@ -201,6 +201,11 @@ function test_multiple_windows() {
         ok(true, "Advanced preferences opened on info bar button press.");
         executeSoon(function soon() {
           prefWindowOpened = true;
+          
+          
+          if (!Services.prefs.getBoolPref("browser.preferences.inContent")) {
+            prefWin.close();
+          }
           maybeFinish();
         });
       }, "advanced-pane-loaded", false);
