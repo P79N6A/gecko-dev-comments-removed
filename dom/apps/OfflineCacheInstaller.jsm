@@ -46,32 +46,43 @@ function enableOfflineCacheForApp(aPrincipal) {
 }
 
 
-function storeCache(applicationCache, url, file, itemType) {
+function storeCache(applicationCache, url, file, itemType, metadata) {
   let storage =
     Services.cache2.appCacheStorage(LoadContextInfo.default, applicationCache);
   let uri = Services.io.newURI(url, null, null);
+  let nowGMT = new Date().toGMTString();
+  metadata = metadata || {};
+  metadata.lastFetched = metadata.lastFetched || nowGMT;
+  metadata.lastModified = metadata.lastModified || nowGMT;
   storage.asyncOpenURI(uri, "", nsICacheStorage.OPEN_TRUNCATE, {
     onCacheEntryAvailable:
       function (cacheEntry, isNew, appCache, result) {
-        cacheEntry.setMetaDataElement('request-method', 'GET');
-        cacheEntry.setMetaDataElement('response-head', 'HTTP/1.1 200 OK\r\n');
+        cacheEntry.setMetaDataElement("request-method", "GET");
+        cacheEntry.setMetaDataElement("response-head",
+          "HTTP/1.1 200 OK\r\n" +
+          "Date: " + metadata.lastFetched + "\r\n" +
+          "Last-Modified: " + metadata.lastModified + "\r\n" +
+          "Cache-Control: no-cache\r\n");
 
         let outputStream = cacheEntry.openOutputStream(0);
 
         
-        let inputStream = Cc['@mozilla.org/network/file-input-stream;1']
+        
+        let inputStream = Cc["@mozilla.org/network/file-input-stream;1"]
                             .createInstance(Ci.nsIFileInputStream);
         inputStream.init(file, 1, -1, null);
-        let bufferedOutputStream = Cc['@mozilla.org/network/buffered-output-stream;1']
-                                     .createInstance(Ci.nsIBufferedOutputStream);
+        let bufferedOutputStream =
+          Cc["@mozilla.org/network/buffered-output-stream;1"]
+            .createInstance(Ci.nsIBufferedOutputStream);
         bufferedOutputStream.init(outputStream, 1024);
         bufferedOutputStream.writeFrom(inputStream, inputStream.available());
         bufferedOutputStream.flush();
         bufferedOutputStream.close();
         inputStream.close();
 
+        cacheEntry.setExpirationTime(0);
         cacheEntry.markValid();
-        debug (file.path + ' -> ' + url + ' (' + itemType + ')');
+        debug (file.path + " -> " + url + " (" + itemType + ")");
         applicationCache.markEntry(url, itemType);
         cacheEntry.close();
       }
@@ -206,8 +217,12 @@ function installCache(app) {
     return;
   }
 
-  let cacheDir = makeFile(app.cachePath)
+  let cacheDir = makeFile(app.cachePath);
   cacheDir.append(app.appId);
+
+  let resourcesMetadata = cacheDir.clone();
+  resourcesMetadata.append('resources_metadata.json');
+
   cacheDir.append('cache');
   if (!cacheDir.exists())
     return;
@@ -218,55 +233,72 @@ function installCache(app) {
     return;
 
   let principal = Services.scriptSecurityManager.getAppCodebasePrincipal(
-                    app.origin, app.localId, false);
-
-  enableOfflineCacheForApp(principal);
-
-  
-  let appcacheURL = app.appcache_path;
+      app.origin, app.localId, false);
 
   
   
   
-  let groupID = appcacheURL + '#' + app.localId+ '+f';
-  let applicationCache = applicationCacheService.createApplicationCache(groupID);
-  applicationCache.activate();
+  let metadataLoaded;
+  if (!resourcesMetadata.exists()) {
+    
+    dump("OfflineCacheInstaller: App " + app.appId + " does have an app cache" +
+         " but does not have a resources_metadata.json file!");
+    metadataLoaded = Promise.resolve({});
+  } else {
+    metadataLoaded = new Promise(
+      (resolve, reject) =>
+        readFile(resourcesMetadata, principal, content => resolve(JSON.parse(content))));
+  }
 
-  readFile(cacheManifest, principal, function readAppCache(content) {
-    let entries = parseAppCache(app, cacheManifest.path, content);
+  metadataLoaded.then(function(metadata) {
+    enableOfflineCacheForApp(principal);
 
-    entries.urls.forEach(function processCachedFile(url) {
-      
-      
-      
-      let path = url.replace(app.origin.spec, '');
-      let file = cacheDir.clone();
-      let paths = path.split('/');
-      paths.forEach(file.append);
+    
+    let appcacheURL = app.appcache_path;
 
-      if (!file.exists()) {
-        let msg = 'File ' + file.path + ' exists in the manifest but does ' +
-                  'not points to a real file.';
-        throw new Error(msg);
-      }
+    
+    
+    
+    let groupID = appcacheURL + '#' + app.localId+ '+f';
+    let applicationCache = applicationCacheService.createApplicationCache(groupID);
+    applicationCache.activate();
 
-      let itemType = nsIApplicationCache.ITEM_EXPLICIT;
-      if (entries.fallbacks.indexOf(url) > -1) {
-        debug('add fallback: ' + url + '\n');
-        itemType |= nsIApplicationCache.ITEM_FALLBACK;
-      }
-      storeCache(applicationCache, url, file, itemType);
+    readFile(cacheManifest, principal, function readAppCache(content) {
+      let entries = parseAppCache(app, cacheManifest.path, content);
+
+      entries.urls.forEach(function processCachedFile(url) {
+        
+        
+        
+        let path = url.replace(app.origin.spec, '');
+        let file = cacheDir.clone();
+        let paths = path.split('/');
+        paths.forEach(file.append);
+
+        if (!file.exists()) {
+          let msg = 'File ' + file.path + ' exists in the manifest but does ' +
+                    'not points to a real file.';
+          throw new Error(msg);
+        }
+
+        let itemType = nsIApplicationCache.ITEM_EXPLICIT;
+        if (entries.fallbacks.indexOf(url) > -1) {
+          debug('add fallback: ' + url + '\n');
+          itemType |= nsIApplicationCache.ITEM_FALLBACK;
+        }
+        storeCache(applicationCache, url, file, itemType, metadata[path]);
+      });
+
+      let array = new MutableArray();
+      entries.namespaces.forEach(function processNamespace([type, spec, data]) {
+        debug('add namespace: ' + type + ' - ' + spec + ' - ' + data + '\n');
+        array.appendElement(new Namespace(type, spec, data), false);
+      });
+      applicationCache.addNamespaces(array);
+
+      storeCache(applicationCache, appcacheURL, cacheManifest,
+                 nsIApplicationCache.ITEM_MANIFEST);
     });
-
-    let array = new MutableArray();
-    entries.namespaces.forEach(function processNamespace([type, spec, data]) {
-      debug('add namespace: ' + type + ' - ' + spec + ' - ' + data + '\n');
-      array.appendElement(new Namespace(type, spec, data), false);
-    });
-    applicationCache.addNamespaces(array);
-
-    storeCache(applicationCache, appcacheURL, cacheManifest,
-               nsIApplicationCache.ITEM_MANIFEST);
   });
 }
 
