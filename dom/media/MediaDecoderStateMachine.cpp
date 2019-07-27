@@ -212,6 +212,14 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mStartTime(-1),
   mEndTime(-1),
   mDurationSet(false),
+  mPlayState(mTaskQueue, MediaDecoder::PLAY_STATE_LOADING,
+             "MediaDecoderStateMachine::mPlayState (Mirror)",
+             aDecoder->CanonicalPlayState()),
+  mNextPlayState(mTaskQueue, MediaDecoder::PLAY_STATE_PAUSED,
+                 "MediaDecoderStateMachine::mNextPlayState (Mirror)",
+                 aDecoder->CanonicalNextPlayState()),
+  mNextFrameStatus(mTaskQueue, MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED,
+                   "MediaDecoderStateMachine::mNextFrameStatus (Canonical)"),
   mFragmentEndTime(-1),
   mReader(aReader),
   mCurrentFrameTime(0),
@@ -252,15 +260,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
 
   
-  mNextFrameStatus.Init(mTaskQueue, MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED,
-                        "MediaDecoderStateMachine::mNextFrameStatus (Canonical)");
-
-  
-  mPlayState.Init(mTaskQueue, MediaDecoder::PLAY_STATE_LOADING, "MediaDecoderStateMachine::mPlayState (Mirror)",
-                  aDecoder->CanonicalPlayState());
-  mNextPlayState.Init(mTaskQueue, MediaDecoder::PLAY_STATE_PAUSED, "MediaDecoderStateMachine::mNextPlayState (Mirror)",
-                  aDecoder->CanonicalNextPlayState());
-
   mWatchManager.Watch(mState, &MediaDecoderStateMachine::UpdateNextFrameStatus);
   mWatchManager.Watch(mAudioCompleted, &MediaDecoderStateMachine::UpdateNextFrameStatus);
 
