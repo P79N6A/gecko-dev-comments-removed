@@ -346,11 +346,11 @@ TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
   MOZ_ASSERT(OnTaskQueue());
 
   
-  TimeUnit lowerLimit = aPlaybackTime - TimeUnit::FromSeconds(5);
-  TimeUnit to;
-  
   const auto& track = HasVideo() ? mVideoTracks : mAudioTracks;
   const auto& buffer = track.mBuffers.LastElement();
+  
+  
+  TimeUnit lowerLimit = std::min(track.mNextSampleTime, aPlaybackTime);
   uint32_t lastKeyFrameIndex = 0;
   int64_t toEvict = aSizeToEvict;
   uint32_t partialEvict = 0;
@@ -369,18 +369,29 @@ TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
     }
     partialEvict += sizeof(*frame) + frame->mSize;
   }
+
+  int64_t finalSize = mSizeSourceBuffer - aSizeToEvict;
+
   if (lastKeyFrameIndex > 0) {
+    MSE_DEBUG("Step1. Evicting %u bytes prior currentTime",
+              aSizeToEvict - toEvict);
     CodedFrameRemoval(
       TimeInterval(TimeUnit::FromMicroseconds(0),
-                   TimeUnit::FromMicroseconds(buffer[lastKeyFrameIndex-1]->mTime)));
+                   TimeUnit::FromMicroseconds(buffer[lastKeyFrameIndex]->mTime - 1)));
   }
-  if (toEvict <= 0) {
+
+  if (mSizeSourceBuffer <= finalSize) {
     return;
   }
 
+  toEvict = mSizeSourceBuffer - finalSize;
+
   
   
-  TimeUnit upperLimit = aPlaybackTime + TimeUnit::FromSeconds(5);
+  
+  TimeUnit upperLimit =
+    std::max(aPlaybackTime, track.mNextSampleTime) + TimeUnit::FromSeconds(30);
+  lastKeyFrameIndex = buffer.Length();
   for (int32_t i = buffer.Length() - 1; i >= 0; i--) {
     const auto& frame = buffer[i];
     if (frame->mKeyframe) {
@@ -396,9 +407,11 @@ TrackBuffersManager::DoEvictData(const TimeUnit& aPlaybackTime,
     }
     partialEvict += sizeof(*frame) + frame->mSize;
   }
-  if (lastKeyFrameIndex + 1 < buffer.Length()) {
+  if (lastKeyFrameIndex < buffer.Length()) {
+    MSE_DEBUG("Step2. Evicting %u bytes from trailing data",
+              mSizeSourceBuffer - finalSize);
     CodedFrameRemoval(
-      TimeInterval(TimeUnit::FromMicroseconds(buffer[lastKeyFrameIndex+1]->mTime),
+      TimeInterval(TimeUnit::FromMicroseconds(buffer[lastKeyFrameIndex]->GetEndTime() + 1),
                    TimeUnit::FromInfinity()));
   }
 }
