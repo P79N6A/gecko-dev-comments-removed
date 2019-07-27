@@ -421,7 +421,18 @@ ContentClientRemoteBuffer::Dump(std::stringstream& aStream,
                                 bool aDumpHtml)
 {
   
+  aStream << "\n" << aPrefix << "Surface: ";
   CompositableClient::DumpTextureClient(aStream, mTextureClient);
+}
+
+void
+ContentClientDoubleBuffered::Dump(std::stringstream& aStream,
+                                const char* aPrefix,
+                                bool aDumpHtml)
+{
+  
+  aStream << "\n" << aPrefix << "Surface: ";
+  CompositableClient::DumpTextureClient(aStream, mFrontClient);
 }
 
 void
