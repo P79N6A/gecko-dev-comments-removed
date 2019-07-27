@@ -73,3 +73,88 @@ function TypedArrayFindIndex(predicate, thisArg = undefined) {
     
     return -1;
 }
+
+
+function TypedArrayIndexOf(searchElement, fromIndex = undefined) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, searchElement, fromIndex,
+                            "TypedArrayIndexOf");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (len === 0)
+        return -1;
+
+    
+    var n = ToInteger(fromIndex);
+
+    
+    if (n >= len)
+        return -1;
+
+    var k;
+    
+    if (n >= 0) {
+        k = n;
+    }
+    
+    else {
+        
+        k = len + n;
+        
+        if (k < 0)
+            k = 0;
+    }
+
+    
+    
+    for (; k < len; k++) {
+        if (O[k] === searchElement)
+            return k;
+    }
+
+    
+    return -1;
+}
+
+
+function TypedArrayLastIndexOf(searchElement, fromIndex = undefined) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, searchElement, fromIndex,
+                            "TypedArrayLastIndexOf");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (len === 0)
+        return -1;
+
+    
+    var n = fromIndex === undefined ? len - 1 : ToInteger(fromIndex);
+
+    
+    var k = n >= 0 ? std_Math_min(n, len - 1) : len + n;
+
+    
+    
+    for (; k >= 0; k--) {
+        if (O[k] === searchElement)
+            return k;
+    }
+
+    
+    return -1;
+}
