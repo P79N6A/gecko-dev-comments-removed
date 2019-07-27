@@ -2552,6 +2552,25 @@ protected:
     rootApzc = ApzcOf(root);
   }
 
+  void CreateBug1119497LayerTree() {
+    const char* layerTreeSyntax = "c(tt)";
+    
+    
+    
+    
+    nsIntRegion layerVisibleRegions[] = {
+      nsIntRegion(nsIntRect(0, 0, 100, 100)),
+      nsIntRegion(nsIntRect(0, 0, 100, 100)),
+      nsIntRegion(nsIntRect(0, 0, 100, 100)),
+    };
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
+
+    SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
+
+    registration = MakeUnique<ScopedLayerTreeRegistration>(0, root, mcc);
+    manager->UpdateHitTestingTree(nullptr, root, false, 0, 0);
+  }
+
   void CreateBug1117712LayerTree() {
     const char* layerTreeSyntax = "c(c(t)t)";
     
@@ -2676,6 +2695,19 @@ TEST_F(APZEventRegionsTester, Obscuration) {
   HitTestResult result;
   nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(50, 75), &result);
   EXPECT_EQ(child, hit.get());
+  EXPECT_EQ(HitTestResult::ApzcHitRegion, result);
+}
+
+TEST_F(APZEventRegionsTester, Bug1119497) {
+  SCOPED_GFX_PREF(LayoutEventRegionsEnabled, bool, true);
+
+  CreateBug1119497LayerTree();
+
+  HitTestResult result;
+  nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(50, 50), &result);
+  
+  
+  EXPECT_EQ(nullptr, hit.get());
   EXPECT_EQ(HitTestResult::ApzcHitRegion, result);
 }
 
