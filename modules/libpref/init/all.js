@@ -2329,6 +2329,9 @@ pref("layout.css.font-loading-api.enabled", true);
 #endif
 
 
+pref("dom.mouseEvent.offsetXY.enabled", true);
+
+
 
 
 
