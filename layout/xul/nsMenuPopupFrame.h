@@ -152,7 +152,8 @@ private:
   nsRefPtr<nsPresContext> mPresContext;
 };
 
-class nsMenuPopupFrame MOZ_FINAL : public nsBoxFrame, public nsMenuParent
+class nsMenuPopupFrame MOZ_FINAL : public nsBoxFrame, public nsMenuParent,
+                                   public nsIReflowCallback
 {
 public:
   NS_DECL_QUERYFRAME_TARGET(nsMenuPopupFrame)
@@ -399,6 +400,10 @@ public:
     return false;
   }
 
+  
+  virtual bool ReflowFinished() MOZ_OVERRIDE;
+  virtual void ReflowCallbackCanceled() MOZ_OVERRIDE;
+
 protected:
 
   
@@ -525,6 +530,28 @@ protected:
   
   uint8_t mConsumeRollupEvent;
   FlipType mFlip; 
+
+  struct ReflowCallbackData {
+    ReflowCallbackData() :
+      mPosted(false),
+      mAnchor(nullptr),
+      mSizedToPopup(false)
+    {}
+    void MarkPosted(nsIFrame* aAnchor, bool aSizedToPopup) {
+      mPosted = true;
+      mAnchor = aAnchor;
+      mSizedToPopup = aSizedToPopup;
+    }
+    void Clear() {
+      mPosted = false;
+      mAnchor = nullptr;
+      mSizedToPopup = false;
+    }
+    bool mPosted;
+    nsIFrame* mAnchor;
+    bool mSizedToPopup;
+  };
+  ReflowCallbackData mReflowCallbackData;
 
   bool mIsOpenChanged; 
   bool mIsContextMenu; 
