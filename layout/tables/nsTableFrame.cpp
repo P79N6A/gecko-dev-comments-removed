@@ -273,7 +273,7 @@ nsTableFrame::RegisterPositionedTablePart(nsIFrame* aFrame)
   
   
   
-  if (nsGkAtoms::tableCellFrame != aFrame->GetType()) {
+  if (!IS_TABLE_CELL(aFrame->GetType())) {
     nsIContent* content = aFrame->GetContent();
     nsPresContext* presContext = aFrame->PresContext();
     if (content && !presContext->HasWarnedAboutPositionedTableParts()) {
