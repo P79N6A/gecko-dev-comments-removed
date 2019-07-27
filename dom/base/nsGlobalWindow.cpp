@@ -11511,7 +11511,6 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     
 
     if (mNavigator) {
-      NavigatorBinding::ClearCachedLanguageValue(mNavigator);
       NavigatorBinding::ClearCachedLanguagesValue(mNavigator);
     }
 
