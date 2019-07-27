@@ -76,6 +76,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mProxyResolveFlags(0)
   , mContentDispositionHint(UINT32_MAX)
   , mHttpHandler(gHttpHandler)
+  , mReferrerPolicy(REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE)
   , mRedirectCount(0)
   , mForcePending(false)
 {
@@ -899,14 +900,37 @@ HttpBaseChannel::GetReferrer(nsIURI **referrer)
 NS_IMETHODIMP
 HttpBaseChannel::SetReferrer(nsIURI *referrer)
 {
+  return SetReferrerWithPolicy(referrer, REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetReferrerPolicy(uint32_t *referrerPolicy)
+{
+  NS_ENSURE_ARG_POINTER(referrerPolicy);
+  *referrerPolicy = mReferrerPolicy;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
+                                       uint32_t referrerPolicy)
+{
   ENSURE_CALLED_BEFORE_CONNECT();
 
   
   mReferrer = nullptr;
   mRequestHead.ClearHeader(nsHttp::Referer);
+  mReferrerPolicy = REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE;
 
-  if (!referrer)
-      return NS_OK;
+  if (!referrer) {
+    return NS_OK;
+  }
+
+  
+  if (referrerPolicy == REFERRER_POLICY_NO_REFERRER) {
+    mReferrerPolicy = REFERRER_POLICY_NO_REFERRER;
+    return NS_OK;
+  }
 
   
   
@@ -929,12 +953,14 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
 
   
   uint32_t referrerLevel;
-  if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)
+  if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI) {
     referrerLevel = 1; 
-  else
+  } else {
     referrerLevel = 2; 
-  if (userReferrerLevel < referrerLevel)
+  }
+  if (userReferrerLevel < referrerLevel) {
     return NS_OK;
+  }
 
   nsCOMPtr<nsIURI> referrerGrip;
   nsresult rv;
@@ -992,8 +1018,7 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
     rv = referrer->SchemeIs(*scheme, &match);
     if (NS_FAILED(rv)) return rv;
   }
-  if (!match)
-    return NS_OK; 
+  if (!match) return NS_OK; 
 
   
   
@@ -1003,29 +1028,54 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   
   rv = referrer->SchemeIs("https", &match);
   if (NS_FAILED(rv)) return rv;
+
   if (match) {
     rv = mURI->SchemeIs("https", &match);
     if (NS_FAILED(rv)) return rv;
-    if (!match)
-      return NS_OK;
 
-    if (!gHttpHandler->SendSecureXSiteReferrer()) {
-      nsAutoCString referrerHost;
-      nsAutoCString host;
-
-      rv = referrer->GetAsciiHost(referrerHost);
-      if (NS_FAILED(rv)) return rv;
-
-      rv = mURI->GetAsciiHost(host);
-      if (NS_FAILED(rv)) return rv;
+    
+    
+    if (referrerPolicy != REFERRER_POLICY_UNSAFE_URL &&
+        referrerPolicy != REFERRER_POLICY_ORIGIN) {
 
       
-      if (!referrerHost.Equals(host))
-        return NS_OK;
+      if (!match) return NS_OK;
+
+      
+      if (!gHttpHandler->SendSecureXSiteReferrer()) {
+        nsAutoCString referrerHost;
+        nsAutoCString host;
+
+        rv = referrer->GetAsciiHost(referrerHost);
+        if (NS_FAILED(rv)) return rv;
+
+        rv = mURI->GetAsciiHost(host);
+        if (NS_FAILED(rv)) return rv;
+
+        
+        if (!referrerHost.Equals(host))
+          return NS_OK;
+      }
     }
   }
 
+  
+  
+  nsCOMPtr<nsIURI> loadingURI;
+  bool isCrossOrigin = true;
+  if (mLoadInfo) {
+    mLoadInfo->LoadingPrincipal()->GetURI(getter_AddRefs(loadingURI));
+  }
+  if (loadingURI) {
+    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+    rv = ssm->CheckSameOriginURI(loadingURI, mURI, false);
+    isCrossOrigin = NS_FAILED(rv);
+  } else {
+    NS_WARNING("no loading principal available via loadInfo, assumming load is cross-origin");
+  }
+
   nsCOMPtr<nsIURI> clone;
+  
   
   
   
@@ -1077,10 +1127,21 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   }
 
   
+  
   rv = clone->SetUserPass(EmptyCString());
   if (NS_FAILED(rv)) return rv;
 
   nsAutoCString spec;
+
+  
+  
+  
+  
+  
+  if (referrerPolicy == REFERRER_POLICY_ORIGIN ||
+      (isCrossOrigin && referrerPolicy == REFERRER_POLICY_ORIGIN_WHEN_XORIGIN)) {
+    userReferrerTrimmingPolicy = 2;
+  }
 
   
   switch (userReferrerTrimmingPolicy) {
@@ -1117,8 +1178,11 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   }
 
   
+  rv = SetRequestHeader(NS_LITERAL_CSTRING("Referer"), spec, false);
+  if (NS_FAILED(rv)) return rv;
+
   mReferrer = clone;
-  mRequestHead.SetHeader(nsHttp::Referer, spec);
+  mReferrerPolicy = referrerPolicy;
   return NS_OK;
 }
 
@@ -2071,7 +2135,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   }
   
   if (mReferrer)
-    httpChannel->SetReferrer(mReferrer);
+    httpChannel->SetReferrerWithPolicy(mReferrer, mReferrerPolicy);
   
   httpChannel->SetAllowPipelining(mAllowPipelining);
   httpChannel->SetAllowSTS(mAllowSTS);

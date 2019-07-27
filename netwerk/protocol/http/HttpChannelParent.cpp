@@ -274,6 +274,7 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
     mChannel->SetDocumentURI(docUri);
   if (referrerUri)
     mChannel->SetReferrerInternal(referrerUri);
+    
   if (apiRedirectToUri)
     mChannel->RedirectTo(apiRedirectToUri);
   if (topWindowUri)

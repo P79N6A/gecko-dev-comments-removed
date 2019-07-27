@@ -19,6 +19,7 @@
 #include "nsPIDOMWindow.h"               
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
+#include "mozilla/net/ReferrerPolicy.h"  
 #include "nsWeakReference.h"
 #include "mozilla/dom/DocumentBinding.h"
 #include "mozilla/WeakPtr.h"
@@ -169,6 +170,7 @@ class nsIDocument : public nsINode
 {
   typedef mozilla::dom::GlobalObject GlobalObject;
 public:
+  typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
   typedef mozilla::dom::Element Element;
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDOCUMENT_IID)
@@ -270,6 +272,15 @@ public:
 
 
   virtual void SetChromeXHRDocBaseURI(nsIURI* aURI) = 0;
+
+  
+
+
+
+  ReferrerPolicy GetReferrerPolicy() const
+  {
+    return mReferrerPolicy;
+  }
 
   
 
@@ -2467,6 +2478,9 @@ protected:
   nsCOMPtr<nsIURI> mChromeXHRDocBaseURI;
 
   nsWeakPtr mDocumentLoadGroup;
+
+  bool mReferrerPolicySet;
+  ReferrerPolicy mReferrerPolicy;
 
   mozilla::WeakPtr<nsDocShell> mDocumentContainer;
 

@@ -63,6 +63,8 @@ static nsITimer* gFlushTimer = nullptr;
 nsHtml5TreeOpExecutor::nsHtml5TreeOpExecutor()
   : nsHtml5DocumentBuilder(false)
   , mPreloadedURLs(23)  
+  , mSpeculationReferrerPolicyWasSet(false)
+  , mSpeculationReferrerPolicy(mozilla::net::RP_Default)
 {
   
 }
@@ -950,6 +952,27 @@ nsHtml5TreeOpExecutor::SetSpeculationBase(const nsAString& aURL)
   DebugOnly<nsresult> rv = NS_NewURI(getter_AddRefs(mSpeculationBaseURI), aURL,
                                      charset.get(), mDocument->GetDocumentURI());
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to create a URI");
+}
+
+void
+nsHtml5TreeOpExecutor::SetSpeculationReferrerPolicy(const nsAString& aReferrerPolicy)
+{
+  ReferrerPolicy policy = mozilla::net::ReferrerPolicyFromString(aReferrerPolicy);
+
+  if (mSpeculationReferrerPolicyWasSet &&
+      policy != mSpeculationReferrerPolicy) {
+    
+    
+    
+    mSpeculationReferrerPolicy = mozilla::net::RP_No_Referrer;
+  }
+  else {
+    
+    
+    
+    mSpeculationReferrerPolicyWasSet = true;
+    mSpeculationReferrerPolicy = policy;
+  }
 }
 
 #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH

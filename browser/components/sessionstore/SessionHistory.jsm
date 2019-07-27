@@ -187,8 +187,10 @@ let SessionHistoryInternal = {
 
     
     
-    if (shEntry.referrerURI)
+    if (shEntry.referrerURI) {
       entry.referrer = shEntry.referrerURI.spec;
+      entry.referrerPolicy = shEntry.referrerPolicy;
+    }
 
     if (shEntry.srcdocData)
       entry.srcdocData = shEntry.srcdocData;
@@ -340,8 +342,10 @@ let SessionHistoryInternal = {
     shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
     if (entry.contentType)
       shEntry.contentType = entry.contentType;
-    if (entry.referrer)
+    if (entry.referrer) {
       shEntry.referrerURI = Utils.makeURI(entry.referrer);
+      shEntry.referrerPolicy = entry.referrerPolicy;
+    }
     if (entry.isSrcdocEntry)
       shEntry.srcdocData = entry.srcdocData;
     if (entry.baseURI)

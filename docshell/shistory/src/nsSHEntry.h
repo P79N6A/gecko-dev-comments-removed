@@ -50,6 +50,7 @@ private:
   
   nsCOMPtr<nsIURI>         mURI;
   nsCOMPtr<nsIURI>         mReferrerURI;
+  uint32_t                 mReferrerPolicy;
   nsString                 mTitle;
   nsCOMPtr<nsIInputStream> mPostData;
   uint32_t                 mLoadType;
