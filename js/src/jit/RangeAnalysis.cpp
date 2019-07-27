@@ -2645,7 +2645,7 @@ MDefinition::TruncateKind
 MStoreTypedArrayElement::operandTruncateKind(size_t index) const
 {
     
-    return index == 2 && !isFloatArray() && !isSimdWrite() ? Truncate : NoTruncate;
+    return index == 2 && !isFloatArray() ? Truncate : NoTruncate;
 }
 
 MDefinition::TruncateKind
