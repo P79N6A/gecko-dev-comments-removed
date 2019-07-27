@@ -1578,6 +1578,12 @@ HttpChannelChild::ContinueAsyncOpen()
   nsTArray<mozilla::ipc::FileDescriptor> fds;
   SerializeInputStream(mUploadStream, openArgs.uploadStream(), fds);
 
+  if (mResponseHead) {
+    openArgs.synthesizedResponseHead() = *mResponseHead;
+  } else {
+    openArgs.synthesizedResponseHead() = mozilla::void_t();
+  }
+
   OptionalFileDescriptorSet optionalFDs;
 
   if (fds.IsEmpty()) {
@@ -2091,6 +2097,19 @@ HttpChannelChild::OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>&
                                                   nsIStreamListener* aStreamListener)
 {
   
+  SetApplyConversion(false);
+
+  mResponseHead = aResponseHead;
+
+  uint16_t status = mResponseHead->Status();
+  if (status != 200 && status != 404) {
+    
+    nsresult rv = ContinueAsyncOpen();
+    NS_ENSURE_SUCCESS_VOID(rv);
+    return;
+  }
+
+  
   
   
   uint64_t available;
@@ -2111,11 +2130,6 @@ HttpChannelChild::OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>&
 
   rv = mSynthesizedResponsePump->AsyncRead(aStreamListener, nullptr);
   NS_ENSURE_SUCCESS_VOID(rv);
-
-  
-  SetApplyConversion(false);
-
-  mResponseHead = aResponseHead;
 
   
   
