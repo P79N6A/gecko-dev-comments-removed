@@ -860,7 +860,7 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
     loadContext->GetUsePrivateBrowsing(&callData->mPrivate);
   }
 
-  uint32_t maxDepth = ShouldIncludeStackrace(aMethodName) ?
+  uint32_t maxDepth = ShouldIncludeStackTrace(aMethodName) ?
                       DEFAULT_MAX_STACKTRACE_DEPTH : 1;
   nsCOMPtr<nsIStackFrame> stack = CreateStack(aCx, maxDepth);
 
@@ -1133,7 +1133,7 @@ Console::ProcessCallData(ConsoleCallData* aData)
     return;
   }
 
-  if (ShouldIncludeStackrace(aData->mMethodName)) {
+  if (ShouldIncludeStackTrace(aData->mMethodName)) {
     
     
     
@@ -1642,7 +1642,7 @@ Console::ClearConsoleData()
 }
 
 bool
-Console::ShouldIncludeStackrace(MethodName aMethodName)
+Console::ShouldIncludeStackTrace(MethodName aMethodName)
 {
   switch (aMethodName) {
     case MethodError:
