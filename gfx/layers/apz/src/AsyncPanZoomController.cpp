@@ -2344,6 +2344,15 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mFrameMetrics = aLayerMetrics;
     mLastDispatchedPaintMetrics = aLayerMetrics;
     ShareCompositorFrameMetrics();
+
+    if (mFrameMetrics.GetDisplayPortMargins() != LayerMargin()) {
+      
+      
+      
+      
+      APZC_LOG("%p detected non-empty margins which probably need updating\n", this);
+      needContentRepaint = true;
+    }
   } else {
     
     
