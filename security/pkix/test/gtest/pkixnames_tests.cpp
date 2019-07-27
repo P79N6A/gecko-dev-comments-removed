@@ -30,8 +30,9 @@
 
 namespace mozilla { namespace pkix {
 
-bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
-                                         Input referenceDNSID);
+Result MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
+                                             Input referenceDNSID,
+                                              bool& matches);
 
 bool IsValidReferenceDNSID(Input hostname);
 bool IsValidPresentedDNSID(Input hostname);
@@ -47,13 +48,15 @@ struct PresentedMatchesReference
 {
   ByteString presentedDNSID;
   ByteString referenceDNSID;
-  bool matches;
+  Result expectedResult;
+  bool expectedMatches; 
 };
 
 #define DNS_ID_MATCH(a, b) \
   { \
     ByteString(reinterpret_cast<const uint8_t*>(a), sizeof(a) - 1), \
     ByteString(reinterpret_cast<const uint8_t*>(b), sizeof(b) - 1), \
+    Success, \
     true \
   }
 
@@ -61,12 +64,20 @@ struct PresentedMatchesReference
   { \
     ByteString(reinterpret_cast<const uint8_t*>(a), sizeof(a) - 1), \
     ByteString(reinterpret_cast<const uint8_t*>(b), sizeof(b) - 1), \
+    Success, \
     false \
+  }
+
+#define DNS_ID_BAD_DER(a, b) \
+  { \
+    ByteString(reinterpret_cast<const uint8_t*>(a), sizeof(a) - 1), \
+    ByteString(reinterpret_cast<const uint8_t*>(b), sizeof(b) - 1), \
+    Result::ERROR_BAD_DER \
   }
 
 static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
 {
-  DNS_ID_MISMATCH("", "a"),
+  DNS_ID_BAD_DER("", "a"),
 
   DNS_ID_MATCH("a", "a"),
   DNS_ID_MISMATCH("b", "a"),
@@ -77,9 +88,9 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
 
   
   DNS_ID_MATCH("d.c.b.a", "d.c.b.a"),
-  DNS_ID_MISMATCH("d.*.b.a", "d.c.b.a"),
-  DNS_ID_MISMATCH("d.c*.b.a", "d.c.b.a"),
-  DNS_ID_MISMATCH("d.c*.b.a", "d.cc.b.a"),
+  DNS_ID_BAD_DER("d.*.b.a", "d.c.b.a"),
+  DNS_ID_BAD_DER("d.c*.b.a", "d.c.b.a"),
+  DNS_ID_BAD_DER("d.c*.b.a", "d.cc.b.a"),
 
   
   DNS_ID_MATCH("abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
@@ -92,34 +103,33 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
   
   DNS_ID_MATCH("example", "example"),
-  DNS_ID_MISMATCH("example.", "example."),
+  DNS_ID_BAD_DER("example.", "example."),
   DNS_ID_MATCH("example", "example."),
-  DNS_ID_MISMATCH("example.", "example"),
+  DNS_ID_BAD_DER("example.", "example"),
   DNS_ID_MATCH("example.com", "example.com"),
-  DNS_ID_MISMATCH("example.com.", "example.com."),
+  DNS_ID_BAD_DER("example.com.", "example.com."),
   DNS_ID_MATCH("example.com", "example.com."),
-  DNS_ID_MISMATCH("example.com.", "example.com"),
-  DNS_ID_MISMATCH("example.com..", "example.com."),
-  DNS_ID_MISMATCH("example.com..", "example.com"),
-  DNS_ID_MISMATCH("example.com...", "example.com."),
+  DNS_ID_BAD_DER("example.com.", "example.com"),
+  DNS_ID_BAD_DER("example.com..", "example.com."),
+  DNS_ID_BAD_DER("example.com..", "example.com"),
+  DNS_ID_BAD_DER("example.com...", "example.com."),
 
   
-  DNS_ID_MISMATCH("x*.b.a", "xa.b.a"),
-  DNS_ID_MISMATCH("x*.b.a", "xna.b.a"),
-  DNS_ID_MISMATCH("x*.b.a", "xn-a.b.a"),
-  DNS_ID_MISMATCH("x*.b.a", "xn--a.b.a"),
-  DNS_ID_MISMATCH("xn*.b.a", "xn--a.b.a"),
-  DNS_ID_MISMATCH("xn-*.b.a", "xn--a.b.a"),
-  DNS_ID_MISMATCH("xn--*.b.a", "xn--a.b.a"),
-  DNS_ID_MISMATCH("xn*.b.a", "xn--a.b.a"),
-  DNS_ID_MISMATCH("xn-*.b.a", "xn--a.b.a"),
-  DNS_ID_MISMATCH("xn--*.b.a", "xn--a.b.a"),
-  DNS_ID_MISMATCH("xn---*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("x*.b.a", "xa.b.a"),
+  DNS_ID_BAD_DER("x*.b.a", "xna.b.a"),
+  DNS_ID_BAD_DER("x*.b.a", "xn-a.b.a"),
+  DNS_ID_BAD_DER("x*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("xn*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("xn-*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("xn--*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("xn*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("xn-*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("xn--*.b.a", "xn--a.b.a"),
+  DNS_ID_BAD_DER("xn---*.b.a", "xn--a.b.a"),
 
   
-  DNS_ID_MISMATCH("c*.b.a", "c.b.a"),
+  DNS_ID_BAD_DER("c*.b.a", "c.b.a"),
 
-  
   
   
   
@@ -132,30 +142,30 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   DNS_ID_MATCH("*.foo.com", "bar.foo.com"),
   DNS_ID_MATCH("*.test.fr", "www.test.fr"),
   DNS_ID_MATCH("*.test.FR", "wwW.tESt.fr"),
-  DNS_ID_MISMATCH(".uk", "f.uk"),
-  DNS_ID_MISMATCH("?.bar.foo.com", "w.bar.foo.com"),
-  DNS_ID_MISMATCH("(www|ftp).foo.com", "www.foo.com"), 
-  DNS_ID_MISMATCH("www.foo.com\0", "www.foo.com"),
-  DNS_ID_MISMATCH("www.foo.com\0*.foo.com", "www.foo.com"),
+  DNS_ID_BAD_DER(".uk", "f.uk"),
+  DNS_ID_BAD_DER("?.bar.foo.com", "w.bar.foo.com"),
+  DNS_ID_BAD_DER("(www|ftp).foo.com", "www.foo.com"), 
+  DNS_ID_BAD_DER("www.foo.com\0", "www.foo.com"),
+  DNS_ID_BAD_DER("www.foo.com\0*.foo.com", "www.foo.com"),
   DNS_ID_MISMATCH("ww.house.example", "www.house.example"),
   DNS_ID_MISMATCH("www.test.org", "test.org"),
   DNS_ID_MISMATCH("*.test.org", "test.org"),
-  DNS_ID_MISMATCH("*.org", "test.org"),
-  DNS_ID_MISMATCH("w*.bar.foo.com", "w.bar.foo.com"),
-  DNS_ID_MISMATCH("ww*ww.bar.foo.com", "www.bar.foo.com"),
-  DNS_ID_MISMATCH("ww*ww.bar.foo.com", "wwww.bar.foo.com"),
+  DNS_ID_BAD_DER("*.org", "test.org"),
+  DNS_ID_BAD_DER("w*.bar.foo.com", "w.bar.foo.com"),
+  DNS_ID_BAD_DER("ww*ww.bar.foo.com", "www.bar.foo.com"),
+  DNS_ID_BAD_DER("ww*ww.bar.foo.com", "wwww.bar.foo.com"),
 
   
-  DNS_ID_MISMATCH("w*w.bar.foo.com", "wwww.bar.foo.com"),
+  DNS_ID_BAD_DER("w*w.bar.foo.com", "wwww.bar.foo.com"),
 
-  DNS_ID_MISMATCH("w*w.bar.foo.c0m", "wwww.bar.foo.com"),
-
-  
-  DNS_ID_MISMATCH("wa*.bar.foo.com", "WALLY.bar.foo.com"),
+  DNS_ID_BAD_DER("w*w.bar.foo.c0m", "wwww.bar.foo.com"),
 
   
+  DNS_ID_BAD_DER("wa*.bar.foo.com", "WALLY.bar.foo.com"),
+
   
-  DNS_ID_MISMATCH("*Ly.bar.foo.com", "wally.bar.foo.com"),
+  
+  DNS_ID_BAD_DER("*Ly.bar.foo.com", "wally.bar.foo.com"),
 
   
   
@@ -163,13 +173,13 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
 
   DNS_ID_MISMATCH("*.test.de", "www.test.co.jp"),
-  DNS_ID_MISMATCH("*.jp", "www.test.co.jp"),
+  DNS_ID_BAD_DER("*.jp", "www.test.co.jp"),
   DNS_ID_MISMATCH("www.test.co.uk", "www.test.co.jp"),
-  DNS_ID_MISMATCH("www.*.co.jp", "www.test.co.jp"),
+  DNS_ID_BAD_DER("www.*.co.jp", "www.test.co.jp"),
   DNS_ID_MATCH("www.bar.foo.com", "www.bar.foo.com"),
   DNS_ID_MISMATCH("*.foo.com", "www.bar.foo.com"),
-  DNS_ID_MISMATCH("*.*.foo.com", "www.bar.foo.com"),
-  DNS_ID_MISMATCH("*.*.foo.com", "www.bar.foo.com"),
+  DNS_ID_BAD_DER("*.*.foo.com", "www.bar.foo.com"),
+  DNS_ID_BAD_DER("*.*.foo.com", "www.bar.foo.com"),
 
   
   
@@ -187,9 +197,9 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   DNS_ID_MATCH("xn--poema-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
   DNS_ID_MATCH("*.xn--poema-9qae5a.com.br", "www.xn--poema-9qae5a.com.br"),
   DNS_ID_MISMATCH("*.xn--poema-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
-  DNS_ID_MISMATCH("xn--poema-*.com.br", "xn--poema-9qae5a.com.br"),
-  DNS_ID_MISMATCH("xn--*-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
-  DNS_ID_MISMATCH("*--poema-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
+  DNS_ID_BAD_DER("xn--poema-*.com.br", "xn--poema-9qae5a.com.br"),
+  DNS_ID_BAD_DER("xn--*-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
+  DNS_ID_BAD_DER("*--poema-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
 
   
   
@@ -202,12 +212,12 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
   
   
-  DNS_ID_MISMATCH("baz*.example.net", "baz1.example.net"),
+  DNS_ID_BAD_DER("baz*.example.net", "baz1.example.net"),
 
   
   
-  DNS_ID_MISMATCH("*baz.example.net", "foobaz.example.net"),
-  DNS_ID_MISMATCH("b*z.example.net", "buzz.example.net"),
+  DNS_ID_BAD_DER("*baz.example.net", "foobaz.example.net"),
+  DNS_ID_BAD_DER("b*z.example.net", "buzz.example.net"),
 
   
   
@@ -215,16 +225,16 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
   DNS_ID_MATCH("*.test.example", "www.test.example"),
   DNS_ID_MATCH("*.example.co.uk", "test.example.co.uk"),
-  DNS_ID_MISMATCH("*.exmaple", "test.example"),
+  DNS_ID_BAD_DER("*.exmaple", "test.example"),
 
   
   
   
   DNS_ID_MATCH("*.co.uk", "example.co.uk"),
 
-  DNS_ID_MISMATCH("*.com", "foo.com"),
-  DNS_ID_MISMATCH("*.us", "foo.us"),
-  DNS_ID_MISMATCH("*", "foo"),
+  DNS_ID_BAD_DER("*.com", "foo.com"),
+  DNS_ID_BAD_DER("*.us", "foo.us"),
+  DNS_ID_BAD_DER("*", "foo"),
 
   
   DNS_ID_MATCH("*.xn--poema-9qae5a.com.br", "www.xn--poema-9qae5a.com.br"),
@@ -234,7 +244,7 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
   DNS_ID_MATCH("*.com.br", "xn--poema-9qae5a.com.br"),
 
-  DNS_ID_MISMATCH("*.xn--mgbaam7a8h", "example.xn--mgbaam7a8h"),
+  DNS_ID_BAD_DER("*.xn--mgbaam7a8h", "example.xn--mgbaam7a8h"),
   
   
   
@@ -242,40 +252,40 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   DNS_ID_MATCH("*.s3.amazonaws.com", "foo.s3.amazonaws.com"),
 
   
-  DNS_ID_MISMATCH("*.*.com", "foo.example.com"),
-  DNS_ID_MISMATCH("*.bar.*.com", "foo.bar.example.com"),
+  DNS_ID_BAD_DER("*.*.com", "foo.example.com"),
+  DNS_ID_BAD_DER("*.bar.*.com", "foo.bar.example.com"),
 
   
   
   
   
   
-  DNS_ID_MISMATCH("foo.com.", "foo.com"),
+  DNS_ID_BAD_DER("foo.com.", "foo.com"),
   DNS_ID_MATCH("foo.com", "foo.com."),
-  DNS_ID_MISMATCH("foo.com.", "foo.com."),
-  DNS_ID_MISMATCH("f.", "f"),
+  DNS_ID_BAD_DER("foo.com.", "foo.com."),
+  DNS_ID_BAD_DER("f.", "f"),
   DNS_ID_MATCH("f", "f."),
-  DNS_ID_MISMATCH("f.", "f."),
-  DNS_ID_MISMATCH("*.bar.foo.com.", "www-3.bar.foo.com"),
+  DNS_ID_BAD_DER("f.", "f."),
+  DNS_ID_BAD_DER("*.bar.foo.com.", "www-3.bar.foo.com"),
   DNS_ID_MATCH("*.bar.foo.com", "www-3.bar.foo.com."),
-  DNS_ID_MISMATCH("*.bar.foo.com.", "www-3.bar.foo.com."),
+  DNS_ID_BAD_DER("*.bar.foo.com.", "www-3.bar.foo.com."),
 
   
   
   
 
-  DNS_ID_MISMATCH("*.com.", "example.com"),
-  DNS_ID_MISMATCH("*.com", "example.com."),
-  DNS_ID_MISMATCH("*.com.", "example.com."),
-  DNS_ID_MISMATCH("*.", "foo."),
-  DNS_ID_MISMATCH("*.", "foo"),
+  DNS_ID_BAD_DER("*.com.", "example.com"),
+  DNS_ID_BAD_DER("*.com", "example.com."),
+  DNS_ID_BAD_DER("*.com.", "example.com."),
+  DNS_ID_BAD_DER("*.", "foo."),
+  DNS_ID_BAD_DER("*.", "foo"),
 
   
   
   DNS_ID_MATCH("*.co.uk", "foo.co.uk"),
   DNS_ID_MATCH("*.co.uk", "foo.co.uk."),
-  DNS_ID_MISMATCH("*.co.uk.", "foo.co.uk"),
-  DNS_ID_MISMATCH("*.co.uk.", "foo.co.uk."),
+  DNS_ID_BAD_DER("*.co.uk.", "foo.co.uk"),
+  DNS_ID_BAD_DER("*.co.uk.", "foo.co.uk."),
 };
 
 struct InputValidity
@@ -305,8 +315,8 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("", false, false),
   I(".", false, false),
   I("a", true, true),
-  I(".a", false, false), 
-  I(".a.b", false, false), 
+  I(".a", false, false),
+  I(".a.b", false, false),
   I("..a", false, false),
   I("a..b", false, false),
   I("a...b", false, false),
@@ -854,14 +864,14 @@ static const IPAddressParams<16> IPV6_ADDRESSES[] =
   IPV6_INVALID("::1.2\02.3.4"),
 };
 
-class pkixnames_PresentedDNSIDMatchesReferenceDNSID
+class pkixnames_MatchPresentedDNSIDWithReferenceDNSID
   : public ::testing::Test
   , public ::testing::WithParamInterface<PresentedMatchesReference>
 {
 };
 
-TEST_P(pkixnames_PresentedDNSIDMatchesReferenceDNSID,
-       PresentedDNSIDMatchesReferenceDNSID)
+TEST_P(pkixnames_MatchPresentedDNSIDWithReferenceDNSID,
+       MatchPresentedDNSIDWithReferenceDNSID)
 {
   const PresentedMatchesReference& param(GetParam());
   SCOPED_TRACE(param.presentedDNSID.c_str());
@@ -876,12 +886,17 @@ TEST_P(pkixnames_PresentedDNSIDMatchesReferenceDNSID,
   
   ASSERT_TRUE(IsValidReferenceDNSID(reference));
 
-  ASSERT_EQ(param.matches,
-            PresentedDNSIDMatchesReferenceDNSID(presented, reference));
+  bool matches;
+  ASSERT_EQ(param.expectedResult,
+            MatchPresentedDNSIDWithReferenceDNSID(presented, reference,
+                                                  matches));
+  if (param.expectedResult == Success) {
+    ASSERT_EQ(param.expectedMatches, matches);
+  }
 }
 
-INSTANTIATE_TEST_CASE_P(pkixnames_PresentedDNSIDMatchesReferenceDNSID,
-                        pkixnames_PresentedDNSIDMatchesReferenceDNSID,
+INSTANTIATE_TEST_CASE_P(pkixnames_MatchPresentedDNSIDWithReferenceDNSID,
+                        pkixnames_MatchPresentedDNSIDWithReferenceDNSID,
                         testing::ValuesIn(DNSID_MATCH_PARAMS));
 
 class pkixnames_Turkish_I_Comparison
@@ -890,7 +905,7 @@ class pkixnames_Turkish_I_Comparison
 {
 };
 
-TEST_P(pkixnames_Turkish_I_Comparison, PresentedDNSIDMatchesReferenceDNSID)
+TEST_P(pkixnames_Turkish_I_Comparison, MatchPresentedDNSIDWithReferenceDNSID)
 {
   
   
@@ -900,10 +915,29 @@ TEST_P(pkixnames_Turkish_I_Comparison, PresentedDNSIDMatchesReferenceDNSID)
   Input input;
   ASSERT_EQ(Success, input.Init(inputValidity.input.data(),
                                 inputValidity.input.length()));
+
   bool isASCII = InputsAreEqual(LOWERCASE_I, input) ||
                  InputsAreEqual(UPPERCASE_I, input);
-  ASSERT_EQ(isASCII, PresentedDNSIDMatchesReferenceDNSID(input, LOWERCASE_I));
-  ASSERT_EQ(isASCII, PresentedDNSIDMatchesReferenceDNSID(input, UPPERCASE_I));
+  {
+    bool matches;
+    ASSERT_EQ(inputValidity.isValidPresentedID ? Success
+                                               : Result::ERROR_BAD_DER,
+              MatchPresentedDNSIDWithReferenceDNSID(input, LOWERCASE_I,
+                                                    matches));
+    if (inputValidity.isValidPresentedID) {
+      ASSERT_EQ(isASCII, matches);
+    }
+  }
+  {
+    bool matches;
+    ASSERT_EQ(inputValidity.isValidPresentedID ? Success
+                                               : Result::ERROR_BAD_DER,
+              MatchPresentedDNSIDWithReferenceDNSID(input, UPPERCASE_I,
+                                                    matches));
+    if (inputValidity.isValidPresentedID) {
+      ASSERT_EQ(isASCII, matches);
+    }
+  }
 }
 
 INSTANTIATE_TEST_CASE_P(pkixnames_Turkish_I_Comparison,
@@ -1245,7 +1279,7 @@ static const CheckCertHostnameParams CHECK_CERT_HOSTNAME_PARAMS[] =
   
   WITH_SAN("a", RDN(CN("a")), DNSName("b"), Result::ERROR_BAD_CERT_DOMAIN),
   
-  WITH_SAN("a", RDN(CN("a")), DNSName("!"), Result::ERROR_BAD_CERT_DOMAIN),
+  WITH_SAN("a", RDN(CN("a")), DNSName("!"), Result::ERROR_BAD_DER),
   
   WITH_SAN("a", RDN(CN("a")), IPAddress(ipv4_addr_bytes),
            Result::ERROR_BAD_CERT_DOMAIN),
@@ -1281,7 +1315,8 @@ static const CheckCertHostnameParams CHECK_CERT_HOSTNAME_PARAMS[] =
   
   WITH_SAN("a", RDN(CN("foo")), DNSName("a") + DNSName("a"), Success),
   
-  WITH_SAN("b", RDN(CN("foo")), DNSName("!") + DNSName("b"), Success),
+  WITH_SAN("b", RDN(CN("foo")), DNSName("!") + DNSName("b"),
+           Result::ERROR_BAD_DER),
 
   
   
@@ -1361,9 +1396,8 @@ static const CheckCertHostnameParams CHECK_CERT_HOSTNAME_PARAMS[] =
   WITH_SAN("example.org", RDN(CN("foo")),
            IPAddress(example_com) + DNSName("example.org"), Success),
 
-  
   WITH_SAN("example.com", RDN(CN("foo")),
-           DNSName("!") + DNSName("example.com"), Success),
+           DNSName("!") + DNSName("example.com"), Result::ERROR_BAD_DER),
 
   
   WITH_SAN(ipv4_addr_str, RDN(CN("foo")), IPAddress(ipv4_addr_bytes),
@@ -1543,7 +1577,7 @@ TEST_P(pkixnames_CheckCertHostname_PresentedMatchesReference, CN_NoSAN)
   ASSERT_EQ(Success, hostnameInput.Init(param.referenceDNSID.data(),
                                         param.referenceDNSID.length()));
 
-  ASSERT_EQ(param.matches ? Success : Result::ERROR_BAD_CERT_DOMAIN,
+  ASSERT_EQ(param.expectedMatches ? Success : Result::ERROR_BAD_CERT_DOMAIN,
             CheckCertHostname(certInput, hostnameInput));
 }
 
@@ -1564,9 +1598,11 @@ TEST_P(pkixnames_CheckCertHostname_PresentedMatchesReference,
   Input hostnameInput;
   ASSERT_EQ(Success, hostnameInput.Init(param.referenceDNSID.data(),
                                         param.referenceDNSID.length()));
-
-  ASSERT_EQ(param.matches ? Success : Result::ERROR_BAD_CERT_DOMAIN,
-            CheckCertHostname(certInput, hostnameInput));
+  Result expectedResult
+    = param.expectedResult != Success ? param.expectedResult
+    : param.expectedMatches ? Success
+    : Result::ERROR_BAD_CERT_DOMAIN;
+  ASSERT_EQ(expectedResult, CheckCertHostname(certInput, hostnameInput));
 }
 
 INSTANTIATE_TEST_CASE_P(pkixnames_CheckCertHostname_DNSID_MATCH_PARAMS,
@@ -1616,10 +1652,11 @@ TEST_P(pkixnames_Turkish_I_Comparison, CheckCertHostname_SAN)
   Input certInput;
   ASSERT_EQ(Success, certInput.Init(cert.data(), cert.length()));
 
-  Result expectedResult = (InputsAreEqual(LOWERCASE_I, input) ||
-                           InputsAreEqual(UPPERCASE_I, input))
-                        ? Success
-                        : Result::ERROR_BAD_CERT_DOMAIN;
+  Result expectedResult
+    = (!param.isValidPresentedID) ? Result::ERROR_BAD_DER
+    : (InputsAreEqual(LOWERCASE_I, input) ||
+       InputsAreEqual(UPPERCASE_I, input)) ? Success
+    : Result::ERROR_BAD_CERT_DOMAIN;
 
   ASSERT_EQ(expectedResult, CheckCertHostname(certInput, UPPERCASE_I));
   ASSERT_EQ(expectedResult, CheckCertHostname(certInput, LOWERCASE_I));
@@ -1816,13 +1853,13 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     
     ByteString(), DNSName("example.com"),
     GeneralSubtree(DNSName("example.com.")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE,
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
   { 
     
     ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName("example.com")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
   { 
     
@@ -1830,12 +1867,12 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
     
     ByteString(), DNSName("p.example.com"),
     GeneralSubtree(DNSName(".example.com.")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE,
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
   { 
     ByteString(), DNSName("*.example.com"),
     GeneralSubtree(DNSName(".example.com.")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
 
   
@@ -1846,16 +1883,16 @@ static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
   { 
     ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName("")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
   { 
     ByteString(), DNSName("example.com"),
     GeneralSubtree(DNSName(".")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE,
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER,
   },
   { ByteString(), DNSName("example.com."),
     GeneralSubtree(DNSName(".")),
-    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+    Result::ERROR_BAD_DER, Result::ERROR_BAD_DER
   },
 
   

@@ -137,11 +137,17 @@ Result SearchWithinAVA(Reader& rdn,
                        GeneralNameType referenceIDType,
                        Input referenceID,
                         MatchResult& match);
+void MatchSubjectPresentedIDWithReferenceID(GeneralNameType presentedIDType,
+                                            Input presentedID,
+                                            GeneralNameType referenceIDType,
+                                            Input referenceID,
+                                             MatchResult& match);
 
-Result MatchPresentedIDWithReferenceID(GeneralNameType referenceIDType,
+Result MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
                                        Input presentedID,
+                                       GeneralNameType referenceIDType,
                                        Input referenceID,
-                                        bool& isMatch);
+                                        MatchResult& matchResult);
 Result CheckPresentedIDConformsToConstraints(GeneralNameType referenceIDType,
                                              Input presentedID,
                                              Input nameConstraints);
@@ -158,9 +164,9 @@ MOZILLA_PKIX_ENUM_CLASS ValidDNSIDMatchType
 
 bool IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType);
 
-bool PresentedDNSIDMatchesReferenceDNSID(
-       Input presentedDNSID, ValidDNSIDMatchType referenceDNSIDMatchType,
-       Input referenceDNSID);
+Result MatchPresentedDNSIDWithReferenceDNSID(
+         Input presentedDNSID, ValidDNSIDMatchType referenceDNSIDType,
+         Input referenceDNSID,  bool& matches);
 
 } 
 
@@ -169,12 +175,15 @@ bool IsValidPresentedDNSID(Input hostname);
 bool ParseIPv4Address(Input hostname,  uint8_t (&out)[4]);
 bool ParseIPv6Address(Input hostname,  uint8_t (&out)[16]);
 
-bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
-                                         Input referenceDNSID)
+
+Result
+MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
+                                      Input referenceDNSID,
+                                       bool& matches)
 {
-  return PresentedDNSIDMatchesReferenceDNSID(presentedDNSID,
-                                             ValidDNSIDMatchType::ReferenceID,
-                                             referenceDNSID);
+  return MatchPresentedDNSIDWithReferenceDNSID(
+           presentedDNSID, ValidDNSIDMatchType::ReferenceID,
+           referenceDNSID, matches);
 }
 
 
@@ -328,24 +337,16 @@ SearchNames( const Input* subjectAltName,
       if (rv != Success) {
         return rv;
       }
-      if (referenceIDType == GeneralNameType::nameConstraints) {
-        rv = CheckPresentedIDConformsToConstraints(presentedIDType,
-                                                   presentedID, referenceID);
-        if (rv != Success) {
-          return rv;
-        }
-      } else if (presentedIDType == referenceIDType) {
-        bool isMatch;
-        rv = MatchPresentedIDWithReferenceID(presentedIDType, presentedID,
-                                             referenceID, isMatch);
-        if (rv != Success) {
-          return rv;
-        }
-        if (isMatch) {
-          match = MatchResult::Match;
-          return Success;
-        }
-        match = MatchResult::Mismatch;
+
+      rv = MatchPresentedIDWithReferenceID(presentedIDType, presentedID,
+                                           referenceIDType, referenceID,
+                                           match);
+      if (rv != Success) {
+        return rv;
+      }
+      if (referenceIDType != GeneralNameType::nameConstraints &&
+          match == MatchResult::Match) {
+        return Success;
       }
       if (presentedIDType == GeneralNameType::dNSName ||
           presentedIDType == GeneralNameType::iPAddress) {
@@ -557,44 +558,19 @@ SearchWithinAVA(Reader& rdn,
   }
 
   if (IsValidPresentedDNSID(presentedID)) {
-    if (referenceIDType == GeneralNameType::nameConstraints) {
-      rv = CheckPresentedIDConformsToConstraints(GeneralNameType::dNSName,
-                                                 presentedID, referenceID);
-      if (rv == Success) {
-        match = MatchResult::Match;
-      } else {
-        match = MatchResult::Mismatch;
-      }
-    } else if (referenceIDType == GeneralNameType::dNSName) {
-      bool isMatch;
-      rv = MatchPresentedIDWithReferenceID(GeneralNameType::dNSName,
-                                           presentedID, referenceID, isMatch);
-      match = isMatch ? MatchResult::Match : MatchResult::Mismatch;
-    }
+    MatchSubjectPresentedIDWithReferenceID(GeneralNameType::dNSName,
+                                           presentedID, referenceIDType,
+                                           referenceID, match);
   } else {
+    
+    
+    
+    
     uint8_t ipv4[4];
-    
-    
-    
     if (ParseIPv4Address(presentedID, ipv4)) {
-      if (referenceIDType == GeneralNameType::nameConstraints) {
-        rv = CheckPresentedIDConformsToConstraints(GeneralNameType::iPAddress,
-                                                   Input(ipv4), referenceID);
-        if (rv == Success) {
-          match = MatchResult::Match;
-        } else {
-          match = MatchResult::Mismatch;
-        }
-      } else if (referenceIDType == GeneralNameType::iPAddress) {
-        bool isMatch;
-        rv = MatchPresentedIDWithReferenceID(GeneralNameType::iPAddress,
-                                             Input(ipv4), referenceID,
-                                             isMatch);
-        if (rv != Success) {
-          return rv;
-        }
-        match = isMatch ? MatchResult::Match : MatchResult::Mismatch;
-      }
+      MatchSubjectPresentedIDWithReferenceID(GeneralNameType::iPAddress,
+                                             Input(ipv4), referenceIDType,
+                                             referenceID, match);
     }
   }
 
@@ -603,22 +579,54 @@ SearchWithinAVA(Reader& rdn,
   return Success;
 }
 
-Result
-MatchPresentedIDWithReferenceID(GeneralNameType nameType,
-                                Input presentedID,
-                                Input referenceID,
-                                 bool& foundMatch)
+void
+MatchSubjectPresentedIDWithReferenceID(GeneralNameType presentedIDType,
+                                       Input presentedID,
+                                       GeneralNameType referenceIDType,
+                                       Input referenceID,
+                                        MatchResult& match)
 {
-  switch (nameType) {
+  Result rv = MatchPresentedIDWithReferenceID(presentedIDType, presentedID,
+                                              referenceIDType, referenceID,
+                                              match);
+  if (rv != Success) {
+    match = MatchResult::Mismatch;
+  }
+}
+
+Result
+MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
+                                Input presentedID,
+                                GeneralNameType referenceIDType,
+                                Input referenceID,
+                                 MatchResult& matchResult)
+{
+  if (referenceIDType == GeneralNameType::nameConstraints) {
+    
+    
+    return CheckPresentedIDConformsToConstraints(presentedIDType, presentedID,
+                                                 referenceID);
+  }
+
+  if (presentedIDType != referenceIDType) {
+    matchResult = MatchResult::Mismatch;
+    return Success;
+  }
+
+  Result rv;
+  bool foundMatch;
+
+  switch (referenceIDType) {
     case GeneralNameType::dNSName:
-      foundMatch = PresentedDNSIDMatchesReferenceDNSID(
-                     presentedID, ValidDNSIDMatchType::ReferenceID,
-                     referenceID);
-      return Success;
+      rv = MatchPresentedDNSIDWithReferenceDNSID(
+             presentedID, ValidDNSIDMatchType::ReferenceID,
+             referenceID, foundMatch);
+      break;
 
     case GeneralNameType::iPAddress:
       foundMatch = InputsAreEqual(presentedID, referenceID);
-      return Success;
+      rv = Success;
+      break;
 
     case GeneralNameType::rfc822Name: 
     case GeneralNameType::directoryName:
@@ -638,6 +646,12 @@ MatchPresentedIDWithReferenceID(GeneralNameType nameType,
       return NotReached("Invalid nameType for MatchPresentedIDWithReferenceID",
                         Result::FATAL_ERROR_INVALID_ARGS);
   }
+
+  if (rv != Success) {
+    return rv;
+  }
+  matchResult = foundMatch ? MatchResult::Match : MatchResult::Mismatch;
+  return Success;
 }
 
 MOZILLA_PKIX_ENUM_CLASS NameConstraintsSubtrees : uint8_t
@@ -756,13 +770,11 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
 
       switch (presentedIDType) {
         case GeneralNameType::dNSName:
-          matches = PresentedDNSIDMatchesReferenceDNSID(
-                      presentedID, ValidDNSIDMatchType::NameConstraint, base);
-          
-          
-          if (!matches &&
-              !IsValidDNSID(base, ValidDNSIDMatchType::NameConstraint)) {
-            return Result::ERROR_CERT_NOT_IN_NAME_SPACE;
+          rv = MatchPresentedDNSIDWithReferenceDNSID(
+                 presentedID, ValidDNSIDMatchType::NameConstraint,
+                 base, matches);
+          if (rv != Success) {
+            return rv;
           }
           break;
 
@@ -959,24 +971,24 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
 
 
 
-bool
-PresentedDNSIDMatchesReferenceDNSID(
-  Input presentedDNSID,
-  ValidDNSIDMatchType referenceDNSIDMatchType,
-  Input referenceDNSID)
+Result
+MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
+                                      ValidDNSIDMatchType referenceDNSIDType,
+                                      Input referenceDNSID,
+                                       bool& matches)
 {
   if (!IsValidPresentedDNSID(presentedDNSID)) {
-    return false;
+    return Result::ERROR_BAD_DER;
   }
 
-  if (!IsValidDNSID(referenceDNSID, referenceDNSIDMatchType)) {
-    return false;
+  if (!IsValidDNSID(referenceDNSID, referenceDNSIDType)) {
+    return Result::ERROR_BAD_DER;
   }
 
   Reader presented(presentedDNSID);
   Reader reference(referenceDNSID);
 
-  switch (referenceDNSIDMatchType)
+  switch (referenceDNSIDType)
   {
     case ValidDNSIDMatchType::ReferenceID:
       break;
@@ -986,7 +998,8 @@ PresentedDNSIDMatchesReferenceDNSID(
       if (presentedDNSID.GetLength() > referenceDNSID.GetLength()) {
         if (referenceDNSID.GetLength() == 0) {
           
-          return true;
+          matches = true;
+          return Success;
         }
         
         
@@ -1015,23 +1028,24 @@ PresentedDNSIDMatchesReferenceDNSID(
           if (presented.Skip(static_cast<Input::size_type>(
                                presentedDNSID.GetLength() -
                                  referenceDNSID.GetLength())) != Success) {
-            assert(false);
-            return false;
+            return NotReached("skipping subdomain failed",
+                              Result::FATAL_ERROR_LIBRARY_FAILURE);
           }
         } else {
           if (presented.Skip(static_cast<Input::size_type>(
                                presentedDNSID.GetLength() -
                                  referenceDNSID.GetLength() - 1)) != Success) {
-            assert(false);
-            return false;
+            return NotReached("skipping subdomains failed",
+                              Result::FATAL_ERROR_LIBRARY_FAILURE);
           }
           uint8_t b;
           if (presented.Read(b) != Success) {
-            assert(false);
-            return false;
+            return NotReached("reading from presentedDNSID failed",
+                              Result::FATAL_ERROR_LIBRARY_FAILURE);
           }
           if (b != '.') {
-            return false;
+            matches = false;
+            return Success;
           }
         }
       }
@@ -1040,21 +1054,21 @@ PresentedDNSIDMatchesReferenceDNSID(
 
     case ValidDNSIDMatchType::PresentedID: 
     default:
-      assert(false);
-      return false;
+      return NotReached("invalid or unknown referenceDNSIDType",
+                        Result::FATAL_ERROR_INVALID_ARGS);
   }
 
   
   if (presented.Peek('*')) {
-    Result rv = presented.Skip(1);
-    if (rv != Success) {
-      assert(false);
-      return false;
+    if (presented.Skip(1) != Success) {
+      return NotReached("Skipping '*' failed",
+                        Result::FATAL_ERROR_LIBRARY_FAILURE);
     }
     do {
       uint8_t referenceByte;
       if (reference.Read(referenceByte) != Success) {
-        return false;
+        return NotReached("invalid reference ID",
+                          Result::FATAL_ERROR_INVALID_ARGS);
       }
     } while (!reference.Peek('.'));
   }
@@ -1062,20 +1076,23 @@ PresentedDNSIDMatchesReferenceDNSID(
   for (;;) {
     uint8_t presentedByte;
     if (presented.Read(presentedByte) != Success) {
-      return false;
+      matches = false;
+      return Success;
     }
     uint8_t referenceByte;
     if (reference.Read(referenceByte) != Success) {
-      return false;
+      matches = false;
+      return Success;
     }
     if (LocaleInsensitveToLower(presentedByte) !=
         LocaleInsensitveToLower(referenceByte)) {
-      return false;
+      matches = false;
+      return Success;
     }
     if (presented.AtEnd()) {
       
       if (presentedByte == '.') {
-        return false;
+        return Result::ERROR_BAD_DER;
       }
       break;
     }
@@ -1084,21 +1101,25 @@ PresentedDNSIDMatchesReferenceDNSID(
   
   
   if (!reference.AtEnd()) {
-    if (referenceDNSIDMatchType != ValidDNSIDMatchType::NameConstraint) {
+    if (referenceDNSIDType != ValidDNSIDMatchType::NameConstraint) {
       uint8_t referenceByte;
       if (reference.Read(referenceByte) != Success) {
-        return false;
+        return NotReached("read failed but not at end",
+                          Result::FATAL_ERROR_LIBRARY_FAILURE);
       }
       if (referenceByte != '.') {
-        return false;
+        matches = false;
+        return Success;
       }
     }
     if (!reference.AtEnd()) {
-      return false;
+      matches = false;
+      return Success;
     }
   }
 
-  return true;
+  matches = true;
+  return Success;
 }
 
 
