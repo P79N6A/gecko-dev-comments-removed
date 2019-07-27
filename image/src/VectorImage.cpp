@@ -762,8 +762,6 @@ struct SVGDrawingParameters
 
 
 
-
-
 NS_IMETHODIMP
 VectorImage::Draw(gfxContext* aContext,
                   const nsIntSize& aSize,
