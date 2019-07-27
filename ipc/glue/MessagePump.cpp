@@ -23,6 +23,10 @@
 #include "nsXULAppAPI.h"
 #include "prthread.h"
 
+#ifdef MOZ_WIDGET_ANDROID
+#include "AndroidBridge.h"
+#endif
+
 #ifdef MOZ_NUWA_PROCESS
 #include "ipc/Nuwa.h"
 #endif
@@ -100,6 +104,15 @@ MessagePump::Run(MessagePump::Delegate* aDelegate)
     
     
     
+
+#ifdef MOZ_WIDGET_ANDROID
+    
+    
+    
+    if (MOZ_LIKELY(AndroidBridge::HasEnv())) {
+        did_work |= mozilla::widget::GeckoAppShell::PumpMessageLoop();
+    }
+#endif
 
     did_work |= aDelegate->DoDelayedWork(&delayed_work_time_);
 

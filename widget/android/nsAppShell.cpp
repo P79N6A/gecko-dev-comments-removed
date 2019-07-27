@@ -243,15 +243,6 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 
         curEvent = PopNextEvent();
         if (!curEvent && mayWait) {
-            
-            
-            
-            
-            
-            if (AndroidBridge::Bridge()->PumpMessageLoop()) {
-                return true;
-            }
-
             PROFILER_LABEL("nsAppShell", "ProcessNextNativeEvent::Wait",
                 js::ProfileEntry::Category::EVENTS);
             mozilla::HangMonitor::Suspend();
