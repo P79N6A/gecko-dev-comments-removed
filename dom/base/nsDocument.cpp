@@ -10887,7 +10887,7 @@ class FullscreenRoots {
 public:
   
   
-  static void Add(nsIDocument* aRoot);
+  static void Add(nsIDocument* aDoc);
 
   
   
@@ -10897,7 +10897,7 @@ public:
   static void ForEach(void(*aFunction)(nsIDocument* aDoc));
 
   
-  static void Remove(nsIDocument* aRoot);
+  static void Remove(nsIDocument* aDoc);
 
   
   static bool IsEmpty();
@@ -10960,13 +10960,14 @@ FullscreenRoots::Contains(nsIDocument* aRoot)
 
 
 void
-FullscreenRoots::Add(nsIDocument* aRoot)
+FullscreenRoots::Add(nsIDocument* aDoc)
 {
-  if (!FullscreenRoots::Contains(aRoot)) {
+  nsCOMPtr<nsIDocument> root = nsContentUtils::GetRootDocument(aDoc);
+  if (!FullscreenRoots::Contains(root)) {
     if (!sInstance) {
       sInstance = new FullscreenRoots();
     }
-    sInstance->mRoots.AppendElement(do_GetWeakReference(aRoot));
+    sInstance->mRoots.AppendElement(do_GetWeakReference(root));
   }
 }
 
@@ -10989,9 +10990,10 @@ FullscreenRoots::Find(nsIDocument* aRoot)
 
 
 void
-FullscreenRoots::Remove(nsIDocument* aRoot)
+FullscreenRoots::Remove(nsIDocument* aDoc)
 {
-  uint32_t index = Find(aRoot);
+  nsCOMPtr<nsIDocument> root = nsContentUtils::GetRootDocument(aDoc);
+  uint32_t index = Find(root);
   NS_ASSERTION(index != NotFound,
     "Should only try to remove roots which are still added!");
   if (index == NotFound || !sInstance) {
@@ -11067,13 +11069,6 @@ private:
 static void
 SetWindowFullScreen(nsIDocument* aDoc, bool aValue, gfx::VRHMDInfo *aVRHMD = nullptr)
 {
-  
-  nsCOMPtr<nsIDocument> root = nsContentUtils::GetRootDocument(aDoc);
-  if (aValue) {
-    FullscreenRoots::Add(root);
-  } else {
-    FullscreenRoots::Remove(root);
-  }
   nsContentUtils::AddScriptRunner(new nsSetWindowFullScreen(aDoc, aValue, aVRHMD));
 }
 
@@ -11189,6 +11184,7 @@ ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
                              true, true);
   asyncDispatcher->PostDOMEvent();
   
+  FullscreenRoots::Remove(root);
   SetWindowFullScreen(root, false);
 }
 
@@ -11308,6 +11304,7 @@ nsDocument::RestorePreviousFullScreenState()
     nsRefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
       this, NS_LITERAL_STRING("MozDOMFullscreen:Exited"), true, true);
     asyncDispatcher->PostDOMEvent();
+    FullscreenRoots::Remove(this);
     SetWindowFullScreen(this, false);
   }
 }
@@ -11666,6 +11663,7 @@ nsDocument::RequestFullScreen(Element* aElement,
   
   
   
+  FullscreenRoots::Add(this);
   SetWindowFullScreen(this, true, aOptions.mVRHMDDevice);
 }
 
