@@ -102,22 +102,9 @@ public class SearchWidget extends AppWidgetProvider {
 
     
     private void addView(final AppWidgetManager manager, final Context context, final int id, final Bundle options) {
-        final boolean isKeyguard;
-        if (options != null) {
-            final int category = options.getInt(AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY, -1);
-            isKeyguard = category == AppWidgetProviderInfo.WIDGET_CATEGORY_KEYGUARD;
-        } else {
-            isKeyguard = false;
-        }
+        final RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.search_widget);
 
-        final RemoteViews views;
-        if (isKeyguard) {
-            views = new RemoteViews(context.getPackageName(), R.layout.keyguard_widget);
-        } else {
-            views = new RemoteViews(context.getPackageName(), R.layout.search_widget);
-            addClickIntent(context, views, R.id.search_button, ACTION_LAUNCH_SEARCH);
-        }
-
+        addClickIntent(context, views, R.id.search_button, ACTION_LAUNCH_SEARCH);
         addClickIntent(context, views, R.id.new_tab_button, ACTION_LAUNCH_NEW_TAB);
         
         addClickIntent(context, views, R.id.logo_button, ACTION_LAUNCH_BROWSER);
