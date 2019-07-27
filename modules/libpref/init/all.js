@@ -262,11 +262,6 @@ pref("media.wakelock_timeout", 2000);
 
 pref("media.play-stand-alone", true);
 
-#if defined(XP_WIN)
-pref("media.decoder.heuristic.dormant.enabled", true);
-pref("media.decoder.heuristic.dormant.timeout", 60000);
-#endif
-
 #ifdef MOZ_WMF
 pref("media.windows-media-foundation.enabled", true);
 pref("media.windows-media-foundation.use-dxva", true);
@@ -4538,7 +4533,8 @@ pref("reader.font_size", 3);
 
 
 
-pref("reader.color_scheme", "auto");
+
+pref("reader.color_scheme", "light");
 
 
 pref("reader.font_type", "sans-serif");

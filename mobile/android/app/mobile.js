@@ -846,3 +846,8 @@ pref("dom.meta-viewport.enabled", true);
 
 
 pref("media.gmp-gmpopenh264.provider.enabled", true);
+
+
+
+
+pref("reader.color_scheme", "auto");
