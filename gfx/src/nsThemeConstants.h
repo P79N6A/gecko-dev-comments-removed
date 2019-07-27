@@ -282,3 +282,5 @@
 
 #define NS_THEME_WIN_EXCLUDE_GLASS                         242
 
+#define NS_THEME_MAC_VIBRANCY_LIGHT                        243
+#define NS_THEME_MAC_VIBRANCY_DARK                         244

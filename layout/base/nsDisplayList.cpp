@@ -650,7 +650,6 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
                                nsIFrame* aScrollFrame,
                                const nsIFrame* aReferenceFrame,
                                ContainerLayer* aRoot,
-                               ViewID aScrollParentId,
                                const nsRect& aViewport,
                                bool aForceNullScrollId,
                                bool aIsRoot,
@@ -707,7 +706,6 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
 
   metrics.SetScrollId(scrollId);
   metrics.SetIsRoot(aIsRoot);
-  metrics.SetScrollParentId(aScrollParentId);
 
   
   
@@ -1293,7 +1291,7 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
 
   RecordFrameMetrics(aForFrame, rootScrollFrame,
                      aBuilder->FindReferenceFrameFor(aForFrame),
-                     root, FrameMetrics::NULL_SCROLL_ID, viewport,
+                     root, viewport,
                      !isRoot, isRoot, containerParameters);
 
   
@@ -2439,6 +2437,8 @@ nsDisplayThemedBackground::nsDisplayThemedBackground(nsDisplayListBuilder* aBuil
     case NS_THEME_WINDOW_BUTTON_BOX:
     case NS_THEME_MOZ_MAC_FULLSCREEN_BUTTON:
     case NS_THEME_WINDOW_BUTTON_BOX_MAXIMIZED:
+    case NS_THEME_MAC_VIBRANCY_LIGHT:
+    case NS_THEME_MAC_VIBRANCY_DARK:
       RegisterThemeGeometry(aBuilder, aFrame);
       break;
     case NS_THEME_WIN_BORDERLESS_GLASS:
@@ -3681,8 +3681,9 @@ nsDisplaySubDocument::BuildLayer(nsDisplayListBuilder* aBuilder,
                       mFrame->GetPosition() +
                       mFrame->GetOffsetToCrossDoc(ReferenceFrame());
 
+    container->SetScrollHandoffParentId(mScrollParentId);
     RecordFrameMetrics(mFrame, rootScrollFrame, ReferenceFrame(),
-                       container, mScrollParentId, viewport,
+                       container, viewport,
                        false, isRootContentDocument, params);
   }
 
@@ -3991,8 +3992,9 @@ nsDisplayScrollLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
                     mScrollFrame->GetPosition() +
                     mScrollFrame->GetOffsetToCrossDoc(ReferenceFrame());
 
+  layer->SetScrollHandoffParentId(mScrollParentId);
   RecordFrameMetrics(mScrolledFrame, mScrollFrame, ReferenceFrame(), layer,
-                     mScrollParentId, viewport, false, false, params);
+                     viewport, false, false, params);
 
   if (mList.IsOpaque()) {
     nsRect displayport;
