@@ -293,6 +293,7 @@ this.MobileIdentityManager = {
   },
 
   getCertificate: function(aSessionToken, aPublicKey) {
+    log.debug("getCertificate");
     if (this.certificates[aSessionToken] &&
         this.certificates[aSessionToken].validUntil > this.client.hawk.now()) {
       return Promise.resolve(this.certificates[aSessionToken].cert);
@@ -308,6 +309,7 @@ this.MobileIdentityManager = {
                      aPublicKey)
     .then(
       (signedCert) => {
+        log.debug("Got signed certificate");
         this.certificates[aSessionToken] = {
           cert: signedCert.cert,
           validUntil: validUntil
@@ -565,6 +567,7 @@ this.MobileIdentityManager = {
     return this.ui.startFlow(aManifestURL, phoneInfoArray)
     .then(
       (result) => {
+        log.debug("startFlow result ${} ", result);
         if (!result ||
             (!result.phoneNumber && (result.serviceId === undefined))) {
           return Promise.reject(ERROR_INTERNAL_INVALID_PROMPT_RESULT);
@@ -576,7 +579,9 @@ this.MobileIdentityManager = {
         
         
         
-        if (result.serviceId !== undefined) {
+        
+        if (result.serviceId !== undefined &&
+            result.serviceId !== null) {
           let icc = this.iccInfo[result.serviceId];
           log.debug("icc ${}", icc);
           if (!icc || !icc.msisdn && !icc.canDoSilentVerification) {
@@ -777,6 +782,8 @@ this.MobileIdentityManager = {
       uri, aPrincipal.appid, aPrincipal.isInBrowserElement);
     let manifestURL = appsService.getManifestURLByLocalId(aPrincipal.appId);
 
+    let _creds;
+
     
     
     
@@ -790,9 +797,11 @@ this.MobileIdentityManager = {
           return;
         }
 
+        _creds = creds;
+
         
         
-        if (aOptions.forceSelection) {
+        if (aOptions.forceSelection || aOptions.refreshCredentials) {
           return this.promptAndVerify(principal, manifestURL, creds)
           .then(
             (newCreds) => {
@@ -911,7 +920,21 @@ this.MobileIdentityManager = {
     .then(
       null,
       (error) => {
-        log.error("getMobileIdAssertion rejected with " + error);
+        log.error("getMobileIdAssertion rejected with ${}", error);
+
+        
+        
+        
+        
+        if (error === ERROR_INVALID_AUTH_TOKEN &&
+            !aOptions.refreshCredentials) {
+          log.debug("Need to get new credentials");
+          aOptions.refreshCredentials = true;
+          _creds && this.credStore.delete(_creds.msisdn);
+          this.getMobileIdAssertion(aPrincipal, aPromiseId, aOptions);
+          return;
+        }
+
         
         this.ui.error(error);
 
