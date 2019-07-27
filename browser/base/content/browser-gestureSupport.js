@@ -34,8 +34,9 @@ let gGestureSupport = {
     let addRemove = aAddListener ? window.addEventListener :
       window.removeEventListener;
 
-    gestureEvents.forEach(function (event) addRemove("Moz" + event, this, true),
-                          this);
+    for (let event of gestureEvents) {
+      addRemove("Moz" + event, this, true);
+    }
   },
 
   
@@ -283,10 +284,10 @@ let gGestureSupport = {
     
     
     let keyCombos = [];
-    ["shift", "alt", "ctrl", "meta"].forEach(function (key) {
+    for (let key of ["shift", "alt", "ctrl", "meta"]) {
       if (aEvent[key + "Key"])
         keyCombos.push(key);
-    });
+    }
 
     
     for (let subCombo of this._power(keyCombos)) {
