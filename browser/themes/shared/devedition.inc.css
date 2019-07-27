@@ -253,10 +253,9 @@ window:not([chromehidden~="toolbar"]) #urlbar-wrapper {
 }
 
 
-
 #notification-popup-box {
   border-radius: 0;
-  background: transparent;
+  background-color: var(--url-and-searchbar-background-color);
 }
 
 
