@@ -5,7 +5,9 @@
 
 package org.mozilla.gecko.home;
 
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.fxa.AccountLoader;
@@ -52,7 +54,7 @@ public class RemoteTabsPanel extends HomeFragment {
     
     
     
-    private final HashMap<Action, Fragment> mFragmentCache = new HashMap<Action, Fragment>();
+    private final Map<Action, Fragment> mFragmentCache = new EnumMap<>(Action.class);
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
