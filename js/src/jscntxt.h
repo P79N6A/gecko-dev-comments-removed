@@ -656,7 +656,7 @@ CheckForInterrupt(JSContext *cx)
     
     
     JSRuntime *rt = cx->runtime();
-    if (rt->hasPendingInterrupt())
+    if (MOZ_UNLIKELY(rt->hasPendingInterrupt()))
         return rt->handleInterrupt(cx);
     return true;
 }
