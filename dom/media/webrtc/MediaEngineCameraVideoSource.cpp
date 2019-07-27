@@ -84,28 +84,27 @@ MediaEngineCameraVideoSource::FitnessDistance(ValueType n,
 
 
 
-template<>
  uint32_t
 MediaEngineCameraVideoSource::FitnessDistance(int32_t n,
-    const OwningLongOrConstrainLongRange& aConstraint)
+    const OwningLongOrConstrainLongRange& aConstraint, bool aAdvanced)
 {
   if (aConstraint.IsLong()) {
     ConstrainLongRange range;
-    range.mIdeal.Construct(aConstraint.GetAsLong());
+    (aAdvanced ? range.mExact : range.mIdeal).Construct(aConstraint.GetAsLong());
     return FitnessDistance(n, range);
   } else {
     return FitnessDistance(n, aConstraint.GetAsConstrainLongRange());
   }
 }
 
-template<>
  uint32_t
 MediaEngineCameraVideoSource::FitnessDistance(double n,
-    const OwningDoubleOrConstrainDoubleRange& aConstraint)
+    const OwningDoubleOrConstrainDoubleRange& aConstraint,
+    bool aAdvanced)
 {
   if (aConstraint.IsDouble()) {
     ConstrainDoubleRange range;
-    range.mIdeal.Construct(aConstraint.GetAsDouble());
+    (aAdvanced ? range.mExact : range.mIdeal).Construct(aConstraint.GetAsDouble());
     return FitnessDistance(n, range);
   } else {
     return FitnessDistance(n, aConstraint.GetAsConstrainDoubleRange());
@@ -114,18 +113,22 @@ MediaEngineCameraVideoSource::FitnessDistance(double n,
 
  uint32_t
 MediaEngineCameraVideoSource::GetFitnessDistance(const webrtc::CaptureCapability& aCandidate,
-                                                 const MediaTrackConstraintSet &aConstraints)
+                                                 const MediaTrackConstraintSet &aConstraints,
+                                                 bool aAdvanced)
 {
   
   
 
   uint64_t distance =
     uint64_t(aCandidate.width? FitnessDistance(int32_t(aCandidate.width),
-                                               aConstraints.mWidth) : 0) +
+                                               aConstraints.mWidth,
+                                               aAdvanced) : 0) +
     uint64_t(aCandidate.height? FitnessDistance(int32_t(aCandidate.height),
-                                                aConstraints.mHeight) : 0) +
+                                                aConstraints.mHeight,
+                                                aAdvanced) : 0) +
     uint64_t(aCandidate.maxFPS? FitnessDistance(double(aCandidate.maxFPS),
-                                                aConstraints.mFrameRate) : 0);
+                                                aConstraints.mFrameRate,
+                                                aAdvanced) : 0);
   return uint32_t(std::min(distance, uint64_t(UINT32_MAX)));
 }
 
@@ -155,6 +158,8 @@ MediaEngineCameraVideoSource::TrimLessFitCandidates(CapabilitySet& set) {
 
 
 
+
+
 uint32_t
 MediaEngineCameraVideoSource::GetBestFitnessDistance(
     const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
@@ -172,7 +177,7 @@ MediaEngineCameraVideoSource::GetBestFitnessDistance(
       auto& candidate = candidateSet[i];
       webrtc::CaptureCapability cap;
       GetCapability(candidate.mIndex, cap);
-      uint32_t distance = GetFitnessDistance(cap, *cs);
+      uint32_t distance = GetFitnessDistance(cap, *cs, !first);
       if (distance == UINT32_MAX) {
         candidateSet.RemoveElementAt(i);
       } else {
@@ -246,7 +251,7 @@ MediaEngineCameraVideoSource::ChooseCapability(
     auto& candidate = candidateSet[i];
     webrtc::CaptureCapability cap;
     GetCapability(candidate.mIndex, cap);
-    candidate.mDistance = GetFitnessDistance(cap, aConstraints);
+    candidate.mDistance = GetFitnessDistance(cap, aConstraints, false);
     if (candidate.mDistance == UINT32_MAX) {
       candidateSet.RemoveElementAt(i);
     } else {
@@ -263,7 +268,7 @@ MediaEngineCameraVideoSource::ChooseCapability(
         auto& candidate = candidateSet[i];
         webrtc::CaptureCapability cap;
         GetCapability(candidate.mIndex, cap);
-        if (GetFitnessDistance(cap, cs) == UINT32_MAX) {
+        if (GetFitnessDistance(cap, cs, true) == UINT32_MAX) {
           rejects.AppendElement(candidate);
           candidateSet.RemoveElementAt(i);
         } else {
@@ -295,7 +300,7 @@ MediaEngineCameraVideoSource::ChooseCapability(
     for (auto& candidate : candidateSet) {
       webrtc::CaptureCapability cap;
       GetCapability(candidate.mIndex, cap);
-      candidate.mDistance = GetFitnessDistance(cap, prefs);
+      candidate.mDistance = GetFitnessDistance(cap, prefs, false);
     }
     TrimLessFitCandidates(candidateSet);
   }
