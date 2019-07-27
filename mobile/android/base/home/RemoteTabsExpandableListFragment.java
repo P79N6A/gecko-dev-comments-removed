@@ -7,39 +7,20 @@ package org.mozilla.gecko.home;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.List;
 
-import org.mozilla.gecko.GeckoProfile;
-import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.RemoteClientsDialogFragment;
-import org.mozilla.gecko.RemoteClientsDialogFragment.ChoiceMode;
-import org.mozilla.gecko.RemoteClientsDialogFragment.RemoteClientsListener;
 import org.mozilla.gecko.RemoteTabsExpandableListAdapter;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
-import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.RemoteClient;
 import org.mozilla.gecko.db.RemoteTab;
-import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
-import org.mozilla.gecko.widget.GeckoSwipeRefreshLayout;
-import org.mozilla.gecko.widget.GeckoSwipeRefreshLayout.OnRefreshListener;
 
-import android.accounts.Account;
-import android.content.Context;
-import android.database.Cursor;
 import android.os.Bundle;
-import android.support.v4.content.Loader;
-import android.util.Log;
-import android.view.ContextMenu;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.view.LayoutInflater;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.ExpandableListAdapter;
@@ -54,46 +35,12 @@ import android.widget.TextView;
 
 
 
-public class RemoteTabsExpandableListFragment extends HomeFragment implements RemoteClientsListener {
+public class RemoteTabsExpandableListFragment extends RemoteTabsBaseFragment {
     
     private static final String LOGTAG = "GeckoRemoteTabsExpList";
 
     
-    private static final int LOADER_ID_REMOTE_TABS = 0;
-
-    
-    private static final String DIALOG_TAG_REMOTE_TABS = "dialog_tag_remote_tabs";
-
-    private static final String[] STAGES_TO_SYNC_ON_REFRESH = new String[] { "clients", "tabs" };
-
-    
-    
-    private static RemoteTabsExpandableListState sState;
-
-    
-    private RemoteTabsExpandableListAdapter mAdapter;
-
-    
-    
-    private final ArrayList<RemoteClient> mHiddenClients = new ArrayList<RemoteClient>();
-
-    
     private HomeExpandableListView mList;
-
-    
-    private View mEmptyView;
-
-    
-    private View mFooterView;
-
-    
-    private CursorLoaderCallbacks mCursorLoaderCallbacks;
-
-    
-    private GeckoSwipeRefreshLayout mRefreshLayout;
-
-    
-    private RemoteTabsSyncListener mSyncStatusListener;
 
     public static RemoteTabsExpandableListFragment newInstance() {
         return new RemoteTabsExpandableListFragment();
@@ -110,14 +57,7 @@ public class RemoteTabsExpandableListFragment extends HomeFragment implements Re
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-        mRefreshLayout = (GeckoSwipeRefreshLayout) view.findViewById(R.id.remote_tabs_refresh_layout);
-        mRefreshLayout.setColorScheme(
-                R.color.swipe_refresh_orange, R.color.swipe_refresh_white,
-                R.color.swipe_refresh_orange, R.color.swipe_refresh_white);
-        mRefreshLayout.setOnRefreshListener(new RemoteTabsRefreshListener());
-
-        mSyncStatusListener = new RemoteTabsSyncListener();
-        FirefoxAccounts.addSyncStatusListener(mSyncStatusListener);
+        super.onViewCreated(view, savedInstanceState);
 
         mList = (HomeExpandableListView) view.findViewById(R.id.list);
         mList.setTag(HomePager.LIST_TAG_REMOTE_TABS);
@@ -187,11 +127,6 @@ public class RemoteTabsExpandableListFragment extends HomeFragment implements Re
         super.onDestroyView();
         mList = null;
         mEmptyView = null;
-
-        if (mSyncStatusListener != null) {
-            FirefoxAccounts.removeSyncStatusListener(mSyncStatusListener);
-            mSyncStatusListener = null;
-        }
     }
 
     @Override
@@ -203,25 +138,16 @@ public class RemoteTabsExpandableListFragment extends HomeFragment implements Re
         
         
         
-        if (sState == null) {
-            sState = new RemoteTabsExpandableListState(GeckoSharedPrefs.forProfile(getActivity()));
-        }
-
-        
-        
-        
-        
-        
         mFooterView = LayoutInflater.from(getActivity()).inflate(R.layout.home_remote_tabs_hidden_devices_footer, mList, false);
         final View view = mFooterView.findViewById(R.id.hidden_devices);
         view.setClickable(true);
-        view.setOnClickListener(new OnClickListener() {
+        view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 final RemoteClientsDialogFragment dialog = RemoteClientsDialogFragment.newInstance(
                         getResources().getString(R.string.home_remote_tabs_hidden_devices_title),
                         getResources().getString(R.string.home_remote_tabs_unhide_selected_devices),
-                        ChoiceMode.MULTIPLE, new ArrayList<RemoteClient>(mHiddenClients));
+                        RemoteClientsDialogFragment.ChoiceMode.MULTIPLE, new ArrayList<>(mHiddenClients));
                 dialog.setTargetFragment(RemoteTabsExpandableListFragment.this, 0);
                 dialog.show(getActivity().getSupportFragmentManager(), DIALOG_TAG_REMOTE_TABS);
             }
@@ -248,60 +174,7 @@ public class RemoteTabsExpandableListFragment extends HomeFragment implements Re
     }
 
     @Override
-    public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
-        if (!(menuInfo instanceof RemoteTabsClientContextMenuInfo)) {
-            
-            
-            super.onCreateContextMenu(menu, view, menuInfo);
-            return;
-        }
-
-        
-        final MenuInflater inflater = new MenuInflater(view.getContext());
-        inflater.inflate(R.menu.home_remote_tabs_client_contextmenu, menu);
-
-        final RemoteTabsClientContextMenuInfo info = (RemoteTabsClientContextMenuInfo) menuInfo;
-        menu.setHeaderTitle(info.client.name);
-
-        
-        final boolean isHidden = sState.isClientHidden(info.client.guid);
-        final MenuItem item = menu.findItem(isHidden
-                ? R.id.home_remote_tabs_hide_client
-                : R.id.home_remote_tabs_show_client);
-        item.setVisible(false);
-    }
-
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        if (super.onContextItemSelected(item)) {
-            
-            return true;
-        }
-
-        final ContextMenuInfo menuInfo = item.getMenuInfo();
-        if (!(menuInfo instanceof RemoteTabsClientContextMenuInfo)) {
-            return false;
-        }
-
-        final RemoteTabsClientContextMenuInfo info = (RemoteTabsClientContextMenuInfo) menuInfo;
-
-        final int itemId = item.getItemId();
-        if (itemId == R.id.home_remote_tabs_hide_client) {
-            sState.setClientHidden(info.client.guid, true);
-            getLoaderManager().restartLoader(LOADER_ID_REMOTE_TABS, null, mCursorLoaderCallbacks);
-            return true;
-        }
-
-        if (itemId == R.id.home_remote_tabs_show_client) {
-            sState.setClientHidden(info.client.guid, false);
-            getLoaderManager().restartLoader(LOADER_ID_REMOTE_TABS, null, mCursorLoaderCallbacks);
-            return true;
-        }
-
-        return false;
-    }
-
-    private void updateUiFromClients(List<RemoteClient> clients, List<RemoteClient> hiddenClients) {
+    protected void updateUiFromClients(List<RemoteClient> clients, List<RemoteClient> hiddenClients) {
         
         
         
@@ -360,121 +233,6 @@ public class RemoteTabsExpandableListFragment extends HomeFragment implements Re
             emptyText.setText(R.string.home_remote_tabs_empty);
 
             mList.setEmptyView(mEmptyView);
-        }
-    }
-
-    @Override
-    public void onClients(List<RemoteClient> clients) {
-        
-        
-        for (RemoteClient client : clients) {
-            sState.setClientHidden(client.guid, false);
-            
-            
-            sState.setClientCollapsed(client.guid, false);
-        }
-        getLoaderManager().restartLoader(LOADER_ID_REMOTE_TABS, null, mCursorLoaderCallbacks);
-    }
-
-    @Override
-    protected void load() {
-        getLoaderManager().initLoader(LOADER_ID_REMOTE_TABS, null, mCursorLoaderCallbacks);
-    }
-
-    private static class RemoteTabsCursorLoader extends SimpleCursorLoader {
-        private final GeckoProfile mProfile;
-
-        public RemoteTabsCursorLoader(Context context) {
-            super(context);
-            mProfile = GeckoProfile.get(context);
-        }
-
-        @Override
-        public Cursor loadCursor() {
-            return mProfile.getDB().getTabsAccessor().getRemoteTabsCursor(getContext());
-        }
-    }
-
-    private class CursorLoaderCallbacks extends TransitionAwareCursorLoaderCallbacks {
-        private BrowserDB mDB;    
-
-        @Override
-        public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-            mDB = GeckoProfile.get(getActivity()).getDB();
-            return new RemoteTabsCursorLoader(getActivity());
-        }
-
-        @Override
-        public void onLoadFinishedAfterTransitions(Loader<Cursor> loader, Cursor c) {
-            final List<RemoteClient> clients = mDB.getTabsAccessor().getClientsFromCursor(c);
-
-            
-            
-            
-            mHiddenClients.clear();
-            final Iterator<RemoteClient> it = clients.iterator();
-            while (it.hasNext()) {
-                final RemoteClient client = it.next();
-                if (sState.isClientHidden(client.guid)) {
-                    it.remove();
-                    mHiddenClients.add(client);
-                }
-            }
-
-            mAdapter.replaceClients(clients);
-            updateUiFromClients(clients, mHiddenClients);
-        }
-
-        @Override
-        public void onLoaderReset(Loader<Cursor> loader) {
-            super.onLoaderReset(loader);
-            mAdapter.replaceClients(null);
-        }
-    }
-
-    private class RemoteTabsRefreshListener implements OnRefreshListener {
-        @Override
-        public void onRefresh() {
-            if (FirefoxAccounts.firefoxAccountsExist(getActivity())) {
-                final Account account = FirefoxAccounts.getFirefoxAccount(getActivity());
-                FirefoxAccounts.requestSync(account, FirefoxAccounts.FORCE, STAGES_TO_SYNC_ON_REFRESH, null);
-            } else {
-                Log.wtf(LOGTAG, "No Firefox Account found; this should never happen. Ignoring.");
-                mRefreshLayout.setRefreshing(false);
-            }
-        }
-    }
-
-    private class RemoteTabsSyncListener implements FirefoxAccounts.SyncStatusListener {
-        @Override
-        public Context getContext() {
-            return getActivity();
-        }
-
-        @Override
-        public Account getAccount() {
-            return FirefoxAccounts.getFirefoxAccount(getContext());
-        }
-
-        @Override
-        public void onSyncStarted() {
-        }
-
-        @Override
-        public void onSyncFinished() {
-            mRefreshLayout.setRefreshing(false);
-        }
-    }
-
-    
-
-
-    protected static class RemoteTabsClientContextMenuInfo extends HomeContextMenuInfo {
-        protected final RemoteClient client;
-
-        public RemoteTabsClientContextMenuInfo(View targetView, int position, long id, RemoteClient client) {
-            super(targetView, position, id);
-            this.client = client;
         }
     }
 }
