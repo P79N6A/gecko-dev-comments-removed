@@ -2365,7 +2365,6 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
   
   
   CheckIfDecodeComplete();
-  MaybeStartPlayback();
 
   if (mQueuedSeek.Exists()) {
     mPendingSeek.Steal(mQueuedSeek);
@@ -2931,12 +2930,6 @@ void MediaDecoderStateMachine::AdvanceFrame()
       ScheduleStateMachineIn(USECS_PER_S);
       return;
     }
-  }
-
-  
-  
-  if ((mFragmentEndTime >= 0 && clock_time < mFragmentEndTime) || mFragmentEndTime < 0) {
-    MaybeStartPlayback();
   }
 
   
