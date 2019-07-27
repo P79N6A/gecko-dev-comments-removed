@@ -13,6 +13,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
+#include "mozilla/UniquePtr.h"
 
 #include "jspubtd.h"
 
@@ -141,10 +142,22 @@
 namespace JS {
 namespace ubi {
 
-using mozilla::Maybe;
-
 class Edge;
 class EdgeRange;
+
+}
+}
+
+namespace mozilla {
+template<>
+class DefaultDelete<JS::ubi::EdgeRange> : public JS::DeletePolicy<JS::ubi::EdgeRange> { };
+}
+
+namespace JS {
+namespace ubi {
+
+using mozilla::Maybe;
+using mozilla::UniquePtr;
 
 
 
@@ -192,9 +205,7 @@ class Base {
     
     
     
-    
-    
-    virtual EdgeRange* edges(JSContext* cx, bool wantNames) const = 0;
+    virtual UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const = 0;
 
     
     
@@ -341,7 +352,7 @@ class Node {
         return base()->size(mallocSizeof);
     }
 
-    EdgeRange* edges(JSContext* cx, bool wantNames = true) const {
+    UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames = true) const {
         return base()->edges(cx, wantNames);
     }
 
@@ -521,7 +532,7 @@ class MOZ_STACK_CLASS RootList {
 
 template<>
 struct Concrete<RootList> : public Base {
-    EdgeRange* edges(JSContext* cx, bool wantNames) const override;
+    UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const override;
     const char16_t* typeName() const override { return concreteTypeName; }
 
   protected:
@@ -538,7 +549,7 @@ struct Concrete<RootList> : public Base {
 template<typename Referent>
 class TracerConcrete : public Base {
     const char16_t* typeName() const override { return concreteTypeName; }
-    EdgeRange* edges(JSContext*, bool wantNames) const override;
+    UniquePtr<EdgeRange> edges(JSContext*, bool wantNames) const override;
     JS::Zone* zone() const override;
 
   protected:
@@ -591,7 +602,7 @@ template<>
 class Concrete<void> : public Base {
     const char16_t* typeName() const override;
     size_t size(mozilla::MallocSizeOf mallocSizeOf) const override;
-    EdgeRange* edges(JSContext* cx, bool wantNames) const override;
+    UniquePtr<EdgeRange> edges(JSContext* cx, bool wantNames) const override;
     JS::Zone* zone() const override;
     JSCompartment* compartment() const override;
 
