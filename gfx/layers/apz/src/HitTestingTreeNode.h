@@ -53,8 +53,9 @@ class HitTestingTreeNode {
 private:
   ~HitTestingTreeNode();
 public:
-  HitTestingTreeNode(AsyncPanZoomController* aApzc, bool aIsPrimaryHolder);
-  void RecycleWith(AsyncPanZoomController* aApzc);
+  HitTestingTreeNode(AsyncPanZoomController* aApzc, bool aIsPrimaryHolder,
+                     uint64_t aLayersId);
+  void RecycleWith(AsyncPanZoomController* aApzc, uint64_t aLayersId);
   void Destroy();
 
   
@@ -105,6 +106,8 @@ private:
 
   nsRefPtr<AsyncPanZoomController> mApzc;
   bool mIsPrimaryApzcHolder;
+
+  uint64_t mLayersId;
 
   
 

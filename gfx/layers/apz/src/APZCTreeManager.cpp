@@ -280,7 +280,8 @@ GetEventRegions(const LayerMetricsWrapper& aLayer)
 
 already_AddRefed<HitTestingTreeNode>
 APZCTreeManager::RecycleOrCreateNode(TreeBuildingState& aState,
-                                     AsyncPanZoomController* aApzc)
+                                     AsyncPanZoomController* aApzc,
+                                     uint64_t aLayersId)
 {
   
   
@@ -289,11 +290,11 @@ APZCTreeManager::RecycleOrCreateNode(TreeBuildingState& aState,
     nsRefPtr<HitTestingTreeNode> node = aState.mNodesToDestroy[i];
     if (!node->IsPrimaryHolder()) {
       aState.mNodesToDestroy.RemoveElement(node);
-      node->RecycleWith(aApzc);
+      node->RecycleWith(aApzc, aLayersId);
       return node.forget();
     }
   }
-  nsRefPtr<HitTestingTreeNode> node = new HitTestingTreeNode(aApzc, false);
+  nsRefPtr<HitTestingTreeNode> node = new HitTestingTreeNode(aApzc, false, aLayersId);
   return node.forget();
 }
 
@@ -333,7 +334,7 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
 
   nsRefPtr<HitTestingTreeNode> node = nullptr;
   if (!needsApzc) {
-    node = RecycleOrCreateNode(aState, nullptr);
+    node = RecycleOrCreateNode(aState, nullptr, aLayersId);
     AttachNodeToTree(node, aParent, aNextSibling);
     node->SetHitTestData(GetEventRegions(aLayer), aLayer.GetTransform(),
         aLayer.GetClipRect() ? Some(ParentLayerIntRegion(*aLayer.GetClipRect())) : Nothing(),
@@ -413,7 +414,7 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
         apzc->ShareFrameMetricsAcrossProcesses();
       }
       MOZ_ASSERT(node == nullptr);
-      node = new HitTestingTreeNode(apzc, true);
+      node = new HitTestingTreeNode(apzc, true, aLayersId);
     } else {
       
       
@@ -487,7 +488,7 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     
     
 
-    node = RecycleOrCreateNode(aState, apzc);
+    node = RecycleOrCreateNode(aState, apzc, aLayersId);
     AttachNodeToTree(node, aParent, aNextSibling);
 
     

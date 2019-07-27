@@ -1087,6 +1087,11 @@ public:
     return mAsyncTransformAppliedToContent;
   }
 
+  uint64_t GetLayersId() const
+  {
+    return mLayersId;
+  }
+
 private:
   
   CSSPoint mTestAsyncScrollOffset;
