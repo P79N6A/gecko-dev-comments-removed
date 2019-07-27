@@ -4,6 +4,9 @@
 
 "use strict";
 
+XPCOMUtils.defineLazyModuleGetter(this, "PageActions",
+                                  "resource://gre/modules/PageActions.jsm");
+
 
 
 var rokuTarget = {
@@ -404,7 +407,7 @@ var CastingApps = {
     
     
     if (this.pageAction.id) {
-      NativeWindow.pageactions.remove(this.pageAction.id);
+      PageActions.remove(this.pageAction.id);
       delete this.pageAction.id;
     }
 
@@ -425,14 +428,14 @@ var CastingApps = {
     
     
     if (aVideo.mozIsCasting) {
-      this.pageAction.id = NativeWindow.pageactions.add({
+      this.pageAction.id = PageActions.add({
         title: Strings.browser.GetStringFromName("contextmenu.castToScreen"),
         icon: "drawable://casting_active",
         clickCallback: this.pageAction.click,
         important: true
       });
     } else if (aVideo.mozAllowCasting) {
-      this.pageAction.id = NativeWindow.pageactions.add({
+      this.pageAction.id = PageActions.add({
         title: Strings.browser.GetStringFromName("contextmenu.castToScreen"),
         icon: "drawable://casting",
         clickCallback: this.pageAction.click,
