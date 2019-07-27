@@ -121,7 +121,7 @@ function test_find_actors() {
 
   
 
-  let bpSet = Set(bps);
+  let bpSet = new Set(bps);
   for (let bp of bpStore.findActors()) {
     bpSet.delete(bp);
   }
@@ -130,7 +130,7 @@ function test_find_actors() {
 
   
 
-  bpSet = Set(bps.filter(bp => { return bp.sourceActor.actorID === "actor1" }));
+  bpSet = new Set(bps.filter(bp => { return bp.sourceActor.actorID === "actor1" }));
   for (let bp of bpStore.findActors({ sourceActor: { actorID: "actor1" } })) {
     bpSet.delete(bp);
   }
@@ -139,7 +139,7 @@ function test_find_actors() {
 
   
 
-  bpSet = Set(bps.filter(bp => { return bp.sourceActor.actorID === "actor1" && bp.line === 10; }));
+  bpSet = new Set(bps.filter(bp => { return bp.sourceActor.actorID === "actor1" && bp.line === 10; }));
   let first = true;
   for (let bp of bpStore.findActors({ sourceActor: { actorID: "actor1" }, line: 10 })) {
     if (first) {

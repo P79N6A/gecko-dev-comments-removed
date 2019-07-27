@@ -617,7 +617,7 @@ Item.prototype = {
 
 
 
-DevToolsUtils.defineLazyPrototypeGetter(Item.prototype, "_itemsByElement", Map);
+DevToolsUtils.defineLazyPrototypeGetter(Item.prototype, "_itemsByElement", () => new Map());
 
 
 
