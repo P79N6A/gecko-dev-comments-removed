@@ -134,17 +134,16 @@ public:
                                             const nsString& aName,
                                             const nsString& aFeatures,
                                             bool* aOutWindowOpened) MOZ_OVERRIDE;
-    virtual bool RecvCreateWindow(PBrowserParent* aOpener,
-                                  const uint32_t& aChromeFlags,
-                                  const bool& aCalledFromJS,
-                                  const bool& aPositionSpecified,
-                                  const bool& aSizeSpecified,
-                                  const nsString& aURI,
-                                  const nsString& aName,
-                                  const nsString& aFeatures,
-                                  const nsString& aBaseURI,
-                                  bool* aWindowIsNew,
-                                  InfallibleTArray<FrameScriptInfo>* aFrameScripts) MOZ_OVERRIDE;
+    virtual bool AnswerCreateWindow(const uint32_t& aChromeFlags,
+                                    const bool& aCalledFromJS,
+                                    const bool& aPositionSpecified,
+                                    const bool& aSizeSpecified,
+                                    const nsString& aURI,
+                                    const nsString& aName,
+                                    const nsString& aFeatures,
+                                    const nsString& aBaseURI,
+                                    bool* aWindowIsNew,
+                                    PBrowserParent** aRetVal) MOZ_OVERRIDE;
     virtual bool RecvSyncMessage(const nsString& aMessage,
                                  const ClonedMessageData& aData,
                                  const InfallibleTArray<CpowEntry>& aCpows,
@@ -353,11 +352,6 @@ public:
     void SetInitedByParent() { mInitedByParent = true; }
     bool IsInitedByParent() const { return mInitedByParent; }
 
-    static TabParent* GetNextTabParent();
-
-    bool SendLoadRemoteScript(const nsString& aURL,
-                              const bool& aRunInGlobalScope);
-
 protected:
     bool ReceiveMessage(const nsString& aMessage,
                         bool aSync,
@@ -473,35 +467,6 @@ private:
     nsCOMPtr<nsILoadContext> mLoadContext;
 
     TabId mTabId;
-
-    
-    struct AutoUseNewTab;
-
-    
-    
-    
-    
-    
-    static TabParent* sNextTabParent;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    bool mSkipLoad;
-
-    
-    
-    
-    
-    
-    
-    
-    nsTArray<FrameScriptInfo> mDelayedFrameScripts;
 
 private:
     
