@@ -145,9 +145,7 @@ public class RemoteTabsPanel extends HomeFragment {
 
         switch (action) {
         case None:
-            
-            
-            return RemoteTabsStaticFragment.newInstance(R.layout.remote_tabs_needs_upgrade);
+            return new RemoteTabsExpandableListFragment();
         case NeedsVerification:
             return RemoteTabsStaticFragment.newInstance(R.layout.remote_tabs_needs_verification);
         case NeedsPassword:
