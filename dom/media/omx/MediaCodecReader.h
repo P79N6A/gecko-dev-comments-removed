@@ -339,37 +339,6 @@ private:
   friend class ProcessCachedDataTask;
 
   
-  
-  
-  
-  
-  
-  
-  template<class T>
-  class ReferenceKeeperRunnable : public nsRunnable
-  {
-  public:
-    ReferenceKeeperRunnable(nsRefPtr<T> aPointer)
-      : mPointer(aPointer)
-    {
-    }
-
-    NS_IMETHOD Run() MOZ_OVERRIDE
-    {
-      mPointer = nullptr;
-      return NS_OK;
-    }
-
-  private:
-    
-    ReferenceKeeperRunnable() MOZ_DELETE;
-    ReferenceKeeperRunnable(const ReferenceKeeperRunnable &rhs) MOZ_DELETE;
-    const ReferenceKeeperRunnable &operator=(const ReferenceKeeperRunnable &rhs) MOZ_DELETE;
-
-    nsRefPtr<T> mPointer;
-  };
-
-  
   MediaCodecReader() MOZ_DELETE;
   const MediaCodecReader& operator=(const MediaCodecReader& rhs) MOZ_DELETE;
 
