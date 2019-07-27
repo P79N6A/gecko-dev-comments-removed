@@ -28,6 +28,7 @@
 #include "nsITextToSubURI.h"
 #include "nsJSUtils.h"
 #include "nsContentUtils.h"
+#include "nsGlobalWindow.h"
 #include "mozilla/Likely.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsNullPrincipal.h"
@@ -538,23 +539,23 @@ nsLocation::SetHrefWithBase(const nsAString& aHref, nsIURI* aBase,
 
 
 
-    bool inScriptTag=false;
-    JSContext *cx = nsContentUtils::GetCurrentJSContext();
-    if (cx) {
-      nsIScriptContext *scriptContext =
-        nsJSUtils::GetDynamicScriptContext(cx);
+    bool inScriptTag = false;
+    nsIScriptContext* scriptContext = nullptr;
+    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(GetEntryGlobal());
+    if (win) {
+      scriptContext = static_cast<nsGlobalWindow*>(win.get())->GetContextInternal();
+    }
 
-      if (scriptContext) {
-        if (scriptContext->GetProcessingScriptTag()) {
-          
-          
-          
-          nsCOMPtr<nsIScriptGlobalObject> ourGlobal =
-            docShell ? docShell->GetScriptGlobalObject() : nullptr;
-          inScriptTag = (ourGlobal == scriptContext->GetGlobalObject());
-        }
-      }  
-    } 
+    if (scriptContext) {
+      if (scriptContext->GetProcessingScriptTag()) {
+        
+        
+        
+        nsCOMPtr<nsIScriptGlobalObject> ourGlobal =
+          docShell ? docShell->GetScriptGlobalObject() : nullptr;
+        inScriptTag = (ourGlobal == scriptContext->GetGlobalObject());
+      }
+    }
 
     return SetURI(newUri, aReplace || inScriptTag);
   }
