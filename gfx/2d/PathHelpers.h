@@ -8,6 +8,7 @@
 
 #include "2D.h"
 #include "mozilla/Constants.h"
+#include "UserData.h"
 
 namespace mozilla {
 namespace gfx {
@@ -181,12 +182,39 @@ GFX2D_API void StrokeSnappedEdgesOfRect(const Rect& aRect,
                                         const ColorPattern& aColor,
                                         const StrokeOptions& aStrokeOptions);
 
-static inline bool
-UserToDevicePixelSnapped(Rect& aRect, const Matrix& aTransform)
+extern UserDataKey sDisablePixelSnapping;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline bool UserToDevicePixelSnapped(Rect& aRect, const Matrix& aTransform,
+                                     bool aAllowScaleOr90DegreeRotate = false)
 {
-  Point p1 = aTransform * aRect.TopLeft();
-  Point p2 = aTransform * aRect.TopRight();
-  Point p3 = aTransform * aRect.BottomRight();
+  Matrix mat = aTransform;
+
+  const Float epsilon = 0.0000001f;
+#define WITHIN_E(a,b) (fabs((a)-(b)) < epsilon)
+  if (!aAllowScaleOr90DegreeRotate &&
+      (!WITHIN_E(mat._11, 1.f) || !WITHIN_E(mat._22, 1.f) ||
+       !WITHIN_E(mat._12, 0.f) || !WITHIN_E(mat._21, 0.f))) {
+    
+    return false;
+  }
+#undef WITHIN_E
+
+  Point p1 = mat * aRect.TopLeft();
+  Point p2 = mat * aRect.TopRight();
+  Point p3 = mat * aRect.BottomRight();
 
   
   
@@ -205,6 +233,31 @@ UserToDevicePixelSnapped(Rect& aRect, const Matrix& aTransform)
   }
 
   return false;
+}
+
+inline bool UserToDevicePixelSnapped(Rect& aRect, const DrawTarget& aDrawTarget,
+                                     bool aIgnoreScale = false)
+{
+  if (aDrawTarget.GetUserData(&sDisablePixelSnapping)) {
+    return false;
+  }
+  return UserToDevicePixelSnapped(aRect, aDrawTarget.GetTransform());
+}
+
+
+
+
+
+inline void MaybeSnapToDevicePixels(Rect& aRect, const DrawTarget& aDrawTarget,
+                                    bool aIgnoreScale = false)
+{
+  if (UserToDevicePixelSnapped(aRect, aDrawTarget, aIgnoreScale)) {
+    
+    
+    Matrix mat = aDrawTarget.GetTransform();
+    mat.Invert();
+    aRect = mat.TransformBounds(aRect);
+  }
 }
 
 } 
