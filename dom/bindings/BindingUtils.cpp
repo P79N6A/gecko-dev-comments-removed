@@ -2124,30 +2124,51 @@ ConvertJSValueToByteString(JSContext* cx, JS::Handle<JS::Value> v,
     pval.set(JS::StringValue(s));  
   }
 
+  
+  
   size_t length;
-  const jschar *chars = JS_GetStringCharsZAndLength(cx, s, &length);
-  if (!chars) {
-    return false;
-  }
+  if (!JS_StringHasLatin1Chars(s)) {
+    
+    
+    bool foundBadChar = false;
+    size_t badCharIndex;
+    jschar badChar;
+    {
+      JS::AutoCheckCannotGC nogc;
+      const jschar* chars = JS_GetTwoByteStringCharsAndLength(cx, nogc, s, &length);
+      if (!chars) {
+        return false;
+      }
 
-  
-  
-  for (size_t i = 0; i < length; i++) {
-    if (chars[i] > 255) {
+      for (size_t i = 0; i < length; i++) {
+        if (chars[i] > 255) {
+          badCharIndex = i;
+          badChar = chars[i];
+          foundBadChar = true;
+          break;
+        }
+      }
+    }
+
+    if (foundBadChar) {
+      MOZ_ASSERT(badCharIndex < length);
+      MOZ_ASSERT(badChar > 255);
       
       
       char index[21];
       static_assert(sizeof(size_t) <= 8, "index array too small");
-      PR_snprintf(index, sizeof(index), "%d", i);
+      PR_snprintf(index, sizeof(index), "%d", badCharIndex);
       
       
       
-      char badChar[6];
-      static_assert(sizeof(jschar) <= 2, "badChar array too small");
-      PR_snprintf(badChar, sizeof(badChar), "%d", chars[i]);
-      ThrowErrorMessage(cx, MSG_INVALID_BYTESTRING, index, badChar);
+      char badCharArray[6];
+      static_assert(sizeof(jschar) <= 2, "badCharArray too small");
+      PR_snprintf(badCharArray, sizeof(badCharArray), "%d", badChar);
+      ThrowErrorMessage(cx, MSG_INVALID_BYTESTRING, index, badCharArray);
       return false;
     }
+  } else {
+    length = JS_GetStringLength(s);
   }
 
   if (length >= UINT32_MAX) {
