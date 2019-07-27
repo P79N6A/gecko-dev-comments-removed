@@ -398,12 +398,18 @@ private:
 bool
 MediaSourceReader::DecodersContainTime(double aTime)
 {
+  bool found = false;
+
   for (uint32_t i = 0; i < mDecoders.Length(); ++i) {
-    if (!mDecoders[i]->IsDiscarded() && mDecoders[i]->ContainsTime(aTime)) {
-      return true;
+    if (!mDecoders[i]->IsDiscarded()) {
+      if (!mDecoders[i]->ContainsTime(aTime)) {
+        
+        return false;
+      }
+      found = true;
     }
   }
-  return false;
+  return found;
 }
 
 nsresult
