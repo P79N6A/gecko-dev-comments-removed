@@ -7464,8 +7464,11 @@ nsContentUtils::TransferableToIPCTransferable(nsITransferable* aTransferable,
           if (file) {
             blobImpl = new BlobImplFile(file, false);
             ErrorResult rv;
+            
+            
             blobImpl->GetSize(rv);
             blobImpl->GetLastModified(rv);
+            blobImpl->LookupAndCacheIsDirectory();
           } else {
             blobImpl = do_QueryInterface(data);
           }
