@@ -12908,6 +12908,9 @@ IonBuilder::addLexicalCheck(MDefinition* input)
 
     
     if (input->type() == MIRType_MagicUninitializedLexical) {
+        
+        
+        input->setImplicitlyUsedUnchecked();
         lexicalCheck = MThrowUninitializedLexical::New(alloc());
         current->add(lexicalCheck);
         if (!resumeAfter(lexicalCheck))
