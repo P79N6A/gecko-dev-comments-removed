@@ -218,11 +218,6 @@ let LoopRoomsInternal = {
       };
     }
 
-    
-    if (!MozLoopService.getLoopPref("contextInConverations.enabled")) {
-      return getUnencryptedData();
-    }
-
     var newRoomData = extend({}, roomData);
 
     if (!newRoomData.context) {
@@ -700,7 +695,8 @@ let LoopRoomsInternal = {
       };
 
       
-      if (!Services.prefs.getBoolPref("loop.contextInConverations.enabled")) {
+      
+      if (!sendData.context) {
         sendData = {
           roomName: newRoomName
         };
