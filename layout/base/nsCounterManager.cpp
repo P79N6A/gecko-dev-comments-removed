@@ -7,12 +7,13 @@
 
 
 #include "nsCounterManager.h"
+
+#include "mozilla/Likely.h"
+#include "mozilla/WritingModes.h"
 #include "nsBulletFrame.h" 
 #include "nsContentUtils.h"
-#include "nsTArray.h"
-#include "mozilla/Likely.h"
 #include "nsIContent.h"
-#include "WritingModes.h"
+#include "nsTArray.h"
 
 using namespace mozilla;
 

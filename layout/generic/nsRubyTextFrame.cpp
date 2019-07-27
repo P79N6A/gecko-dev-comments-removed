@@ -7,10 +7,11 @@
 
 
 #include "nsRubyTextFrame.h"
+
+#include "mozilla/WritingModes.h"
+#include "nsLineLayout.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
-#include "WritingModes.h"
-#include "nsLineLayout.h"
 
 using namespace mozilla;
 

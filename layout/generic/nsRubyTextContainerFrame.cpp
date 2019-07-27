@@ -7,10 +7,11 @@
 
 
 #include "nsRubyTextContainerFrame.h"
+
+#include "mozilla/UniquePtr.h"
+#include "mozilla/WritingModes.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
-#include "WritingModes.h"
-#include "mozilla/UniquePtr.h"
 
 using namespace mozilla;
 
