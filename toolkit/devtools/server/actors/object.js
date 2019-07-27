@@ -1592,6 +1592,186 @@ function makeDebuggeeValueIfNeeded(obj, value) {
   return value;
 }
 
+
+
+
+
+
+
+
+function LongStringActor(string) {
+  this.string = string;
+  this.stringLength = string.length;
+}
+
+LongStringActor.prototype = {
+  actorPrefix: "longString",
+
+  disconnect: function() {
+    
+    
+    
+    this._releaseActor();
+  },
+
+  
+
+
+  grip: function() {
+    return {
+      "type": "longString",
+      "initial": this.string.substring(
+        0, DebuggerServer.LONG_STRING_INITIAL_LENGTH),
+      "length": this.stringLength,
+      "actor": this.actorID
+    };
+  },
+
+  
+
+
+
+
+
+  onSubstring: function(request) {
+    return {
+      "from": this.actorID,
+      "substring": this.string.substring(request.start, request.end)
+    };
+  },
+
+  
+
+
+  onRelease: function () {
+    
+    
+    
+    this._releaseActor();
+    this.registeredPool.removeActor(this);
+    return {};
+  },
+
+  _releaseActor: function() {
+    if (this.registeredPool && this.registeredPool.longStringActors) {
+      delete this.registeredPool.longStringActors[this.string];
+    }
+  }
+};
+
+LongStringActor.prototype.requestTypes = {
+  "substring": LongStringActor.prototype.onSubstring,
+  "release": LongStringActor.prototype.onRelease
+};
+
+
+
+
+
+function createValueGrip(value, pool, makeObjectGrip) {
+  switch (typeof value) {
+    case "boolean":
+      return value;
+
+    case "string":
+      if (stringIsLong(value)) {
+        return longStringGrip(value, pool);
+      }
+      return value;
+
+    case "number":
+      if (value === Infinity) {
+        return { type: "Infinity" };
+      } else if (value === -Infinity) {
+        return { type: "-Infinity" };
+      } else if (Number.isNaN(value)) {
+        return { type: "NaN" };
+      } else if (!value && 1 / value === -Infinity) {
+        return { type: "-0" };
+      }
+      return value;
+
+    case "undefined":
+      return { type: "undefined" };
+
+    case "object":
+      if (value === null) {
+        return { type: "null" };
+      }
+    else if(value.optimizedOut ||
+            value.uninitialized ||
+            value.missingArguments) {
+        
+        
+        return {
+          type: "null",
+          optimizedOut: value.optimizedOut,
+          uninitialized: value.uninitialized,
+          missingArguments: value.missingArguments
+        };
+      }
+      return makeObjectGrip(value, pool);
+
+    case "symbol":
+      let form = {
+        type: "symbol"
+      };
+      let name = getSymbolName(value);
+      if (name !== undefined) {
+        form.name = createValueGrip(name, pool, makeObjectGrip);
+      }
+      return form;
+
+    default:
+      dbg_assert(false, "Failed to provide a grip for: " + value);
+      return null;
+  }
+}
+
+const symbolProtoToString = Symbol.prototype.toString;
+
+function getSymbolName(symbol) {
+  const name = symbolProtoToString.call(symbol).slice("Symbol(".length, -1);
+  return name || undefined;
+}
+
+
+
+
+
+
+
+
+function stringIsLong(str) {
+  return str.length >= DebuggerServer.LONG_STRING_LENGTH;
+}
+
+
+
+
+
+
+
+
+
+function longStringGrip(str, pool) {
+  if (!pool.longStringActors) {
+    pool.longStringActors = {};
+  }
+
+  if (pool.longStringActors.hasOwnProperty(str)) {
+    return pool.longStringActors[str].grip();
+  }
+
+  let actor = new LongStringActor(str);
+  pool.addActor(actor);
+  pool.longStringActors[str] = actor;
+  return actor.grip();
+}
+
 exports.ObjectActor = ObjectActor;
 exports.PropertyIteratorActor = PropertyIteratorActor;
-
+exports.LongStringActor = LongStringActor;
+exports.createValueGrip = createValueGrip;
+exports.stringIsLong = stringIsLong;
+exports.longStringGrip = longStringGrip;
