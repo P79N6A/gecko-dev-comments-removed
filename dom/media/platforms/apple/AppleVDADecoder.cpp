@@ -457,7 +457,7 @@ CFDictionaryRef
 AppleVDADecoder::CreateOutputConfiguration()
 {
   
-  const void* IOSurfaceKeys[] = { CFSTR("kIOSurfaceIsGlobal") };
+  const void* IOSurfaceKeys[] = { MacIOSurfaceLib::kPropIsGlobal };
   const void* IOSurfaceValues[] = { kCFBooleanTrue };
   static_assert(ArrayLength(IOSurfaceKeys) == ArrayLength(IOSurfaceValues),
                 "Non matching keys/values array size");
