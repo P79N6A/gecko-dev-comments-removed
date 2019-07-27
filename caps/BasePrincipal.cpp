@@ -38,6 +38,12 @@ OriginAttributes::CreateSuffix(nsACString& aStr) const
 }
 
 void
+OriginAttributes::CookieJar(nsACString& aStr)
+{
+  mozilla::GetJarPrefix(mAppId, mInBrowser, aStr);
+}
+
+void
 OriginAttributes::Serialize(nsIObjectOutputStream* aStream) const
 {
   aStream->Write32(mAppId);
@@ -164,7 +170,7 @@ BasePrincipal::GetJarPrefix(nsACString& aJarPrefix)
 {
   MOZ_ASSERT(AppId() != nsIScriptSecurityManager::UNKNOWN_APP_ID);
 
-  mozilla::GetJarPrefix(AppId(), IsInBrowserElement(), aJarPrefix);
+  mOriginAttributes.CookieJar(aJarPrefix);
   return NS_OK;
 }
 
@@ -187,10 +193,8 @@ BasePrincipal::GetOriginSuffix(nsACString& aOriginAttributes)
 NS_IMETHODIMP
 BasePrincipal::GetCookieJar(nsACString& aCookieJar)
 {
-  
-  
-  
-  return GetJarPrefix(aCookieJar);
+  mOriginAttributes.CookieJar(aCookieJar);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
