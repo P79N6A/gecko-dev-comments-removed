@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include <CoreFoundation/CFString.h>
 
@@ -25,7 +25,7 @@
 
 PRLogModuleInfo* GetAppleMediaLog();
 #define LOG(...) MOZ_LOG(GetAppleMediaLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
-//#define LOG_MEDIA_SHA1
+
 
 namespace mozilla {
 
@@ -44,17 +44,17 @@ AppleVDADecoder::AppleVDADecoder(const VideoInfo& aConfig,
   , mIs106(!nsCocoaFeatures::OnLionOrLater())
 {
   MOZ_COUNT_CTOR(AppleVDADecoder);
-  // TODO: Verify aConfig.mime_type.
+  
 
   mExtraData = aConfig.mExtraData;
   mMaxRefFrames = 4;
-  // Retrieve video dimensions from H264 SPS NAL.
+  
   mp4_demuxer::SPSData spsdata;
   if (mp4_demuxer::H264::DecodeSPSFromExtraData(mExtraData, spsdata)) {
-    // max_num_ref_frames determines the size of the sliding window
-    // we need to queue that many frames in order to guarantee proper
-    // pts frames ordering. Use a minimum of 4 to ensure proper playback of
-    // non compliant videos.
+    
+    
+    
+    
     mMaxRefFrames =
       std::min(std::max(mMaxRefFrames, spsdata.max_num_ref_frames + 1), 16u);
   }
@@ -75,8 +75,8 @@ AppleVDADecoder::~AppleVDADecoder()
 nsresult
 AppleVDADecoder::Init()
 {
-  if (!gfxPlatform::CanUseHardwareVideoDecoding()) {
-    // This GPU is blacklisted for hardware decoding.
+  if (!gfxPlatform::GetPlatform()->CanUseHardwareVideoDecoding()) {
+    
     return NS_ERROR_FAILURE;
   }
 
@@ -121,7 +121,7 @@ nsresult
 AppleVDADecoder::Flush()
 {
   mTaskQueue->Flush();
-  OSStatus rv = VDADecoderFlush(mDecoder, 0 /*dont emit*/);
+  OSStatus rv = VDADecoderFlush(mDecoder, 0 );
   if (rv != noErr) {
     LOG("AppleVDADecoder::Flush failed waiting for platform decoder "
         "with error:%d.", rv);
@@ -145,14 +145,14 @@ AppleVDADecoder::Drain()
   return NS_OK;
 }
 
-//
-// Implementation details.
-//
 
-// Callback passed to the VideoToolbox decoder for returning data.
-// This needs to be static because the API takes a C-style pair of
-// function and userdata pointers. This validates parameters and
-// forwards the decoded image back to an object method.
+
+
+
+
+
+
+
 static void
 PlatformCallback(void* decompressionOutputRefCon,
                  CFDictionaryRef frameInfo,
@@ -163,11 +163,11 @@ PlatformCallback(void* decompressionOutputRefCon,
   LOG("AppleVDADecoder[%s] status %d flags %d retainCount %ld",
       __func__, status, infoFlags, CFGetRetainCount(frameInfo));
 
-  // Validate our arguments.
-  // According to Apple's TN2267
-  // The output callback is still called for all flushed frames,
-  // but no image buffers will be returned.
-  // FIXME: Distinguish between errors and empty flushed frames.
+  
+  
+  
+  
+  
   if (status != noErr || !image) {
     NS_WARNING("AppleVDADecoder decoder returned no data");
     return;
@@ -214,8 +214,8 @@ PlatformCallback(void* decompressionOutputRefCon,
     byte_offset,
     is_sync_point == 1));
 
-  // Forward the data back to an object method which can access
-  // the correct MP4Reader callback.
+  
+  
   decoder->OutputFrame(image, frameRef);
 }
 
@@ -242,7 +242,7 @@ AppleVDADecoder::ClearReorderedFrames()
   }
 }
 
-// Copy and return a decoded frame.
+
 nsresult
 AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
                              nsAutoPtr<AppleVDADecoder::AppleFrameRef> aFrameRef)
@@ -259,7 +259,7 @@ AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
   );
 
   nsRefPtr<MacIOSurface> macSurface = new MacIOSurface(surface);
-  // Bounds.
+  
   VideoInfo info;
   info.mDisplay = nsIntSize(mDisplayWidth, mDisplayHeight);
   gfx::IntRect visible = gfx::IntRect(0,
@@ -289,8 +289,8 @@ AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
     return NS_ERROR_FAILURE;
   }
 
-  // Frames come out in DTS order but we need to output them
-  // in composition order.
+  
+  
   mReorderQueue.Push(data);
   while (mReorderQueue.Length() > mMaxRefFrames) {
     mCallback->Output(mReorderQueue.Pop());
@@ -366,17 +366,17 @@ AppleVDADecoder::SubmitFrame(MediaRawData* aSample)
   }
 
   if (mIs106) {
-    // TN2267:
-    // frameInfo: A CFDictionaryRef containing information to be returned in
-    // the output callback for this frame.
-    // This dictionary can contain client provided information associated with
-    // the frame being decoded, for example presentation time.
-    // The CFDictionaryRef will be retained by the framework.
-    // In 10.6, it is released one too many. So retain it.
+    
+    
+    
+    
+    
+    
+    
     CFRetain(frameInfo);
   }
 
-  // Ask for more data.
+  
   if (mTaskQueue->IsEmpty()) {
     LOG("AppleVDADecoder task queue empty; requesting more data");
     mCallback->InputExhausted();
@@ -457,13 +457,13 @@ AppleVDADecoder::CreateDecoderSpecification()
 CFDictionaryRef
 AppleVDADecoder::CreateOutputConfiguration()
 {
-  // Construct IOSurface Properties
+  
   const void* IOSurfaceKeys[] = { MacIOSurfaceLib::kPropIsGlobal };
   const void* IOSurfaceValues[] = { kCFBooleanTrue };
   static_assert(ArrayLength(IOSurfaceKeys) == ArrayLength(IOSurfaceValues),
                 "Non matching keys/values array size");
 
-  // Contruct output configuration.
+  
   AutoCFRelease<CFDictionaryRef> IOSurfaceProperties =
     CFDictionaryCreate(kCFAllocatorDefault,
                        IOSurfaceKeys,
@@ -495,7 +495,7 @@ AppleVDADecoder::CreateOutputConfiguration()
                             &kCFTypeDictionaryValueCallBacks);
 }
 
-/* static */
+
 already_AddRefed<AppleVDADecoder>
 AppleVDADecoder::CreateVDADecoder(
   const VideoInfo& aConfig,
@@ -511,4 +511,4 @@ AppleVDADecoder::CreateVDADecoder(
   return decoder.forget();
 }
 
-} // namespace mozilla
+} 

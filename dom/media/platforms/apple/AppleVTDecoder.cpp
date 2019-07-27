@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include <CoreFoundation/CFString.h>
 
@@ -22,7 +22,7 @@
 
 PRLogModuleInfo* GetAppleMediaLog();
 #define LOG(...) MOZ_LOG(GetAppleMediaLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
-//#define LOG_MEDIA_SHA1
+
 
 #ifdef LOG_MEDIA_SHA1
 #include "mozilla/SHA1.h"
@@ -40,7 +40,7 @@ AppleVTDecoder::AppleVTDecoder(const VideoInfo& aConfig,
   , mIsHardwareAccelerated(false)
 {
   MOZ_COUNT_CTOR(AppleVTDecoder);
-  // TODO: Verify aConfig.mime_type.
+  
   LOG("Creating AppleVTDecoder for %dx%d h.264 video",
       mDisplayWidth,
       mDisplayHeight
@@ -96,7 +96,7 @@ AppleVTDecoder::Input(MediaRawData* aSample)
     digest.AppendPrintf("%02x", digest_buf[i]);
   }
   LOG("    sha1 %s", digest.get());
-#endif // LOG_MEDIA_SHA1
+#endif 
 
   nsCOMPtr<nsIRunnable> runnable =
       NS_NewRunnableMethodWithArg<nsRefPtr<MediaRawData>>(
@@ -135,14 +135,14 @@ AppleVTDecoder::Drain()
   return NS_OK;
 }
 
-//
-// Implementation details.
-//
 
-// Callback passed to the VideoToolbox decoder for returning data.
-// This needs to be static because the API takes a C-style pair of
-// function and userdata pointers. This validates parameters and
-// forwards the decoded image back to an object method.
+
+
+
+
+
+
+
 static void
 PlatformCallback(void* decompressionOutputRefCon,
                  void* sourceFrameRefCon,
@@ -159,7 +159,7 @@ PlatformCallback(void* decompressionOutputRefCon,
   nsAutoPtr<AppleVTDecoder::AppleFrameRef> frameRef(
     static_cast<AppleVTDecoder::AppleFrameRef*>(sourceFrameRefCon));
 
-  // Validate our arguments.
+  
   if (status != noErr || !image) {
     NS_WARNING("VideoToolbox decoder returned no data");
     return;
@@ -170,8 +170,8 @@ PlatformCallback(void* decompressionOutputRefCon,
   MOZ_ASSERT(CFGetTypeID(image) == CVPixelBufferGetTypeID(),
     "VideoToolbox returned an unexpected image type");
 
-  // Forward the data back to an object method which can access
-  // the correct MP4Reader callback.
+  
+  
   decoder->OutputFrame(image, frameRef);
 }
 
@@ -186,7 +186,7 @@ AppleVTDecoder::WaitForAsynchronousFrames()
   return NS_OK;
 }
 
-// Helper to fill in a timestamp structure.
+
 static CMSampleTimingInfo
 TimingInfoFromSample(MediaRawData* aSample)
 {
@@ -204,22 +204,22 @@ TimingInfoFromSample(MediaRawData* aSample)
 nsresult
 AppleVTDecoder::SubmitFrame(MediaRawData* aSample)
 {
-  // For some reason this gives me a double-free error with stagefright.
+  
   AutoCFRelease<CMBlockBufferRef> block = nullptr;
   AutoCFRelease<CMSampleBufferRef> sample = nullptr;
   VTDecodeInfoFlags infoFlags;
   OSStatus rv;
 
-  // FIXME: This copies the sample data. I think we can provide
-  // a custom block source which reuses the aSample buffer.
-  // But note that there may be a problem keeping the samples
-  // alive over multiple frames.
-  rv = CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, // Struct allocator.
+  
+  
+  
+  
+  rv = CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, 
                                           const_cast<uint8_t*>(aSample->mData),
                                           aSample->mSize,
-                                          kCFAllocatorNull, // Block allocator.
-                                          NULL, // Block source.
-                                          0,    // Data offset.
+                                          kCFAllocatorNull, 
+                                          NULL, 
+                                          0,    
                                           aSample->mSize,
                                           false,
                                           block.receive());
@@ -248,7 +248,7 @@ AppleVTDecoder::SubmitFrame(MediaRawData* aSample)
     return NS_ERROR_FAILURE;
   }
 
-  // Ask for more data.
+  
   if (mTaskQueue->IsEmpty()) {
     LOG("AppleVTDecoder task queue empty; requesting more data");
     mCallback->InputExhausted();
@@ -273,7 +273,7 @@ AppleVTDecoder::InitializeSession()
   }
   LOG("AVCDecoderConfig %ld bytes sha1 %s",
       mExtraData->Length(), avc_digest.get());
-#endif // LOG_MEDIA_SHA1
+#endif 
 
   AutoCFRelease<CFDictionaryRef> extensions = CreateDecoderExtensions();
 
@@ -288,18 +288,18 @@ AppleVTDecoder::InitializeSession()
     return NS_ERROR_FAILURE;
   }
 
-  // Contruct video decoder selection spec.
+  
   AutoCFRelease<CFDictionaryRef> spec = CreateDecoderSpecification();
 
-  // Contruct output configuration.
+  
   AutoCFRelease<CFDictionaryRef> outputConfiguration =
     CreateOutputConfiguration();
 
   VTDecompressionOutputCallbackRecord cb = { PlatformCallback, this };
   rv = VTDecompressionSessionCreate(kCFAllocatorDefault,
                                     mFormat,
-                                    spec, // Video decoder selection.
-                                    outputConfiguration, // Output video format.
+                                    spec, 
+                                    outputConfiguration, 
                                     &cb,
                                     &mSession);
 
@@ -351,7 +351,7 @@ AppleVTDecoder::CreateDecoderExtensions()
     { kCVImageBufferChromaLocationBottomFieldKey,
       kCVImageBufferChromaLocationTopFieldKey,
       AppleCMLinker::skPropExtensionAtoms,
-      AppleCMLinker::skPropFullRangeVideo /* Not defined in 10.6 */ };
+      AppleCMLinker::skPropFullRangeVideo  };
 
   const void* extensionValues[] =
     { kCVImageBufferChromaLocation_Left,
@@ -380,10 +380,10 @@ AppleVTDecoder::CreateDecoderSpecification()
 
   const void* specKeys[] = { AppleVTLinker::skPropEnableHWAccel };
   const void* specValues[1];
-  if (gfxPlatform::CanUseHardwareVideoDecoding()) {
+  if (gfxPlatform::GetPlatform()->CanUseHardwareVideoDecoding()) {
     specValues[0] = kCFBooleanTrue;
   } else {
-    // This GPU is blacklisted for hardware decoding.
+    
     specValues[0] = kCFBooleanFalse;
   }
   static_assert(ArrayLength(specKeys) == ArrayLength(specValues),
@@ -397,4 +397,4 @@ AppleVTDecoder::CreateDecoderSpecification()
                             &kCFTypeDictionaryValueCallBacks);
 }
 
-} // namespace mozilla
+} 
