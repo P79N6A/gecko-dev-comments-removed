@@ -227,6 +227,9 @@ public:
   void ActivateUpdateHitRegion();
   void DeactivateUpdateHitRegion();
 
+  
+  nsresult GetWindowDimensions(nsIntRect& aRect);
+
 private:
 
   void SetOwnerContent(mozilla::dom::Element* aContent);
@@ -281,9 +284,6 @@ private:
 
   nsresult MaybeCreateDocShell();
   nsresult EnsureMessageManager();
-
-  
-  nsresult GetWindowDimensions(nsIntRect& aRect);
 
   
   
