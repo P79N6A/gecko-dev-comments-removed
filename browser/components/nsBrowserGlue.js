@@ -865,8 +865,6 @@ BrowserGlue.prototype = {
     if (!aQuitType)
       aQuitType = "quit";
 
-    var mostRecentBrowserWindow;
-
     
     
     
@@ -876,6 +874,8 @@ BrowserGlue.prototype = {
     if (sessionWillBeRestored || !Services.prefs.getBoolPref("browser.warnOnQuit"))
       return;
 
+    let win = Services.wm.getMostRecentWindow("navigator:browser");
+
     
     
     if (!Services.prefs.getBoolPref("browser.showQuitWarning")) {
@@ -884,9 +884,8 @@ BrowserGlue.prototype = {
         
         
         
-        mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
-        let allTabs = mostRecentBrowserWindow.gBrowser.closingTabsEnum.ALL;
-        aCancelQuit.data = !mostRecentBrowserWindow.gBrowser.warnAboutClosingTabs(allTabs)
+        aCancelQuit.data =
+          !win.gBrowser.warnAboutClosingTabs(win.gBrowser.closingTabsEnum.ALL);
       }
       return;
     }
@@ -895,12 +894,12 @@ BrowserGlue.prototype = {
     if (allWindowsPrivate)
       return;
 
-    var quitBundle = Services.strings.createBundle("chrome://browser/locale/quitDialog.properties");
-    var brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
+    let quitBundle = Services.strings.createBundle("chrome://browser/locale/quitDialog.properties");
+    let brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
 
-    var appName = brandBundle.GetStringFromName("brandShortName");
-    var quitTitleString = "quitDialogTitle";
-    var quitDialogTitle = quitBundle.formatStringFromName(quitTitleString, [appName], 1);
+    let appName = brandBundle.GetStringFromName("brandShortName");
+    let quitDialogTitle = quitBundle.formatStringFromName("quitDialogTitle",
+                                                          [appName], 1);
 
     var message;
     if (windowcount == 1)
@@ -923,12 +922,8 @@ BrowserGlue.prototype = {
     var button2Title = quitBundle.GetStringFromName("quitTitle");
     var neverAskText = quitBundle.GetStringFromName("neverAsk2");
 
-    
-    
-    mostRecentBrowserWindow = Services.wm.getMostRecentWindow("navigator:browser");
-
     var buttonChoice =
-      promptService.confirmEx(mostRecentBrowserWindow, quitDialogTitle, message,
+      promptService.confirmEx(win, quitDialogTitle, message,
                               flags, button0Title, button1Title, button2Title,
                               neverAskText, neverAsk);
 
