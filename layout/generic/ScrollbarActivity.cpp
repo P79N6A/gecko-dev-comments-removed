@@ -4,7 +4,7 @@
 
 
 #include "ScrollbarActivity.h"
-#include "nsIScrollbarOwner.h"
+#include "nsIScrollbarMediator.h"
 #include "nsIContent.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMElementCSSInlineStyle.h"
