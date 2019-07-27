@@ -44,7 +44,8 @@ ReferrerPolicyFromString(const nsAString& content)
       content.LowerCaseEqualsLiteral("no-referrer-when-downgrade")) {
     return RP_No_Referrer_When_Downgrade;
   }
-  if (content.LowerCaseEqualsLiteral("origin-when-crossorigin")) {
+  if (content.LowerCaseEqualsLiteral("origin-when-cross-origin") ||
+      content.LowerCaseEqualsLiteral("origin-when-crossorigin")) {
     return RP_Origin_When_Crossorigin;
   }
   if (content.LowerCaseEqualsLiteral("always") ||
@@ -64,6 +65,7 @@ IsValidReferrerPolicy(const nsAString& content)
       || content.LowerCaseEqualsLiteral("origin")
       || content.LowerCaseEqualsLiteral("default")
       || content.LowerCaseEqualsLiteral("no-referrer-when-downgrade")
+      || content.LowerCaseEqualsLiteral("origin-when-cross-origin")
       || content.LowerCaseEqualsLiteral("origin-when-crossorigin")
       || content.LowerCaseEqualsLiteral("always")
       || content.LowerCaseEqualsLiteral("unsafe-url");
