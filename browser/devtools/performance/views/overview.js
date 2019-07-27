@@ -407,6 +407,12 @@ function OverviewViewOnStateChange (fn) {
     
     
     if (!currentRecording || !recording) {
+      
+      
+      
+      if (this.isRendering()) {
+        this._stopPolling();
+      }
       return;
     }
 

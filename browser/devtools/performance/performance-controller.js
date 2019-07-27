@@ -454,6 +454,11 @@ let PerformanceController = {
 
 
   _onRecordingStateChange: function (state, model) {
+    
+    
+    if (state !== "recording-starting" && this.getRecordings().indexOf(model) === -1) {
+      return;
+    }
     switch (state) {
       
       case "recording-starting":
