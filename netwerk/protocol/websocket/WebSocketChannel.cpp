@@ -1223,39 +1223,78 @@ WebSocketChannel::Observe(nsISupports *subject,
 
     if (strcmp(state, NS_NETWORK_LINK_DATA_CHANGED) == 0) {
       LOG(("WebSocket: received network CHANGED event"));
-      if (mPingOutstanding) {
-        
-        
-        LOG(("WebSocket: pong already pending"));
-      } else if (!mSocketThread) {
+
+      if (!mSocketThread) {
         
         
         LOG(("WebSocket: early object, no ping needed"));
       } else {
-        LOG(("nsWebSocketChannel:: Generating Ping as network changed\n"));
-
-        if (mPingForced) {
-          
-          return NS_OK;
-        }
-        if (!mPingTimer) {
-          
-          
-          nsresult rv;
-          mPingTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-          if (NS_FAILED(rv)) {
-            NS_WARNING("unable to create ping timer. Carrying on.");
-          } else {
-            mPingTimer->SetTarget(mSocketThread);
-          }
-        }
         
-        
-        mPingForced = 1;
-        mPingTimer->InitWithCallback(this, 200, nsITimer::TYPE_ONE_SHOT);
+        if (!IsOnTargetThread()) {
+          mTargetThread->Dispatch(
+            NS_NewRunnableMethod(this, &WebSocketChannel::OnNetworkChanged),
+            NS_DISPATCH_NORMAL);
+        } else {
+          OnNetworkChanged();
+        }
       }
     }
   }
+
+  return NS_OK;
+}
+
+nsresult
+WebSocketChannel::OnNetworkChanged()
+{
+  if (IsOnTargetThread()) {
+    LOG(("WebSocketChannel::OnNetworkChanged() - on target thread %p", this));
+
+    if (!mDataStarted) {
+      LOG(("WebSocket: data not started yet, no ping needed"));
+      return NS_OK;
+    }
+
+    return mSocketThread->Dispatch(
+      NS_NewRunnableMethod(this, &WebSocketChannel::OnNetworkChanged),
+      NS_DISPATCH_NORMAL);
+  }
+
+  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+
+  LOG(("WebSocketChannel::OnNetworkChanged() - on socket thread %p", this));
+
+  if (mPingOutstanding) {
+    
+    
+    LOG(("WebSocket: pong already pending"));
+    return NS_OK;
+  }
+
+  if (mPingForced) {
+    
+    LOG(("WebSocket: forced ping timer already fired"));
+    return NS_OK;
+  }
+
+  LOG(("nsWebSocketChannel:: Generating Ping as network changed\n"));
+
+  if (!mPingTimer) {
+    
+    
+    nsresult rv;
+    mPingTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+    if (NS_FAILED(rv)) {
+      LOG(("WebSocket: unable to create ping timer!"));
+      NS_WARNING("unable to create ping timer!");
+      return rv;
+    }
+  }
+  
+  
+  mPingForced = 1;
+  mPingTimer->InitWithCallback(this, 200, nsITimer::TYPE_ONE_SHOT);
+
   return NS_OK;
 }
 
@@ -2574,6 +2613,8 @@ WebSocketChannel::ApplyForAdmission()
 nsresult
 WebSocketChannel::StartWebsocketData()
 {
+  nsresult rv;
+
   if (!IsOnTargetThread()) {
     return mTargetThread->Dispatch(
       NS_NewRunnableMethod(this, &WebSocketChannel::StartWebsocketData),
@@ -2596,22 +2637,46 @@ WebSocketChannel::StartWebsocketData()
     mListenerMT->mListener->OnStart(mListenerMT->mContext);
   }
 
-  
+  rv = mSocketIn->AsyncWait(this, 0, 0, mSocketThread);
+  if (NS_FAILED(rv)) {
+    LOG(("WebSocketChannel::StartWebsocketData mSocketIn->AsyncWait() failed "
+         "with error %0x%08x\n", rv));
+    return rv;
+  }
+
   if (mPingInterval) {
-    nsresult rv;
-    mPingTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+    rv = mSocketThread->Dispatch(
+      NS_NewRunnableMethod(this, &WebSocketChannel::StartPinging),
+      NS_DISPATCH_NORMAL);
     if (NS_FAILED(rv)) {
-      NS_WARNING("unable to create ping timer. Carrying on.");
-    } else {
-      LOG(("WebSocketChannel will generate ping after %d ms of receive silence\n",
-           mPingInterval));
-      mPingTimer->SetTarget(mSocketThread);
-      mPingTimer->InitWithCallback(this, mPingInterval, nsITimer::TYPE_ONE_SHOT);
+      return rv;
     }
   }
 
-  return mSocketIn->AsyncWait(this, 0, 0, mSocketThread);
+  return NS_OK;
 }
+
+nsresult
+WebSocketChannel::StartPinging()
+{
+  LOG(("WebSocketChannel::StartPinging() %p", this));
+  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(mPingInterval);
+  MOZ_ASSERT(!mPingTimer);
+
+  nsresult rv;
+  mPingTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("unable to create ping timer. Carrying on.");
+  } else {
+    LOG(("WebSocketChannel will generate ping after %d ms of receive silence\n",
+         mPingInterval));
+    mPingTimer->InitWithCallback(this, mPingInterval, nsITimer::TYPE_ONE_SHOT);
+  }
+
+  return NS_OK;
+}
+
 
 void
 WebSocketChannel::ReportConnectionTelemetry()
