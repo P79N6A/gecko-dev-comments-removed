@@ -127,7 +127,7 @@ CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
     
     return TextureClient::CreateForRawBufferAccess(GetForwarder(),
                                                    aFormat, aSize, BackendType::CAIRO,
-                                                   mTextureInfo.mTextureFlags | aFlags);
+                                                   mTextureFlags | aFlags);
   }
 
   gfx::BackendType backend = gfxPlatform::GetPlatform()->GetPreferredCanvasBackend();
@@ -138,7 +138,7 @@ CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
   
   return TextureClient::CreateForRawBufferAccess(GetForwarder(),
                                                  aFormat, aSize, backend,
-                                                 mTextureInfo.mTextureFlags | aFlags);
+                                                 mTextureFlags | aFlags);
 #endif
 }
 
