@@ -2330,19 +2330,13 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
   }
   EnqueueFirstFrameLoadedEvent();
 
-  if (mState == DECODER_STATE_DECODING_FIRSTFRAME) {
-    StartDecoding();
-  }
-
-  
-  
-  
-  CheckIfDecodeComplete();
-
   if (mQueuedSeek.Exists()) {
     mPendingSeek.Steal(mQueuedSeek);
     SetState(DECODER_STATE_SEEKING);
     ScheduleStateMachine();
+  } else if (mState == DECODER_STATE_DECODING_FIRSTFRAME) {
+    
+    StartDecoding();
   }
 
   return NS_OK;
