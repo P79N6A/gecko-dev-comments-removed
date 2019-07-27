@@ -26,6 +26,9 @@ namespace js {
 
 enum RegExpStaticsUpdate { UpdateRegExpStatics, DontUpdateRegExpStatics };
 
+
+enum RegExpStaticsUse { UseRegExpStatics, DontUseRegExpStatics };
+
 RegExpRunStatus
 ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string,
               MatchPairs *matches, RegExpStaticsUpdate staticsUpdate);
@@ -79,6 +82,16 @@ regexp_exec_no_statics(JSContext *cx, unsigned argc, Value *vp);
 
 extern bool
 regexp_test_no_statics(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+
+extern bool
+regexp_construct_no_statics(JSContext *cx, unsigned argc, Value *vp);
 
 } 
 

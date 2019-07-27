@@ -7696,6 +7696,7 @@ template <typename ParseHandler>
 typename ParseHandler::Node
 Parser<ParseHandler>::newRegExp()
 {
+    MOZ_ASSERT(!options().selfHostingMode);
     
     const char16_t *chars = tokenStream.getTokenbuf().begin();
     size_t length = tokenStream.getTokenbuf().length();
