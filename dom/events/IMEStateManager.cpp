@@ -298,27 +298,12 @@ IMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
       
       
       nsCOMPtr<nsIWidget> widget = aPresContext->GetRootWidget();
-      if (widget) {
-        nsresult rv =
-          compositionInContent->NotifyIME(REQUEST_TO_CANCEL_COMPOSITION);
-        if (NS_FAILED(rv)) {
-          compositionInContent->NotifyIME(REQUEST_TO_COMMIT_COMPOSITION);
-        }
-        
-        compositionInContent =
-          sTextCompositions->GetCompositionFor(
-                               compositionInContent->GetPresContext(),
-                               compositionInContent->GetEventTargetNode());
+      MOZ_ASSERT(widget, "Why is there no widget?");
+      nsresult rv =
+        compositionInContent->NotifyIME(REQUEST_TO_CANCEL_COMPOSITION);
+      if (NS_FAILED(rv)) {
+        compositionInContent->NotifyIME(REQUEST_TO_COMMIT_COMPOSITION);
       }
-    }
-
-    
-    
-    if (compositionInContent) {
-      PR_LOG(sISMLog, PR_LOG_DEBUG,
-        ("ISM:   IMEStateManager::OnRemoveContent(), "
-         "composition in the content still alive, committing it forcibly..."));
-      compositionInContent->SynthesizeCommit(true);
     }
   }
 
@@ -904,17 +889,20 @@ IMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
                                           nsPresContext* aPresContext,
                                           WidgetEvent* aEvent,
                                           nsEventStatus* aStatus,
-                                          EventDispatchingCallback* aCallBack)
+                                          EventDispatchingCallback* aCallBack,
+                                          bool aIsSynthesized)
 {
   PR_LOG(sISMLog, PR_LOG_ALWAYS,
     ("ISM: IMEStateManager::DispatchCompositionEvent(aNode=0x%p, "
      "aPresContext=0x%p, aEvent={ mClass=%s, message=%s, "
-     " mFlags={ mIsTrusted=%s, mPropagationStopped=%s } })",
+     "mFlags={ mIsTrusted=%s, mPropagationStopped=%s } }, "
+     "aIsSynthesized=%s)",
      aEventTargetNode, aPresContext,
      GetEventClassIDName(aEvent->mClass),
      GetEventMessageName(aEvent->message),
      GetBoolName(aEvent->mFlags.mIsTrusted),
-     GetBoolName(aEvent->mFlags.mPropagationStopped)));
+     GetBoolName(aEvent->mFlags.mPropagationStopped),
+     GetBoolName(aIsSynthesized)));
 
   MOZ_ASSERT(aEvent->mClass == eCompositionEventClass ||
              aEvent->mClass == eTextEventClass);
@@ -929,6 +917,11 @@ IMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
   nsRefPtr<TextComposition> composition =
     sTextCompositions->GetCompositionFor(GUIEvent->widget);
   if (!composition) {
+    
+    
+    if (NS_WARN_IF(aIsSynthesized)) {
+      return;
+    }
     PR_LOG(sISMLog, PR_LOG_DEBUG,
       ("ISM:   IMEStateManager::DispatchCompositionEvent(), "
        "adding new TextComposition to the array"));
@@ -943,12 +936,16 @@ IMEStateManager::DispatchCompositionEvent(nsINode* aEventTargetNode,
 #endif 
 
   
-  composition->DispatchEvent(GUIEvent, aStatus, aCallBack);
+  composition->DispatchEvent(GUIEvent, aStatus, aCallBack, aIsSynthesized);
 
   
 
   
-  if (aEvent->message == NS_COMPOSITION_END) {
+  
+  
+  
+  
+  if (!aIsSynthesized && aEvent->message == NS_COMPOSITION_END) {
     TextCompositionArray::index_type i =
       sTextCompositions->IndexOf(GUIEvent->widget);
     if (i != TextCompositionArray::NoIndex) {

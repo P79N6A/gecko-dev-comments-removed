@@ -61,6 +61,11 @@ public:
   
   TextRangeArray* GetRanges() const { return mRanges; }
   
+  nsIWidget* GetWidget() const
+  {
+    return mPresContext ? mPresContext->GetRootWidget() : nullptr;
+  }
+  
   
   bool IsSynthesizedForTests() const { return mIsSynthesizedForTests; }
 
@@ -75,9 +80,7 @@ public:
 
 
 
-
-
-  void SynthesizeCommit(bool aDiscard);
+  nsresult RequestToCommit(nsIWidget* aWidget, bool aDiscard);
 
   
 
@@ -196,6 +199,19 @@ private:
   bool mIsEditorHandlingEvent;
 
   
+  
+  
+  bool mIsRequestingCommit;
+  bool mIsRequestingCancel;
+
+  
+  
+  
+  
+  
+  bool mRequestedToCommitOrCancel;
+
+  
   TextComposition() {}
   TextComposition(const TextComposition& aOther);
 
@@ -228,7 +244,8 @@ private:
 
   void DispatchEvent(WidgetGUIEvent* aEvent,
                      nsEventStatus* aStatus,
-                     EventDispatchingCallback* aCallBack);
+                     EventDispatchingCallback* aCallBack,
+                     bool aIsSynthesized);
 
   
 
@@ -242,18 +259,19 @@ private:
   class CompositionEventDispatcher : public nsRunnable
   {
   public:
-    CompositionEventDispatcher(nsPresContext* aPresContext,
+    CompositionEventDispatcher(TextComposition* aTextComposition,
                                nsINode* aEventTarget,
                                uint32_t aEventMessage,
-                               const nsAString& aData);
+                               const nsAString& aData,
+                               bool aIsSynthesizedEvent = false);
     NS_IMETHOD Run() MOZ_OVERRIDE;
 
   private:
-    nsRefPtr<nsPresContext> mPresContext;
+    nsRefPtr<TextComposition> mTextComposition;
     nsCOMPtr<nsINode> mEventTarget;
-    nsCOMPtr<nsIWidget> mWidget;
     uint32_t mEventMessage;
     nsString mData;
+    bool mIsSynthesizedEvent;
 
     CompositionEventDispatcher() {};
   };
@@ -271,8 +289,12 @@ private:
 
 
 
+
+
+
   void DispatchCompositionEventRunnable(uint32_t aEventMessage,
-                                        const nsAString& aData);
+                                        const nsAString& aData,
+                                        bool aIsSynthesizingCommit = false);
 };
 
 
