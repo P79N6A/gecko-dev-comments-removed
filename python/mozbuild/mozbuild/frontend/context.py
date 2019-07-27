@@ -122,14 +122,14 @@ class Context(KeyedDefaultDict):
         else:
             return default()
 
-    def _validate(self, key, value):
+    def _validate(self, key, value, is_template=False):
         """Validates whether the key is allowed and if the value's type
         matches.
         """
         stored_type, input_type, docs, tier = \
             self._allowed_variables.get(key, (None, None, None, None))
 
-        if stored_type is None:
+        if stored_type is None or not is_template and key in TEMPLATE_VARIABLES:
             raise KeyError('global_ns', 'set_unknown', key, value)
 
         
@@ -180,6 +180,11 @@ class Context(KeyedDefaultDict):
         """
         tiers = (VARIABLES[key][3] for key in self if key in VARIABLES)
         return set(tier for tier in tiers if tier)
+
+
+class TemplateContext(Context):
+    def _validate(self, key, value):
+        return Context._validate(self, key, value, True)
 
 
 class FinalTargetValue(ContextDerivedValue, unicode):
@@ -947,6 +952,27 @@ for name, (storage_type, input_types, docs, tier) in VARIABLES.items():
             % name)
 
 
+TEMPLATE_VARIABLES = {
+    'CPP_UNIT_TESTS',
+    'HOST_PROGRAM',
+    'HOST_LIBRARY_NAME',
+    'HOST_SIMPLE_PROGRAMS',
+    'LIBRARY_NAME',
+    'PROGRAM',
+    'SIMPLE_PROGRAMS',
+}
+
+
+for name in TEMPLATE_VARIABLES:
+    if name not in VARIABLES:
+        raise RuntimeError('%s is in TEMPLATE_VARIABLES but not in VARIABLES.'
+            % name)
+    storage_type, input_types, docs, tier = VARIABLES[name]
+    docs += 'This variable is only available in templates.\n'
+    VARIABLES[name] = (storage_type, input_types, docs, tier)
+
+
+
 
 
 
@@ -1211,7 +1237,84 @@ SPECIAL_VARIABLES = {
 
 
 DEPRECATION_HINTS = {
+    'CPP_UNIT_TESTS': '''
+        Please use'
+
+            CppUnitTests(['foo', 'bar'])
+
+        instead of
+
+            CPP_UNIT_TESTS += ['foo', 'bar']
+        ''',
+
+    'HOST_PROGRAM': '''
+        Please use
+
+            HostProgram('foo')
+
+        instead of
+
+            HOST_PROGRAM = 'foo'
+        ''',
+
+    'HOST_LIBRARY_NAME': '''
+        Please use
+
+            HostLibrary('foo')
+
+        instead of
+
+            HOST_LIBRARY_NAME = 'foo'
+        ''',
+
+    'HOST_SIMPLE_PROGRAMS': '''
+        Please use
+
+            HostSimplePrograms(['foo', 'bar'])
+
+        instead of
+
+            HOST_SIMPLE_PROGRAMS += ['foo', 'bar']"
+        ''',
+
+    'LIBRARY_NAME': '''
+        Please use
+
+            Library('foo')
+
+        instead of
+
+            LIBRARY_NAME = 'foo'
+        ''',
+
+    'PROGRAM': '''
+        Please use
+
+            Program('foo')
+
+        instead of
+
+            PROGRAM = 'foo'"
+        ''',
+
+    'SIMPLE_PROGRAMS': '''
+        Please use
+
+            SimplePrograms(['foo', 'bar'])
+
+        instead of
+
+            SIMPLE_PROGRAMS += ['foo', 'bar']"
+        ''',
+
     'TOOL_DIRS': 'Please use the DIRS variable instead.',
+
     'TEST_TOOL_DIRS': 'Please use the TEST_DIRS variable instead.',
+
     'PARALLEL_DIRS': 'Please use the DIRS variable instead.',
 }
+
+
+for name in TEMPLATE_VARIABLES:
+    if name not in DEPRECATION_HINTS:
+        raise RuntimeError('Missing deprecation hint for %s' % name)
