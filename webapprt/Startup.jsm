@@ -144,13 +144,6 @@ this.startup = function(window) {
 
     
     
-    
-    Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-              .registerFactory(Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}"),
-                               "", "@mozilla.org/transfer;1", null);
-
-    
-    
     Cu.import("resource://gre/modules/Payment.jsm");
     Cu.import("resource://gre/modules/AlarmService.jsm");
     Cu.import("resource://webapprt/modules/WebRTCHandler.jsm");

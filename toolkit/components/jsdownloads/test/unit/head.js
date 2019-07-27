@@ -320,13 +320,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
   persist.persistFlags |=
     Ci.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
 
-  
-  
-  
-  
-  let transfer =
-      Components.classesByID["{1b4c85df-cbdd-4bb6-b04e-613caece083c}"]
-                .createInstance(Ci.nsITransfer);
+  let transfer = Cc["@mozilla.org/transfer;1"].createInstance(Ci.nsITransfer);
 
   let deferred = Promise.defer();
 
@@ -832,19 +826,5 @@ add_task(function test_common_initialize()
   do_register_cleanup(function () {
     registrar.unregisterFactory(cid, mockFactory);
     registrar.registerFactory(cid, "", contractID, oldFactory);
-  });
-
-  
-  
-  
-  
-  
-  let transferContractID = "@mozilla.org/transfer;1";
-  let transferNewCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
-  let transferCid = registrar.contractIDToCID(transferContractID);
-
-  registrar.registerFactory(transferNewCid, "", transferContractID, null);
-  do_register_cleanup(function () {
-    registrar.registerFactory(transferCid, "", transferContractID, null);
   });
 });

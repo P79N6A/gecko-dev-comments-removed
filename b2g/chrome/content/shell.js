@@ -1171,20 +1171,3 @@ Services.obs.addObserver(function resetProfile(subject, topic, data) {
                      .getService(Ci.nsIAppStartup);
   appStartup.quit(Ci.nsIAppStartup.eForceQuit);
 }, 'b2g-reset-profile', false);
-
-
-
-
-const kTransferCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
-
-
-
-
-const kTransferContractId = "@mozilla.org/transfer;1";
-
-
-
-
-Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-                  .registerFactory(kTransferCid, "",
-                                   kTransferContractId, null);

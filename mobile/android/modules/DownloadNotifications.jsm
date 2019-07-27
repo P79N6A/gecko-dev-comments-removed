@@ -21,24 +21,6 @@ let Log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog.i.bi
 XPCOMUtils.defineLazyGetter(this, "strings",
                             () => Services.strings.createBundle("chrome://browser/locale/browser.properties"));
 
-
-
-
-const kTransferCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
-
-
-
-
-const kTransferContractId = "@mozilla.org/transfer;1";
-
-
-
-
-
-Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
-                  .registerFactory(kTransferCid, "",
-                                   kTransferContractId, null);
-
 Object.defineProperty(this, "window",
                       { get: () => Services.wm.getMostRecentWindow("navigator:browser") });
 
