@@ -102,7 +102,7 @@ TextureImageEGL::GetUpdateRegion(nsIntRegion& aForRegion)
     if (mTextureState != Valid) {
         
         
-        aForRegion = nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize));
+        aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
     }
 
     
@@ -122,7 +122,7 @@ TextureImageEGL::BeginUpdate(nsIntRegion& aRegion)
     mUpdateRect = aRegion.GetBounds();
 
     
-    if (!nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize)).Contains(mUpdateRect)) {
+    if (!nsIntRect(nsIntPoint(0, 0), mSize).Contains(mUpdateRect)) {
         NS_ERROR("update outside of image");
         return nullptr;
     }
@@ -166,7 +166,7 @@ TextureImageEGL::EndUpdate()
 
     if (mTextureState != Valid) {
         NS_ASSERTION(mUpdateRect.x == 0 && mUpdateRect.y == 0 &&
-                      mUpdateRect.Size() == gfx::ThebesIntSize(mSize),
+                      mUpdateRect.Size() == mSize,
                       "Bad initial update on non-created texture!");
 
         mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,

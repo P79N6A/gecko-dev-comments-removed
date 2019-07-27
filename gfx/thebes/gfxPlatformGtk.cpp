@@ -104,12 +104,12 @@ gfxPlatformGtk::CreateOffscreenSurface(const IntSize& size,
 
             if (xrenderFormat) {
                 newSurface = gfxXlibSurface::Create(screen, xrenderFormat,
-                                                    ThebesIntSize(size));
+                                                    size);
             }
         } else {
             
             
-            newSurface = new gfxImageSurface(ThebesIntSize(size), imageFormat);
+            newSurface = new gfxImageSurface(size, imageFormat);
             
             
             needsClear = false;
@@ -121,7 +121,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const IntSize& size,
         
         
         
-        newSurface = new gfxImageSurface(ThebesIntSize(size), imageFormat);
+        newSurface = new gfxImageSurface(size, imageFormat);
     }
 
     if (newSurface->CairoStatus()) {
