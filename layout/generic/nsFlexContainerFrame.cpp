@@ -3070,7 +3070,7 @@ nsFlexContainerFrame::GenerateFlexLines(
   nsPresContext* aPresContext,
   const nsHTMLReflowState& aReflowState,
   nscoord aContentBoxMainSize,
-  nscoord aAvailableHeightForContent,
+  nscoord aAvailableBSizeForContent,
   const nsTArray<StrutInfo>& aStruts,
   const FlexboxAxisTracker& aAxisTracker,
   LinkedList<FlexLine>& aLines)
@@ -3115,8 +3115,8 @@ nsFlexContainerFrame::GenerateFlexLines(
     
     
     if (!aAxisTracker.IsMainAxisHorizontal() &&
-        aAvailableHeightForContent != NS_UNCONSTRAINEDSIZE) {
-      wrapThreshold = std::min(wrapThreshold, aAvailableHeightForContent);
+        aAvailableBSizeForContent != NS_UNCONSTRAINEDSIZE) {
+      wrapThreshold = std::min(wrapThreshold, aAvailableBSizeForContent);
     }
   }
 
@@ -3212,7 +3212,7 @@ static nscoord
 ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
                            const FlexboxAxisTracker& aAxisTracker,
                            nscoord aUnclampedMainSize,
-                           nscoord aAvailableHeightForContent,
+                           nscoord aAvailableBSizeForContent,
                            const FlexLine* aFirstLine,
                            nsReflowStatus& aStatus)
 {
@@ -3227,8 +3227,8 @@ ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
 
   if (aUnclampedMainSize != NS_INTRINSICSIZE) {
     
-    if (aAvailableHeightForContent == NS_UNCONSTRAINEDSIZE ||
-        aUnclampedMainSize < aAvailableHeightForContent) {
+    if (aAvailableBSizeForContent == NS_UNCONSTRAINEDSIZE ||
+        aUnclampedMainSize < aAvailableBSizeForContent) {
       
       
       
@@ -3246,8 +3246,8 @@ ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
     NS_FRAME_SET_INCOMPLETE(aStatus);
     nscoord largestLineOuterSize = GetLargestLineMainSize(aFirstLine);
 
-    if (largestLineOuterSize <= aAvailableHeightForContent) {
-      return aAvailableHeightForContent;
+    if (largestLineOuterSize <= aAvailableBSizeForContent) {
+      return aAvailableBSizeForContent;
     }
     return std::min(aUnclampedMainSize, largestLineOuterSize);
   }
@@ -3266,7 +3266,7 @@ nscoord
 nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
                                        const FlexboxAxisTracker& aAxisTracker,
                                        nscoord aSumLineCrossSizes,
-                                       nscoord aAvailableHeightForContent,
+                                       nscoord aAvailableBSizeForContent,
                                        bool* aIsDefinite,
                                        nsReflowStatus& aStatus)
 {
@@ -3283,8 +3283,8 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
   if (effectiveComputedBSize != NS_INTRINSICSIZE) {
     
     *aIsDefinite = true;
-    if (aAvailableHeightForContent == NS_UNCONSTRAINEDSIZE ||
-        effectiveComputedBSize < aAvailableHeightForContent) {
+    if (aAvailableBSizeForContent == NS_UNCONSTRAINEDSIZE ||
+        effectiveComputedBSize < aAvailableBSizeForContent) {
       
       
       
@@ -3300,8 +3300,8 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
     
     
     NS_FRAME_SET_INCOMPLETE(aStatus);
-    if (aSumLineCrossSizes <= aAvailableHeightForContent) {
-      return aAvailableHeightForContent;
+    if (aSumLineCrossSizes <= aAvailableBSizeForContent) {
+      return aAvailableBSizeForContent;
     }
     return std::min(effectiveComputedBSize, aSumLineCrossSizes);
   }
@@ -3537,12 +3537,12 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nscoord availableHeightForContent = aReflowState.AvailableHeight();
-  if (availableHeightForContent != NS_UNCONSTRAINEDSIZE &&
+  nscoord availableBSizeForContent = aReflowState.AvailableBSize();
+  if (availableBSizeForContent != NS_UNCONSTRAINEDSIZE &&
       !GetSkipSides().Top()) {
-    availableHeightForContent -= aReflowState.ComputedPhysicalBorderPadding().top;
+    availableBSizeForContent -= aReflowState.ComputedPhysicalBorderPadding().top;
     
-    availableHeightForContent = std::max(availableHeightForContent, 0);
+    availableBSizeForContent = std::max(availableBSizeForContent, 0);
   }
 
   nscoord contentBoxMainSize = GetMainSizeFromReflowState(aReflowState,
@@ -3550,13 +3550,13 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   nsAutoTArray<StrutInfo, 1> struts;
   DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
-               contentBoxMainSize, availableHeightForContent,
+               contentBoxMainSize, availableBSizeForContent,
                struts, axisTracker);
 
   if (!struts.IsEmpty()) {
     
     DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
-                 contentBoxMainSize, availableHeightForContent,
+                 contentBoxMainSize, availableBSizeForContent,
                  struts, axisTracker);
   }
 }
@@ -3595,7 +3595,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                                    const nsHTMLReflowState& aReflowState,
                                    nsReflowStatus&          aStatus,
                                    nscoord aContentBoxMainSize,
-                                   nscoord aAvailableHeightForContent,
+                                   nscoord aAvailableBSizeForContent,
                                    nsTArray<StrutInfo>& aStruts,
                                    const FlexboxAxisTracker& aAxisTracker)
 {
@@ -3606,12 +3606,12 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
   GenerateFlexLines(aPresContext, aReflowState,
                     aContentBoxMainSize,
-                    aAvailableHeightForContent,
+                    aAvailableBSizeForContent,
                     aStruts, aAxisTracker, lines);
 
   aContentBoxMainSize =
     ClampFlexContainerMainSize(aReflowState, aAxisTracker,
-                               aContentBoxMainSize, aAvailableHeightForContent,
+                               aContentBoxMainSize, aAvailableBSizeForContent,
                                lines.getFirst(), aStatus);
 
   for (FlexLine* line = lines.getFirst(); line; line = line->getNext()) {
@@ -3671,7 +3671,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   bool isCrossSizeDefinite;
   const nscoord contentBoxCrossSize =
     ComputeCrossSize(aReflowState, aAxisTracker, sumLineCrossSizes,
-                     aAvailableHeightForContent, &isCrossSizeDefinite, aStatus);
+                     aAvailableBSizeForContent, &isCrossSizeDefinite, aStatus);
 
   
   
