@@ -266,7 +266,6 @@ this.DebuggerClient = function (aTransport)
   this._activeRequests = new Map;
   this._eventsEnabled = true;
 
-  this.compat = new ProtocolCompatibility(this, []);
   this.traits = {};
 
   this.request = this.request.bind(this);
@@ -859,14 +858,7 @@ DebuggerClient.prototype = {
 
 
 
-
-
-  onPacket: function (aPacket, aIgnoreCompatibility=false) {
-    let packet = aIgnoreCompatibility
-      ? aPacket
-      : this.compat.onPacket(aPacket);
-
-    resolve(packet).then(aPacket => {
+  onPacket: function (aPacket) {
       if (!aPacket.from) {
         DevToolsUtils.reportException(
           "onPacket",
@@ -932,7 +924,6 @@ DebuggerClient.prototype = {
       }
 
       this._sendRequests();
-    }, ex => DevToolsUtils.reportException("onPacket handler", ex));
   },
 
   
@@ -1094,156 +1085,6 @@ Request.prototype = {
 
   get actor() { return this.request.to || this.request.actor; }
 
-};
-
-
-const SUPPORTED = 1;
-const NOT_SUPPORTED = 2;
-const SKIP = 3;
-
-
-
-
-
-
-
-
-
-function ProtocolCompatibility(aClient, aFeatures) {
-  this._client = aClient;
-  this._featuresWithUnknownSupport = new Set(aFeatures);
-  this._featuresWithoutSupport = new Set();
-
-  this._featureDeferreds = Object.create(null)
-  for (let f of aFeatures) {
-    this._featureDeferreds[f.name] = defer();
-  }
-}
-
-ProtocolCompatibility.prototype = {
-  
-
-
-
-
-
-
-  supportsFeature: function (aFeatureName) {
-    return this._featureDeferreds[aFeatureName].promise;
-  },
-
-  
-
-
-
-
-
-  rejectFeature: function (aFeatureName) {
-    this._featureDeferreds[aFeatureName].reject(false);
-  },
-
-  
-
-
-
-
-
-
-  onPacket: function (aPacket) {
-    this._detectFeatures(aPacket);
-    return this._shimPacket(aPacket);
-  },
-
-  
-
-
-
-  _detectFeatures: function (aPacket) {
-    for (let feature of this._featuresWithUnknownSupport) {
-      try {
-        switch (feature.onPacketTest(aPacket)) {
-        case SKIP:
-          break;
-        case SUPPORTED:
-          this._featuresWithUnknownSupport.delete(feature);
-          this._featureDeferreds[feature.name].resolve(true);
-          break;
-        case NOT_SUPPORTED:
-          this._featuresWithUnknownSupport.delete(feature);
-          this._featuresWithoutSupport.add(feature);
-          this.rejectFeature(feature.name);
-          break;
-        default:
-          DevToolsUtils.reportException(
-            "PC__detectFeatures",
-            new Error("Bad return value from `onPacketTest` for feature '"
-                      + feature.name + "'"));
-        }
-      } catch (ex) {
-        DevToolsUtils.reportException("PC__detectFeatures", ex);
-      }
-    }
-  },
-
-  
-
-
-
-  _shimPacket: function (aPacket) {
-    let extraPackets = [];
-
-    let loop = (aFeatures, aPacket) => {
-      if (aFeatures.length === 0) {
-        for (let packet of extraPackets) {
-          this._client.onPacket(packet, true);
-        }
-        return aPacket;
-      } else {
-        let replacePacket = function (aNewPacket) {
-          return aNewPacket;
-        };
-        let extraPacket = function (aExtraPacket) {
-          extraPackets.push(aExtraPacket);
-          return aPacket;
-        };
-        let keepPacket = function () {
-          return aPacket;
-        };
-        let newPacket = aFeatures[0].translatePacket(aPacket,
-                                                     replacePacket,
-                                                     extraPacket,
-                                                     keepPacket);
-        return resolve(newPacket).then(loop.bind(null, aFeatures.slice(1)));
-      }
-    };
-
-    return loop([f for (f of this._featuresWithoutSupport)],
-                aPacket);
-  }
-};
-
-
-
-
-const FeatureCompatibilityShim = {
-  
-  name: null,
-
-  
-
-
-
-  onPacketTest: function (aPacket) {
-    throw new Error("Not yet implemented");
-  },
-
-  
-
-
-
-  translatePacket: function (aPacket, aReplacePacket, aExtraPacket, aKeepPacket) {
-    throw new Error("Not yet implemented");
-  }
 };
 
 
@@ -1503,7 +1344,6 @@ ThreadClient.prototype = {
   _actor: null,
   get actor() { return this._actor; },
 
-  get compat() { return this.client.compat; },
   get _transport() { return this.client._transport; },
 
   _assertPaused: function (aCommand) {
