@@ -390,7 +390,10 @@ public:
 
 
 
-  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
+
+
+  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
+                                    nsRestyleHint aRestyleHint);
 
 #ifdef RESTYLE_LOGGING
   

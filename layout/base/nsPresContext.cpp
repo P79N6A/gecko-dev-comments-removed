@@ -1877,7 +1877,8 @@ nsPresContext::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
     
     return;
   }
-  RestyleManager()->PostRebuildAllStyleDataEvent(aExtraHint);
+  
+  RestyleManager()->PostRebuildAllStyleDataEvent(aExtraHint, eRestyle_Subtree);
 }
 
 void
