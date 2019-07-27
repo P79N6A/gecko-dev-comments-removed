@@ -111,6 +111,11 @@ protected:
   void operator=(const TestKeyPair&) ;
 };
 
+
+
+
+TestKeyPair* CloneReusedKeyPair();
+
 TestKeyPair* GenerateKeyPair();
 inline void DeleteTestKeyPair(TestKeyPair* keyPair) { delete keyPair; }
 typedef ScopedPtr<TestKeyPair, DeleteTestKeyPair> ScopedTestKeyPair;
@@ -146,19 +151,15 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 
-
-
-
-
 ByteString CreateEncodedCertificate(long version, Input signature,
                                     const ByteString& serialNumber,
                                     const ByteString& issuerNameDER,
                                     time_t notBefore, time_t notAfter,
                                     const ByteString& subjectNameDER,
+                                    const TestKeyPair& subjectKeyPair,
                                      const ByteString* extensions,
-                                     TestKeyPair* issuerKeyPair,
-                                    SignatureAlgorithm signatureAlgorithm,
-                                     ScopedTestKeyPair& keyPairResult);
+                                    const TestKeyPair& issuerKeyPair,
+                                    SignatureAlgorithm signatureAlgorithm);
 
 ByteString CreateEncodedSerialNumber(long value);
 

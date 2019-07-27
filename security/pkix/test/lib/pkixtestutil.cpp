@@ -341,16 +341,13 @@ YMDHMS(int16_t year, int16_t month, int16_t day,
 
 static ByteString
 SignedData(const ByteString& tbsData,
-            TestKeyPair* keyPair,
+           const TestKeyPair& keyPair,
            SignatureAlgorithm signatureAlgorithm,
            bool corrupt,  const ByteString* certs)
 {
   ByteString signature;
-  if (keyPair) {
-    if (keyPair->SignData(tbsData, signatureAlgorithm, signature)
-          != Success) {
-       return ByteString();
-     }
+  if (keyPair.SignData(tbsData, signatureAlgorithm, signature) != Success) {
+    return ByteString();
   }
 
   ByteString signatureAlgorithmDER;
@@ -465,39 +462,27 @@ CreateEncodedCertificate(long version, Input signature,
                          const ByteString& issuerNameDER,
                          time_t notBefore, time_t notAfter,
                          const ByteString& subjectNameDER,
+                         const TestKeyPair& subjectKeyPair,
                           const ByteString* extensions,
-                          TestKeyPair* issuerKeyPair,
-                         SignatureAlgorithm signatureAlgorithm,
-                          ScopedTestKeyPair& keyPairResult)
+                         const TestKeyPair& issuerKeyPair,
+                         SignatureAlgorithm signatureAlgorithm)
 {
-  
-  
-  
-  ScopedTestKeyPair subjectKeyPair(GenerateKeyPair());
-  if (!subjectKeyPair) {
-    return ByteString();
-  }
-
   ByteString tbsCertificate(TBSCertificate(version, serialNumber,
                                            signature, issuerNameDER, notBefore,
                                            notAfter, subjectNameDER,
-                                           subjectKeyPair->subjectPublicKeyInfo,
+                                           subjectKeyPair.subjectPublicKeyInfo,
                                            extensions));
   if (ENCODING_FAILED(tbsCertificate)) {
     return ByteString();
   }
 
-  ByteString result(SignedData(tbsCertificate,
-                               issuerKeyPair ? issuerKeyPair
-                                             : subjectKeyPair.get(),
+  ByteString result(SignedData(tbsCertificate, issuerKeyPair,
                                signatureAlgorithm, false, nullptr));
   if (ENCODING_FAILED(result)) {
     return ByteString();
   }
 
   MaybeLogOutput(result, "cert");
-
-  keyPairResult = subjectKeyPair.release();
 
   return result;
 }
@@ -764,8 +749,7 @@ BasicOCSPResponse(OCSPResponseContext& context)
     return ByteString();
   }
 
-  
-  return SignedData(tbsResponseData, context.signerKeyPair.get(),
+  return SignedData(tbsResponseData, *context.signerKeyPair,
                     SignatureAlgorithm::rsa_pkcs1_with_sha256,
                     context.badSignature, context.certs);
 }
