@@ -49,9 +49,6 @@ class TypedArrayLayout
     static const size_t LENGTH_SLOT = JS_BUFVIEW_SLOT_LENGTH;
 
     
-    static const size_t TYPE_SLOT = JS_TYPEDARR_SLOT_TYPE;
-
-    
     static const size_t BUFFER_SLOT = JS_BUFVIEW_SLOT_OWNER;
 
     
@@ -79,7 +76,6 @@ class TypedArrayObject : public ArrayBufferViewObject
   protected:
     
     
-    static const size_t TYPE_SLOT      = TypedArrayLayout::TYPE_SLOT;
     static const size_t DATA_SLOT      = TypedArrayLayout::DATA_SLOT;
 
     static const size_t RESERVED_SLOTS = TypedArrayLayout::RESERVED_SLOTS;
@@ -108,9 +104,7 @@ class TypedArrayObject : public ArrayBufferViewObject
         return gc::GetGCObjectKind(FIXED_DATA_START + dataSlots);
     }
 
-    Scalar::Type type() const {
-        return (Scalar::Type) getFixedSlot(TYPE_SLOT).toInt32();
-    }
+    inline Scalar::Type type() const;
 
     static Value bufferValue(TypedArrayObject *tarr) {
         return tarr->getFixedSlot(BUFFER_SLOT);
@@ -197,6 +191,13 @@ IsTypedArrayProtoClass(const Class *clasp)
 
 bool
 IsTypedArrayConstructor(HandleValue v, uint32_t type);
+
+inline Scalar::Type
+TypedArrayObject::type() const
+{
+    JS_ASSERT(IsTypedArrayClass(getClass()));
+    return static_cast<Scalar::Type>(getClass() - &classes[0]);
+}
 
 
 
