@@ -163,6 +163,12 @@ public:
   
   
   
+  
+  void UpdateOnlyAnimationStyles();
+
+  
+  
+  
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
   
