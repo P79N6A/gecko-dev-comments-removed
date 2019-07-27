@@ -190,6 +190,11 @@ class Base {
     
     
     
+    virtual bool isLive() const { return true; };
+
+    
+    
+    
     
     
     virtual const char16_t* typeName() const = 0;
@@ -321,6 +326,8 @@ class Node {
         return base()->ptr != nullptr;
     }
 
+    bool isLive() const { return base()->isLive(); }
+
     template<typename T>
     bool is() const {
         return base()->typeName() == Concrete<T>::concreteTypeName;
@@ -328,12 +335,14 @@ class Node {
 
     template<typename T>
     T* as() const {
+        MOZ_ASSERT(isLive());
         MOZ_ASSERT(is<T>());
         return static_cast<T*>(base()->ptr);
     }
 
     template<typename T>
     T* asOrNull() const {
+        MOZ_ASSERT(isLive());
         return is<T>() ? static_cast<T*>(base()->ptr) : nullptr;
     }
 
