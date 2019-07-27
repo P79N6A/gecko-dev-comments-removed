@@ -282,6 +282,10 @@ public:
         
         
         QUIRK_FLASH_AVOID_CGMODE_CRASHES                = 1 << 10,
+        
+        
+        
+        QUIRK_FLASH_RETURN_EMPTY_DOCUMENT_ORIGIN        = 1 << 11,
     };
 
     int GetQuirks() { return mQuirks; }
