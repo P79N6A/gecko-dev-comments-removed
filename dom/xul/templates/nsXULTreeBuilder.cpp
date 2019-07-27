@@ -55,7 +55,7 @@ public:
     
     NS_DECL_NSITREEVIEW
     
-    NS_IMETHOD EnsureNative() { return NS_OK; }
+    NS_IMETHOD EnsureNative() MOZ_OVERRIDE { return NS_OK; }
 
     
     NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
@@ -72,7 +72,7 @@ protected:
     
 
 
-    virtual void Uninit(bool aIsFinal);
+    virtual void Uninit(bool aIsFinal) MOZ_OVERRIDE;
 
     
 
@@ -81,7 +81,7 @@ protected:
     EnsureSortVariables();
 
     virtual nsresult
-    RebuildAll();
+    RebuildAll() MOZ_OVERRIDE;
 
     
 
@@ -169,7 +169,7 @@ protected:
     NS_IMETHOD
     HasGeneratedContent(nsIRDFResource* aResource,
                         nsIAtom* aTag,
-                        bool* aGenerated);
+                        bool* aGenerated) MOZ_OVERRIDE;
 
     
     
@@ -180,7 +180,7 @@ protected:
 
     bool
     GetInsertionLocations(nsIXULTemplateResult* aResult,
-                          nsCOMArray<nsIContent>** aLocations);
+                          nsCOMArray<nsIContent>** aLocations) MOZ_OVERRIDE;
 
     
 
@@ -189,13 +189,13 @@ protected:
     ReplaceMatch(nsIXULTemplateResult* aOldResult,
                  nsTemplateMatch* aNewMatch,
                  nsTemplateRule* aNewMatchRule,
-                 void *aContext);
+                 void* aContext) MOZ_OVERRIDE;
 
     
 
 
     virtual nsresult
-    SynchronizeResult(nsIXULTemplateResult* aResult);
+    SynchronizeResult(nsIXULTemplateResult* aResult) MOZ_OVERRIDE;
 
     
 
