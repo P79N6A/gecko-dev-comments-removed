@@ -5,6 +5,7 @@
 
 
 #include "PerformanceMeasure.h"
+#include "MainThreadUtils.h"
 #include "mozilla/dom/PerformanceMeasureBinding.h"
 
 using namespace mozilla::dom;

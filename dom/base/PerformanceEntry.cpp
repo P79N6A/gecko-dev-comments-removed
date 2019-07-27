@@ -5,8 +5,9 @@
 
 
 #include "PerformanceEntry.h"
-#include "nsIURI.h"
+#include "MainThreadUtils.h"
 #include "mozilla/dom/PerformanceEntryBinding.h"
+#include "nsIURI.h"
 
 using namespace mozilla::dom;
 

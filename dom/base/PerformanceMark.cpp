@@ -5,6 +5,7 @@
 
 
 #include "PerformanceMark.h"
+#include "MainThreadUtils.h"
 #include "mozilla/dom/PerformanceMarkBinding.h"
 
 using namespace mozilla::dom;
