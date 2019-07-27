@@ -1377,7 +1377,12 @@ bool
 js::math_hypot(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+    return math_hypot_handle(cx, args, args.rval());
+}
 
+bool
+js::math_hypot_handle(JSContext *cx, HandleValueArray args, MutableHandleValue res)
+{
     
     
     if (args.length() == 2) {
@@ -1388,7 +1393,7 @@ js::math_hypot(JSContext *cx, unsigned argc, Value *vp)
             return false;
 
         double result = ecmaHypot(x, y);
-        args.rval().setNumber(result);
+        res.setNumber(result);
         return true;
     }
 
@@ -1419,7 +1424,7 @@ js::math_hypot(JSContext *cx, unsigned argc, Value *vp)
     double result = isInfinite ? PositiveInfinity<double>() :
                     isNaN ? GenericNaN() :
                     scale * sqrt(sumsq);
-    args.rval().setNumber(result);
+    res.setNumber(result);
     return true;
 }
 
