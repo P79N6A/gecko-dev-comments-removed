@@ -815,13 +815,14 @@ class GeckoInputConnection
             !shouldProcessKey(keyCode, event)) {
             return false;
         }
+        final int action = down ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
         event = translateKey(keyCode, event);
         keyCode = event.getKeyCode();
 
         View view = getView();
         if (view == null) {
             InputThreadUtils.sInstance.sendEventFromUiThread(ThreadUtils.getUiHandler(),
-                mEditableClient, GeckoEvent.createKeyEvent(event, 0));
+                mEditableClient, GeckoEvent.createKeyEvent(event, action, 0));
             return true;
         }
 
@@ -839,7 +840,7 @@ class GeckoInputConnection
             (down && !keyListener.onKeyDown(view, uiEditable, keyCode, event)) ||
             (!down && !keyListener.onKeyUp(view, uiEditable, keyCode, event))) {
             InputThreadUtils.sInstance.sendEventFromUiThread(uiHandler, mEditableClient,
-                GeckoEvent.createKeyEvent(event, TextKeyListener.getMetaState(uiEditable)));
+                GeckoEvent.createKeyEvent(event, action, TextKeyListener.getMetaState(uiEditable)));
             if (skip && down) {
                 
                 
@@ -863,27 +864,43 @@ class GeckoInputConnection
         return processKey(keyCode, event, false);
     }
 
+    
+
+
+    private KeyEvent getCharKeyEvent(final char c) {
+        final long time = SystemClock.uptimeMillis();
+        return new KeyEvent(time, time, KeyEvent.ACTION_MULTIPLE,
+                            KeyEvent.KEYCODE_UNKNOWN,  0) {
+            @Override
+            public int getUnicodeChar() {
+                return c;
+            }
+
+            @Override
+            public int getUnicodeChar(int metaState) {
+                return c;
+            }
+        };
+    }
+
     @Override
     public boolean onKeyMultiple(int keyCode, int repeatCount, final KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_UNKNOWN) {
             
-            View view = getView();
-            if (view != null) {
-                InputThreadUtils.sInstance.runOnIcThread(
-                    view.getRootView().getHandler(), mEditableClient,
-                    new Runnable() {
-                        @Override public void run() {
-                            
-                            
-                            GeckoInputConnection.super.commitText(event.getCharacters(), 1);
-                        }
-                    });
+            final String str = event.getCharacters();
+            for (int i = 0; i < str.length(); i++) {
+                final KeyEvent charEvent = getCharKeyEvent(str.charAt(i));
+                if (!processKey(KeyEvent.KEYCODE_UNKNOWN, charEvent,  true) ||
+                    !processKey(KeyEvent.KEYCODE_UNKNOWN, charEvent,  false)) {
+                    return false;
+                }
             }
             return true;
         }
+
         while ((repeatCount--) != 0) {
-            if (!processKey(keyCode, event, true) ||
-                !processKey(keyCode, event, false)) {
+            if (!processKey(keyCode, event,  true) ||
+                !processKey(keyCode, event,  false)) {
                 return false;
             }
         }
