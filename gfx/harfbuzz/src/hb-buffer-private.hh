@@ -52,6 +52,7 @@ struct hb_buffer_t {
   hb_unicode_funcs_t *unicode; 
   hb_segment_properties_t props; 
   hb_buffer_flags_t flags; 
+  hb_codepoint_t replacement; 
 
   
 

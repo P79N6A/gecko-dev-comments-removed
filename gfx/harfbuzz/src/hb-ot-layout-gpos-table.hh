@@ -49,18 +49,18 @@ typedef Value ValueRecord[VAR];
 struct ValueFormat : USHORT
 {
   enum Flags {
-    xPlacement	= 0x0001,	
-    yPlacement	= 0x0002,	
-    xAdvance	= 0x0004,	
-    yAdvance	= 0x0008,	
-    xPlaDevice	= 0x0010,	
-    yPlaDevice	= 0x0020,	
-    xAdvDevice	= 0x0040,	
-    yAdvDevice	= 0x0080,	
-    ignored	= 0x0F00,	
-    reserved	= 0xF000,	
+    xPlacement	= 0x0001u,	
+    yPlacement	= 0x0002u,	
+    xAdvance	= 0x0004u,	
+    yAdvance	= 0x0008u,	
+    xPlaDevice	= 0x0010u,	
+    yPlaDevice	= 0x0020u,	
+    xAdvDevice	= 0x0040u,	
+    yAdvDevice	= 0x0080u,	
+    ignored	= 0x0F00u,	
+    reserved	= 0xF000u,	
 
-    devices	= 0x00F0	
+    devices	= 0x00F0u	
   };
 
 
@@ -1589,6 +1589,8 @@ GPOS::position_start (hb_font_t *font HB_UNUSED, hb_buffer_t *buffer)
 void
 GPOS::position_finish (hb_font_t *font HB_UNUSED, hb_buffer_t *buffer)
 {
+  _hb_buffer_assert_gsubgpos_vars (buffer);
+
   unsigned int len;
   hb_glyph_position_t *pos = hb_buffer_get_glyph_positions (buffer, &len);
   hb_direction_t direction = buffer->props.direction;
@@ -1600,22 +1602,20 @@ GPOS::position_finish (hb_font_t *font HB_UNUSED, hb_buffer_t *buffer)
   
   for (unsigned int i = 0; i < len; i++)
     fix_mark_attachment (pos, i, direction);
-
-  _hb_buffer_deallocate_gsubgpos_vars (buffer);
 }
 
 
 
 
 template <typename context_t>
-inline typename context_t::return_t PosLookup::dispatch_recurse_func (context_t *c, unsigned int lookup_index)
+ inline typename context_t::return_t PosLookup::dispatch_recurse_func (context_t *c, unsigned int lookup_index)
 {
   const GPOS &gpos = *(hb_ot_layout_from_face (c->face)->gpos);
   const PosLookup &l = gpos.get_lookup (lookup_index);
   return l.dispatch (c);
 }
 
-inline bool PosLookup::apply_recurse_func (hb_apply_context_t *c, unsigned int lookup_index)
+ inline bool PosLookup::apply_recurse_func (hb_apply_context_t *c, unsigned int lookup_index)
 {
   const GPOS &gpos = *(hb_ot_layout_from_face (c->face)->gpos);
   const PosLookup &l = gpos.get_lookup (lookup_index);

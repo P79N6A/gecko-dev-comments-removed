@@ -110,9 +110,9 @@ typedef struct OffsetTable
   protected:
   Tag		sfnt_version;	
   USHORT	numTables;	
-  USHORT	searchRange;	
-  USHORT	entrySelector;	
-  USHORT	rangeShift;	
+  USHORT	searchRangeZ;	
+  USHORT	entrySelectorZ;	
+  USHORT	rangeShiftZ;	
   TableRecord	tables[VAR];	
   public:
   DEFINE_SIZE_ARRAY (12, tables);
@@ -139,7 +139,7 @@ struct TTCHeaderVersion1
   Tag		ttcTag;		
   FixedVersion	version;	
 
-  LongOffsetLongArrayOf<OffsetTable>
+  ArrayOf<OffsetTo<OffsetTable, ULONG>, ULONG>
 		table;		
 
   public:

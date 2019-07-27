@@ -42,36 +42,36 @@ namespace OT {
 
 
 template<typename Type, typename TObject>
-inline const Type& CastR(const TObject &X)
+static inline const Type& CastR(const TObject &X)
 { return reinterpret_cast<const Type&> (X); }
 template<typename Type, typename TObject>
-inline Type& CastR(TObject &X)
+static inline Type& CastR(TObject &X)
 { return reinterpret_cast<Type&> (X); }
 
 
 template<typename Type, typename TObject>
-inline const Type* CastP(const TObject *X)
+static inline const Type* CastP(const TObject *X)
 { return reinterpret_cast<const Type*> (X); }
 template<typename Type, typename TObject>
-inline Type* CastP(TObject *X)
+static inline Type* CastP(TObject *X)
 { return reinterpret_cast<Type*> (X); }
 
 
 
 template<typename Type>
-inline const Type& StructAtOffset(const void *P, unsigned int offset)
+static inline const Type& StructAtOffset(const void *P, unsigned int offset)
 { return * reinterpret_cast<const Type*> ((const char *) P + offset); }
 template<typename Type>
-inline Type& StructAtOffset(void *P, unsigned int offset)
+static inline Type& StructAtOffset(void *P, unsigned int offset)
 { return * reinterpret_cast<Type*> ((char *) P + offset); }
 
 
 
 template<typename Type, typename TObject>
-inline const Type& StructAfter(const TObject &X)
+static inline const Type& StructAfter(const TObject &X)
 { return StructAtOffset<Type>(&X, X.get_size()); }
 template<typename Type, typename TObject>
-inline Type& StructAfter(TObject &X)
+static inline Type& StructAfter(TObject &X)
 { return StructAtOffset<Type>(&X, X.get_size()); }
 
 
@@ -132,7 +132,7 @@ inline Type& StructAfter(TObject &X)
 
 
 
-static const void *_NullPool[64 / sizeof (void *)];
+static const void *_NullPool[(256+8) / sizeof (void *)];
 
 
 template <typename Type>
@@ -145,7 +145,7 @@ static inline const Type& Null (void) {
 #define DEFINE_NULL_DATA(Type, data) \
 static const char _Null##Type[sizeof (Type) + 1] = data; /* +1 is for nul-termination in data */ \
 template <> \
-inline const Type& Null<Type> (void) { \
+/*static*/ inline const Type& Null<Type> (void) { \
   return *CastP<Type> (_Null##Type); \
 } /* The following line really exists such that we end in a place needing semicolon */ \
 ASSERT_STATIC (Type::min_size + 1 <= sizeof (_Null##Type))
@@ -266,6 +266,15 @@ struct hb_sanitize_context_t
     return TRACE_RETURN (this->writable);
   }
 
+  template <typename Type, typename ValueType>
+  inline bool try_set (Type *obj, const ValueType &v) {
+    if (this->may_edit (obj, obj->static_size)) {
+      obj->set (v);
+      return true;
+    }
+    return false;
+  }
+
   mutable unsigned int debug_depth;
   const char *start, *end;
   bool writable;
@@ -280,7 +289,7 @@ template <typename Type>
 struct Sanitizer
 {
   static hb_blob_t *sanitize (hb_blob_t *blob) {
-    hb_sanitize_context_t c[1] = {{0}};
+    hb_sanitize_context_t c[1] = {{0, NULL, NULL, false, 0, NULL}};
     bool sane;
 
     
@@ -572,6 +581,7 @@ struct IntType
   DEFINE_SIZE_STATIC (Size);
 };
 
+typedef		uint8_t	     BYTE;	
 typedef IntType<uint16_t, 2> USHORT;	
 typedef IntType<int16_t,  2> SHORT;	
 typedef IntType<uint32_t, 4> ULONG;	
@@ -616,24 +626,17 @@ typedef USHORT GlyphID;
 
 
 struct Index : USHORT {
-  static const unsigned int NOT_FOUND_INDEX = 0xFFFF;
+  static const unsigned int NOT_FOUND_INDEX = 0xFFFFu;
 };
 DEFINE_NULL_DATA (Index, "\xff\xff");
 
 
-struct Offset : USHORT
+template <typename Type=USHORT>
+struct Offset : Type
 {
   inline bool is_null (void) const { return 0 == *this; }
   public:
-  DEFINE_SIZE_STATIC (2);
-};
-
-
-struct LongOffset : ULONG
-{
-  inline bool is_null (void) const { return 0 == *this; }
-  public:
-  DEFINE_SIZE_STATIC (4);
+  DEFINE_SIZE_STATIC (sizeof(Type));
 };
 
 
@@ -686,8 +689,8 @@ struct FixedVersion
 
 
 
-template <typename OffsetType, typename Type>
-struct GenericOffsetTo : OffsetType
+template <typename Type, typename OffsetType=USHORT>
+struct OffsetTo : Offset<OffsetType>
 {
   inline const Type& operator () (const void *base) const
   {
@@ -721,40 +724,25 @@ struct GenericOffsetTo : OffsetType
     return TRACE_RETURN (likely (obj.sanitize (c, user_data)) || neuter (c));
   }
 
-  inline bool try_set (hb_sanitize_context_t *c, const OffsetType &v) {
-    if (c->may_edit (this, this->static_size)) {
-      this->set (v);
-      return true;
-    }
-    return false;
-  }
   
   inline bool neuter (hb_sanitize_context_t *c) {
-    if (c->may_edit (this, this->static_size)) {
-      this->set (0); 
-      return true;
-    }
-    return false;
+    return c->try_set (this, 0);
   }
+  DEFINE_SIZE_STATIC (sizeof(OffsetType));
 };
 template <typename Base, typename OffsetType, typename Type>
-inline const Type& operator + (const Base &base, const GenericOffsetTo<OffsetType, Type> &offset) { return offset (base); }
+static inline const Type& operator + (const Base &base, const OffsetTo<Type, OffsetType> &offset) { return offset (base); }
 template <typename Base, typename OffsetType, typename Type>
-inline Type& operator + (Base &base, GenericOffsetTo<OffsetType, Type> &offset) { return offset (base); }
-
-template <typename Type>
-struct OffsetTo : GenericOffsetTo<Offset, Type> {};
-
-template <typename Type>
-struct LongOffsetTo : GenericOffsetTo<LongOffset, Type> {};
+static inline Type& operator + (Base &base, OffsetTo<Type, OffsetType> &offset) { return offset (base); }
 
 
 
 
 
 
-template <typename LenType, typename Type>
-struct GenericArrayOf
+
+template <typename Type, typename LenType=USHORT>
+struct ArrayOf
 {
   const Type *sub_array (unsigned int start_offset, unsigned int *pcount ) const
   {
@@ -837,6 +825,16 @@ struct GenericArrayOf
     return TRACE_RETURN (true);
   }
 
+  template <typename SearchType>
+  inline int lsearch (const SearchType &x) const
+  {
+    unsigned int count = len;
+    for (unsigned int i = 0; i < count; i++)
+      if (!this->array[i].cmp (x))
+        return i;
+    return -1;
+  }
+
   private:
   inline bool sanitize_shallow (hb_sanitize_context_t *c) {
     TRACE_SANITIZE (this);
@@ -852,23 +850,7 @@ struct GenericArrayOf
 
 
 template <typename Type>
-struct ArrayOf : GenericArrayOf<USHORT, Type> {};
-
-
-template <typename Type>
-struct LongArrayOf : GenericArrayOf<ULONG, Type> {};
-
-
-template <typename Type>
 struct OffsetArrayOf : ArrayOf<OffsetTo<Type> > {};
-
-
-template <typename Type>
-struct LongOffsetArrayOf : ArrayOf<LongOffsetTo<Type> > {};
-
-
-template <typename Type>
-struct LongOffsetLongArrayOf : LongArrayOf<LongOffsetTo<Type> > {};
 
 
 template <typename Type>
@@ -893,8 +875,7 @@ struct OffsetListOf : OffsetArrayOf<Type>
 
 
 
-
-template <typename Type>
+template <typename Type, typename LenType=USHORT>
 struct HeadlessArrayOf
 {
   inline const Type& operator [] (unsigned int i) const
@@ -941,19 +922,19 @@ struct HeadlessArrayOf
     return TRACE_RETURN (true);
   }
 
-  USHORT len;
+  LenType len;
   Type array[VAR];
   public:
-  DEFINE_SIZE_ARRAY (sizeof (USHORT), array);
+  DEFINE_SIZE_ARRAY (sizeof (LenType), array);
 };
 
 
 
-template <typename Type>
-struct SortedArrayOf : ArrayOf<Type> {
-
+template <typename Type, typename LenType=USHORT>
+struct SortedArrayOf : ArrayOf<Type, LenType>
+{
   template <typename SearchType>
-  inline int search (const SearchType &x) const
+  inline int bsearch (const SearchType &x) const
   {
     
     int min = 0, max = (int) this->len - 1;

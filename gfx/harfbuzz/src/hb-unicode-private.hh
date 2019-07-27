@@ -102,26 +102,31 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
   }
 
 
-  unsigned int
+  inline unsigned int
   modified_combining_class (hb_codepoint_t unicode)
   {
     
-    if (unlikely (unicode == 0x1037)) unicode = 0x103A;
+    if (unlikely (unicode == 0x1037u)) unicode = 0x103Au;
 
     
 
-    if (unlikely (unicode == 0x1A60)) return 254;
+    if (unlikely (unicode == 0x1A60u)) return 254;
+
+    
+
+    if (unlikely (unicode == 0x0FC6u)) return 254;
 
     return _hb_modified_combining_class[combining_class (unicode)];
   }
 
-  inline hb_bool_t
+  static inline hb_bool_t
   is_variation_selector (hb_codepoint_t unicode)
   {
-    return unlikely (hb_in_ranges<hb_codepoint_t> (unicode,
-						   0x180B, 0x180D, 
-						   0xFE00, 0xFE0F, 
-						   0xE0100, 0xE01EF));  
+    
+
+    return unlikely (hb_in_ranges (unicode,
+				   0xFE00u, 0xFE0Fu, 
+				   0xE0100u, 0xE01EFu));  
   }
 
   
@@ -160,14 +165,7 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
 
 
 
-
-
-
-
-
-
-
-  inline hb_bool_t
+  static inline hb_bool_t
   is_default_ignorable (hb_codepoint_t ch)
   {
     hb_codepoint_t plane = ch >> 16;
@@ -176,16 +174,16 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
       
       hb_codepoint_t page = ch >> 8;
       switch (page) {
-	case 0x00: return unlikely (ch == 0x00AD);
-	case 0x03: return unlikely (ch == 0x034F);
-	case 0x06: return unlikely (ch == 0x061C);
-	case 0x17: return hb_in_range<hb_codepoint_t> (ch, 0x17B4, 0x17B5);
-	case 0x18: return hb_in_range<hb_codepoint_t> (ch, 0x180B, 0x180E);
-	case 0x20: return hb_in_ranges<hb_codepoint_t> (ch, 0x200B, 0x200F,
-							    0x202A, 0x202E,
-							    0x2060, 0x206F);
-	case 0xFE: return hb_in_range<hb_codepoint_t> (ch, 0xFE00, 0xFE0F) || ch == 0xFEFF;
-	case 0xFF: return hb_in_range<hb_codepoint_t> (ch, 0xFFF0, 0xFFF8);
+	case 0x00: return unlikely (ch == 0x00ADu);
+	case 0x03: return unlikely (ch == 0x034Fu);
+	case 0x06: return unlikely (ch == 0x061Cu);
+	case 0x17: return hb_in_range (ch, 0x17B4u, 0x17B5u);
+	case 0x18: return hb_in_range (ch, 0x180Bu, 0x180Eu);
+	case 0x20: return hb_in_ranges (ch, 0x200Bu, 0x200Fu,
+							    0x202Au, 0x202Eu,
+							    0x2060u, 0x206Fu);
+	case 0xFE: return hb_in_range (ch, 0xFE00u, 0xFE0Fu) || ch == 0xFEFFu;
+	case 0xFF: return hb_in_range (ch, 0xFFF0u, 0xFFF8u);
 	default: return false;
       }
     }
@@ -193,8 +191,9 @@ HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
     {
       
       switch (plane) {
-	case 0x01: return hb_in_range<hb_codepoint_t> (ch, 0x0001D173, 0x0001D17A);
-	case 0x0E: return hb_in_range<hb_codepoint_t> (ch, 0x000E0000, 0x000E0FFF);
+	case 0x01: return hb_in_ranges (ch, 0x1BCA0u, 0x1BCA3u,
+					    0x1D173u, 0x1D17Au);
+	case 0x0E: return hb_in_range (ch, 0xE0000u, 0xE0FFFu);
 	default: return false;
       }
     }

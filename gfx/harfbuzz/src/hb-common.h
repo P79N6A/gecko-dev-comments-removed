@@ -95,6 +95,7 @@ typedef uint32_t hb_tag_t;
 
 #define HB_TAG_NONE HB_TAG(0,0,0,0)
 #define HB_TAG_MAX HB_TAG(0xff,0xff,0xff,0xff)
+#define HB_TAG_MAX_SIGNED HB_TAG(0x7f,0xff,0xff,0xff)
 
 
 hb_tag_t
@@ -270,17 +271,6 @@ typedef enum
    HB_SCRIPT_SORA_SOMPENG		= HB_TAG ('S','o','r','a'),
    HB_SCRIPT_TAKRI			= HB_TAG ('T','a','k','r'),
 
-  
-   HB_SCRIPT_INVALID			= HB_TAG_NONE,
-
-  
-
-   _HB_SCRIPT_MAX_VALUE			= HB_TAG_MAX
-
-} hb_script_t;
-
-
-#if 0
    HB_SCRIPT_BASSA_VAH			= HB_TAG ('B','a','s','s'),
    HB_SCRIPT_CAUCASIAN_ALBANIAN		= HB_TAG ('A','g','h','b'),
    HB_SCRIPT_DUPLOYAN			= HB_TAG ('D','u','p','l'),
@@ -292,19 +282,33 @@ typedef enum
    HB_SCRIPT_MAHAJANI			= HB_TAG ('M','a','h','j'),
    HB_SCRIPT_MANICHAEAN			= HB_TAG ('M','a','n','i'),
    HB_SCRIPT_MENDE_KIKAKUI		= HB_TAG ('M','e','n','d'),
-   HB_SCRIPT_MODI			= ???
+   HB_SCRIPT_MODI			= HB_TAG ('M','o','d','i'),
    HB_SCRIPT_MRO				= HB_TAG ('M','r','o','o'),
    HB_SCRIPT_NABATAEAN			= HB_TAG ('N','b','a','t'),
    HB_SCRIPT_OLD_NORTH_ARABIAN		= HB_TAG ('N','a','r','b'),
    HB_SCRIPT_OLD_PERMIC			= HB_TAG ('P','e','r','m'),
    HB_SCRIPT_PAHAWH_HMONG		= HB_TAG ('H','m','n','g'),
    HB_SCRIPT_PALMYRENE			= HB_TAG ('P','a','l','m'),
-   HB_SCRIPT_PAU_CIN_HAU			= ???
+   HB_SCRIPT_PAU_CIN_HAU			= HB_TAG ('P','a','u','c'),
    HB_SCRIPT_PSALTER_PAHLAVI		= HB_TAG ('P','h','l','p'),
-   HB_SCRIPT_SIDDHAM			= ???
+   HB_SCRIPT_SIDDHAM			= HB_TAG ('S','i','d','d'),
    HB_SCRIPT_TIRHUTA			= HB_TAG ('T','i','r','h'),
    HB_SCRIPT_WARANG_CITI			= HB_TAG ('W','a','r','a'),
-#endif
+
+  
+  HB_SCRIPT_INVALID				= HB_TAG_NONE,
+
+  
+
+
+
+
+
+
+  _HB_SCRIPT_MAX_VALUE				= HB_TAG_MAX, 
+  _HB_SCRIPT_MAX_VALUE_SIGNED			= HB_TAG_MAX_SIGNED 
+
+} hb_script_t;
 
 
 

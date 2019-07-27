@@ -121,7 +121,7 @@ struct name
   
   USHORT	format;			
   USHORT	count;			
-  Offset	stringOffset;		
+  Offset<>	stringOffset;		
   NameRecord	nameRecord[VAR];	
   public:
   DEFINE_SIZE_ARRAY (6, nameRecord);

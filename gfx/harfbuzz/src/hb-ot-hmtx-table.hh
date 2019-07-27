@@ -59,7 +59,7 @@ struct hmtx
     return TRACE_RETURN (true);
   }
 
-  protected:
+  public:
   LongHorMetric	longHorMetric[VAR];	
 
 

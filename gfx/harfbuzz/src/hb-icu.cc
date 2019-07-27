@@ -323,7 +323,7 @@ hb_icu_unicode_decompose_compatibility (hb_unicode_funcs_t *ufuncs HB_UNUSED,
 
   
   len = 0;
-  err = FALSE;
+  err = false;
   U16_APPEND (utf16, len, ARRAY_LENGTH (utf16), u, err);
   if (err)
     return 0;

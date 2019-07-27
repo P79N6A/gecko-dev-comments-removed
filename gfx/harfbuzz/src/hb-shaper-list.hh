@@ -34,17 +34,15 @@
 
 HB_SHAPER_IMPLEMENT (graphite2)
 #endif
+#ifdef HAVE_CORETEXT
+
+HB_SHAPER_IMPLEMENT (coretext_aat)
+#endif
 
 #ifdef HAVE_OT
 HB_SHAPER_IMPLEMENT (ot) 
 #endif
 
-#ifdef HAVE_HB_OLD
-HB_SHAPER_IMPLEMENT (old)
-#endif
-#ifdef HAVE_ICU_LE
-HB_SHAPER_IMPLEMENT (icu_le)
-#endif
 #ifdef HAVE_UNISCRIBE
 HB_SHAPER_IMPLEMENT (uniscribe)
 #endif

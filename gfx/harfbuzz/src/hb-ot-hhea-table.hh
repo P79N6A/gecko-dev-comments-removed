@@ -49,7 +49,7 @@ struct hhea
     return TRACE_RETURN (c->check_struct (this) && likely (version.major == 1));
   }
 
-  protected:
+  public:
   FixedVersion	version;		
   FWORD		ascender;		
 

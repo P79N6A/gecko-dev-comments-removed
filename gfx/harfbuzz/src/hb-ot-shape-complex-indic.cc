@@ -37,19 +37,19 @@
 
 
 
-#define IN_HALF_BLOCK(u, Base) (((u) & ~0x7F) == (Base))
+#define IN_HALF_BLOCK(u, Base) (((u) & ~0x7Fu) == (Base))
 
-#define IS_DEVA(u) (IN_HALF_BLOCK (u, 0x0900))
-#define IS_BENG(u) (IN_HALF_BLOCK (u, 0x0980))
-#define IS_GURU(u) (IN_HALF_BLOCK (u, 0x0A00))
-#define IS_GUJR(u) (IN_HALF_BLOCK (u, 0x0A80))
-#define IS_ORYA(u) (IN_HALF_BLOCK (u, 0x0B00))
-#define IS_TAML(u) (IN_HALF_BLOCK (u, 0x0B80))
-#define IS_TELU(u) (IN_HALF_BLOCK (u, 0x0C00))
-#define IS_KNDA(u) (IN_HALF_BLOCK (u, 0x0C80))
-#define IS_MLYM(u) (IN_HALF_BLOCK (u, 0x0D00))
-#define IS_SINH(u) (IN_HALF_BLOCK (u, 0x0D80))
-#define IS_KHMR(u) (IN_HALF_BLOCK (u, 0x1780))
+#define IS_DEVA(u) (IN_HALF_BLOCK (u, 0x0900u))
+#define IS_BENG(u) (IN_HALF_BLOCK (u, 0x0980u))
+#define IS_GURU(u) (IN_HALF_BLOCK (u, 0x0A00u))
+#define IS_GUJR(u) (IN_HALF_BLOCK (u, 0x0A80u))
+#define IS_ORYA(u) (IN_HALF_BLOCK (u, 0x0B00u))
+#define IS_TAML(u) (IN_HALF_BLOCK (u, 0x0B80u))
+#define IS_TELU(u) (IN_HALF_BLOCK (u, 0x0C00u))
+#define IS_KNDA(u) (IN_HALF_BLOCK (u, 0x0C80u))
+#define IS_MLYM(u) (IN_HALF_BLOCK (u, 0x0D00u))
+#define IS_SINH(u) (IN_HALF_BLOCK (u, 0x0D80u))
+#define IS_KHMR(u) (IN_HALF_BLOCK (u, 0x1780u))
 
 
 #define MATRA_POS_LEFT(u)	POS_PRE_M
@@ -60,8 +60,8 @@
 				  IS_GUJR(u) ? POS_AFTER_POST : \
 				  IS_ORYA(u) ? POS_AFTER_POST : \
 				  IS_TAML(u) ? POS_AFTER_POST : \
-				  IS_TELU(u) ? (u <= 0x0C42 ? POS_BEFORE_SUB : POS_AFTER_SUB) : \
-				  IS_KNDA(u) ? (u < 0x0CC3 || u > 0xCD6 ? POS_BEFORE_SUB : POS_AFTER_SUB) : \
+				  IS_TELU(u) ? (u <= 0x0C42u ? POS_BEFORE_SUB : POS_AFTER_SUB) : \
+				  IS_KNDA(u) ? (u < 0x0CC3u || u > 0xCD6u ? POS_BEFORE_SUB : POS_AFTER_SUB) : \
 				  IS_MLYM(u) ? POS_AFTER_POST : \
 				  IS_SINH(u) ? POS_AFTER_SUB  : \
 				  IS_KHMR(u) ? POS_AFTER_POST : \
@@ -112,20 +112,20 @@ matra_position (hb_codepoint_t u, indic_position_t side)
 
 
 static const hb_codepoint_t ra_chars[] = {
-  0x0930, 
-  0x09B0, 
-  0x09F0, 
-  0x0A30, 	
-  0x0AB0, 
-  0x0B30, 
-  0x0BB0, 		
-  0x0C30, 		
-  0x0CB0, 
-  0x0D30, 	
+  0x0930u, 
+  0x09B0u, 
+  0x09F0u, 
+  0x0A30u, 	
+  0x0AB0u, 
+  0x0B30u, 
+  0x0BB0u, 		
+  0x0C30u, 		
+  0x0CB0u, 
+  0x0D30u, 	
 
-  0x0DBB, 		
+  0x0DBBu, 		
 
-  0x179A, 		
+  0x179Au, 		
 };
 
 static inline bool
@@ -145,28 +145,18 @@ is_one_of (const hb_glyph_info_t &info, unsigned int flags)
   return !!(FLAG (info.indic_category()) & flags);
 }
 
-#define JOINER_FLAGS (FLAG (OT_ZWJ) | FLAG (OT_ZWNJ))
 static inline bool
 is_joiner (const hb_glyph_info_t &info)
 {
   return is_one_of (info, JOINER_FLAGS);
 }
 
-#define MEDIAL_FLAGS (FLAG (OT_CM) | FLAG (OT_CM2))
-
-
-
-
-
-
-#define CONSONANT_FLAGS (FLAG (OT_C) | FLAG (OT_Ra) | MEDIAL_FLAGS | FLAG (OT_V) | FLAG (OT_NBSP) | FLAG (OT_DOTTEDCIRCLE))
 static inline bool
 is_consonant (const hb_glyph_info_t &info)
 {
   return is_one_of (info, CONSONANT_FLAGS);
 }
 
-#define HALANT_OR_COENG_FLAGS (FLAG (OT_H) | FLAG (OT_Coeng))
 static inline bool
 is_halant_or_coeng (const hb_glyph_info_t &info)
 {
@@ -178,7 +168,7 @@ set_indic_properties (hb_glyph_info_t &info)
 {
   hb_codepoint_t u = info.codepoint;
   unsigned int type = hb_indic_get_categories (u);
-  indic_category_t cat = (indic_category_t) (type & 0x7F);
+  indic_category_t cat = (indic_category_t) (type & 0x7Fu);
   indic_position_t pos = (indic_position_t) (type >> 8);
 
 
@@ -195,41 +185,52 @@ set_indic_properties (hb_glyph_info_t &info)
 
 
 
-  if (unlikely (hb_in_range<hb_codepoint_t> (u, 0x0951, 0x0954)))
-    cat = OT_A;
 
-  if (unlikely (u == 0x17D1))
-    cat = OT_X;
-  if (cat == OT_X &&
-      unlikely (hb_in_range<hb_codepoint_t> (u, 0x17CB, 0x17D3))) 
+
+  if (unlikely (hb_in_ranges (u, 0x0951u, 0x0952u,
+				 0x1CD0u, 0x1CD2u,
+				 0x1CD4u, 0x1CE1u) ||
+			    u == 0x1CF4u))
+    cat = OT_A;
+  
+  else if (unlikely (hb_in_range (u, 0x0953u, 0x0954u)))
+    cat = OT_SM;
+  
+  else if (unlikely (hb_in_ranges (u, 0x0A72u, 0x0A73u,
+				      0x1CF5u, 0x1CF6u)))
+    cat = OT_C;
+  
+
+  else if (unlikely (hb_in_range (u, 0x1CE2u, 0x1CE8u)))
+    cat = OT_A;
+  
+
+
+  else if (unlikely (u == 0x1CEDu))
+    cat = OT_A;
+  
+  else if (unlikely (hb_in_ranges (u, 0xA8F2u, 0xA8F7u,
+				      0x1CE9u, 0x1CECu,
+				      0x1CEEu, 0x1CF1u)))
+  {
+    cat = OT_Symbol;
+    ASSERT_STATIC ((int) INDIC_SYLLABIC_CATEGORY_AVAGRAHA == OT_Symbol);
+  }
+  else if (unlikely (hb_in_range (u, 0x17CDu, 0x17D1u) ||
+		     u == 0x17CBu || u == 0x17D3u || u == 0x17DDu)) 
   {
     
     cat = OT_M;
     pos = POS_ABOVE_C;
   }
-  if (u == 0x17C6) 
-    cat = OT_N;
-
-  if (unlikely (u == 0x17D2)) cat = OT_Coeng; 
-  else if (unlikely (u == 0x200C)) cat = OT_ZWNJ;
-  else if (unlikely (u == 0x200D)) cat = OT_ZWJ;
-  else if (unlikely (u == 0x25CC)) cat = OT_DOTTEDCIRCLE;
-  else if (unlikely (u == 0x0A71)) cat = OT_SM; 
-  else if (unlikely (u == 0xA982)) cat = OT_SM; 
-  else if (unlikely (u == 0xA9BE)) cat = OT_CM2; 
-  else if (unlikely (u == 0xA9BD)) { cat = OT_M; pos = POS_POST_C; } 
-
-  if (cat == OT_Repha) {
-    
-
-
-
-
-
-    if (_hb_glyph_info_get_general_category (&info) == HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK)
-      cat = OT_N;
-  }
-
+  else if (unlikely (u == 0x17C6u)) cat = OT_N; 
+  else if (unlikely (u == 0x17D2u)) cat = OT_Coeng; 
+  else if (unlikely (hb_in_range (u, 0x2010u, 0x2011u)))
+				    cat = OT_PLACEHOLDER;
+  else if (unlikely (u == 0x25CCu)) cat = OT_DOTTEDCIRCLE;
+  else if (unlikely (u == 0xA982u)) cat = OT_SM; 
+  else if (unlikely (u == 0xA9BEu)) cat = OT_CM2; 
+  else if (unlikely (u == 0xA9BDu)) { cat = OT_M; pos = POS_POST_C; } 
 
 
   
@@ -246,12 +247,12 @@ set_indic_properties (hb_glyph_info_t &info)
   {
     pos = matra_position (u, pos);
   }
-  else if ((FLAG (cat) & (FLAG (OT_SM) | FLAG (OT_VD) | FLAG (OT_A) | FLAG (OT_Avag))))
+  else if ((FLAG (cat) & (FLAG (OT_SM) | FLAG (OT_VD) | FLAG (OT_A) | FLAG (OT_Symbol))))
   {
     pos = POS_SMVD;
   }
 
-  if (unlikely (u == 0x0B01)) pos = POS_BEFORE_SUB; 
+  if (unlikely (u == 0x0B01u)) pos = POS_BEFORE_SUB; 
 
 
 
@@ -315,20 +316,20 @@ struct indic_config_t
 static const indic_config_t indic_configs[] =
 {
   
-  {HB_SCRIPT_INVALID,	false,     0,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_1},
-  {HB_SCRIPT_DEVANAGARI,true, 0x094D,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_BENGALI,	true, 0x09CD,BASE_POS_LAST, REPH_POS_AFTER_SUB,  REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_GURMUKHI,	true, 0x0A4D,BASE_POS_LAST, REPH_POS_BEFORE_SUB, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_GUJARATI,	true, 0x0ACD,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_ORIYA,	true, 0x0B4D,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_TAMIL,	true, 0x0BCD,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
-  {HB_SCRIPT_TELUGU,	true, 0x0C4D,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_EXPLICIT, BLWF_MODE_POST_ONLY,    PREF_LEN_2},
-  {HB_SCRIPT_KANNADA,	true, 0x0CCD,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_POST_ONLY,    PREF_LEN_2},
-  {HB_SCRIPT_MALAYALAM,	true, 0x0D4D,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_LOG_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
-  {HB_SCRIPT_SINHALA,	false,0x0DCA,BASE_POS_LAST_SINHALA,
-						    REPH_POS_AFTER_MAIN, REPH_MODE_EXPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
-  {HB_SCRIPT_KHMER,	false,0x17D2,BASE_POS_FIRST,REPH_POS_DONT_CARE,  REPH_MODE_VIS_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
-  {HB_SCRIPT_JAVANESE,	false,0xA9C0,BASE_POS_FIRST,REPH_POS_DONT_CARE,  REPH_MODE_VIS_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_1},
+  {HB_SCRIPT_INVALID,	false,      0,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_1},
+  {HB_SCRIPT_DEVANAGARI,true, 0x094Du,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
+  {HB_SCRIPT_BENGALI,	true, 0x09CDu,BASE_POS_LAST, REPH_POS_AFTER_SUB,  REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
+  {HB_SCRIPT_GURMUKHI,	true, 0x0A4Du,BASE_POS_LAST, REPH_POS_BEFORE_SUB, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
+  {HB_SCRIPT_GUJARATI,	true, 0x0ACDu,BASE_POS_LAST, REPH_POS_BEFORE_POST,REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
+  {HB_SCRIPT_ORIYA,	true, 0x0B4Du,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
+  {HB_SCRIPT_TAMIL,	true, 0x0BCDu,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
+  {HB_SCRIPT_TELUGU,	true, 0x0C4Du,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_EXPLICIT, BLWF_MODE_POST_ONLY,    PREF_LEN_2},
+  {HB_SCRIPT_KANNADA,	true, 0x0CCDu,BASE_POS_LAST, REPH_POS_AFTER_POST, REPH_MODE_IMPLICIT, BLWF_MODE_POST_ONLY,    PREF_LEN_2},
+  {HB_SCRIPT_MALAYALAM,	true, 0x0D4Du,BASE_POS_LAST, REPH_POS_AFTER_MAIN, REPH_MODE_LOG_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
+  {HB_SCRIPT_SINHALA,	false,0x0DCAu,BASE_POS_LAST_SINHALA,
+						     REPH_POS_AFTER_MAIN, REPH_MODE_EXPLICIT, BLWF_MODE_PRE_AND_POST, PREF_LEN_DONT_CARE},
+  {HB_SCRIPT_KHMER,	false,0x17D2u,BASE_POS_FIRST,REPH_POS_DONT_CARE,  REPH_MODE_VIS_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_2},
+  {HB_SCRIPT_JAVANESE,	false,0xA9C0u,BASE_POS_FIRST,REPH_POS_DONT_CARE,  REPH_MODE_VIS_REPHA,BLWF_MODE_PRE_AND_POST, PREF_LEN_1},
 };
 
 
@@ -552,12 +553,12 @@ data_create_indic (const hb_ot_shape_plan_t *plan)
       break;
     }
 
-  indic_plan->is_old_spec = indic_plan->config->has_old_spec && ((plan->map.chosen_script[0] & 0x000000FF) != '2');
+  indic_plan->is_old_spec = indic_plan->config->has_old_spec && ((plan->map.chosen_script[0] & 0x000000FFu) != '2');
   indic_plan->virama_glyph = (hb_codepoint_t) -1;
 
   
 
-  bool zero_context = indic_plan->config->has_old_spec || !indic_plan->is_old_spec;
+  bool zero_context = !indic_plan->is_old_spec;
   indic_plan->rphf.init (&plan->map, HB_TAG('r','p','h','f'), zero_context);
   indic_plan->pref.init (&plan->map, HB_TAG('p','r','e','f'), zero_context);
   indic_plan->blwf.init (&plan->map, HB_TAG('b','l','w','f'), zero_context);
@@ -614,7 +615,7 @@ enum syllable_type_t {
   consonant_syllable,
   vowel_syllable,
   standalone_cluster,
-  avagraha_cluster,
+  symbol_cluster,
   broken_cluster,
   non_indic_cluster,
 };
@@ -634,8 +635,9 @@ setup_masks_indic (const hb_ot_shape_plan_t *plan HB_UNUSED,
 
 
   unsigned int count = buffer->len;
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = 0; i < count; i++)
-    set_indic_properties (buffer->info[i]);
+    set_indic_properties (info[i]);
 }
 
 static void
@@ -672,10 +674,12 @@ update_consonant_positions (const hb_ot_shape_plan_t *plan,
   {
     hb_face_t *face = font->face;
     unsigned int count = buffer->len;
+    hb_glyph_info_t *info = buffer->info;
     for (unsigned int i = 0; i < count; i++)
-      if (buffer->info[i].indic_position() == POS_BASE_C) {
-	hb_codepoint_t consonant = buffer->info[i].codepoint;
-	buffer->info[i].indic_position() = consonant_position_from_face (indic_plan, consonant, virama, face);
+      if (info[i].indic_position() == POS_BASE_C)
+      {
+	hb_codepoint_t consonant = info[i].codepoint;
+	info[i].indic_position() = consonant_position_from_face (indic_plan, consonant, virama, face);
       }
   }
 }
@@ -725,8 +729,13 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
 	))
     {
       
-      hb_codepoint_t glyphs[2] = {info[start].codepoint, info[start + 1].codepoint};
-      if (indic_plan->rphf.would_substitute (glyphs, ARRAY_LENGTH (glyphs), face))
+      hb_codepoint_t glyphs[3] = {info[start].codepoint,
+				  info[start + 1].codepoint,
+				  indic_plan->config->reph_mode == REPH_MODE_EXPLICIT ?
+				    info[start + 2].codepoint : 0};
+      if (indic_plan->rphf.would_substitute (glyphs, 2, face) ||
+	  (indic_plan->config->reph_mode == REPH_MODE_EXPLICIT &&
+	   indic_plan->rphf.would_substitute (glyphs, 3, face)))
       {
 	limit += 2;
 	while (limit < end && is_joiner (info[limit]))
@@ -914,12 +923,30 @@ initial_reordering_consonant_syllable (const hb_ot_shape_plan_t *plan,
   
 
 
-  if (indic_plan->is_old_spec) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (indic_plan->is_old_spec)
+  {
+    bool disallow_double_halants = buffer->props.script != HB_SCRIPT_MALAYALAM;
     for (unsigned int i = base + 1; i < end; i++)
-      if (info[i].indic_category() == OT_H) {
+      if (info[i].indic_category() == OT_H)
+      {
         unsigned int j;
         for (j = end - 1; j > i; j--)
-	  if (is_consonant (info[j]) || info[j].indic_category() == OT_H)
+	  if (is_consonant (info[j]) ||
+	      (disallow_double_halants && info[j].indic_category() == OT_H))
 	    break;
 	if (info[j].indic_category() != OT_H && j > i) {
 	  
@@ -1177,10 +1204,10 @@ initial_reordering_broken_cluster (const hb_ot_shape_plan_t *plan,
 }
 
 static void
-initial_reordering_avagraha_cluster (const hb_ot_shape_plan_t *plan HB_UNUSED,
-				     hb_face_t *face HB_UNUSED,
-				     hb_buffer_t *buffer HB_UNUSED,
-				     unsigned int start HB_UNUSED, unsigned int end HB_UNUSED)
+initial_reordering_symbol_cluster (const hb_ot_shape_plan_t *plan HB_UNUSED,
+				   hb_face_t *face HB_UNUSED,
+				   hb_buffer_t *buffer HB_UNUSED,
+				   unsigned int start HB_UNUSED, unsigned int end HB_UNUSED)
 {
   
 
@@ -1208,7 +1235,7 @@ initial_reordering_syllable (const hb_ot_shape_plan_t *plan,
   case consonant_syllable:	initial_reordering_consonant_syllable (plan, face, buffer, start, end); return;
   case vowel_syllable:		initial_reordering_vowel_syllable     (plan, face, buffer, start, end); return;
   case standalone_cluster:	initial_reordering_standalone_cluster (plan, face, buffer, start, end); return;
-  case avagraha_cluster:	initial_reordering_avagraha_cluster   (plan, face, buffer, start, end); return;
+  case symbol_cluster:		initial_reordering_symbol_cluster     (plan, face, buffer, start, end); return;
   case broken_cluster:		initial_reordering_broken_cluster     (plan, face, buffer, start, end); return;
   case non_indic_cluster:	initial_reordering_non_indic_cluster  (plan, face, buffer, start, end); return;
   }
@@ -1222,8 +1249,10 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
   
   bool has_broken_syllables = false;
   unsigned int count = buffer->len;
+  hb_glyph_info_t *info = buffer->info;
   for (unsigned int i = 0; i < count; i++)
-    if ((buffer->info[i].syllable() & 0x0F) == broken_cluster) {
+    if ((info[i].syllable() & 0x0F) == broken_cluster)
+    {
       has_broken_syllables = true;
       break;
     }
@@ -1232,11 +1261,11 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
 
 
   hb_codepoint_t dottedcircle_glyph;
-  if (!font->get_glyph (0x25CC, 0, &dottedcircle_glyph))
+  if (!font->get_glyph (0x25CCu, 0, &dottedcircle_glyph))
     return;
 
   hb_glyph_info_t dottedcircle = {0};
-  dottedcircle.codepoint = 0x25CC;
+  dottedcircle.codepoint = 0x25CCu;
   set_indic_properties (dottedcircle);
   dottedcircle.codepoint = dottedcircle_glyph;
 
@@ -1256,6 +1285,7 @@ insert_dotted_circles (const hb_ot_shape_plan_t *plan HB_UNUSED,
       info.cluster = buffer->cur().cluster;
       info.mask = buffer->cur().mask;
       info.syllable() = buffer->cur().syllable();
+      
 
       
       while (buffer->idx < buffer->len &&
@@ -1302,6 +1332,27 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
   const indic_shape_plan_t *indic_plan = (const indic_shape_plan_t *) plan->data;
   hb_glyph_info_t *info = buffer->info;
 
+
+  
+
+
+
+
+  if (indic_plan->virama_glyph)
+  {
+    unsigned int virama_glyph = indic_plan->virama_glyph;
+    for (unsigned int i = start; i < end; i++)
+      if (info[i].codepoint == virama_glyph &&
+	  _hb_glyph_info_ligated (&info[i]) &&
+	  _hb_glyph_info_multiplied (&info[i]))
+      {
+        
+	info[i].indic_category() = OT_H;
+	_hb_glyph_info_clear_ligated_and_multiplied (&info[i]);
+      }
+  }
+
+
   
 
 
@@ -1309,22 +1360,46 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
 
 
 
+
+  bool try_pref = !!indic_plan->mask_array[PREF];
 
   
   unsigned int base;
   for (base = start; base < end; base++)
-    if (info[base].indic_position() >= POS_BASE_C) {
+    if (info[base].indic_position() >= POS_BASE_C)
+    {
+      if (try_pref && base + 1 < end && indic_plan->config->pref_len == 2)
+      {
+	for (unsigned int i = base + 1; i < end; i++)
+	  if ((info[i].mask & indic_plan->mask_array[PREF]) != 0)
+	  {
+	    if (!(_hb_glyph_info_substituted (&info[i]) &&
+		  _hb_glyph_info_ligated_and_didnt_multiply (&info[i])))
+	    {
+	      
+
+	      base = i;
+	      while (base < end && is_halant_or_coeng (info[base]))
+		base++;
+	      info[base].indic_position() = POS_BASE_C;
+
+	      try_pref = false;
+	    }
+	    break;
+	  }
+      }
+
       if (start < base && info[base].indic_position() > POS_BASE_C)
         base--;
       break;
     }
   if (base == end && start < base &&
-      info[base - 1].indic_category() != OT_ZWJ)
+      is_one_of (info[base - 1], FLAG (OT_ZWJ)))
     base--;
-  while (start < base &&
-	 (info[base].indic_category() == OT_H ||
-	  info[base].indic_category() == OT_N))
-    base--;
+  if (base < end)
+    while (start < base &&
+	   is_one_of (info[base], (FLAG (OT_N) | HALANT_OR_COENG_FLAGS)))
+      base--;
 
 
   
@@ -1349,7 +1424,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
     if (buffer->props.script != HB_SCRIPT_MALAYALAM && buffer->props.script != HB_SCRIPT_TAMIL)
     {
       while (new_pos > start &&
-	     !(is_one_of (info[new_pos], (FLAG (OT_M) | FLAG (OT_H) | FLAG (OT_Coeng)))))
+	     !(is_one_of (info[new_pos], (FLAG (OT_M) | HALANT_OR_COENG_FLAGS))))
 	new_pos--;
 
       
@@ -1412,7 +1487,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
   if (start + 1 < end &&
       info[start].indic_position() == POS_RA_TO_BECOME_REPH &&
       ((info[start].indic_category() == OT_Repha) ^
-       _hb_glyph_info_ligated (&info[start])))
+       _hb_glyph_info_ligated_and_didnt_multiply (&info[start])))
   {
     unsigned int new_reph_pos;
     reph_position_t reph_pos = indic_plan->config->reph_pos;
@@ -1549,7 +1624,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
 
 
 
-  if (indic_plan->mask_array[PREF] && base + 1 < end) 
+  if (try_pref && base + 1 < end) 
   {
     unsigned int pref_len = indic_plan->config->pref_len;
     for (unsigned int i = base + 1; i < end; i++)
@@ -1565,7 +1640,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
 
 
 	if (_hb_glyph_info_substituted (&info[i]) &&
-	    ((pref_len == 1) ^ _hb_glyph_info_ligated (&info[i])))
+	    ((pref_len == 1) ^ _hb_glyph_info_ligated_and_didnt_multiply (&info[i])))
 	{
 	  
 
@@ -1699,37 +1774,37 @@ decompose_indic (const hb_ot_shape_normalize_context_t *c,
   switch (ab)
   {
     
-    case 0x0931  : return false;
-    case 0x0B94  : return false;
+    case 0x0931u  : return false;
+    case 0x0B94u  : return false;
 
 
     
 
 
 
-    case 0x0F77  : *a = 0x0FB2; *b= 0x0F81; return true;
-    case 0x0F79  : *a = 0x0FB3; *b= 0x0F81; return true;
-    case 0x17BE  : *a = 0x17C1; *b= 0x17BE; return true;
-    case 0x17BF  : *a = 0x17C1; *b= 0x17BF; return true;
-    case 0x17C0  : *a = 0x17C1; *b= 0x17C0; return true;
-    case 0x17C4  : *a = 0x17C1; *b= 0x17C4; return true;
-    case 0x17C5  : *a = 0x17C1; *b= 0x17C5; return true;
-    case 0x1925  : *a = 0x1920; *b= 0x1923; return true;
-    case 0x1926  : *a = 0x1920; *b= 0x1924; return true;
-    case 0x1B3C  : *a = 0x1B42; *b= 0x1B3C; return true;
-    case 0x1112E  : *a = 0x11127; *b= 0x11131; return true;
-    case 0x1112F  : *a = 0x11127; *b= 0x11132; return true;
+    case 0x0F77u  : *a = 0x0FB2u; *b= 0x0F81u; return true;
+    case 0x0F79u  : *a = 0x0FB3u; *b= 0x0F81u; return true;
+    case 0x17BEu  : *a = 0x17C1u; *b= 0x17BEu; return true;
+    case 0x17BFu  : *a = 0x17C1u; *b= 0x17BFu; return true;
+    case 0x17C0u  : *a = 0x17C1u; *b= 0x17C0u; return true;
+    case 0x17C4u  : *a = 0x17C1u; *b= 0x17C4u; return true;
+    case 0x17C5u  : *a = 0x17C1u; *b= 0x17C5u; return true;
+    case 0x1925u  : *a = 0x1920u; *b= 0x1923u; return true;
+    case 0x1926u  : *a = 0x1920u; *b= 0x1924u; return true;
+    case 0x1B3Cu  : *a = 0x1B42u; *b= 0x1B3Cu; return true;
+    case 0x1112Eu  : *a = 0x11127u; *b= 0x11131u; return true;
+    case 0x1112Fu  : *a = 0x11127u; *b= 0x11132u; return true;
 #if 0
     
     
-    case 0x0B57  : *a = no decomp, -> RIGHT; return true;
-    case 0x1C29  : *a = no decomp, -> LEFT; return true;
-    case 0xA9C0  : *a = no decomp, -> RIGHT; return true;
-    case 0x111BF  : *a = no decomp, -> ABOVE; return true;
+    case 0x0B57u  : *a = no decomp, -> RIGHT; return true;
+    case 0x1C29u  : *a = no decomp, -> LEFT; return true;
+    case 0xA9C0u  : *a = no decomp, -> RIGHT; return true;
+    case 0x111BuF  : *a = no decomp, -> ABOVE; return true;
 #endif
   }
 
-  if ((ab == 0x0DDA || hb_in_range<hb_codepoint_t> (ab, 0x0DDC, 0x0DDE)))
+  if ((ab == 0x0DDAu || hb_in_range (ab, 0x0DDCu, 0x0DDEu)))
   {
     
 
@@ -1766,7 +1841,7 @@ decompose_indic (const hb_ot_shape_normalize_context_t *c,
 	 indic_plan->pstf.would_substitute (&glyph, 1, c->font->face)))
     {
       
-      *a = 0x0DD9;
+      *a = 0x0DD9u;
       *b = ab;
       return true;
     }
@@ -1786,7 +1861,7 @@ compose_indic (const hb_ot_shape_normalize_context_t *c,
     return false;
 
   
-  if (a == 0x09AF && b == 0x09BC) { *ab = 0x09DF; return true; }
+  if (a == 0x09AFu && b == 0x09BCu) { *ab = 0x09DFu; return true; }
 
   return c->unicode->compose (a, b, ab);
 }

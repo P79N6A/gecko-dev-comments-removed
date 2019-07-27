@@ -187,6 +187,19 @@ hb_buffer_get_flags (hb_buffer_t *buffer);
 
 
 
+#define HB_BUFFER_REPLACEMENT_CODEPOINT_DEFAULT 0xFFFDu
+
+
+
+void
+hb_buffer_set_replacement_codepoint (hb_buffer_t    *buffer,
+				     hb_codepoint_t  replacement);
+
+hb_codepoint_t
+hb_buffer_get_replacement_codepoint (hb_buffer_t    *buffer);
+
+
+
 
 void
 hb_buffer_reset (hb_buffer_t *buffer);
@@ -239,6 +252,14 @@ hb_buffer_add_utf32 (hb_buffer_t    *buffer,
 		     int             text_length,
 		     unsigned int    item_offset,
 		     int             item_length);
+
+
+void
+hb_buffer_add_codepoints (hb_buffer_t          *buffer,
+			  const hb_codepoint_t *text,
+			  int                   text_length,
+			  unsigned int          item_offset,
+			  int                   item_length);
 
 
 

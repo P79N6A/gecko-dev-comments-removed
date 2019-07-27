@@ -103,7 +103,8 @@ struct RecordArrayOf : SortedArrayOf<Record<Type> > {
   }
   inline bool find_index (hb_tag_t tag, unsigned int *index) const
   {
-    int i = this->search (tag);
+    
+    int i = this->bsearch (tag);
     if (i != -1) {
         if (index) *index = i;
         return true;
@@ -189,10 +190,10 @@ struct LangSys
 					   unsigned int *feature_indexes ) const
   { return featureIndex.get_indexes (start_offset, feature_count, feature_indexes); }
 
-  inline bool has_required_feature (void) const { return reqFeatureIndex != 0xffff; }
+  inline bool has_required_feature (void) const { return reqFeatureIndex != 0xFFFFu; }
   inline unsigned int get_required_feature_index (void) const
   {
-    if (reqFeatureIndex == 0xffff)
+    if (reqFeatureIndex == 0xFFFFu)
       return Index::NOT_FOUND_INDEX;
    return reqFeatureIndex;;
   }
@@ -203,7 +204,7 @@ struct LangSys
     return TRACE_RETURN (c->check_struct (this) && featureIndex.sanitize (c));
   }
 
-  Offset	lookupOrder;	
+  Offset<>	lookupOrderZ;	
 
   USHORT	reqFeatureIndex;
 
@@ -447,9 +448,9 @@ struct FeatureParams
     TRACE_SANITIZE (this);
     if (tag == HB_TAG ('s','i','z','e'))
       return TRACE_RETURN (u.size.sanitize (c));
-    if ((tag & 0xFFFF0000) == HB_TAG ('s','s','\0','\0')) 
+    if ((tag & 0xFFFF0000u) == HB_TAG ('s','s','\0','\0')) 
       return TRACE_RETURN (u.stylisticSet.sanitize (c));
-    if ((tag & 0xFFFF0000) == HB_TAG ('c','v','\0','\0')) 
+    if ((tag & 0xFFFF0000u) == HB_TAG ('c','v','\0','\0')) 
       return TRACE_RETURN (u.characterVariants.sanitize (c));
     return TRACE_RETURN (true);
   }
@@ -501,11 +502,11 @@ struct Feature
 
 
 
-    Offset orig_offset = featureParams;
+    OffsetTo<FeatureParams> orig_offset = featureParams;
     if (unlikely (!featureParams.sanitize (c, this, closure ? closure->tag : HB_TAG_NONE)))
       return TRACE_RETURN (false);
 
-    if (likely (!orig_offset))
+    if (likely (orig_offset.is_null ()))
       return TRACE_RETURN (true);
 
     if (featureParams == 0 && closure &&
@@ -513,13 +514,13 @@ struct Feature
 	closure->list_base && closure->list_base < this)
     {
       unsigned int new_offset_int = (unsigned int) orig_offset -
-				    ((char *) this - (char *) closure->list_base);
+				    (((char *) this) - ((char *) closure->list_base));
 
-      Offset new_offset;
+      OffsetTo<FeatureParams> new_offset;
       
       new_offset.set (new_offset_int);
       if (new_offset == new_offset_int &&
-	  featureParams.try_set (c, new_offset) &&
+	  c->try_set (&featureParams, new_offset) &&
 	  !featureParams.sanitize (c, this, closure ? closure->tag : HB_TAG_NONE))
 	return TRACE_RETURN (false);
     }
@@ -584,7 +585,7 @@ struct Lookup
     TRACE_SERIALIZE (this);
     if (unlikely (!c->extend_min (*this))) return TRACE_RETURN (false);
     lookupType.set (lookup_type);
-    lookupFlag.set (lookup_props & 0xFFFF);
+    lookupFlag.set (lookup_props & 0xFFFFu);
     if (unlikely (!subTable.serialize (c, num_subtables))) return TRACE_RETURN (false);
     if (lookupFlag & LookupFlag::UseMarkFilteringSet)
     {
@@ -608,7 +609,7 @@ struct Lookup
 
   USHORT	lookupType;		
   USHORT	lookupFlag;		
-  ArrayOf<Offset>
+  ArrayOf<Offset<> >
 		subTable;		
   USHORT	markFilteringSetX[VAR];	
 
@@ -631,7 +632,7 @@ struct CoverageFormat1
   private:
   inline unsigned int get_coverage (hb_codepoint_t glyph_id) const
   {
-    int i = glyphArray.search (glyph_id);
+    int i = glyphArray.bsearch (glyph_id);
     ASSERT_STATIC (((unsigned int) -1) == NOT_COVERED);
     return i;
   }
@@ -696,7 +697,7 @@ struct CoverageFormat2
   private:
   inline unsigned int get_coverage (hb_codepoint_t glyph_id) const
   {
-    int i = rangeRecord.search (glyph_id);
+    int i = rangeRecord.bsearch (glyph_id);
     if (i != -1) {
       const RangeRecord &range = rangeRecord[i];
       return (unsigned int) range.value + (glyph_id - range.start);
@@ -992,7 +993,7 @@ struct ClassDefFormat2
   private:
   inline unsigned int get_class (hb_codepoint_t glyph_id) const
   {
-    int i = rangeRecord.search (glyph_id);
+    int i = rangeRecord.bsearch (glyph_id);
     if (i != -1)
       return rangeRecord[i].value;
     return 0;
@@ -1130,7 +1131,7 @@ struct Device
 
     unsigned int byte = deltaValue[s >> (4 - f)];
     unsigned int bits = (byte >> (16 - (((s & ((1 << (4 - f)) - 1)) + 1) << f)));
-    unsigned int mask = (0xFFFF >> (16 - (1 << f)));
+    unsigned int mask = (0xFFFFu >> (16 - (1 << f)));
 
     int delta = bits & mask;
 

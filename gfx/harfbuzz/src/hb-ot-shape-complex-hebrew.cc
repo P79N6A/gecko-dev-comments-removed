@@ -38,113 +38,113 @@ compose_hebrew (const hb_ot_shape_normalize_context_t *c,
 
 
 
-  static const hb_codepoint_t sDageshForms[0x05EA - 0x05D0 + 1] = {
-    0xFB30, 
-    0xFB31, 
-    0xFB32, 
-    0xFB33, 
-    0xFB34, 
-    0xFB35, 
-    0xFB36, 
-    0x0000, 
-    0xFB38, 
-    0xFB39, 
-    0xFB3A, 
-    0xFB3B, 
-    0xFB3C, 
-    0x0000, 
-    0xFB3E, 
-    0x0000, 
-    0xFB40, 
-    0xFB41, 
-    0x0000, 
-    0xFB43, 
-    0xFB44, 
-    0x0000, 
-    0xFB46, 
-    0xFB47, 
-    0xFB48, 
-    0xFB49, 
-    0xFB4A 
+  static const hb_codepoint_t sDageshForms[0x05EAu - 0x05D0u + 1] = {
+    0xFB30u, 
+    0xFB31u, 
+    0xFB32u, 
+    0xFB33u, 
+    0xFB34u, 
+    0xFB35u, 
+    0xFB36u, 
+    0x0000u, 
+    0xFB38u, 
+    0xFB39u, 
+    0xFB3Au, 
+    0xFB3Bu, 
+    0xFB3Cu, 
+    0x0000u, 
+    0xFB3Eu, 
+    0x0000u, 
+    0xFB40u, 
+    0xFB41u, 
+    0x0000u, 
+    0xFB43u, 
+    0xFB44u, 
+    0x0000u, 
+    0xFB46u, 
+    0xFB47u, 
+    0xFB48u, 
+    0xFB49u, 
+    0xFB4Au 
   };
 
   bool found = c->unicode->compose (a, b, ab);
 
-  if (!found)
+  if (!found && !c->plan->has_mark)
   {
       
 
       switch (b) {
-      case 0x05B4: 
-	  if (a == 0x05D9) { 
-	      *ab = 0xFB1D;
+      case 0x05B4u: 
+	  if (a == 0x05D9u) { 
+	      *ab = 0xFB1Du;
 	      found = true;
 	  }
 	  break;
-      case 0x05B7: 
-	  if (a == 0x05F2) { 
-	      *ab = 0xFB1F;
+      case 0x05B7u: 
+	  if (a == 0x05F2u) { 
+	      *ab = 0xFB1Fu;
 	      found = true;
-	  } else if (a == 0x05D0) { 
-	      *ab = 0xFB2E;
-	      found = true;
-	  }
-	  break;
-      case 0x05B8: 
-	  if (a == 0x05D0) { 
-	      *ab = 0xFB2F;
+	  } else if (a == 0x05D0u) { 
+	      *ab = 0xFB2Eu;
 	      found = true;
 	  }
 	  break;
-      case 0x05B9: 
-	  if (a == 0x05D5) { 
-	      *ab = 0xFB4B;
+      case 0x05B8u: 
+	  if (a == 0x05D0u) { 
+	      *ab = 0xFB2Fu;
 	      found = true;
 	  }
 	  break;
-      case 0x05BC: 
-	  if (a >= 0x05D0 && a <= 0x05EA) {
-	      *ab = sDageshForms[a - 0x05D0];
+      case 0x05B9u: 
+	  if (a == 0x05D5u) { 
+	      *ab = 0xFB4Bu;
+	      found = true;
+	  }
+	  break;
+      case 0x05BCu: 
+	  if (a >= 0x05D0u && a <= 0x05EAu) {
+	      *ab = sDageshForms[a - 0x05D0u];
 	      found = (*ab != 0);
-	  } else if (a == 0xFB2A) { 
-	      *ab = 0xFB2C;
+	  } else if (a == 0xFB2Au) { 
+	      *ab = 0xFB2Cu;
 	      found = true;
-	  } else if (a == 0xFB2B) { 
-	      *ab = 0xFB2D;
+	  } else if (a == 0xFB2Bu) { 
+	      *ab = 0xFB2Du;
 	      found = true;
 	  }
 	  break;
-      case 0x05BF: 
+      case 0x05BFu: 
 	  switch (a) {
-	  case 0x05D1: 
-	      *ab = 0xFB4C;
+	  case 0x05D1u: 
+	      *ab = 0xFB4Cu;
 	      found = true;
 	      break;
-	  case 0x05DB: 
-	      *ab = 0xFB4D;
+	  case 0x05DBu: 
+	      *ab = 0xFB4Du;
 	      found = true;
 	      break;
-	  case 0x05E4: 
-	      *ab = 0xFB4E;
+	  case 0x05E4u: 
+	      *ab = 0xFB4Eu;
 	      found = true;
 	      break;
 	  }
 	  break;
-      case 0x05C1: 
-	  if (a == 0x05E9) { 
-	      *ab = 0xFB2A;
+      case 0x05C1u: 
+	  if (a == 0x05E9u) { 
+	      *ab = 0xFB2Au;
 	      found = true;
-	  } else if (a == 0xFB49) { 
-	      *ab = 0xFB2C;
+	  } else if (a == 0xFB49u) { 
+	      *ab = 0xFB2Cu;
 	      found = true;
 	  }
 	  break;
-      case 0x05C2: 
-	  if (a == 0x05E9) { 
-	      *ab = 0xFB2B;
+      case 0x05C2u: 
+	  if (a == 0x05E9u) { 
+	      *ab = 0xFB2Bu;
 	      found = true;
-	  } else if (a == 0xFB49) { 
-	      *ab = 0xFB2D;
+	  } else if (a == 0xFB49u) { 
+	      *ab = 0xFB2Du;
 	      found = true;
 	  }
 	  break;
@@ -167,6 +167,6 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_hebrew =
   NULL, 
   compose_hebrew,
   NULL, 
-  HB_OT_SHAPE_ZERO_WIDTH_MARKS_DEFAULT,
+  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE,
   true, 
 };
