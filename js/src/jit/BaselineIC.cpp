@@ -5681,25 +5681,48 @@ TryAttachGlobalNameStub(JSContext *cx, HandleScript script, jsbytecode *pc,
     RootedId id(cx, NameToId(name));
 
     
-    if (IsIonEnabled(cx))
-        types::EnsureTrackPropertyTypes(cx, global, NameToId(name));
+    RootedShape shape(cx);
+    RootedNativeObject current(cx, global);
+    while (true) {
+        shape = current->lookup(cx, id);
+        if (shape)
+            break;
+        JSObject *proto = current->getProto();
+        if (!proto || !proto->is<NativeObject>())
+            return true;
+        current = &proto->as<NativeObject>();
+    }
 
     
-    RootedShape shape(cx, global->lookup(cx, id));
-    if (!shape)
-        return true;
+    if (IsIonEnabled(cx))
+        types::EnsureTrackPropertyTypes(cx, current, id);
 
     if (shape->hasDefaultGetter() && shape->hasSlot()) {
-
-        MOZ_ASSERT(shape->slot() >= global->numFixedSlots());
-        uint32_t slot = shape->slot() - global->numFixedSlots();
 
         
 
         ICStub *monitorStub = stub->fallbackMonitorStub()->firstMonitorStub();
-        JitSpew(JitSpew_BaselineIC, "  Generating GetName(GlobalName) stub");
-        ICGetName_Global::Compiler compiler(cx, monitorStub, global->lastProperty(), slot);
-        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        ICStub *newStub;
+        if (current == global) {
+            MOZ_ASSERT(shape->slot() >= current->numFixedSlots());
+            uint32_t slot = shape->slot() - current->numFixedSlots();
+
+            JitSpew(JitSpew_BaselineIC, "  Generating GetName(GlobalName) stub");
+            ICGetName_Global::Compiler compiler(cx, monitorStub, current->lastProperty(), slot);
+            newStub = compiler.getStub(compiler.getStubSpace(script));
+        } else {
+            bool isFixedSlot;
+            uint32_t offset;
+            GetFixedOrDynamicSlotOffset(current, shape->slot(), &isFixedSlot, &offset);
+            if (!IsCacheableGetPropReadSlot(global, current, shape))
+                return true;
+
+            JitSpew(JitSpew_BaselineIC, "  Generating GetName(GlobalName prototype) stub");
+            ICGetPropNativeCompiler compiler(cx, ICStub::GetProp_NativePrototype, false, monitorStub,
+                                             global, current, name, isFixedSlot, offset,
+                                              true);
+            newStub = compiler.getStub(compiler.getStubSpace(script));
+        }
         if (!newStub)
             return false;
 
@@ -5711,15 +5734,25 @@ TryAttachGlobalNameStub(JSContext *cx, HandleScript script, jsbytecode *pc,
     
     
     bool isScripted;
-    if (IsCacheableGetPropCall(cx, global, global, shape, &isScripted) && !isScripted)
+    if (IsCacheableGetPropCall(cx, global, current, shape, &isScripted) && !isScripted)
     {
         ICStub *monitorStub = stub->fallbackMonitorStub()->firstMonitorStub();
-        JitSpew(JitSpew_BaselineIC, "  Generating GetName(GlobalName/NativeGetter) stub");
         RootedFunction getter(cx, &shape->getterObject()->as<JSFunction>());
-        ICGetProp_CallNative::Compiler compiler(cx, monitorStub, global,
-                                                getter, script->pcToOffset(pc),
-                                                 true);
-        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+        ICStub *newStub;
+        if (current == global) {
+            JitSpew(JitSpew_BaselineIC, "  Generating GetName(GlobalName/NativeGetter) stub");
+            ICGetProp_CallNative::Compiler compiler(cx, monitorStub, current,
+                                                    getter, script->pcToOffset(pc),
+                                                     true);
+            newStub = compiler.getStub(compiler.getStubSpace(script));
+        } else {
+            JitSpew(JitSpew_BaselineIC, "  Generating GetName(GlobalName prototype/NativeGetter) stub");
+            ICGetProp_CallNativePrototype::Compiler compiler(cx, monitorStub, global, current,
+                                                             getter, script->pcToOffset(pc),
+                                                              true);
+            newStub = compiler.getStub(compiler.getStubSpace(script));
+        }
+
         if (!newStub)
             return false;
 
@@ -6783,15 +6816,22 @@ bool
 ICGetPropNativeCompiler::generateStubCode(MacroAssembler &masm)
 {
     Label failure;
-    GeneralRegisterSet regs(availableGeneralRegs(1));
+    GeneralRegisterSet regs(availableGeneralRegs(0));
+    Register objReg = InvalidReg;
 
-    
-    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+    if (inputDefinitelyObject_) {
+        objReg = R0.scratchReg();
+    } else {
+        regs.take(R0);
+        
+        masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+        objReg = masm.extractObject(R0, ExtractTemp0);
+    }
+    regs.takeUnchecked(objReg);
 
     Register scratch = regs.takeAnyExcluding(BaselineTailCallReg);
 
     
-    Register objReg = masm.extractObject(R0, ExtractTemp0);
     masm.loadPtr(Address(BaselineStubReg, ICGetPropNativeStub::offsetOfShape()), scratch);
     masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failure);
 
@@ -7107,14 +7147,23 @@ bool
 ICGetProp_CallNativePrototype::Compiler::generateStubCode(MacroAssembler &masm)
 {
     Label failure;
-    GeneralRegisterSet regs(availableGeneralRegs(1));
+
+    GeneralRegisterSet regs(availableGeneralRegs(0));
+    Register objReg = InvalidReg;
+
+    if (inputDefinitelyObject_) {
+        objReg = R0.scratchReg();
+    } else {
+        regs.take(R0);
+        
+        masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+        objReg = masm.extractObject(R0, ExtractTemp0);
+    }
+    regs.takeUnchecked(objReg);
+
     Register scratch = regs.takeAnyExcluding(BaselineTailCallReg);
 
     
-    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
-
-    
-    Register objReg = masm.extractObject(R0, ExtractTemp0);
     masm.loadPtr(Address(BaselineStubReg, ICGetProp_CallNativePrototype::offsetOfReceiverShape()), scratch);
     masm.branchTestObjShape(Assembler::NotEqual, objReg, scratch, &failure);
 
@@ -7135,8 +7184,10 @@ ICGetProp_CallNativePrototype::Compiler::generateStubCode(MacroAssembler &masm)
     masm.push(objReg);
     masm.push(callee);
 
-    
-    regs.add(R0);
+    if (!inputDefinitelyObject_)
+        regs.add(R0);
+    else
+        regs.add(objReg);
 
     
     emitProfilingUpdate(masm, regs, ICGetProp_CallNativePrototype::offsetOfPCOffset());
