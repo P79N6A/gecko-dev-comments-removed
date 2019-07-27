@@ -18,6 +18,7 @@ import android.app.Activity;
 import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
 
+@SuppressWarnings("unchecked")
 public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<Activity> {
     public enum Type {
         MOCHITEST,
@@ -60,7 +61,6 @@ public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<A
 
 
 
-    @SuppressWarnings("unchecked")
     public BaseRobocopTest() {
         this((Class<Activity>) BROWSER_INTENT_CLASS);
     }
