@@ -159,6 +159,10 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
   mChannels = aChannels > MAX_CHANNELS ? MAX_CHANNELS : aChannels;
 
   
+  NS_ENSURE_TRUE(aSamplingRate >= 8000, NS_ERROR_INVALID_ARG);
+  NS_ENSURE_TRUE(aSamplingRate <= 192000, NS_ERROR_INVALID_ARG);
+
+  
   
   
   nsTArray<int> supportedSamplingRates;
