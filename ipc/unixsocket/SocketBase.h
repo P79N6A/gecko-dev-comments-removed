@@ -26,9 +26,15 @@ namespace ipc {
 
 
 
-class UnixSocketIOBuffer
+
+
+
+
+class UnixSocketBuffer
 {
 public:
+  virtual ~UnixSocketBuffer();
+
   const uint8_t* GetData() const
   {
     return mData + mOffset;
@@ -112,13 +118,11 @@ protected:
   
 
 
-  UnixSocketIOBuffer(const void* aData, size_t aSize);
+  UnixSocketBuffer(const void* aData, size_t aSize);
 
   
 
-  UnixSocketIOBuffer(size_t aAvailableSpace);
-
-  ~UnixSocketIOBuffer();
+  UnixSocketBuffer(size_t aAvailableSpace);
 
   size_t GetLeadingSpace() const
   {
@@ -168,6 +172,46 @@ private:
 
 
 
+
+
+
+
+
+
+class UnixSocketIOBuffer : public UnixSocketBuffer
+{
+public:
+  virtual ~UnixSocketIOBuffer();
+
+  
+
+
+
+
+  virtual ssize_t Receive(int aFd) = 0;
+
+  
+
+
+
+  virtual ssize_t Send(int aFd) = 0;
+
+protected:
+
+  
+
+
+  UnixSocketIOBuffer(const void* aData, size_t aSize);
+
+  
+
+  UnixSocketIOBuffer(size_t aAvailableSpace);
+};
+
+
+
+
+
 class UnixSocketRawData final : public UnixSocketIOBuffer
 {
 public:
@@ -186,13 +230,13 @@ public:
 
 
 
-  ssize_t Receive(int aFd);
+  ssize_t Receive(int aFd) override;
 
   
 
 
 
-  ssize_t Send(int aFd);
+  ssize_t Send(int aFd) override;
 };
 
 enum SocketConnectionStatus {
