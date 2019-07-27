@@ -201,7 +201,6 @@ const static js::Class sNPObjectJSWrapperClass =
     {
       nullptr,                                              
       nullptr,                                              
-      nullptr,                                              
       false,                                                
       nullptr,                                              
       NPObjWrapper_ObjectMoved
