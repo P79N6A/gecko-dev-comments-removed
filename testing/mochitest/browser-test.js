@@ -16,10 +16,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
   "resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserNewTabPreloader",
-  "resource:///modules/BrowserNewTabPreloader.jsm", "BrowserNewTabPreloader");
+  "resource:///modules/BrowserNewTabPreloader.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizationTabPreloader",
-  "resource:///modules/CustomizationTabPreloader.jsm", "CustomizationTabPreloader");
+  "resource:///modules/CustomizationTabPreloader.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ContentSearch",
+  "resource:///modules/ContentSearch.jsm");
 
 const SIMPLETEST_OVERRIDES =
   ["ok", "is", "isnot", "ise", "todo", "todo_is", "todo_isnot", "info", "expectAssertions"];
@@ -455,6 +458,8 @@ Tester.prototype = {
     
     this.waitForWindowsState((function () {
       if (this.done) {
+        let promise = Promise.resolve();
+
         
         
         
@@ -484,6 +489,9 @@ Tester.prototype = {
           SocialFlyout.unload();
           SocialShare.uninit();
           TabView.uninit();
+
+          
+          promise = ContentSearch.destroy();
         }
 
         
@@ -515,20 +523,22 @@ Tester.prototype = {
           }
         };
 
-        checkForLeakedGlobalWindows(aResults => {
-          if (aResults.length == 0) {
-            this.finish();
-            return;
-          }
-          
-          
-          
-          setTimeout(() => {
-            checkForLeakedGlobalWindows(aResults => {
-              reportLeaks(aResults);
+        promise.then(() => {
+          checkForLeakedGlobalWindows(aResults => {
+            if (aResults.length == 0) {
               this.finish();
-            });
-          }, 1000);
+              return;
+            }
+            
+            
+            
+            setTimeout(() => {
+              checkForLeakedGlobalWindows(aResults => {
+                reportLeaks(aResults);
+                this.finish();
+              });
+            }, 1000);
+          });
         });
 
         return;
