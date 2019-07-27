@@ -16,7 +16,7 @@ public class FxAccountAuthenticatorService extends Service {
   
   protected FxAccountAuthenticator accountAuthenticator = null;
 
-  protected FxAccountAuthenticator getAuthenticator() {
+  protected synchronized FxAccountAuthenticator getAuthenticator() {
     if (accountAuthenticator == null) {
       accountAuthenticator = new FxAccountAuthenticator(this);
     }
@@ -35,10 +35,21 @@ public class FxAccountAuthenticatorService extends Service {
   public IBinder onBind(Intent intent) {
     Logger.debug(LOG_TAG, "onBind");
 
-    if (intent.getAction().equals(android.accounts.AccountManager.ACTION_AUTHENTICATOR_INTENT)) {
-      return getAuthenticator().getIBinder();
+    if (intent == null) {
+      
+      return null;
     }
 
-    return null;
+    if (!android.accounts.AccountManager.ACTION_AUTHENTICATOR_INTENT.equals(intent.getAction())) {
+      return null;
+    }
+
+    final FxAccountAuthenticator authenticator = getAuthenticator();
+    if (authenticator == null) {
+      
+      return null;
+    }
+
+    return authenticator.getIBinder();
   }
 }
