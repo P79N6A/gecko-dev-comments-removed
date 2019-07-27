@@ -41,9 +41,9 @@ public:
   FrameMetrics()
     : mCompositionBounds(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
-    , mScrollableRect(0, 0, 0, 0)
     , mPresShellResolution(1)
     , mDisplayPort(0, 0, 0, 0)
+    , mScrollableRect(0, 0, 0, 0)
     , mCumulativeResolution(1)
     , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
@@ -263,19 +263,6 @@ public:
   
   
   CSSRect mCriticalDisplayPort;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  CSSRect mScrollableRect;
 
   
   
@@ -528,6 +515,16 @@ public:
     mLineScrollAmount = size;
   }
 
+  const CSSRect& GetScrollableRect() const
+  {
+    return mScrollableRect;
+  }
+
+  void SetScrollableRect(const CSSRect& aScrollableRect)
+  {
+    mScrollableRect = aScrollableRect;
+  }
+
 private:
   
   
@@ -541,6 +538,19 @@ private:
   
   
   CSSRect mDisplayPort;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  CSSRect mScrollableRect;
 
   
   

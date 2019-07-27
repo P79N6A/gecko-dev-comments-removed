@@ -273,8 +273,8 @@ SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetric
   
   
   
-  painted = painted.Intersect(aContentMetrics.mScrollableRect);
-  showing = showing.Intersect(aContentMetrics.mScrollableRect);
+  painted = painted.Intersect(aContentMetrics.GetScrollableRect());
+  showing = showing.Intersect(aContentMetrics.GetScrollableRect());
 
   if (!painted.Contains(showing)) {
     TILING_LOG("TILING: About to checkerboard; content %s\n", Stringify(aContentMetrics).c_str());
