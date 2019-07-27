@@ -24,7 +24,6 @@ public class testDoorHanger extends BaseTest {
         String GEO_URL = getAbsoluteUrl(StringHelper.ROBOCOP_GEOLOCATION_URL);
         String BLANK_URL = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         String OFFLINE_STORAGE_URL = getAbsoluteUrl(StringHelper.ROBOCOP_OFFLINE_STORAGE_URL);
-        String LOGIN_URL = getAbsoluteUrl(StringHelper.ROBOCOP_LOGIN_URL);
 
         blockForGeckoReady();
 
@@ -52,7 +51,6 @@ public class testDoorHanger extends BaseTest {
         mAsserter.is(mSolo.searchText(StringHelper.GEO_MESSAGE), false, "Geolocation doorhanger has been hidden when denying share");
 
         
-
 
 
 
@@ -130,24 +128,23 @@ public class testDoorHanger extends BaseTest {
             mAsserter.ok(false, "exception setting preference", e.toString());
         }
 
-
         
-        loadUrlAndWait(LOGIN_URL);
-        waitForText(StringHelper.LOGIN_MESSAGE);
-
-        
-        mSolo.clickOnButton(StringHelper.LOGIN_DENY);
-        waitForTextDismissed(StringHelper.LOGIN_MESSAGE);
-        mAsserter.is(mSolo.searchText(StringHelper.LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when denying saving password");
-
-        
-        loadUrlAndWait(LOGIN_URL);
+        loadUrlAndWait(getAbsoluteUrl(StringHelper.ROBOCOP_LOGIN_01_URL));
         waitForText(StringHelper.LOGIN_MESSAGE);
 
         
         mSolo.clickOnButton(StringHelper.LOGIN_ALLOW);
         waitForTextDismissed(StringHelper.LOGIN_MESSAGE);
         mAsserter.is(mSolo.searchText(StringHelper.LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when allowing saving password");
+
+        
+        loadUrlAndWait(getAbsoluteUrl(StringHelper.ROBOCOP_LOGIN_02_URL));
+        waitForText(StringHelper.LOGIN_MESSAGE);
+
+        
+        mSolo.clickOnButton(StringHelper.LOGIN_DENY);
+        waitForTextDismissed(StringHelper.LOGIN_MESSAGE);
+        mAsserter.is(mSolo.searchText(StringHelper.LOGIN_MESSAGE), false, "Login doorhanger notification is hidden when denying saving password");
 
         testPopupBlocking();
     }
