@@ -14,6 +14,18 @@
 
 namespace mozilla {
 namespace media {
+class TimeIntervals;
+}
+}
+
+template<>
+struct nsTArray_CopyChooser<mozilla::media::TimeIntervals>
+{
+  typedef nsTArray_CopyWithConstructors<mozilla::media::TimeIntervals> Type;
+};
+
+namespace mozilla {
+namespace media {
 
 
 static const int64_t USECS_PER_S = 1000000;
