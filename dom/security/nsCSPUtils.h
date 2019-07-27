@@ -16,6 +16,12 @@
 #include "nsUnicharUtils.h"
 #include "mozilla/Logging.h"
 
+namespace mozilla {
+namespace dom {
+  struct CSP;
+}
+}
+
 
 
 void CSP_LogLocalizedStr(const char16_t* aName,
@@ -55,6 +61,7 @@ void CSP_LogMessage(const nsAString& aMessage,
 #define STYLE_NONCE_VIOLATION_OBSERVER_TOPIC    "Inline Style had invalid nonce"
 #define SCRIPT_HASH_VIOLATION_OBSERVER_TOPIC    "Inline Script had invalid hash"
 #define STYLE_HASH_VIOLATION_OBSERVER_TOPIC     "Inline Style had invalid hash"
+
 
 
 
@@ -284,6 +291,7 @@ class nsCSPDirective {
     bool permits(nsIURI* aUri) const;
     bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
     void toString(nsAString& outStr) const;
+    void toDomCSPStruct(mozilla::dom::CSP& outCSP) const;
 
     inline void addSrcs(const nsTArray<nsCSPBaseSrc*>& aSrcs)
       { mSrcs = aSrcs; }
@@ -325,6 +333,7 @@ class nsCSPPolicy {
     bool allows(nsContentPolicyType aContentType,
                 enum CSPKeyword aKeyword) const;
     void toString(nsAString& outStr) const;
+    void toDomCSPStruct(mozilla::dom::CSP& outCSP) const;
 
     inline void addDirective(nsCSPDirective* aDir)
       { mDirectives.AppendElement(aDir); }
