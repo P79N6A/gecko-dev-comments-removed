@@ -527,6 +527,17 @@ class TreeMetadataEmitter(LoggingMixin):
             yield obj
 
         
+        extras = context.get('EXTRA_COMPONENTS', []) + context.get('EXTRA_PP_COMPONENTS', [])
+        if any(e.endswith('.js') for e in extras) and \
+                not any(e.endswith('.manifest') for e in extras) and \
+                not context.get('NO_JS_MANIFEST', False):
+            raise SandboxValidationError('A .js component was specified in EXTRA_COMPONENTS '
+                                         'or EXTRA_PP_COMPONENTS without a matching '
+                                         '.manifest file.  See '
+                                         'https://developer.mozilla.org/en/XPCOM/XPCOM_changes_in_Gecko_2.0 .',
+                                         context);
+            
+        
         
         
         passthru = VariablePassthru(context)
