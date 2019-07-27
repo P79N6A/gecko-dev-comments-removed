@@ -1421,14 +1421,16 @@ OptimizeMIR(MIRGenerator *mir)
         if (mir->shouldCancel("Alias analysis"))
             return false;
 
-        
-        
-        
-        if (!EliminateDeadResumePointOperands(mir, graph))
-            return false;
+        if (!mir->compilingAsmJS()) {
+            
+            
+            
+            if (!EliminateDeadResumePointOperands(mir, graph))
+                return false;
 
-        if (mir->shouldCancel("Eliminate dead resume point operands"))
-            return false;
+            if (mir->shouldCancel("Eliminate dead resume point operands"))
+                return false;
+        }
     }
 
     if (mir->optimizationInfo().gvnEnabled()) {
