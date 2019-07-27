@@ -40,6 +40,8 @@ import org.mozilla.gecko.health.StubbedHealthRecorder;
 import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.menu.GeckoMenuInflater;
 import org.mozilla.gecko.menu.MenuPanel;
+import org.mozilla.gecko.mozglue.ContextUtils;
+import org.mozilla.gecko.mozglue.ContextUtils.SafeIntent;
 import org.mozilla.gecko.mozglue.GeckoLoader;
 import org.mozilla.gecko.preferences.ClearOnShutdownPref;
 import org.mozilla.gecko.preferences.GeckoPreferences;
@@ -55,7 +57,6 @@ import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.NativeEventListener;
 import org.mozilla.gecko.util.NativeJSObject;
 import org.mozilla.gecko.util.PrefUtils;
-import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.webapp.EventListener;
 import org.mozilla.gecko.webapp.UninstallListener;
@@ -1102,8 +1103,8 @@ public abstract class GeckoApp
     
 
 
-    protected static void earlyStartJavaSampler(Intent intent) {
-        String env = StringUtils.getStringExtra(intent, "env0");
+    protected static void earlyStartJavaSampler(SafeIntent intent) {
+        String env = intent.getStringExtra("env0");
         for (int i = 1; env != null; i++) {
             if (env.startsWith("MOZ_PROFILER_STARTUP=")) {
                 if (!env.endsWith("=")) {
@@ -1123,8 +1124,7 @@ public abstract class GeckoApp
 
 
     @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
+    public void onCreate(Bundle savedInstanceState) {
         GeckoAppShell.ensureCrashHandling();
 
         
@@ -1136,9 +1136,9 @@ public abstract class GeckoApp
         mJavaUiStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_JAVAUI");
         mGeckoReadyStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_GECKOREADY");
 
-        final Intent intent = getIntent();
+        final SafeIntent intent = new SafeIntent(getIntent());
         final String action = intent.getAction();
-        final String args = StringUtils.getStringExtra(intent, "args");
+        final String args = intent.getStringExtra("args");
 
         earlyStartJavaSampler(intent);
 
@@ -1254,7 +1254,7 @@ public abstract class GeckoApp
             }, 1000 * 5 );
         }
 
-        Bundle stateBundle = getIntent().getBundleExtra(EXTRA_STATE_BUNDLE);
+        Bundle stateBundle = ContextUtils.getBundleExtra(getIntent(), EXTRA_STATE_BUNDLE);
         if (stateBundle != null) {
             
             
@@ -1458,18 +1458,21 @@ public abstract class GeckoApp
     private void initialize() {
         mInitialized = true;
 
-        Intent intent = getIntent();
-        String action = intent.getAction();
+        final SafeIntent intent = new SafeIntent(getIntent());
+        final String action = intent.getAction();
 
-        String passedUri = null;
         final String uri = getURIFromIntent(intent);
+
+        final String passedUri;
         if (!TextUtils.isEmpty(uri)) {
             passedUri = uri;
+        } else {
+            passedUri = null;
         }
 
         final boolean isExternalURL = passedUri != null &&
                                       !AboutPages.isAboutHome(passedUri);
-        StartupAction startupAction;
+        final StartupAction startupAction;
         if (isExternalURL) {
             startupAction = StartupAction.URL;
         } else {
@@ -1532,7 +1535,7 @@ public abstract class GeckoApp
         if (ACTION_LAUNCH_SETTINGS.equals(action)) {
             Intent settingsIntent = new Intent(GeckoApp.this, GeckoPreferences.class);
             
-            settingsIntent.putExtras(intent);
+            settingsIntent.putExtras(intent.getUnsafe());
             startActivity(settingsIntent);
         }
 
@@ -1732,7 +1735,7 @@ public abstract class GeckoApp
     }
 
     private boolean getRestartFromIntent() {
-        return getIntent().getBooleanExtra("didRestart", false);
+        return ContextUtils.getBooleanExtra(getIntent(), "didRestart", false);
     }
 
     
@@ -1798,7 +1801,7 @@ public abstract class GeckoApp
                                           AppConstants.USER_AGENT_FENNEC_MOBILE;
     }
 
-    private void processAlertCallback(Intent intent) {
+    private void processAlertCallback(SafeIntent intent) {
         String alertName = "";
         String alertCookie = "";
         Uri data = intent.getData();
@@ -1814,7 +1817,9 @@ public abstract class GeckoApp
     }
 
     @Override
-    protected void onNewIntent(Intent intent) {
+    protected void onNewIntent(Intent externalIntent) {
+        final SafeIntent intent = new SafeIntent(externalIntent);
+
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoExiting)) {
             
             
@@ -1825,7 +1830,7 @@ public abstract class GeckoApp
         
         
         if (!mInitialized) {
-            setIntent(intent);
+            setIntent(externalIntent);
             return;
         }
 
@@ -1859,7 +1864,7 @@ public abstract class GeckoApp
             
             Intent settingsIntent = new Intent(GeckoApp.this, GeckoPreferences.class);
             
-            settingsIntent.putExtras(intent);
+            settingsIntent.putExtras(intent.getUnsafe());
             startActivity(settingsIntent);
         }
     }
@@ -1868,7 +1873,7 @@ public abstract class GeckoApp
 
 
 
-    protected String getURIFromIntent(Intent intent) {
+    protected String getURIFromIntent(SafeIntent intent) {
         final String action = intent.getAction();
         if (ACTION_ALERT_CALLBACK.equals(action) || NotificationHelper.HELPER_BROADCAST_ACTION.equals(action)) {
             return null;
