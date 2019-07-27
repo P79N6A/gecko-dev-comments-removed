@@ -367,7 +367,7 @@ DEBUG_CheckUnwrapSafety(HandleObject obj, const js::Wrapper *handler,
 
 static const Wrapper *
 SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
-              bool waiveXrays, bool originIsXBLScope)
+              bool waiveXrays, bool originIsXBLScope, JSObject *obj)
 {
     
     
@@ -398,7 +398,7 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     }
 
     
-    if (xrayType == XrayForDOMObject)
+    if (xrayType == XrayForDOMObject && IdentifyCrossOriginObject(obj) != CrossOriginOpaque)
         return &FilteringWrapper<CrossOriginXrayWrapper,
                                  CrossOriginAccessiblePropertiesOnly>::singleton;
 
@@ -410,7 +410,7 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     
     
     
-    if (originIsXBLScope)
+    if (xrayType == XrayForJSObject && originIsXBLScope)
         return &FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>::singleton;
     return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
 }
@@ -525,7 +525,7 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
         bool originIsContentXBLScope = IsContentXBLScope(origin);
 
         wrapper = SelectWrapper(securityWrapper, wantXrays, xrayType, waiveXrays,
-                                originIsContentXBLScope);
+                                originIsContentXBLScope, obj);
 
         
         
