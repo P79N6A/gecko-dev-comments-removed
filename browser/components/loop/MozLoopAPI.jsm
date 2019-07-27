@@ -48,8 +48,18 @@ this.EXPORTED_SYMBOLS = ["injectLoopAPI"];
 
 const cloneErrorObject = function(error, targetWindow) {
   let obj = new targetWindow.Error();
-  for (let prop of Object.getOwnPropertyNames(error)) {
+  let props = Object.getOwnPropertyNames(error);
+  
+  
+  if (!props.length) {
+    props.push("message", "filename", "lineNumber", "columnNumber", "stack");
+  }
+  for (let prop of props) {
     let value = error[prop];
+    
+    if (typeof value == "undefined") {
+      continue;
+    }
     if (typeof value != "string" && typeof value != "number") {
       value = String(value);
     }
@@ -79,6 +89,11 @@ const cloneValueInto = function(value, targetWindow) {
   }
 
   
+  if (("error" in value) && (value.error instanceof Ci.nsIException)) {
+    value = value.error;
+  }
+
+  
   
   for (let prop of Object.getOwnPropertyNames(value)) {
     if (typeof value[prop] == "function") {
@@ -87,7 +102,7 @@ const cloneValueInto = function(value, targetWindow) {
   }
 
   
-  if (value.constructor.name == "Error") {
+  if (value.constructor.name == "Error" || value instanceof Ci.nsIException) {
     return cloneErrorObject(value, targetWindow);
   }
 
