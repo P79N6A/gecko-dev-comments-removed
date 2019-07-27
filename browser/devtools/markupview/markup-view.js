@@ -150,7 +150,7 @@ MarkupView.prototype = {
     
     
     this._onToolboxPickerHover = (event, nodeFront) => {
-      this.showNode(nodeFront).then(() => {
+      this.showNode(nodeFront, true).then(() => {
         this._showContainerAsHovered(nodeFront);
       });
     };
@@ -436,7 +436,7 @@ MarkupView.prototype = {
         this._brieflyShowBoxModel(selection.nodeFront);
       }
 
-      this.showNode(selection.nodeFront).then(() => {
+      this.showNode(selection.nodeFront, true).then(() => {
         if (this._destroyer) {
           return promise.reject("markupview destroyed");
         }
@@ -836,7 +836,7 @@ MarkupView.prototype = {
 
 
 
-  showNode: function(aNode, centered=true) {
+  showNode: function(aNode, centered) {
     let parent = aNode;
 
     this.importNode(aNode);
@@ -852,6 +852,7 @@ MarkupView.prototype = {
       }
       return this._ensureVisible(aNode);
     }).then(() => {
+      
       this.layoutHelpers.scrollIntoViewIfNeeded(this.getContainer(aNode).editor.elt, centered);
     }, e => {
       
