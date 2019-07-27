@@ -563,8 +563,6 @@ protected:
                                                        uint32_t aDisplayItemKey, 
                                                        LayerManagerData* aData);
 
-  static PLDHashOperator DumpDisplayItemDataForFrame(nsRefPtrHashKey<DisplayItemData>* aEntry,
-                                                     void* aClosure);
   
 
 
@@ -681,14 +679,6 @@ public:
   void ComputeGeometryChangeForItem(DisplayItemData* aData);
 
 protected:
-  static PLDHashOperator ProcessRemovedDisplayItems(nsRefPtrHashKey<DisplayItemData>* aEntry,
-                                                    void* aUserArg);
-  static PLDHashOperator RestoreDisplayItemData(nsRefPtrHashKey<DisplayItemData>* aEntry,
-                                                void *aUserArg);
-
-  static PLDHashOperator RestorePaintedLayerItemEntries(PaintedLayerItemsEntry* aEntry,
-                                                       void *aUserArg);
-
   
 
 
