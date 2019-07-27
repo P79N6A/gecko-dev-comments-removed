@@ -95,6 +95,8 @@
 #ifdef XP_WIN
 #include "nsIWinAppHelper.h"
 #include <windows.h>
+#include <intrin.h>
+#include <math.h>
 #include "cairo/cairo-features.h"
 #include "mozilla/WindowsVersion.h"
 
@@ -4104,6 +4106,17 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   gArgv = argv;
 
   NS_ENSURE_TRUE(aAppData, 2);
+
+#if defined(_MSC_VER) && _MSC_VER < 1900 && defined(_M_X64)
+  
+  int cpuid0[4] = {0};
+  int cpuid7[4] = {0};
+  __cpuid(cpuid0, 0); 
+  __cpuid(cpuid7, 7); 
+  if (cpuid0[0] < 7 || !(cpuid7[1] & 0x20)) {
+    _set_FMA3_enable(0);
+  }
+#endif
 
   
   
