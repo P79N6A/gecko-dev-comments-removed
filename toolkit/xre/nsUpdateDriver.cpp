@@ -412,20 +412,20 @@ CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
 static void
 AppendToLibPath(const char *pathToAppend)
 {
-  char *s = nullptr;
   char *pathValue = getenv(LD_LIBRARY_PATH_ENVVAR_NAME);
   if (nullptr == pathValue || '\0' == *pathValue) {
-    s = PR_smprintf("%s=%s", LD_LIBRARY_PATH_ENVVAR_NAME, pathToAppend);
-  } else {
-    s = PR_smprintf("%s=%s" PATH_SEPARATOR "%s",
+    char *s = PR_smprintf("%s=%s", LD_LIBRARY_PATH_ENVVAR_NAME, pathToAppend);
+    PR_SetEnv(s);
+  } else if (!strstr(pathValue, pathToAppend)) {
+    char *s = PR_smprintf("%s=%s" PATH_SEPARATOR "%s",
                     LD_LIBRARY_PATH_ENVVAR_NAME, pathToAppend, pathValue);
+    PR_SetEnv(s);
   }
 
   
   
   
   
-  PR_SetEnv(s);
 }
 #endif
 
