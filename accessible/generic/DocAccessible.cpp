@@ -1094,9 +1094,11 @@ DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute
   
   
   uint8_t attrFlags = aria::AttrCharacteristicsFor(aAttribute);
-  if (!(attrFlags & ATTR_BYPASSOBJ))
-    FireDelayedEvent(nsIAccessibleEvent::EVENT_OBJECT_ATTRIBUTE_CHANGED,
-                     aAccessible);
+  if (!(attrFlags & ATTR_BYPASSOBJ)) {
+    nsRefPtr<AccEvent> event =
+      new AccObjectAttrChangedEvent(aAccessible, aAttribute);
+    FireDelayedEvent(event);
+  }
 
   nsIContent* elm = aAccessible->GetContent();
 
