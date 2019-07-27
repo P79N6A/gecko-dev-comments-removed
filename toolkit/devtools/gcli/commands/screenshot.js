@@ -55,7 +55,6 @@ const standardParams = {
     },
     {
       name: "imgur",
-      hidden: true, 
       type: "boolean",
       description: l10n.lookup("screenshotImgurDesc"),
       manual: l10n.lookup("screenshotImgurManual")
