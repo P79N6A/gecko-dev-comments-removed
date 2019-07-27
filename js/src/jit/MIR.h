@@ -12611,9 +12611,32 @@ class MAsmJSHeapAccess
     bool needsBoundsCheck() const { return needsBoundsCheck_; }
     void removeBoundsCheck() { needsBoundsCheck_ = false; }
     unsigned numSimdElems() const { MOZ_ASSERT(Scalar::isSimdType(accessType_)); return numSimdElems_; }
-    void setOffset(int32_t o) {
-        MOZ_ASSERT(o >= 0);
-        offset_ = o;
+
+    bool tryAddDisplacement(int32_t o) {
+        
+        
+        
+        MOZ_ASSERT(offset_ >= 0);
+        int32_t newOffset = uint32_t(offset_) + o;
+        if (newOffset < 0)
+            return false;
+
+        
+        
+        int32_t newEnd = uint32_t(newOffset) + byteSize();
+        if (newEnd < 0)
+            return false;
+        MOZ_ASSERT(uint32_t(newEnd) >= uint32_t(newOffset));
+
+        
+        
+        
+        size_t range = needsBoundsCheck() ? AsmJSCheckedImmediateRange : AsmJSImmediateRange;
+        if (size_t(newEnd) > range)
+            return false;
+
+        offset_ = newOffset;
+        return true;
     }
 };
 

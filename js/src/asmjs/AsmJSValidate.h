@@ -72,7 +72,7 @@ static_assert(jit::AsmJSCheckedImmediateRange <= jit::AsmJSImmediateRange,
 
 
 static const size_t AsmJSMappedSize = 4 * 1024ULL * 1024ULL * 1024ULL +
-                                      jit::AsmJSImmediateRange +
+                                      jit::AsmJSCheckedImmediateRange +
                                       AsmJSPageSize;
 
 #endif 
