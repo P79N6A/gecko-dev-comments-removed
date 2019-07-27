@@ -1963,6 +1963,7 @@ int64_t MediaDecoderStateMachine::AudioDecodedUsecs()
 bool MediaDecoderStateMachine::HasLowDecodedData(int64_t aAudioUsecs)
 {
   AssertCurrentThreadInMonitor();
+  MOZ_ASSERT(mReader->UseBufferingHeuristics());
   
   
   
@@ -2662,12 +2663,6 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       
       
       
-      bool outOfAudio = IsAudioDecoding() && !AudioQueue().IsFinished() && AudioQueue().GetSize() == 0;
-      bool outOfVideo = IsVideoDecoding() && !VideoQueue().IsFinished() && VideoQueue().GetSize() <= 1;
-
-      
-      
-      
       if (mReader->UseBufferingHeuristics()) {
         TimeDuration elapsed = now - mBufferingStart;
         bool isLiveStream = resource->GetLength() == -1;
@@ -2683,15 +2678,16 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
           ScheduleStateMachine(USECS_PER_S);
           return NS_OK;
         }
-      } else if (outOfAudio || outOfVideo) {
+      } else if (OutOfDecodedAudio() || OutOfDecodedVideo()) {
         MOZ_ASSERT(mReader->IsWaitForDataSupported(),
                    "Don't yet have a strategy for non-heuristic + non-WaitForData");
         DispatchDecodeTasksIfNeeded();
-        MOZ_ASSERT_IF(outOfAudio, mAudioRequestStatus != RequestStatus::Idle);
-        MOZ_ASSERT_IF(outOfVideo, mVideoRequestStatus != RequestStatus::Idle);
+        MOZ_ASSERT_IF(OutOfDecodedAudio(), mAudioRequestStatus != RequestStatus::Idle);
+        MOZ_ASSERT_IF(OutOfDecodedVideo(), mVideoRequestStatus != RequestStatus::Idle);
         DECODER_LOG("In buffering mode, waiting to be notified: outOfAudio: %d, "
                     "mAudioStatus: %d, outOfVideo: %d, mVideoStatus: %d",
-                    outOfAudio, mAudioRequestStatus, outOfVideo, mVideoRequestStatus);
+                    OutOfDecodedAudio(), mAudioRequestStatus,
+                    OutOfDecodedVideo(), mVideoRequestStatus);
         return NS_OK;
       }
 
@@ -2955,9 +2951,16 @@ void MediaDecoderStateMachine::AdvanceFrame()
   
   if (mState == DECODER_STATE_DECODING &&
       mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING &&
-      HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_USECS) &&
       mDecoder->IsExpectingMoreData()) {
-    if (!mReader->UseBufferingHeuristics() || JustExitedQuickBuffering() || HasLowUndecodedData()) {
+    bool shouldBuffer;
+    if (mReader->UseBufferingHeuristics()) {
+      shouldBuffer = HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_USECS) &&
+                     (JustExitedQuickBuffering() || HasLowUndecodedData());
+    } else {
+      MOZ_ASSERT(mReader->IsWaitForDataSupported());
+      shouldBuffer = OutOfDecodedAudio() || OutOfDecodedVideo();
+    }
+    if (shouldBuffer) {
       if (currentFrame) {
         VideoQueue().PushFront(currentFrame);
       }
