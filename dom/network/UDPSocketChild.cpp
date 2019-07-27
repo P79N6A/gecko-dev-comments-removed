@@ -9,6 +9,11 @@
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
+#include "mozilla/ipc/BackgroundChild.h"
+#include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "nsIIPCBackgroundChildCreateCallback.h"
 
 using mozilla::net::gNeckoChild;
 
@@ -63,7 +68,8 @@ NS_IMETHODIMP_(MozExternalRefCountType) UDPSocketChild::Release(void)
 }
 
 UDPSocketChild::UDPSocketChild()
-:mLocalPort(0)
+:mBackgroundManager(nullptr)
+,mLocalPort(0)
 {
 }
 
@@ -71,7 +77,95 @@ UDPSocketChild::~UDPSocketChild()
 {
 }
 
+class UDPSocketBackgroundChildCallback final :
+  public nsIIPCBackgroundChildCreateCallback
+{
+  bool* mDone;
 
+public:
+  explicit UDPSocketBackgroundChildCallback(bool* aDone)
+  : mDone(aDone)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(mDone);
+    MOZ_ASSERT(!*mDone);
+  }
+
+  NS_DECL_ISUPPORTS
+
+private:
+  ~UDPSocketBackgroundChildCallback()
+  { }
+
+  virtual void
+  ActorCreated(PBackgroundChild* aActor) override
+  {
+    *mDone = true;
+  }
+
+  virtual void
+  ActorFailed() override
+  {
+    *mDone = true;
+  }
+};
+
+NS_IMPL_ISUPPORTS(UDPSocketBackgroundChildCallback, nsIIPCBackgroundChildCreateCallback)
+
+nsresult
+UDPSocketChild::CreatePBackgroundSpinUntilDone()
+{
+  using mozilla::ipc::BackgroundChild;
+
+  
+  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!BackgroundChild::GetForCurrentThread());
+
+  bool done = false;
+  nsCOMPtr<nsIIPCBackgroundChildCreateCallback> callback =
+    new UDPSocketBackgroundChildCallback(&done);
+
+  if (NS_WARN_IF(!BackgroundChild::GetOrCreateForCurrentThread(callback))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsIThread* thread = NS_GetCurrentThread();
+  while (!done) {
+    if (NS_WARN_IF(!NS_ProcessNextEvent(thread, true ))) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  if (NS_WARN_IF(!BackgroundChild::GetForCurrentThread())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+
+
+NS_IMETHODIMP
+UDPSocketChild::SetBackgroundSpinsEvents()
+{
+  using mozilla::ipc::BackgroundChild;
+
+  PBackgroundChild* existingBackgroundChild =
+    BackgroundChild::GetForCurrentThread();
+  
+  if (!existingBackgroundChild) {
+    nsresult rv = CreatePBackgroundSpinUntilDone();
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+    existingBackgroundChild =
+      BackgroundChild::GetForCurrentThread();
+    MOZ_ASSERT(existingBackgroundChild);
+  }
+  
+  mBackgroundManager = existingBackgroundChild;
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 UDPSocketChild::Bind(nsIUDPSocketInternal* aSocket,
@@ -88,8 +182,15 @@ UDPSocketChild::Bind(nsIUDPSocketInternal* aSocket,
   mSocket = aSocket;
   AddIPDLReference();
 
-  gNeckoChild->SendPUDPSocketConstructor(this, IPC::Principal(aPrincipal),
-                                         mFilterName);
+  if (mBackgroundManager) {
+    
+    
+    MOZ_ASSERT(!aPrincipal);
+    mBackgroundManager->SendPUDPSocketConstructor(this, void_t(), mFilterName);
+  } else {
+    gNeckoChild->SendPUDPSocketConstructor(this, IPC::Principal(aPrincipal),
+                                           mFilterName);
+  }
 
   SendBind(UDPAddressInfo(nsCString(aHost), aPort), aAddressReuse, aLoopback);
   return NS_OK;

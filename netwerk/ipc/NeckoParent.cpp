@@ -483,7 +483,7 @@ PUDPSocketParent*
 NeckoParent::AllocPUDPSocketParent(const Principal& ,
                                    const nsCString& )
 {
-  nsRefPtr<UDPSocketParent> p = new UDPSocketParent();
+  nsRefPtr<UDPSocketParent> p = new UDPSocketParent(this);
 
   return p.forget().take();
 }

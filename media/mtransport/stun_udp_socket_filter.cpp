@@ -86,6 +86,7 @@ class STUNUDPSocketFilter : public nsIUDPSocketFilter {
     : white_list_(),
       pending_requests_() {}
 
+  
   NS_DECL_ISUPPORTS
   NS_DECL_NSIUDPSOCKETFILTER
 
