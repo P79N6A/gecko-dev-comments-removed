@@ -374,6 +374,12 @@ enum nsRestyleHint {
   
   
   eRestyle_ForceDescendants = (1<<10),
+
+  
+  eRestyle_AllHintsWithAnimations = eRestyle_CSSTransitions |
+                                    eRestyle_CSSAnimations |
+                                    eRestyle_SVGAttrAnimations |
+                                    eRestyle_StyleAttribute,
 };
 
 
