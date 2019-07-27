@@ -2349,8 +2349,6 @@ public:
   virtual nsHTMLDocument* AsHTMLDocument() { return nullptr; }
   virtual mozilla::dom::SVGDocument* AsSVGDocument() { return nullptr; }
 
-  virtual JSObject* WrapObject(JSContext *aCx) MOZ_OVERRIDE;
-
   
   
   virtual already_AddRefed<nsIDocument> MasterDocument() = 0;
