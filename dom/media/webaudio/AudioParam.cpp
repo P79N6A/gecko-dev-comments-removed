@@ -113,7 +113,7 @@ AudioParam::Stream()
   mStream = stream.forget();
 
   
-  MediaStream* nodeStream = mNode->Stream();
+  MediaStream* nodeStream = mNode->GetStream();
   MOZ_ASSERT(nodeStream->AsProcessedStream());
   ProcessedMediaStream* ps = static_cast<ProcessedMediaStream*>(nodeStream);
   mNodeStreamPort = ps->AllocateInputPort(mStream, MediaInputPort::FLAG_BLOCK_INPUT);

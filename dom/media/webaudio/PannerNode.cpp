@@ -543,7 +543,7 @@ PannerNode::FindConnectedSources(AudioNode* aNode,
     
     
     AudioBufferSourceNode* node = inputNodes[i].mInputNode->AsAudioBufferSourceNode();
-    if (node && node->Stream()) {
+    if (node && node->GetStream()) {
       aSources.AppendElement(node);
     }
   }

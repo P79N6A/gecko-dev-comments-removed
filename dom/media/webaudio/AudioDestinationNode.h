@@ -51,6 +51,9 @@ public:
   virtual void SetChannelCount(uint32_t aChannelCount,
                                ErrorResult& aRv) override;
 
+  
+  AudioNodeStream* Stream() { return mStream; }
+
   void Mute();
   void Unmute();
 
