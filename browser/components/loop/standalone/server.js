@@ -8,20 +8,29 @@ var app = express();
 var port = process.env.PORT || 3000;
 var loopServerPort = process.env.LOOP_SERVER_PORT || 5000;
 
-app.get('/content/config.js', function (req, res) {
+function getConfigFile(req, res) {
   "use strict";
 
   res.set('Content-Type', 'text/javascript');
   res.send(
     "var loop = loop || {};" +
     "loop.config = loop.config || {};" +
-    "loop.config.serverUrl = 'http://localhost:" + loopServerPort + "';"
+    "loop.config.serverUrl = 'http://localhost:" + loopServerPort + "';" +
+    "loop.config.pendingCallTimeout = 20000;"
   );
+}
 
-});
+app.get('/content/config.js', getConfigFile);
 
 
 app.use('/', express.static(__dirname + '/../'));
+
+
+
+app.use('/', express.static(__dirname + '/content/'));
+app.use('/shared', express.static(__dirname + '/../content/shared/'));
+app.get('/config.js', getConfigFile);
+
 
 app.use('/', express.static(__dirname + '/'));
 
