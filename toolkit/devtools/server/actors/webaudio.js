@@ -4,14 +4,16 @@
 "use strict";
 
 const {Cc, Ci, Cu, Cr} = require("chrome");
+
 const Services = require("Services");
+
 const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events = require("sdk/event/core");
 const { on: systemOn, off: systemOff } = require("sdk/system/events");
-const { setTimeout, clearTimeout } = require("sdk/timers");
 const protocol = require("devtools/server/protocol");
 const { CallWatcherActor, CallWatcherFront } = require("devtools/server/actors/call-watcher");
 const { ThreadActor } = require("devtools/server/actors/script");
+
 const { on, once, off, emit } = events;
 const { method, Arg, Option, RetVal } = protocol;
 
@@ -24,10 +26,6 @@ exports.unregister = function(handle) {
   handle.removeTabActor(WebAudioActor);
   handle.removeGlobalActor(WebAudioActor);
 };
-
-
-
-const PARAM_POLLING_FREQUENCY = 1000;
 
 const AUDIO_GLOBALS = [
   "AudioContext", "AudioNode"
@@ -148,10 +146,6 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     }
   },
 
-  destroy: function(conn) {
-    protocol.Actor.prototype.destroy.call(this, conn);
-  },
-
   
 
 
@@ -193,7 +187,6 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
         node[param].value = value;
       else
         node[param] = value;
-
       return undefined;
     } catch (e) {
       return constructError(e);
@@ -228,7 +221,14 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     
     
     
-    return createGrip(value);
+    let grip;
+    try {
+      grip = ThreadActor.prototype.createValueGrip(value);
+    }
+    catch (e) {
+      grip = createObjectGrip(value);
+    }
+    return grip;
   }, {
     request: {
       param: Arg(0, "string")
@@ -255,24 +255,13 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
 
 
-
-  getParams: method(function () {
+  getParams: method(function (param) {
     let props = Object.keys(NODE_PROPERTIES[this.type]);
     return props.map(prop =>
       ({ param: prop, value: this.getParam(prop), flags: this.getParamFlags(prop) }));
   }, {
     response: { params: RetVal("json") }
-  }),
-
-  
-
-
-
-
-
-  isAlive: function () {
-    return !!this.node.get();
-  }
+  })
 });
 
 
@@ -418,66 +407,12 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     this.tabActor = null;
     this._initialized = false;
     off(this._callWatcher._contentObserver, "global-destroyed", this._onGlobalDestroyed);
-    this.disableChangeParamEvents();
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
     this._callWatcher.finalize();
     this._callWatcher = null;
   }, {
    oneway: true
-  }),
-
-  
-
-
-
-
-
-
-
-
-  enableChangeParamEvents: method(function (nodeActor, wait) {
-    
-    this.disableChangeParamEvents();
-
-    
-    if (!nodeActor.isAlive()) {
-      return;
-    }
-
-    let previous = mapAudioParams(nodeActor);
-
-    
-    this._pollingID = nodeActor.actorID;
-
-    this.poller = new Poller(() => {
-      
-      if (!nodeActor.isAlive()) {
-        this.disableChangeParamEvents();
-        return;
-      }
-
-      let current = mapAudioParams(nodeActor);
-      diffAudioParams(previous, current).forEach(changed => {
-        this._onChangeParam(nodeActor, changed);
-      });
-      previous = current;
-    }).on(wait || PARAM_POLLING_FREQUENCY);
-  }, {
-    request: {
-      node: Arg(0, "audionode"),
-      wait: Arg(1, "nullable:number"),
-    },
-    oneway: true
-  }),
-
-  disableChangeParamEvents: method(function () {
-    if (this.poller) {
-      this.poller.off();
-    }
-    this._pollingID = null;
-  }, {
-    oneway: true
   }),
 
   
@@ -502,6 +437,12 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       dest: Option(0, "audionode"),
       param: Option(0, "string")
     },
+    "change-param": {
+      type: "changeParam",
+      source: Option(0, "audionode"),
+      param: Option(0, "string"),
+      value: Option(0, "string")
+    },
     "create-node": {
       type: "createNode",
       source: Arg(0, "audionode")
@@ -509,13 +450,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     "destroy-node": {
       type: "destroyNode",
       source: Arg(0, "audionode")
-    },
-    "change-param": {
-      type: "changeParam",
-      param: Option(0, "string"),
-      newValue: Option(0, "json"),
-      oldValue: Option(0, "json"),
-      actorID: Option(0, "string")
     }
   },
 
@@ -559,14 +493,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
   _getActorByNativeID: function (nativeID) {
-    
-    
-    
-    
-    if (!this._nativeToActorID) {
-      return null;
-    }
-
     
     
     nativeID = ~~nativeID;
@@ -620,10 +546,13 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   
 
 
-
-  _onChangeParam: function (actor, changed) {
-    changed.actorID = actor.actorID;
-    emit(this, "change-param", changed);
+  _onParamChange: function (node, param, value) {
+    let actor = this._getActorByNativeID(node.id);
+    emit(this, "param-change", {
+      source: actor,
+      param: param,
+      value: value
+    });
   },
 
   
@@ -637,7 +566,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
   
 
 
-
   _onDestroyNode: function ({data}) {
     
     let nativeID = ~~data;
@@ -648,10 +576,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     
     
     if (actor) {
-      
-      if (this._pollingID === actor.actorID) {
-        this.disableChangeParamEvents();
-      }
       this._nativeToActorID.delete(nativeID);
       emit(this, "destroy-node", actor);
     }
@@ -743,105 +667,13 @@ function getConstructorName (obj) {
 
 
 
-function createGrip (value) {
-  try {
-    return ThreadActor.prototype.createValueGrip(value);
-  }
-  catch (e) {
-    return {
-      type: "object",
-      preview: {
-        kind: "ObjectWithText",
-        text: ""
-      },
-      class: getConstructorName(value)
-    };
-  }
+function createObjectGrip (value) {
+  return {
+    type: "object",
+    preview: {
+      kind: "ObjectWithText",
+      text: ""
+    },
+    class: getConstructorName(value)
+  };
 }
-
-
-
-
-
-
-function mapAudioParams (node) {
-  return node.getParams().reduce(function (obj, p) {
-    obj[p.param] = p.value;
-    return obj;
-  }, {});
-}
-
-
-
-
-
-
-
-
-
-
-function diffAudioParams (prev, current) {
-  return Object.keys(current).reduce((changed, param) => {
-    if (!equalGrips(current[param], prev[param])) {
-      changed.push({
-        param: param,
-        oldValue: prev[param],
-        newValue: current[param]
-      });
-    }
-    return changed;
-  }, []);
-}
-
-
-
-
-
-
-
-
-function equalGrips (a, b) {
-  let aType = typeof a;
-  let bType = typeof b;
-  if (aType !== bType) {
-    return false;
-  } else if (aType === "object") {
-    
-    
-    
-    
-    if (a.type === b.type) {
-      return true;
-    }
-    
-    
-    return false;
-  } else {
-    return a === b;
-  }
-}
-
-
-
-
-
-function Poller (fn) {
-  this.fn = fn;
-}
-
-Poller.prototype.on = function (wait) {
-  let poller = this;
-  poller.timer = setTimeout(poll, wait);
-  function poll () {
-    poller.fn();
-    poller.timer = setTimeout(poll, wait);
-  }
-  return this;
-};
-
-Poller.prototype.off = function () {
-  if (this.timer) {
-    clearTimeout(this.timer);
-  }
-  return this;
-};
