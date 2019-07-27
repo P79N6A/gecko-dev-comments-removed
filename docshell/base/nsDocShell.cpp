@@ -200,6 +200,8 @@
 #include "nsIBrowserSearchService.h"
 #endif
 
+static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
+
 #if defined(DEBUG_bryner) || defined(DEBUG_chb)
 
 #define DEBUG_PAGE_CACHE
@@ -219,6 +221,9 @@ using namespace mozilla::dom;
 static bool gAddedPreferencesVarCache = false;
 
 bool nsDocShell::sUseErrorPages = false;
+
+
+static int32_t gNumberOfDocumentsLoading = 0;
 
 
 static int32_t gDocShellCount = 0;
@@ -249,6 +254,18 @@ static PRLogModuleInfo* gDocShellLeakLog;
 
 const char kBrandBundleURL[]      = "chrome://branding/locale/brand.properties";
 const char kAppstringsBundleURL[] = "chrome://global/locale/appstrings.properties";
+
+static void
+FavorPerformanceHint(bool aPerfOverStarvation)
+{
+  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+  if (appShell) {
+    appShell->FavorPerformanceHint(
+      aPerfOverStarvation,
+      Preferences::GetUint("docshell.event_starvation_delay_hint",
+                           NS_EVENT_STARVATION_DELAY_HINT));
+  }
+}
 
 
 
@@ -7524,6 +7541,14 @@ nsDocShell::EndPageLoad(nsIWebProgress* aProgress,
     mIsExecutingOnLoadHandler = false;
 
     mEODForCurrentDocument = true;
+
+    
+    
+    
+    if (--gNumberOfDocumentsLoading == 0) {
+      
+      FavorPerformanceHint(false);
+    }
   }
   
 
@@ -8653,6 +8678,12 @@ nsDocShell::RestoreFromHistory()
   mSavingOldViewer = false;
   mEODForCurrentDocument = false;
 
+  
+  
+  if (++gNumberOfDocumentsLoading == 1) {
+    FavorPerformanceHint(true);
+  }
+
   if (oldCv && newCv) {
     newCv->SetMinFontSize(minFontSize);
     newCv->SetTextZoom(textZoom);
@@ -9063,6 +9094,16 @@ nsDocShell::CreateContentViewer(const nsACString& aContentType,
         doc->SetPartID(partID);
       }
     }
+  }
+
+  
+  
+  
+  if (++gNumberOfDocumentsLoading == 1) {
+    
+    
+    
+    FavorPerformanceHint(true);
   }
 
   if (onLocationChangeNeeded) {
