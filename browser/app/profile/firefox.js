@@ -1779,6 +1779,14 @@ pref("geo.provider.use_corelocation", true);
 #endif
 #endif
 
+#ifdef XP_WIN
+#ifdef RELEASE_BUILD
+pref("geo.provider.ms-windows-location", false);
+#else
+pref("geo.provider.ms-windows-location", true);
+#endif
+#endif
+
 
 
 pref("network.disable.ipc.security", true);
