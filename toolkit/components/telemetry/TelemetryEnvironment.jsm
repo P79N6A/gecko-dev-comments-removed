@@ -46,6 +46,8 @@ const PREF_UPDATE_AUTODOWNLOAD = "app.update.auto";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
+const EXPERIMENTS_CHANGED_TOPIC = "experiments-changed";
+
 
 
 
@@ -235,6 +237,9 @@ this.TelemetryEnvironment = {
   _watchedPrefs: null,
 
   
+  _addonsListener: null,
+
+  
 
 
   init: function () {
@@ -247,6 +252,7 @@ this.TelemetryEnvironment = {
     this._log.trace("init");
     this._shutdown = false;
     this._startWatchingPrefs();
+    this._startWatchingAddons();
   },
 
   
@@ -262,6 +268,7 @@ this.TelemetryEnvironment = {
     this._log.trace("shutdown");
     this._shutdown = true;
     this._stopWatchingPrefs();
+    this._stopWatchingAddons();
     this._changeListeners.clear();
     yield this._collectTask;
   }),
@@ -819,6 +826,90 @@ this.TelemetryEnvironment = {
 
     return addonData;
   }),
+
+  
+
+
+  _startWatchingAddons: function () {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    this._addonsListener = {
+      onEnabled: addon => {
+        this._log.trace("_addonsListener - onEnabled " + addon.id);
+        this._onActiveAddonsChanged(addon)
+      },
+      onDisabled: addon => {
+        this._log.trace("_addonsListener - onDisabled " + addon.id);
+        this._onActiveAddonsChanged(addon);
+      },
+      onInstalled: addon => {
+        this._log.trace("_addonsListener - onInstalled " + addon.id +
+                        ", isActive: " + addon.isActive);
+        if (addon.isActive) {
+          this._onActiveAddonsChanged(addon);
+        }
+      },
+      onUninstalling: (addon, requiresRestart) => {
+        this._log.trace("_addonsListener - onUninstalling " + addon.id +
+                        ", isActive: " + addon.isActive +
+                        ", requiresRestart: " + requiresRestart);
+        if (!addon.isActive || requiresRestart) {
+          return;
+        }
+        this._onActiveAddonsChanged(addon);
+      },
+    };
+
+    AddonManager.addAddonListener(this._addonsListener);
+
+    
+    Services.obs.addObserver(this, EXPERIMENTS_CHANGED_TOPIC, false);
+  },
+
+  
+
+
+  _stopWatchingAddons: function () {
+    AddonManager.removeAddonListener(this._addonsListener);
+    Services.obs.removeObserver(this, EXPERIMENTS_CHANGED_TOPIC);
+    this._addonsListener = null;
+  },
+
+  
+
+
+
+  _onActiveAddonsChanged: function (aAddon) {
+    const INTERESTING_ADDONS = [ "extension", "plugin", "service", "theme" ];
+
+    this._log.trace("_onActiveAddonsChanged - id " + aAddon.id + ", type " + aAddon.type);
+
+    if (INTERESTING_ADDONS.find(addon => addon == aAddon.type)) {
+      this._onEnvironmentChange("addons-changed");
+    }
+  },
+
+  
+
+
+  observe: function (aSubject, aTopic, aData) {
+    this._log.trace("observe - Topic " + aTopic);
+
+    if (aTopic == EXPERIMENTS_CHANGED_TOPIC) {
+      this._onEnvironmentChange("experiment-changed");
+    }
+  },
 
   
 
