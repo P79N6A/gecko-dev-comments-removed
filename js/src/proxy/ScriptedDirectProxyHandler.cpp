@@ -128,20 +128,6 @@ ValidatePropertyDescriptor(JSContext* cx, bool extensible, Handle<PropertyDescri
 }
 
 
-static bool
-IsSealed(JSContext* cx, HandleObject obj, HandleId id, bool* bp)
-{
-    
-    Rooted<PropertyDescriptor> desc(cx);
-    if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
-        return false;
-
-    
-    *bp = desc.object() && !desc.configurable();
-    return true;
-}
-
-
 static JSObject*
 GetDirectProxyHandlerObject(JSObject* proxy)
 {
@@ -158,107 +144,6 @@ ReportInvalidTrapResult(JSContext* cx, JSObject* proxy, JSAtom* atom)
         return;
     ReportValueError2(cx, JSMSG_INVALID_TRAP_RESULT, JSDVG_IGNORE_STACK, v,
                       nullptr, bytes.ptr());
-}
-
-
-
-static bool
-ArrayToIdVector(JSContext* cx, HandleObject proxy, HandleObject target, HandleValue v,
-                AutoIdVector& props, unsigned flags, JSAtom* trapName_)
-{
-    MOZ_ASSERT(v.isObject());
-    RootedObject array(cx, &v.toObject());
-    RootedAtom trapName(cx, trapName_);
-
-    
-    uint32_t n;
-    if (!GetLengthProperty(cx, array, &n))
-        return false;
-
-    
-    for (uint32_t i = 0; i < n; ++i) {
-        
-        RootedValue v(cx);
-        if (!GetElement(cx, array, array, i, &v))
-            return false;
-
-        
-        RootedId id(cx);
-        if (!ValueToId<CanGC>(cx, v, &id))
-            return false;
-
-        
-        for (uint32_t j = 0; j < i; ++j) {
-            if (props[j].get() == id) {
-                ReportInvalidTrapResult(cx, proxy, trapName);
-                return false;
-            }
-        }
-
-        
-        bool isFixed;
-        if (!HasOwnProperty(cx, target, id, &isFixed))
-            return false;
-
-        
-        bool extensible;
-        if (!IsExtensible(cx, target, &extensible))
-            return false;
-        if (!extensible && !isFixed) {
-            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_REPORT_NEW);
-            return false;
-        }
-
-        
-        if (!props.append(id))
-            return false;
-    }
-
-    
-    AutoIdVector ownProps(cx);
-    if (!GetPropertyKeys(cx, target, flags, &ownProps))
-        return false;
-
-    
-    for (size_t i = 0; i < ownProps.length(); ++i) {
-        RootedId id(cx, ownProps[i]);
-
-        bool found = false;
-        for (size_t j = 0; j < props.length(); ++j) {
-            if (props[j].get() == id) {
-                found = true;
-               break;
-            }
-        }
-        if (found)
-            continue;
-
-        
-        bool sealed;
-        if (!IsSealed(cx, target, id, &sealed))
-            return false;
-        if (sealed) {
-            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SKIP_NC);
-            return false;
-        }
-
-        
-        bool isFixed;
-        if (!HasOwnProperty(cx, target, id, &isFixed))
-            return false;
-
-        
-        bool extensible;
-        if (!IsExtensible(cx, target, &extensible))
-            return false;
-        if (!extensible && isFixed) {
-            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_REPORT_E_AS_NE);
-            return false;
-        }
-    }
-
-    
-    return true;
 }
 
 
@@ -612,6 +497,45 @@ ScriptedDirectProxyHandler::defineProperty(JSContext* cx, HandleObject proxy, Ha
 }
 
 
+static bool
+CreateFilteredListFromArrayLike(JSContext* cx, HandleValue v, AutoIdVector& props)
+{
+    
+    RootedObject obj(cx, NonNullObject(cx, v));
+    if (!obj)
+        return false;
+
+    
+    uint32_t len;
+    if (!GetLengthProperty(cx, obj, &len))
+        return false;
+
+    
+    RootedValue next(cx);
+    RootedId id(cx);
+    for (uint32_t index = 0; index < len; index++) {
+        if (!GetElement(cx, obj, obj, index, &next))
+            return false;
+
+        if (!next.isString() && !next.isSymbol()) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_ONWKEYS_STR_SYM);
+            return false;
+        }
+
+        
+        if (!ValueToId<CanGC>(cx, next, &id))
+            return false;
+
+        if (!props.append(id))
+            return false;
+    }
+
+    
+    return true;
+}
+
+
+
 bool
 ScriptedDirectProxyHandler::ownPropertyKeys(JSContext* cx, HandleObject proxy,
                                             AutoIdVector& props) const
@@ -624,6 +548,7 @@ ScriptedDirectProxyHandler::ownPropertyKeys(JSContext* cx, HandleObject proxy,
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
         return false;
     }
+    
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
@@ -641,21 +566,111 @@ ScriptedDirectProxyHandler::ownPropertyKeys(JSContext* cx, HandleObject proxy,
     Value argv[] = {
         ObjectValue(*target)
     };
-    RootedValue trapResult(cx);
-    if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
+    RootedValue trapResultArray(cx);
+    if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResultArray))
         return false;
 
     
-    if (trapResult.isPrimitive()) {
-        ReportInvalidTrapResult(cx, proxy, cx->names().ownKeys);
+    AutoIdVector trapResult(cx);
+    if (!CreateFilteredListFromArrayLike(cx, trapResultArray, trapResult))
         return false;
+
+    
+    bool extensibleTarget;
+    if (!IsExtensible(cx, target, &extensibleTarget))
+        return false;
+
+    
+    AutoIdVector targetKeys(cx);
+    if (!GetPropertyKeys(cx, target, JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, &targetKeys))
+        return false;
+
+    
+
+    
+    AutoIdVector targetConfigurableKeys(cx);
+    AutoIdVector targetNonconfigurableKeys(cx);
+
+    
+    Rooted<PropertyDescriptor> desc(cx);
+    for (size_t i = 0; i < targetKeys.length(); ++i) {
+        
+        if (!GetOwnPropertyDescriptor(cx, target, targetKeys[i], &desc))
+            return false;
+
+        
+        if (desc.object() && !desc.configurable()) {
+            if (!targetNonconfigurableKeys.append(targetKeys[i]))
+                return false;
+        } else {
+            if (!targetConfigurableKeys.append(targetKeys[i]))
+                return false;
+        }
     }
 
     
+    if (extensibleTarget && targetNonconfigurableKeys.empty())
+        return props.appendAll(trapResult);
+
     
-    return ArrayToIdVector(cx, proxy, target, trapResult, props,
-                           JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
-                           cx->names().ownKeys);
+    AutoIdVector uncheckedResultKeys(cx);
+    if (!uncheckedResultKeys.appendAll(trapResult))
+        return false;
+
+    
+    for (size_t i = 0; i < targetNonconfigurableKeys.length(); ++i) {
+        RootedId key(cx, targetNonconfigurableKeys[i]);
+        MOZ_ASSERT(key != JSID_VOID);
+
+        bool found = false;
+        for (size_t j = 0; j < uncheckedResultKeys.length(); ++j) {
+            if (key == uncheckedResultKeys[j]) {
+                uncheckedResultKeys[j].set(JSID_VOID);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SKIP_NC);
+            return false;
+        }
+    }
+
+    
+    if (extensibleTarget)
+        return props.appendAll(trapResult);
+
+    
+    for (size_t i = 0; i < targetConfigurableKeys.length(); ++i) {
+        RootedId key(cx, targetConfigurableKeys[i]);
+        MOZ_ASSERT(key != JSID_VOID);
+
+        bool found = false;
+        for (size_t j = 0; j < uncheckedResultKeys.length(); ++j) {
+            if (key == uncheckedResultKeys[j]) {
+                uncheckedResultKeys[j].set(JSID_VOID);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_REPORT_E_AS_NE);
+            return false;
+        }
+    }
+
+    
+    for (size_t i = 0; i < uncheckedResultKeys.length(); ++i) {
+        if (uncheckedResultKeys[i].get() != JSID_VOID) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_REPORT_NEW);
+            return false;
+        }
+    }
+
+    
+    return props.appendAll(trapResult);
 }
 
 
