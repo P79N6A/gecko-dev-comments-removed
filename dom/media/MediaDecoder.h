@@ -434,7 +434,8 @@ public:
 
   
   
-  virtual void NotifyDataArrived(uint32_t aLength, int64_t aOffset) override;
+  virtual void NotifyDataArrived(uint32_t aLength, int64_t aOffset,
+                                 bool aThrottleUpdates) override;
 
   
   

@@ -294,8 +294,7 @@ nsRefPtr<TrackBuffer::BufferedRangesUpdatedPromise>
 TrackBuffer::UpdateBufferedRanges(Interval<int64_t> aByteRange, bool aNotifyParent)
 {
   if (aByteRange.Length()) {
-    mCurrentDecoder->GetReader()->NotifyDataArrived(uint32_t(aByteRange.Length()),
-                                                    aByteRange.mStart);
+    mCurrentDecoder->GetReader()->NotifyDataArrived(aByteRange);
   }
 
   
@@ -325,7 +324,7 @@ TrackBuffer::UpdateBufferedRanges(Interval<int64_t> aByteRange, bool aNotifyPare
         
         
         
-        parent->NotifyDataArrived(0, 0);
+        parent->NotifyDataArrived(0, 0,  false);
         parent->NotifyBytesDownloaded();
       });
     AbstractThread::MainThread()->Dispatch(task.forget());
@@ -762,8 +761,7 @@ TrackBuffer::InitializeDecoder(SourceBufferDecoder* aDecoder)
   MSE_DEBUG("Initializing subdecoder %p reader %p",
             aDecoder, reader);
 
-  reader->NotifyDataArrived(uint32_t(mLastAppendRange.Length()),
-                            mLastAppendRange.mStart);
+  reader->NotifyDataArrived(mLastAppendRange);
 
   
   
