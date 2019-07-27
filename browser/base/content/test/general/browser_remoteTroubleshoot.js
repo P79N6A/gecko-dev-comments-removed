@@ -55,6 +55,23 @@ add_task(function*() {
   Assert.ok(got.message.graphics, "should have graphics");
 
   
+  Assert.equal(got.message.application.buildID, Services.appinfo.appBuildID,
+               "should have correct build ID");
+
+  let updateChannel = null;
+  try {
+    updateChannel = Cu.import("resource://gre/modules/UpdateChannel.jsm", {}).UpdateChannel.get();
+  } catch (ex) {}
+  if (!updateChannel) {
+    Assert.ok(!('updateChannel' in got.message.application),
+                "should not have update channel where not available.");
+  } else {
+    Assert.equal(got.message.application.updateChannel, updateChannel,
+                 "should have correct update channel.");
+  }
+
+
+  
   Assert.ok(!got.message.modifiedPreferences, "should not have a modifiedPreferences key");
   Assert.ok(!got.message.crashes, "should not have crash info");
 
