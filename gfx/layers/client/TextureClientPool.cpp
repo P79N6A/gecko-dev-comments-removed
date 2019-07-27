@@ -55,9 +55,9 @@ TextureClientPool::GetTextureClient()
   
   if (gfxPrefs::ForceShmemTiles()) {
     
-    textureClient = TextureClient::CreateBufferTextureClient(mSurfaceAllocator,
-      mFormat, TextureFlags::IMMEDIATE_UPLOAD, gfx::BackendType::NONE);
-    textureClient->AllocateForSurface(mSize, ALLOC_DEFAULT);
+    textureClient = TextureClient::CreateForRawBufferAccess(mSurfaceAllocator,
+      mFormat, mSize, gfx::BackendType::NONE,
+      TextureFlags::IMMEDIATE_UPLOAD, ALLOC_DEFAULT);
   } else {
     textureClient = TextureClient::CreateForDrawing(mSurfaceAllocator,
       mFormat, mSize, gfx::BackendType::NONE, TextureFlags::IMMEDIATE_UPLOAD);
