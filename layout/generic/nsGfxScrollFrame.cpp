@@ -3065,13 +3065,6 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
     needsParentLayerClip = false;
   }
 
-  
-  
-  
-  if (aOutput->Length() > 0) {
-    needsParentLayerClip = false;
-  }
-
   nsPoint toReferenceFrame = mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
   bool isRoot = mIsRoot && mOuter->PresContext()->IsRootContentDocument();
 

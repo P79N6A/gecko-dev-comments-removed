@@ -580,7 +580,14 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
   Matrix4x4 combinedAsyncTransform;
   bool hasAsyncTransform = false;
   LayerMargin fixedLayerMargins(0, 0, 0, 0);
-  Maybe<ParentLayerIntRect> clipRect = aLayer->AsLayerComposite()->GetShadowClipRect();
+
+  
+  
+  
+  
+  
+  
+  Maybe<ParentLayerIntRect> asyncClip = aLayer->GetClipRect();
 
   for (uint32_t i = 0; i < aLayer->GetFrameMetricsCount(); i++) {
     AsyncPanZoomController* controller = aLayer->GetAsyncPanZoomController(i);
@@ -595,6 +602,8 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     controller->SampleContentTransformForFrame(&asyncTransformWithoutOverscroll,
                                                scrollOffset);
     Matrix4x4 overscrollTransform = controller->GetOverscrollTransform();
+    Matrix4x4 asyncTransform =
+      Matrix4x4(asyncTransformWithoutOverscroll) * overscrollTransform;
 
     if (!aLayer->IsScrollInfoLayer()) {
       controller->MarkAsyncTransformAppliedToContent();
@@ -626,41 +635,35 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     
-    if (i == 0 && metrics.HasClipRect()) {
-      if (clipRect) {
-        clipRect = Some(clipRect.value().Intersect(metrics.ClipRect()));
+    if (asyncClip &&
+        !(gfxPrefs::LayoutUseContainersForRootFrames() &&
+          aLayer->AsContainerLayer() &&
+          i == 0))
+    {
+      asyncClip = Some(TransformTo<ParentLayerPixel>(asyncTransform, *asyncClip));
+    }
+
+    
+    
+    
+    if (metrics.HasClipRect()) {
+      ParentLayerIntRect clip = metrics.ClipRect();
+      if (asyncClip) {
+        asyncClip = Some(clip.Intersect(*asyncClip));
       } else {
-        clipRect = Some(metrics.ClipRect());
+        asyncClip = Some(clip);
       }
     }
 
     combinedAsyncTransformWithoutOverscroll *= asyncTransformWithoutOverscroll;
-    combinedAsyncTransform *= (Matrix4x4(asyncTransformWithoutOverscroll) * overscrollTransform);
-    if (i > 0 && clipRect) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      ParentLayerRect transformed = TransformTo<ParentLayerPixel>(
-        (Matrix4x4(asyncTransformWithoutOverscroll) * overscrollTransform),
-        ParentLayerRect(*clipRect));
-      clipRect = Some(RoundedOut(transformed.Intersect(metrics.GetCompositionBounds())));
-    }
+    combinedAsyncTransform *= asyncTransform;
   }
 
   if (hasAsyncTransform) {
-    if (clipRect) {
-      aLayer->AsLayerComposite()->SetShadowClipRect(clipRect);
+    if (asyncClip) {
+      aLayer->AsLayerComposite()->SetShadowClipRect(asyncClip);
     }
+
     
     
     
