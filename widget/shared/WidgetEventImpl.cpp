@@ -225,7 +225,7 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
       
       return AsMouseEvent()->reason == WidgetMouseEvent::eReal;
 
-    case NS_WHEEL_EVENT: {
+    case eWheelEventClass: {
       
       
       const WidgetWheelEvent* wheelEvent = AsWheelEvent();
