@@ -1,7 +1,6 @@
 
 
 
-Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 const ABOUT_PERMISSIONS_SPEC = "about:permissions";
@@ -81,7 +80,7 @@ function cleanUp() {
 
 function runNextTest() {
   if (gTestIndex == tests.length) {
-    waitForClearHistory(finish);
+    PlacesTestUtils.clearHistory().then(finish);
     return;
   }
 
@@ -275,7 +274,7 @@ var tests = [
   function test_forget_site() {
     
     gBrowser.contentDocument.getElementById("forget-site-button").doCommand();
-    waitForClearHistory(function() {
+    PlacesTestUtils.clearHistory().then(() => {
       is(gSiteLabel.value, "", "site label cleared");
 
       let allSitesItem = gBrowser.contentDocument.getElementById("all-sites-item");
@@ -328,16 +327,4 @@ function addWindowListener(aURL, aCallback) {
     onCloseWindow: function(aXULWindow) { },
     onWindowTitleChange: function(aXULWindow, aNewTitle) { }
   });
-}
-
-
-function waitForClearHistory(aCallback) {
-  let observer = {
-    observe: function(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(this, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-      aCallback();
-    }
-  };
-  Services.obs.addObserver(observer, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
-  PlacesUtils.bhistory.removeAllPages();
 }

@@ -16,11 +16,7 @@ function test() {
     
     cm.removeAll();
     
-    Services.obs.addObserver(function observeCH(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(observeCH, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-      aCallback();
-    }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
-    PlacesUtils.bhistory.removeAllPages();
+    PlacesTestUtils.clearHistory().then(aCallback);
   }
 
   let testNumber = 0;
