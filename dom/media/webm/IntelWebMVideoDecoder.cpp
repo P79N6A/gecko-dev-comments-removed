@@ -5,10 +5,11 @@
 
 #include "IntelWebMVideoDecoder.h"
 
+#include "mozilla/TaskQueue.h"
+
 #include "gfx2DGlue.h"
 #include "Layers.h"
 #include "MediaResource.h"
-#include "TaskQueue.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "nsError.h"
 #include "SharedThreadPool.h"

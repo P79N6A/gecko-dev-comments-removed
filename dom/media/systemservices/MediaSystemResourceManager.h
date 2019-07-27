@@ -24,8 +24,8 @@ class MediaSystemResourceManagerChild;
 
 class MediaSystemResourceClient;
 class MediaSystemResourceReservationListener;
-class TaskQueue;
 class ReentrantMonitor;
+class TaskQueue;
 
 
 

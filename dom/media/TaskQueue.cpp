@@ -4,7 +4,8 @@
 
 
 
-#include "TaskQueue.h"
+#include "mozilla/TaskQueue.h"
+
 #include "nsThreadUtils.h"
 #include "SharedThreadPool.h"
 

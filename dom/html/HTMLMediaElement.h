@@ -22,7 +22,7 @@
 #ifdef MOZ_EME
 #include "mozilla/dom/MediaKeys.h"
 #endif
-#include "StateWatching.h"
+#include "mozilla/StateWatching.h"
 #include "nsGkAtoms.h"
 
 

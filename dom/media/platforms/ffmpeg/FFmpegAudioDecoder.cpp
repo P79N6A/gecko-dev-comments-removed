@@ -4,9 +4,9 @@
 
 
 
-#include "TaskQueue.h"
-#include "FFmpegRuntimeLinker.h"
+#include "mozilla/TaskQueue.h"
 
+#include "FFmpegRuntimeLinker.h"
 #include "FFmpegAudioDecoder.h"
 #include "TimeUnits.h"
 
