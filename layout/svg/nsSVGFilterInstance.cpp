@@ -144,7 +144,8 @@ nsSVGFilterInstance::GetFilterFrame()
 
   
   nsIFrame* frame = element->GetPrimaryFrame();
-  if (frame->GetType() != nsGkAtoms::svgFilterFrame) {
+  if (!frame || frame->GetType() != nsGkAtoms::svgFilterFrame) {
+    
     
     return nullptr;
   }
