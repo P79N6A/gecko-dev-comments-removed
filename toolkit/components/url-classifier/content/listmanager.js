@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
 
+const Cu = Components.utils;
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -13,13 +15,17 @@
 
 
 
-var debug = false;
+
 function log(...stuff) {
+  var prefs_ = new G_Preferences();
+  var debug = prefs_.getPref("browser.safebrowsing.debug");
   if (!debug) {
     return;
   }
 
-  let msg = "listmanager: " + stuff.join(" ");
+  var d = new Date();
+  let msg = "listmanager: " + d.toTimeString() + ": " + stuff.join(" ");
+  Services.console.logStringMessage(msg);
   dump(msg + "\n");
 }
 
@@ -38,6 +44,7 @@ QueryAdapter.prototype.handleResponse = function(value) {
 
 
 function PROT_ListManager() {
+  log("Initializing list manager");
   this.prefs_ = new G_Preferences();
   this.updateInterval = this.prefs_.getPref("urlclassifier.updateinterval", 30 * 60) * 1000;
 
@@ -62,7 +69,6 @@ function PROT_ListManager() {
 
   this.hashCompleter_ = Cc["@mozilla.org/url-classifier/hashcompleter;1"]
                         .getService(Ci.nsIUrlClassifierHashCompleter);
-  debug = this.prefs_.getPref("browser.safebrowsing.debug");
 }
 
 
@@ -127,16 +133,10 @@ PROT_ListManager.prototype.getGethashUrl = function(tableName) {
 
 
 PROT_ListManager.prototype.enableUpdate = function(tableName) {
-  var changed = false;
   var table = this.tablesData[tableName];
   if (table) {
     log("Enabling table updates for " + tableName);
     this.needsUpdate_[table.updateUrl][tableName] = true;
-    changed = true;
-  }
-
-  if (changed) {
-    this.maybeToggleUpdateChecking();
   }
 }
 
@@ -151,10 +151,6 @@ PROT_ListManager.prototype.disableUpdate = function(tableName) {
     log("Disabling table updates for " + tableName);
     this.needsUpdate_[table.updateUrl][tableName] = false;
     changed = true;
-  }
-
-  if (changed) {
-    this.maybeToggleUpdateChecking();
   }
 }
 
@@ -192,19 +188,22 @@ PROT_ListManager.prototype.kickoffUpdate_ = function (onDiskTableData)
 
   
   log("needsUpdate: " + JSON.stringify(this.needsUpdate_, undefined, 2));
-  for (var url in this.needsUpdate_) {
+  for (var updateUrl in this.needsUpdate_) {
     
     if (updatingExisting) {
       
       initialUpdateDelay += Math.floor(Math.random() * (5 * 60 * 1000));
+      log("Waiting " + initialUpdateDelay / 1000 +
+          " for updating existing table from " + updateUrl);
     }
     
     
     
-    if (!this.updateCheckers_[url]) {
-      this.updateCheckers_[url] =
-        new G_Alarm(BindToObject(this.checkForUpdates, this, url),
-                    initialUpdateDelay, true );
+    if (!this.updateCheckers_[updateUrl]) {
+      log("Initializing update checker for " + updateUrl);
+      this.updateCheckers_[updateUrl] =
+        new G_Alarm(BindToObject(this.checkForUpdates, this, updateUrl),
+                    initialUpdateDelay, false );
     }
   }
 }
@@ -220,7 +219,7 @@ PROT_ListManager.prototype.stopUpdateCheckers = function() {
 
 
 
- 
+
 PROT_ListManager.prototype.maybeToggleUpdateChecking = function() {
   
   
@@ -278,6 +277,7 @@ PROT_ListManager.prototype.checkForUpdates = function(updateUrl) {
   }
   if (!this.requestBackoffs_[updateUrl] ||
       !this.requestBackoffs_[updateUrl].canMakeRequest()) {
+    log("Can't make update request");
     return false;
   }
   
@@ -338,17 +338,20 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(updateUrl, tableData) {
 
   log("update request: " + JSON.stringify(streamerMap, undefined, 2) + "\n");
 
-  if (Object.keys(streamerMap.tableNames).length > 0) {
+  
+  if (streamerMap.request.length > 0) {
     this.makeUpdateRequestForEntry_(updateUrl, streamerMap.tableList,
                                     streamerMap.request);
+  } else {
+    log("Not sending empty request");
   }
 }
 
 PROT_ListManager.prototype.makeUpdateRequestForEntry_ = function(updateUrl,
                                                                  tableList,
                                                                  request) {
-  log("makeUpdateRequestForEntry_: request " + request + " update: " +
-      updateUrl + " tablelist: " + tableList + "\n");
+  log("makeUpdateRequestForEntry_: request " + request +
+      " update: " + updateUrl + " tablelist: " + tableList + "\n");
   var streamer = Cc["@mozilla.org/url-classifier/streamupdater;1"]
                  .getService(Ci.nsIUrlClassifierStreamUpdater);
 
@@ -361,7 +364,8 @@ PROT_ListManager.prototype.makeUpdateRequestForEntry_ = function(updateUrl,
         BindToObject(this.updateSuccess_, this, tableList, updateUrl),
         BindToObject(this.updateError_, this, tableList, updateUrl),
         BindToObject(this.downloadError_, this, tableList, updateUrl))) {
-    log("pending update, wait until later");
+    
+    log("pending update, queued request until later");
   }
 }
 
@@ -374,19 +378,23 @@ PROT_ListManager.prototype.updateSuccess_ = function(tableList, updateUrl,
                                                      waitForUpdate) {
   log("update success for " + tableList + " from " + updateUrl + ": " +
       waitForUpdate + "\n");
+  var delay;
   if (waitForUpdate) {
-    var delay = parseInt(waitForUpdate, 10);
-    
-    
-    
-    if (delay >= (5 * 60) && this.updateCheckers_[updateUrl]) {
-      log("Waiting " + delay);
-      this.updateCheckers_[updateUrl].setDelay(delay * 1000);
-    } else {
-      log("Ignoring delay from server, waiting " + this.updateInterval);
-      this.updateCheckers_[updateUrl].setDelay(this.updateInterval);
-    }
+    delay = parseInt(waitForUpdate, 10);
   }
+  
+  
+  
+  if (delay >= (5 * 60)) {
+    log("Waiting " + delay + " seconds");
+    delay = delay * 1000;
+  } else {
+    log("Ignoring delay from server, waiting " + this.updateInterval / 1000);
+    delay = this.updateInterval;
+  }
+  this.updateCheckers_[updateUrl] =
+    new G_Alarm(BindToObject(this.checkForUpdates, this, updateUrl),
+                delay, false);
 
   
   this.requestBackoffs_[updateUrl].noteServerResponse(200);
@@ -399,6 +407,10 @@ PROT_ListManager.prototype.updateSuccess_ = function(tableList, updateUrl,
 PROT_ListManager.prototype.updateError_ = function(table, updateUrl, result) {
   log("update error for " + table + " from " + updateUrl + ": " + result + "\n");
   
+  
+  this.updateCheckers_[updateUrl] =
+    new G_Alarm(BindToObject(this.checkForUpdates, this, updateUrl),
+                this.updateInterval, false);
 }
 
 
@@ -414,11 +426,17 @@ PROT_ListManager.prototype.downloadError_ = function(table, updateUrl, status) {
   }
   status = parseInt(status, 10);
   this.requestBackoffs_[updateUrl].noteServerResponse(status);
+  var delay = this.updateInterval;
   if (this.requestBackoffs_[updateUrl].isErrorStatus(status)) {
     
-    this.updateCheckers_[updateUrl].setDelay(
-      this.requestBackoffs_[updateUrl].nextRequestDelay());
+    delay = this.requestBackoffs_[updateUrl].nextRequestDelay();
+  } else {
+    log("Got non error status for error callback?!");
   }
+  this.updateCheckers_[updateUrl] =
+    new G_Alarm(BindToObject(this.checkForUpdates, this, updateUrl),
+                delay, false);
+
 }
 
 PROT_ListManager.prototype.QueryInterface = function(iid) {

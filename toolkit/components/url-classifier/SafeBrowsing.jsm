@@ -35,7 +35,8 @@ function log(...stuff) {
   if (!debug)
     return;
 
-  let msg = "SafeBrowsing: " + stuff.join(" ");
+  var d = new Date();
+  let msg = "SafeBrowsing: " + d.toTimeString() + ": " + stuff.join(" ");
   Services.console.logStringMessage(msg);
   dump(msg + "\n");
 }
@@ -49,6 +50,7 @@ this.SafeBrowsing = {
     }
 
     Services.prefs.addObserver("browser.safebrowsing", this.readPrefs.bind(this), false);
+    Services.prefs.addObserver("privacy.trackingprotection", this.readPrefs.bind(this), false);
     this.readPrefs();
 
     
@@ -112,8 +114,9 @@ this.SafeBrowsing = {
     
     
     
-    if (this.initialized)
+    if (this.initialized) {
       this.controlUpdateChecking();
+    }
   },
 
 
@@ -148,7 +151,8 @@ this.SafeBrowsing = {
   },
 
   controlUpdateChecking: function() {
-    log("phishingEnabled:", this.phishingEnabled, "malwareEnabled:", this.malwareEnabled);
+    log("phishingEnabled:", this.phishingEnabled, "malwareEnabled:",
+        this.malwareEnabled, "trackingEnabled:", this.trackingEnabled);
 
     let listManager = Cc["@mozilla.org/url-classifier/listmanager;1"].
                       getService(Ci.nsIUrlListManager);
@@ -188,6 +192,7 @@ this.SafeBrowsing = {
         listManager.disableUpdate(trackingProtectionLists[i]);
       }
     }
+    listManager.maybeToggleUpdateChecking();
   },
 
 
