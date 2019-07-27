@@ -11,41 +11,51 @@
 #include "nsIDOMNode.h"
 #include "nsTArray.h"
 
+class nsINodeList;
 class inIDOMUtils;
-
-
-
-struct DeepTreeStackItem
-{
-  nsCOMPtr<nsIDOMNode> node;
-  nsCOMPtr<nsIDOMNodeList> kids;
-  uint32_t lastIndex; 
-                      
-};
-
-
 
 class inDeepTreeWalker : public inIDeepTreeWalker
 {
 public:
-	NS_DECL_ISUPPORTS
-	NS_DECL_INIDEEPTREEWALKER
+  NS_DECL_ISUPPORTS
+  NS_DECL_INIDEEPTREEWALKER
 
   inDeepTreeWalker();
 
+  nsresult SetCurrentNode(nsIDOMNode* aCurrentNode,
+                          nsINodeList* aSiblings);
 protected:
   virtual ~inDeepTreeWalker();
 
-  void PushNode(nsIDOMNode* aNode);
+  already_AddRefed<nsIDOMNode> GetParent();
+  nsresult EdgeChild(nsIDOMNode** _retval, bool aReverse);
 
   bool mShowAnonymousContent;
   bool mShowSubDocuments;
+  bool mShowDocumentsAsNodes;
+
+  
+  
   nsCOMPtr<nsIDOMNode> mRoot;
   nsCOMPtr<nsIDOMNode> mCurrentNode;
-  uint32_t mWhatToShow;
-  
-  nsAutoTArray<DeepTreeStackItem, 8> mStack;
   nsCOMPtr<inIDOMUtils> mDOMUtils;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsINodeList> mSiblings;
+
+  
+  int32_t mCurrentIndex;
+
+  
+  uint32_t mWhatToShow;
 };
 
 
