@@ -166,7 +166,6 @@ loop.shared.router = (function(l10n) {
 
 
     _onSessionEnded: function() {
-      this._notifier.warnL10n("call_has_ended");
       this.endCall();
     },
 
