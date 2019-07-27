@@ -2840,6 +2840,8 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       }
     }
 
+    uint32_t equalStructs = 0;
+
     if (copyFromContinuation) {
       
       
@@ -2847,7 +2849,6 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       
       
       if (result == eRestyleResult_Stop) {
-        uint32_t equalStructs;
         oldContext->CalcStyleDifference(newContext, nsChangeHint(0),
                                         &equalStructs);
         if (equalStructs != NS_STYLE_INHERIT_MASK) {
@@ -2860,7 +2861,6 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       RestyleManager::TryStartingTransition(mPresContext, aSelf->GetContent(),
                                             oldContext, &newContext);
 
-      uint32_t equalStructs;
       CaptureChange(oldContext, newContext, assumeDifferenceHint,
                     &equalStructs);
       if (equalStructs != NS_STYLE_INHERIT_MASK) {
@@ -2871,6 +2871,10 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
     }
 
     if (result == eRestyleResult_Stop) {
+      
+      
+      
+      
       
       
       
@@ -2906,6 +2910,9 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint)
       
 
       if (result != eRestyleResult_Stop) {
+        if (!oldContext->IsShared() && !newContext->IsShared()) {
+          oldContext->SwapStyleData(newContext, equalStructs);
+        }
         aSelf->SetStyleContext(newContext);
       }
     }
