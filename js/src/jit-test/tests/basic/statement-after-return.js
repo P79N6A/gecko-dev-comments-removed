@@ -1,6 +1,5 @@
 
 
-
 load(libdir + "class.js");
 
 if (options().indexOf("werror") == -1)
@@ -12,7 +11,7 @@ function testWarn(code, lineNumber, columnNumber) {
     eval(code);
   } catch (e) {
     caught = true;
-    assertEq(e.message, "unreachable expression after semicolon-less return statement", code);
+    assertEq(e.constructor, SyntaxError);
     assertEq(e.lineNumber, lineNumber);
     assertEq(e.columnNumber, columnNumber);
   }
@@ -23,7 +22,7 @@ function testWarn(code, lineNumber, columnNumber) {
     Reflect.parse(code);
   } catch (e) {
     caught = true;
-    assertEq(e.message, "unreachable expression after semicolon-less return statement", code);
+    assertEq(e.constructor, SyntaxError);
   }
   assertEq(caught, true, "warning should be caught for " + code);
 }
@@ -46,8 +45,6 @@ function testPass(code) {
   assertEq(caught, false, "warning should not be caught for " + code);
 }
 
-
-
 testPass(`
 function f() {
   return (
@@ -55,14 +52,6 @@ function f() {
   );
 }
 `);
-testPass(`
-function f() {
-  return;
-  1 + 2;
-}
-`);
-
-
 
 
 testWarn(`
@@ -72,8 +61,6 @@ function f() {
     ++i;
 }
 `, 5, 4);
-
-
 testWarn(`
 function f() {
   var i = 0;
@@ -166,8 +153,6 @@ function f() {
     \`foo\${1 + 2}\`;
 }
 `, 4, 4);
-
-
 testWarn(`
 function f() {
   return
@@ -190,8 +175,6 @@ function f() {
     true;
 }
 `, 4, 4);
-
-
 testWarn(`
 function f() {
   return
@@ -257,32 +240,24 @@ function f() {
     +1;
 }
 `, 4, 4);
-
-
 testWarn(`
 function f() {
   return
     -1;
 }
 `, 4, 4);
-
-
 testWarn(`
 function f() {
   return
     !1;
 }
 `, 4, 4);
-
-
 testWarn(`
 function f() {
   return
     ~1;
 }
 `, 4, 4);
-
-
 
 
 testPass(`
@@ -316,13 +291,13 @@ function f() {
 `);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   if (true)
     1 + 2;
 }
-`);
+`, 4, 2);
 
 
 testPass(`
@@ -335,11 +310,34 @@ function f() {
 `);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   switch (1) {
     case 1:
+      break;
+  }
+}
+`, 4, 2);
+
+
+testWarn(`
+function f() {
+  switch (1) {
+    case 1:
+      return;
+      1 + 2;
+      break;
+  }
+}
+`, 6, 6);
+
+
+testPass(`
+function f() {
+  switch (1) {
+    case 1:
+      return;
       break;
   }
 }
@@ -370,13 +368,13 @@ function f() {
 `);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   while (false)
     1 + 2;
 }
-`);
+`, 4, 2);
 testPass(`
 function f() {
   do
@@ -386,24 +384,24 @@ function f() {
 `);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   do {
     1 + 2;
   } while (false);
 }
-`);
+`, 4, 2);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   for (;;) {
     break;
   }
 }
-`);
+`, 4, 2);
 
 
 testPass(`
@@ -413,17 +411,17 @@ function f() {
     break;
   }
 }
-`);
+`, 5, 4);
 
 
-testPass(`
+testWarn(`
 function f() {
   for (;;) {
     return
     continue;
   }
 }
-`);
+`, 5, 4);
 
 
 testPass(`
@@ -434,40 +432,40 @@ function f() {
 `);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   const a = 1;
 }
-`);
+`, 4, 2);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   with ({}) {
     1;
   }
 }
-`);
+`, 4, 2);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   return;
 }
-`);
+`, 4, 2);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   try {
   } catch (e) {
   }
 }
-`);
+`, 4, 2);
 
 
 testPass(`
@@ -478,28 +476,36 @@ function f() {
 `);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   debugger;
 }
-`);
+`, 4, 2);
 
 
-testPass(`
+testWarn(`
 function f() {
   return
   let a = 1;
 }
-`);
-
-
+`, 4, 2);
 
 
 
 testWarn(`
 function f() {
   return
-  a: 1;
+  var a = 0;
+  (1 + 2);
 }
-`, 4, 2);
+`, 5, 2);
+
+testWarn(`
+function f() {
+  return
+  function f() {}
+  var a = 0;
+  (1 + 2);
+}
+`, 6, 2);
