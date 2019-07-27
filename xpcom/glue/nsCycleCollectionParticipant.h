@@ -825,6 +825,10 @@ static NS_CYCLE_COLLECTION_INNERCLASS NS_CYCLE_COLLECTION_INNERNAME;
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(__VA_ARGS__)                               \
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
+
+
+
+
 #define NS_IMPL_CYCLE_COLLECTION_INHERITED(_class, _base, ...)                 \
   NS_IMPL_CYCLE_COLLECTION_CLASS(_class)                                       \
   NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(_class, _base)               \
