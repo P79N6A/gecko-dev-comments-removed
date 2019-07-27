@@ -430,6 +430,7 @@ var gSeekTests = [
   { name:"seek.ogv", type:"video/ogg", duration:3.966 },
   { name:"320x240.ogv", type:"video/ogg", duration:0.266 },
   { name:"seek.webm", type:"video/webm", duration:3.966 },
+  { name:"sine.webm", type:"audio/webm", duration:4.001 },
   { name:"bug516323.indexed.ogv", type:"video/ogg", duration:4.208333 },
   { name:"split.webm", type:"video/webm", duration:1.967 },
   { name:"detodos.opus", type:"audio/ogg; codecs=opus", duration:2.9135 },
@@ -717,8 +718,6 @@ function removeNodeAndSource(n) {
     n.removeChild(n.firstChild);
   }
 }
-
-
 
 
 var PARALLEL_TESTS = 2;
