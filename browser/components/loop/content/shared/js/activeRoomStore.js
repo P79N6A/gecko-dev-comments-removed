@@ -435,8 +435,8 @@ loop.store.ActiveRoomStore = (function() {
       
       
       
-      loop.shared.utils.hasAudioOrVideoDevices(function(hasAudio) {
-        if (hasAudio) {
+      loop.shared.utils.hasAudioOrVideoDevices(function(hasDevices) {
+        if (hasDevices) {
           
           
           this.setStoreState({roomState: ROOM_STATES.MEDIA_WAIT});
