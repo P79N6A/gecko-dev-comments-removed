@@ -28,6 +28,8 @@
 #include "mozilla/net/ChannelDiverterChild.h"
 #include "mozilla/net/DNS.h"
 #include "SerializedLoadContext.h"
+#include "nsInputStreamPump.h"
+#include "InterceptedChannel.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -321,7 +323,16 @@ HttpChannelChild::OnStartRequest(const nsresult& channelStatus,
 
   mTracingEnabled = false;
 
-  nsresult rv = mListener->OnStartRequest(this, mListenerContext);
+  DoOnStartRequest(this, mListenerContext);
+
+  mSelfAddr = selfAddr;
+  mPeerAddr = peerAddr;
+}
+
+void
+HttpChannelChild::DoOnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
+{
+  nsresult rv = mListener->OnStartRequest(aRequest, aContext);
   if (NS_FAILED(rv)) {
     Cancel(rv);
     return;
@@ -329,9 +340,6 @@ HttpChannelChild::OnStartRequest(const nsresult& channelStatus,
 
   if (mResponseHead)
     SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
-
-  mSelfAddr = selfAddr;
-  mPeerAddr = peerAddr;
 
   if (mDivertingToParent) {
     mListener = nullptr;
@@ -443,40 +451,11 @@ HttpChannelChild::OnTransportAndData(const nsresult& channelStatus,
     return;
 
   
-  if (!mProgressSink) {
-    GetCallback(mProgressSink);
-  }
-
-  
   
   AutoEventEnqueuer ensureSerialDispatch(mEventQ);
 
-  
-  
-  
-  
-  
-  
-  
-  if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending &&
-      !(mLoadFlags & LOAD_BACKGROUND))
-  {
-    
-    
-    MOZ_ASSERT(transportStatus == NS_NET_STATUS_RECEIVING_FROM ||
-               transportStatus == NS_NET_STATUS_READING);
-
-    nsAutoCString host;
-    mURI->GetHost(host);
-    mProgressSink->OnStatus(this, nullptr, transportStatus,
-                            NS_ConvertUTF8toUTF16(host).get());
-    
-    
-    if (progress > 0) {
-      MOZ_ASSERT(progress <= progressMax, "unexpected progress values");
-      mProgressSink->OnProgress(this, nullptr, progress, progressMax);
-    }
-  }
+  DoOnStatus(this, transportStatus);
+  DoOnProgress(this, progress, progressMax);
 
   
   
@@ -493,9 +472,70 @@ HttpChannelChild::OnTransportAndData(const nsresult& channelStatus,
     return;
   }
 
-  rv = mListener->OnDataAvailable(this, mListenerContext,
-                                  stringStream, offset, count);
+  DoOnDataAvailable(this, mListenerContext, stringStream, offset, count);
   stringStream->Close();
+}
+
+void
+HttpChannelChild::DoOnStatus(nsIRequest* aRequest, nsresult status)
+{
+  if (mCanceled)
+    return;
+
+  
+  if (!mProgressSink)
+    GetCallback(mProgressSink);
+
+  
+  
+  if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending &&
+      !(mLoadFlags & LOAD_BACKGROUND))
+  {
+    
+    
+    MOZ_ASSERT(status == NS_NET_STATUS_RECEIVING_FROM ||
+               status == NS_NET_STATUS_READING);
+
+    nsAutoCString host;
+    mURI->GetHost(host);
+    mProgressSink->OnStatus(aRequest, nullptr, status,
+                            NS_ConvertUTF8toUTF16(host).get());
+  }
+}
+
+void
+HttpChannelChild::DoOnProgress(nsIRequest* aRequest, uint64_t progress, uint64_t progressMax)
+{
+  if (mCanceled)
+    return;
+
+  
+  if (!mProgressSink)
+    GetCallback(mProgressSink);
+
+  
+  
+  if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending &&
+      !(mLoadFlags & LOAD_BACKGROUND))
+  {
+    
+    
+    if (progress > 0) {
+      MOZ_ASSERT(progress <= progressMax, "unexpected progress values");
+      mProgressSink->OnProgress(aRequest, nullptr, progress, progressMax);
+    }
+  }
+}
+
+void
+HttpChannelChild::DoOnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
+                                    nsIInputStream* aStream,
+                                    uint64_t offset, uint32_t count)
+{
+  if (mCanceled)
+    return;
+
+  nsresult rv = mListener->OnDataAvailable(aRequest, aContext, aStream, offset, count);
   if (NS_FAILED(rv)) {
     Cancel(rv);
   }
@@ -545,24 +585,14 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus)
     return;
   }
 
-  mIsPending = false;
-
-  if (!mCanceled && NS_SUCCEEDED(mStatus)) {
-    mStatus = channelStatus;
-  }
+  DoPreOnStopRequest(channelStatus);
 
   { 
     
     
     AutoEventEnqueuer ensureSerialDispatch(mEventQ);
 
-    mListener->OnStopRequest(this, mListenerContext, mStatus);
-
-    mListener = 0;
-    mListenerContext = 0;
-    mCacheEntryAvailable = false;
-    if (mLoadGroup)
-      mLoadGroup->RemoveRequest(this, nullptr, mStatus);
+    DoOnStopRequest(this, mListenerContext);
   }
 
   if (mLoadFlags & LOAD_DOCUMENT_URI) {
@@ -574,6 +604,30 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus)
     
     PHttpChannelChild::Send__delete__(this);
   }
+}
+
+void
+HttpChannelChild::DoPreOnStopRequest(nsresult aStatus)
+{
+  mIsPending = false;
+
+  if (!mCanceled && NS_SUCCEEDED(mStatus)) {
+    mStatus = aStatus;
+  }
+}
+
+void
+HttpChannelChild::DoOnStopRequest(nsIRequest* aRequest, nsISupports* aContext)
+{
+  MOZ_ASSERT(!mIsPending);
+
+  mListener->OnStopRequest(aRequest, aContext, mStatus);
+
+  mListener = 0;
+  mListenerContext = 0;
+  mCacheEntryAvailable = false;
+  if (mLoadGroup)
+    mLoadGroup->RemoveRequest(this, nullptr, mStatus);
 }
 
 class ProgressEvent : public ChannelEvent
@@ -1103,14 +1157,19 @@ HttpChannelChild::Cancel(nsresult status)
 NS_IMETHODIMP
 HttpChannelChild::Suspend()
 {
-  NS_ENSURE_TRUE(RemoteChannelExists(), NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(RemoteChannelExists() || mInterceptListener, NS_ERROR_NOT_AVAILABLE);
 
   
   
   
   if (!mSuspendCount++ && !mDivertingToParent) {
-    SendSuspend();
-    mSuspendSent = true;
+    if (RemoteChannelExists()) {
+      SendSuspend();
+      mSuspendSent = true;
+    }
+  }
+  if (mSynthesizedResponsePump) {
+    mSynthesizedResponsePump->Suspend();
   }
   mEventQ->Suspend();
 
@@ -1120,7 +1179,7 @@ HttpChannelChild::Suspend()
 NS_IMETHODIMP
 HttpChannelChild::Resume()
 {
-  NS_ENSURE_TRUE(RemoteChannelExists(), NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(RemoteChannelExists() || mInterceptListener, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
 
   nsresult rv = NS_OK;
@@ -1130,11 +1189,16 @@ HttpChannelChild::Resume()
   
   
   if (!--mSuspendCount && (!mDivertingToParent || mSuspendSent)) {
-    SendResume();
+    if (RemoteChannelExists()) {
+      SendResume();
+    }
     if (mCallOnResume) {
       AsyncCall(mCallOnResume);
       mCallOnResume = nullptr;
     }
+  }
+  if (mSynthesizedResponsePump) {
+    mSynthesizedResponsePump->Resume();
   }
   mEventQ->Resume();
 
@@ -1174,6 +1238,90 @@ HttpChannelChild::GetSecurityInfo(nsISupports **aSecurityInfo)
 {
   NS_ENSURE_ARG_POINTER(aSecurityInfo);
   NS_IF_ADDREF(*aSecurityInfo = mSecurityInfo);
+  return NS_OK;
+}
+
+
+
+
+class InterceptStreamListener : public nsIStreamListener
+                              , public nsIProgressEventSink
+{
+  nsRefPtr<HttpChannelChild> mOwner;
+  nsCOMPtr<nsISupports> mContext;
+  virtual ~InterceptStreamListener() {}
+public:
+  InterceptStreamListener(HttpChannelChild* aOwner, nsISupports* aContext)
+  : mOwner(aOwner)
+  , mContext(aContext)
+  {
+  }
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSIPROGRESSEVENTSINK
+};
+
+NS_IMPL_ISUPPORTS(InterceptStreamListener,
+                  nsIStreamListener,
+                  nsIRequestObserver,
+                  nsIProgressEventSink)
+
+NS_IMETHODIMP
+InterceptStreamListener::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
+{
+  mOwner->DoOnStartRequest(mOwner, mContext);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+InterceptStreamListener::OnStatus(nsIRequest* aRequest, nsISupports* aContext,
+                                  nsresult status, const char16_t* aStatusArg)
+{
+  mOwner->DoOnStatus(mOwner, status);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+InterceptStreamListener::OnProgress(nsIRequest* aRequest, nsISupports* aContext,
+                                    uint64_t aProgress, uint64_t aProgressMax)
+{
+  mOwner->DoOnProgress(mOwner, aProgress, aProgressMax);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+InterceptStreamListener::OnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
+                                         nsIInputStream* aInputStream, uint64_t aOffset,
+                                         uint32_t aCount)
+{
+  uint32_t loadFlags;
+  mOwner->GetLoadFlags(&loadFlags);
+
+  if (!(loadFlags & HttpBaseChannel::LOAD_BACKGROUND)) {
+    nsCOMPtr<nsIURI> uri;
+    mOwner->GetURI(getter_AddRefs(uri));
+
+    nsAutoCString host;
+    uri->GetHost(host);
+
+    OnStatus(mOwner, aContext, NS_NET_STATUS_READING, NS_ConvertUTF8toUTF16(host).get());
+
+    uint64_t progressMax(uint64_t(mOwner->GetResponseHead()->ContentLength()));
+    uint64_t progress = aOffset + uint64_t(aCount);
+    OnProgress(mOwner, aContext, progress, progressMax);
+  }
+
+  mOwner->DoOnDataAvailable(mOwner, mContext, aInputStream, aOffset, aCount);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+InterceptStreamListener::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext, nsresult aStatusCode)
+{
+  mOwner->DoPreOnStopRequest(aStatusCode);
+  mOwner->DoOnStopRequest(mOwner, mContext);
   return NS_OK;
 }
 
@@ -1234,6 +1382,24 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     return NS_OK;
   }
 
+  if (ShouldIntercept()) {
+    nsCOMPtr<nsINetworkInterceptController> controller;
+    GetCallback(controller);
+
+    mInterceptListener = new InterceptStreamListener(this, mListenerContext);
+
+    nsRefPtr<InterceptedChannelContent> intercepted =
+        new InterceptedChannelContent(this, controller, mInterceptListener);
+    intercepted->NotifyController();
+    return NS_OK;
+  }
+
+  return ContinueAsyncOpen();
+}
+
+nsresult
+HttpChannelChild::ContinueAsyncOpen()
+{
   nsCString appCacheClientId;
   if (mInheritApplicationCache) {
     
@@ -1243,7 +1409,7 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
 
     if (appCacheContainer) {
       nsCOMPtr<nsIApplicationCache> appCache;
-      rv = appCacheContainer->GetApplicationCache(getter_AddRefs(appCache));
+      nsresult rv = appCacheContainer->GetApplicationCache(getter_AddRefs(appCache));
       if (NS_SUCCEEDED(rv) && appCache) {
         appCache->GetClientID(appCacheClientId);
       }
@@ -1707,6 +1873,31 @@ HttpChannelChild::DivertToParent(ChannelDiverterChild **aChild)
   *aChild = static_cast<ChannelDiverterChild*>(diverter);
 
   return NS_OK;
+}
+
+void
+HttpChannelChild::ResetInterception()
+{
+  mInterceptListener = nullptr;
+
+  
+  nsresult rv = ContinueAsyncOpen();
+  NS_ENSURE_SUCCESS_VOID(rv);
+}
+
+void
+HttpChannelChild::OverrideWithSynthesizedResponse(nsHttpResponseHead* aResponseHead,
+                                                  nsInputStreamPump* aPump)
+{
+  mSynthesizedResponsePump = aPump;
+  mResponseHead = aResponseHead;
+
+  
+  
+  for (uint32_t i = 0; i < mSuspendCount; i++) {
+    nsresult rv = mSynthesizedResponsePump->Suspend();
+    NS_ENSURE_SUCCESS_VOID(rv);
+  }
 }
 
 }} 

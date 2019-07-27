@@ -14,6 +14,7 @@
 #include "nsISocketTransport.h"
 #include "nsITimer.h"
 #include "NullHttpTransaction.h"
+#include "mozilla/TimeStamp.h"
 
 
 
