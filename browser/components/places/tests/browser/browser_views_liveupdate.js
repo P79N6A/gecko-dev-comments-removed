@@ -37,7 +37,7 @@ function openBookmarksSidebar() {
     
     executeSoon(startTest);
   }, true);
-  toggleSidebar("viewBookmarksSidebar", true);
+  SidebarUI.show("viewBookmarksSidebar");
 }
 
 
@@ -171,7 +171,7 @@ function startTest() {
 
 function finishTest() {
   
-  toggleSidebar("viewBookmarksSidebar", false);
+  SidebarUI.hide();
 
   
   if (wasCollapsed) {
