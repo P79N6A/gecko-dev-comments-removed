@@ -655,7 +655,9 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
   rv = NS_NewPipe(getter_AddRefs(pipeInputStream),
                   getter_AddRefs(mPipeOutputStream),
                   0, 
-                  UINT32_MAX );
+                  UINT32_MAX ,
+                  true ,
+                  false  );
   if (NS_WARN_IF(NS_FAILED(rv))) {
     FailWithNetworkError();
     
