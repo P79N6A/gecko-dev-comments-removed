@@ -9,11 +9,11 @@
 #include <stddef.h>                     
 #include <stdint.h>                     
 #include "CompositableTransactionParent.h"
-#include "CompositorParent.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/ipc/SharedMemory.h"   
+#include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/PImageBridgeParent.h"
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"

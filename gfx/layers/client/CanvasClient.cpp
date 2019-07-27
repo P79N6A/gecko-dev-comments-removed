@@ -6,7 +6,6 @@
 #include "CanvasClient.h"
 
 #include "ClientCanvasLayer.h"          
-#include "CompositorChild.h"            
 #include "GLContext.h"                  
 #include "GLScreenBuffer.h"             
 #include "ScopedGLHelpers.h"
@@ -15,6 +14,7 @@
 #include "GLReadTexImageHelper.h"
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/CompositorChild.h" 
 #include "mozilla/layers/GrallocTextureClient.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/TextureClient.h"  

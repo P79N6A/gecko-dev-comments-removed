@@ -4,7 +4,7 @@
 
 
 
-#include "CompositorChild.h"
+#include "mozilla/layers/CompositorChild.h"
 #include <stddef.h>                     
 #include "ClientLayerManager.h"         
 #include "base/message_loop.h"          

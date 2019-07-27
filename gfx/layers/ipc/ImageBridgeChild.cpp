@@ -5,7 +5,6 @@
 
 #include "ImageBridgeChild.h"
 #include <vector>                       
-#include "CompositorParent.h"           
 #include "ImageBridgeParent.h"          
 #include "ImageContainer.h"             
 #include "Layers.h"                     
@@ -24,6 +23,7 @@
 #include "mozilla/ipc/Transport.h"      
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/CompositableClient.h"  
+#include "mozilla/layers/CompositorParent.h" 
 #include "mozilla/layers/ISurfaceAllocator.h"  
 #include "mozilla/layers/ImageClient.h"  
 #include "mozilla/layers/LayersMessages.h"  

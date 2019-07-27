@@ -17,7 +17,6 @@
 
 #include <stdint.h>                     
 #include "Layers.h"                     
-#include "ShadowLayersManager.h"        
 #include "base/basictypes.h"            
 #include "base/platform_thread.h"       
 #include "base/thread.h"                
@@ -30,6 +29,7 @@
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/PCompositorParent.h"
+#include "mozilla/layers/ShadowLayersManager.h" 
 #include "mozilla/layers/APZTestData.h"
 #include "nsAutoPtr.h"                  
 #include "nsISupportsImpl.h"

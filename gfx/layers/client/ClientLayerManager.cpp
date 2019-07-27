@@ -4,7 +4,6 @@
 
 
 #include "ClientLayerManager.h"
-#include "CompositorChild.h"            
 #include "GeckoProfiler.h"              
 #include "gfxPrefs.h"                   
 #include "mozilla/Assertions.h"         
@@ -13,6 +12,7 @@
 #include "mozilla/dom/TabChild.h"       
 #include "mozilla/hal_sandbox/PHal.h"   
 #include "mozilla/layers/CompositableClient.h"
+#include "mozilla/layers/CompositorChild.h" 
 #include "mozilla/layers/ContentClient.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/LayersMessages.h"  

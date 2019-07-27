@@ -4,7 +4,7 @@
 
 
 
-#include "CompositorParent.h"
+#include "mozilla/layers/CompositorParent.h"
 #include <stdio.h>                      
 #include <stdint.h>                     
 #include <map>                          
@@ -23,7 +23,6 @@
 #include "gfxPlatformGtk.h"             
 #endif
 #include "gfxPrefs.h"                   
-#include "ipc/ShadowLayersManager.h"    
 #include "mozilla/AutoRestore.h"        
 #include "mozilla/DebugOnly.h"          
 #include "mozilla/gfx/2D.h"          
@@ -38,6 +37,7 @@
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/PLayerTransactionParent.h"
+#include "mozilla/layers/ShadowLayersManager.h" 
 #include "mozilla/mozalloc.h"           
 #ifdef MOZ_WIDGET_GTK
 #include "basic/X11BasicCompositor.h" 
