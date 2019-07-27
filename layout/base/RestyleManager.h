@@ -474,8 +474,7 @@ private:
 
   RestyleResult RestyleSelf(nsIFrame* aSelf,
                             nsRestyleHint aRestyleHint,
-                            uint32_t* aSwappedStructs,
-                            nsIFrame** aProviderFrame);
+                            uint32_t* aSwappedStructs);
 
   
 
