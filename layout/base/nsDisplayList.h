@@ -2583,6 +2583,11 @@ public:
   
   void AddFrame(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame);
 
+  
+  
+  
+  void AddInactiveScrollPort(const nsRect& aRect);
+
   const nsRegion& HitRegion() { return mHitRegion; }
   const nsRegion& MaybeHitRegion() { return mMaybeHitRegion; }
   const nsRegion& DispatchToContentHitRegion() { return mDispatchToContentHitRegion; }

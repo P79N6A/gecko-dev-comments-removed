@@ -402,19 +402,6 @@ APZCTreeManager::PrepareAPZCForLayer(const LayerMetricsWrapper& aLayer,
   return apzc;
 }
 
-static EventRegions
-EventRegionsFor(const LayerMetricsWrapper& aLayer)
-{
-  
-  
-  if (aLayer.IsScrollInfoLayer()) {
-    EventRegions regions(ParentLayerIntRect::ToUntyped(RoundedIn(aLayer.Metrics().mCompositionBounds)));
-    regions.mDispatchToContentHitRegion = regions.mHitRegion;
-    return regions;
-  }
-  return aLayer.GetEventRegions();
-}
-
 AsyncPanZoomController*
 APZCTreeManager::UpdatePanZoomControllerTree(TreeBuildingState& aState,
                                              const LayerMetricsWrapper& aLayer,
@@ -497,7 +484,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(TreeBuildingState& aState,
     
     nsIntRegion childRegion;
     if (gfxPrefs::LayoutEventRegionsEnabled()) {
-      childRegion = EventRegionsFor(child).mHitRegion;
+      childRegion = child.GetEventRegions().mHitRegion;
     } else {
       childRegion = child.GetVisibleRegion();
     }
@@ -531,7 +518,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(TreeBuildingState& aState,
     
 
     EventRegions unobscured;
-    unobscured.Sub(EventRegionsFor(aLayer), obscured);
+    unobscured.Sub(aLayer.GetEventRegions(), obscured);
     APZCTM_LOG("Picking up unobscured hit region %s from layer %p\n", Stringify(unobscured).c_str(), aLayer.GetLayer());
 
     
