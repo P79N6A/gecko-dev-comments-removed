@@ -146,7 +146,10 @@ function summarizeObject(obj) {
   return obj;
 }
 
-let Scheduler = {
+
+
+
+let Scheduler = this.Scheduler = {
 
   
 
@@ -268,36 +271,39 @@ let Scheduler = {
     
     
     let killQueue = this._killQueue;
+
+    
+    
+    
+    
+    let deferred = Promise.defer();
+    let savedQueue = this.queue;
+    this.queue = deferred.promise;
+
     return this._killQueue = Task.spawn(function*() {
 
       yield killQueue;
       
       
 
-      yield this.queue;
-
-      
-      
-      
-
-      if (!this.launched || this.shutdown || !this._worker) {
-        
-        this.shutdown = this.shutdown || shutdown;
-        this._worker = null;
-        return null;
-      }
-
-      
-      
-      let deferred = Promise.defer();
-      this.queue = deferred.promise;
-
-
-      
-
-      let message = ["Meta_shutdown", [reset]];
+      yield savedQueue;
 
       try {
+        
+        
+        
+
+        if (!this.launched || this.shutdown || !this._worker) {
+          
+          this.shutdown = this.shutdown || shutdown;
+          this._worker = null;
+          return null;
+        }
+
+        
+
+        let message = ["Meta_shutdown", [reset]];
+
         Scheduler.latestReceived = [];
         Scheduler.latestSent = [Date.now(), ...message];
 
