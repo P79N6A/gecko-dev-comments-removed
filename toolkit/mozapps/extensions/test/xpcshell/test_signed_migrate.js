@@ -3,6 +3,8 @@ Services.prefs.setBoolPref(PREF_XPI_SIGNATURES_REQUIRED, true);
 
 Services.prefs.setBoolPref(PREF_EM_CHECK_UPDATE_SECURITY, false);
 
+Services.prefs.setBoolPref("extensions.showMismatchUI", true);
+
 const DATA = "data/signing_checks/";
 const ADDONS = {
   bootstrap: {
@@ -20,6 +22,26 @@ const ID = "test@tests.mozilla.org";
 
 const profileDir = gProfD.clone();
 profileDir.append("extensions");
+
+
+var WindowWatcher = {
+  sawAddon: false,
+
+  openWindow: function(parent, url, name, features, arguments) {
+    let ids = arguments.QueryInterface(AM_Ci.nsIVariant);
+    this.sawAddon = ids.indexOf(ID) >= 0;
+  },
+
+  QueryInterface: function(iid) {
+    if (iid.equals(AM_Ci.nsIWindowWatcher)
+        || iid.equals(AM_Ci.nsISupports))
+      return this;
+
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  }
+}
+
+MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1", WindowWatcher);
 
 function resetPrefs() {
   Services.prefs.setIntPref("bootstraptest.active_version", -1);
@@ -101,6 +123,10 @@ function* test_breaking_migrate(addons, test, expectedSignedState) {
   do_check_eq(changes.length, 1);
   do_check_eq(changes[0], ID);
 
+  
+  do_check_false(WindowWatcher.sawAddon);
+  WindowWatcher.sawAddon = false;
+
   addon.uninstall();
   
   yield promiseRestartManager();
@@ -140,6 +166,10 @@ function* test_working_migrate(addons, test, expectedSignedState) {
     do_check_eq(getActiveVersion(), 2);
   else
     do_check_true(isExtensionInAddonsList(profileDir, ID));
+
+  
+  do_check_false(WindowWatcher.sawAddon);
+  WindowWatcher.sawAddon = false;
 
   addon.uninstall();
   
