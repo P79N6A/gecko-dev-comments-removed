@@ -12,7 +12,6 @@
 
 #include "jsfun.h"
 #include "jsscript.h"
-#include "jsutil.h"
 
 #include "asmjs/AsmJSFrameIterator.h"
 #include "jit/JitFrameIterator.h"
@@ -203,8 +202,6 @@ class AbstractFramePtr
     inline JSFunction* callee() const;
     inline Value calleev() const;
     inline Value& thisValue() const;
-
-    inline Value newTarget() const;
 
     inline bool isNonEvalFunctionFrame() const;
     inline bool isNonStrictDirectEvalFrame() const;
@@ -407,8 +404,7 @@ class InterpreterFrame
 
     
     void initExecuteFrame(JSContext* cx, HandleScript script, AbstractFramePtr prev,
-                          const Value& thisv, const Value& newTargetValue,
-                          HandleObject scopeChain, ExecuteType type);
+                          const Value& thisv, HandleObject scopeChain, ExecuteType type);
 
   public:
     
@@ -750,28 +746,6 @@ class InterpreterFrame
 
 
 
-    Value newTarget() const {
-        MOZ_ASSERT(isFunctionFrame());
-        if (isEvalFrame())
-            return ((Value*)this)[-3];
-
-        if (callee().isArrow())
-            return callee().getExtendedSlot(FunctionExtended::ARROW_NEWTARGET_SLOT);
-
-        if (isConstructing()) {
-            unsigned pushedArgs = Max(numFormalArgs(), numActualArgs());
-            return argv()[pushedArgs];
-        }
-        return UndefinedValue();
-    }
-
-    
-
-
-
-
-
-
     inline JSCompartment* compartment() const;
 
     
@@ -964,7 +938,7 @@ class InterpreterRegs
 
     void popInlineFrame() {
         pc = fp_->prevpc();
-        sp = fp_->prevsp() - fp_->numActualArgs() - 1 - fp_->isConstructing();
+        sp = fp_->prevsp() - fp_->numActualArgs() - 1;
         fp_ = fp_->prev();
         MOZ_ASSERT(fp_);
     }
@@ -1025,8 +999,8 @@ class InterpreterStack
 
     
     InterpreterFrame* pushExecuteFrame(JSContext* cx, HandleScript script, const Value& thisv,
-                                 const Value& newTargetValue, HandleObject scopeChain,
-                                 ExecuteType type, AbstractFramePtr evalInFrame);
+                                 HandleObject scopeChain, ExecuteType type,
+                                 AbstractFramePtr evalInFrame);
 
     
     InterpreterFrame* pushInvokeFrame(JSContext* cx, const CallArgs& args,
@@ -1041,7 +1015,7 @@ class InterpreterStack
 
     bool resumeGeneratorCallFrame(JSContext* cx, InterpreterRegs& regs,
                                   HandleFunction callee, HandleValue thisv,
-                                  HandleValue newTarget, HandleObject scopeChain);
+                                  HandleObject scopeChain);
 
     inline void purge(JSRuntime* rt);
 
@@ -1059,14 +1033,12 @@ class InvokeArgs : public JS::CallArgs
     AutoValueVector v_;
 
   public:
-    explicit InvokeArgs(JSContext* cx, bool construct = false) : v_(cx) {}
+    explicit InvokeArgs(JSContext* cx) : v_(cx) {}
 
-    bool init(unsigned argc, bool construct = false) {
-        if (!v_.resize(2 + argc + construct))
+    bool init(unsigned argc) {
+        if (!v_.resize(2 + argc))
             return false;
         ImplicitCast<CallArgs>(*this) = CallArgsFromVp(argc, v_.begin());
-        
-        constructing_ = construct;
         return true;
     }
 };
@@ -1249,7 +1221,7 @@ class InterpreterActivation : public Activation
     inline void popInlineFrame(InterpreterFrame* frame);
 
     inline bool resumeGeneratorFrame(HandleFunction callee, HandleValue thisv,
-                                     HandleValue newTarget, HandleObject scopeChain);
+                                     HandleObject scopeChain);
 
     InterpreterFrame* current() const {
         return regs_.fp();
@@ -1763,8 +1735,6 @@ class FrameIter
     
     Value       computedThisValue() const;
     Value       thisv(JSContext* cx) const;
-
-    Value       newTarget() const;
 
     Value       returnValue() const;
     void        setReturnValue(const Value& v);

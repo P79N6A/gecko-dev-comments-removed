@@ -268,9 +268,7 @@ namespace jit {
     _(UnknownValue)                                                         \
     _(LexicalCheck)                                                         \
     _(ThrowUninitializedLexical)                                            \
-    _(Debugger)                                                             \
-    _(NewTarget)                                                            \
-    _(ArrowNewTarget)
+    _(Debugger)
 
 
 #define FORWARD_DECLARE(op) class M##op;
