@@ -349,8 +349,7 @@ typedef void (*PLDHashClearEntry)(PLDHashTable* aTable,
 
 
 
-typedef bool (*PLDHashInitEntry)(PLDHashTable* aTable, PLDHashEntryHdr* aEntry,
-                                 const void* aKey);
+typedef void (*PLDHashInitEntry)(PLDHashEntryHdr* aEntry, const void* aKey);
 
 
 
