@@ -1480,7 +1480,10 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
   NS_UpdateHint(mRebuildAllExtraHint, aExtraHint);
   mRebuildAllRestyleHint |= aRestyleHint;
 
-  nsIPresShell* presShell = mPresContext->GetPresShell();
+  
+  
+  
+  nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
   if (!presShell || !presShell->GetRootFrame()) {
     mDoRebuildAllStyleData = false;
     return;
@@ -1488,10 +1491,6 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
 
   
   nsRefPtr<nsViewManager> vm = presShell->GetViewManager();
-
-  
-  
-  nsCOMPtr<nsIPresShell> kungFuDeathGrip(presShell);
 
   
   
