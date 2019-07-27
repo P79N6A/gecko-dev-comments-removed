@@ -246,35 +246,6 @@ Decoder::AllocateFrame()
 }
 
 void
-Decoder::FlushInvalidations()
-{
-  NS_ABORT_IF_FALSE(!HasDecoderError(),
-                    "Not allowed to make more decoder calls after error!");
-
-  
-  if (mInvalidRect.IsEmpty())
-    return;
-
-  if (mObserver) {
-#ifdef XP_MACOSX
-    
-    
-    
-    if (mImageMetadata.HasSize()) {
-      nsIntRect mImageBound(0, 0, mImageMetadata.GetWidth(), mImageMetadata.GetHeight());
-
-      mInvalidRect.Inflate(1);
-      mInvalidRect = mInvalidRect.Intersect(mImageBound);
-    }
-#endif
-    mObserver->FrameChanged(&mInvalidRect);
-  }
-
-  
-  mInvalidRect.SetEmpty();
-}
-
-void
 Decoder::SetSizeOnImage()
 {
   MOZ_ASSERT(mImageMetadata.HasSize(), "Should have size");
@@ -321,11 +292,6 @@ Decoder::PostFrameStart()
   NS_ABORT_IF_FALSE(!mInFrame, "Starting new frame but not done with old one!");
 
   
-  
-  NS_ABORT_IF_FALSE(mInvalidRect.IsEmpty(),
-                    "Start image frame with non-empty invalidation region!");
-
-  
   mFrameCount++;
   mInFrame = true;
 
@@ -334,11 +300,6 @@ Decoder::PostFrameStart()
   
   NS_ABORT_IF_FALSE(mFrameCount == mImage.GetNumFrames(),
                     "Decoder frame count doesn't match image's!");
-
-  
-  if (mObserver) {
-    mObserver->OnStartFrame();
-  }
 }
 
 void
@@ -362,9 +323,6 @@ Decoder::PostFrameStop(FrameBlender::FrameAlpha aFrameAlpha ,
   mCurrentFrame->SetRawTimeout(aTimeout);
   mCurrentFrame->SetBlendMethod(aBlendMethod);
   mCurrentFrame->ImageUpdated(mCurrentFrame->GetRect());
-
-  
-  FlushInvalidations();
 
   
   if (mObserver) {

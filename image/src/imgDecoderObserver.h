@@ -71,20 +71,6 @@ public:
 
 
 
-  virtual void OnStartFrame() = 0;
-
-  
-
-
-
-
-  virtual void FrameChanged(const nsIntRect * aDirtyRect) = 0;
-
-  
-
-
-
-
   virtual void OnStopFrame() = 0;
 
   

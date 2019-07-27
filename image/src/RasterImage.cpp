@@ -484,10 +484,10 @@ RasterImage::RequestRefresh(const TimeStamp& aTime)
 
     UpdateImageContainer();
 
-    
-    
-    if (mStatusTracker)
-      mStatusTracker->FrameChanged(&res.dirtyRect);
+    if (mStatusTracker) {
+      mStatusTracker->SyncNotifyDifference(ImageStatusDiff::NoChange(),
+                                           res.dirtyRect);
+    }
   }
 
   if (res.animationFinished) {
@@ -653,6 +653,17 @@ uint32_t
 RasterImage::GetRequestedFrameIndex(uint32_t aWhichFrame) const
 {
   return aWhichFrame == FRAME_FIRST ? 0 : GetCurrentFrameIndex();
+}
+
+nsIntRect
+RasterImage::GetFirstFrameRect()
+{
+  if (mAnim) {
+    return mAnim->GetFirstFrameRefreshArea();
+  }
+
+  
+  return nsIntRect(nsIntPoint(0,0), mSize);
 }
 
 
@@ -1457,7 +1468,7 @@ RasterImage::ResetAnimation()
   
   if (mStatusTracker) {
     nsIntRect rect = mAnim->GetFirstFrameRefreshArea();
-    mStatusTracker->FrameChanged(&rect);
+    mStatusTracker->SyncNotifyDifference(ImageStatusDiff::NoChange(), rect);
   }
 
   
@@ -1557,14 +1568,6 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   if (!StoringSourceData() && mHasSize) {
     rv = WriteToDecoder(aBuffer, aCount, DECODE_SYNC);
     CONTAINER_ENSURE_SUCCESS(rv);
-
-    
-    
-    
-    nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
-    mInDecoder = true;
-    mDecoder->FlushInvalidations();
-    mInDecoder = false;
 
     rv = FinishedSomeDecoding();
     CONTAINER_ENSURE_SUCCESS(rv);
@@ -2416,15 +2419,6 @@ RasterImage::SyncDecode()
                       DECODE_SYNC);
   CONTAINER_ENSURE_SUCCESS(rv);
 
-  
-  
-  
-  
-  nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
-  mInDecoder = true;
-  mDecoder->FlushInvalidations();
-  mInDecoder = false;
-
   rv = FinishedSomeDecoding();
   CONTAINER_ENSURE_SUCCESS(rv);
   
@@ -2498,9 +2492,8 @@ RasterImage::NotifyNewScaledFrame()
   if (mStatusTracker) {
     
     
-    
-    nsIntRect invalidationRect(0, 0, mSize.width, mSize.height);
-    mStatusTracker->FrameChanged(&invalidationRect);
+    nsIntRect rect(0, 0, mSize.width, mSize.height);
+    mStatusTracker->SyncNotifyDifference(ImageStatusDiff::NoChange(), rect);
   }
 }
 
@@ -3001,9 +2994,12 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
 
   bool done = false;
   bool wasSize = false;
+  nsIntRect invalidRect;
   nsresult rv = NS_OK;
 
   if (image->mDecoder) {
+    invalidRect = image->mDecoder->TakeInvalidRect();
+
     if (request && request->mChunkCount && !image->mDecoder->IsSizeDecode()) {
       Telemetry::Accumulate(Telemetry::IMAGE_DECODE_CHUNKS, request->mChunkCount);
     }
@@ -3046,6 +3042,17 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     }
   }
 
+  if (GetCurrentFrameIndex() > 0) {
+    
+    
+    invalidRect = nsIntRect();
+  }
+  if (mHasBeenDecoded && !invalidRect.IsEmpty()) {
+    
+    invalidRect = mDecoded ? GetFirstFrameRect()
+                           : nsIntRect();
+  }
+
   ImageStatusDiff diff =
     request ? image->mStatusTracker->Difference(request->mStatusTracker)
             : image->mStatusTracker->DecodeStateAsDifference();
@@ -3058,13 +3065,15 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     
     NS_WARNING("Recursively notifying in RasterImage::FinishedSomeDecoding!");
     mStatusDiff.Combine(diff);
+    mInvalidRect.Union(invalidRect);
   } else {
     MOZ_ASSERT(mStatusDiff.IsNoChange(), "Shouldn't have an accumulated change at this point");
+    MOZ_ASSERT(mInvalidRect.IsEmpty(), "Shouldn't have an accumulated invalidation rect here");
 
-    while (!diff.IsNoChange()) {
+    while (!diff.IsNoChange() || !invalidRect.IsEmpty()) {
       
       mNotifying = true;
-      image->mStatusTracker->SyncNotifyDifference(diff);
+      image->mStatusTracker->SyncNotifyDifference(diff, invalidRect);
       mNotifying = false;
 
       
@@ -3072,6 +3081,8 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
       
       diff = mStatusDiff;
       mStatusDiff = ImageStatusDiff::NoChange();
+      invalidRect = mInvalidRect;
+      mInvalidRect = nsIntRect();
     }
   }
 
@@ -3482,31 +3493,6 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
   if (aImg->mDecodeRequest) {
     aImg->mDecodeRequest->mDecodeTime += (TimeStamp::Now() - start);
     aImg->mDecodeRequest->mChunkCount += chunkCount;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (aDecodeType != DECODE_TYPE_UNTIL_SIZE &&
-      !aImg->mDecoder->HasError() &&
-      !aImg->mHasSourceData) {
-    aImg->mInDecoder = true;
-    aImg->mDecoder->FlushInvalidations();
-    aImg->mInDecoder = false;
   }
 
   return NS_OK;

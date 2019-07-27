@@ -74,9 +74,12 @@ public:
 
 
 
-
-
-  void FlushInvalidations();
+  nsIntRect TakeInvalidRect()
+  {
+    nsIntRect invalidRect = mInvalidRect;
+    mInvalidRect.SetEmpty();
+    return invalidRect;
+  }
 
   
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Decoder)

@@ -571,8 +571,10 @@ VectorImage::SendInvalidationNotifications()
 
   if (mStatusTracker) {
     SurfaceCache::Discard(this);
-    mStatusTracker->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
-    mStatusTracker->OnStopFrame();
+    ImageStatusDiff diff;
+    diff.diffState = FLAG_FRAME_STOPPED;
+    mStatusTracker->ApplyDifference(diff);
+    mStatusTracker->SyncNotifyDifference(diff, nsIntRect::GetMaxSizedIntRect());
   }
 }
 
@@ -1119,17 +1121,11 @@ VectorImage::OnSVGDocumentLoaded()
 
   
   if (mStatusTracker) {
-    nsRefPtr<imgStatusTracker> clone = mStatusTracker->CloneForRecording();
-    imgDecoderObserver* observer = clone->GetDecoderObserver();
-
-    observer->OnStartContainer(); 
-    observer->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
-    observer->OnStopFrame();
-    observer->OnStopDecode(NS_OK); 
-
-    ImageStatusDiff diff = mStatusTracker->Difference(clone);
+    ImageStatusDiff diff;
+    diff.diffState = FLAG_HAS_SIZE | FLAG_FRAME_STOPPED | FLAG_DECODE_STOPPED |
+                     FLAG_ONLOAD_UNBLOCKED;
     mStatusTracker->ApplyDifference(diff);
-    mStatusTracker->SyncNotifyDifference(diff);
+    mStatusTracker->SyncNotifyDifference(diff, nsIntRect::GetMaxSizedIntRect());
   }
 
   EvaluateAnimation();

@@ -62,22 +62,6 @@ public:
     tracker->RecordStartContainer(image);
   }
 
-  virtual void OnStartFrame() MOZ_OVERRIDE
-  {
-    LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::OnStartFrame");
-    nsRefPtr<imgStatusTracker> tracker = mTracker.get();
-    if (!tracker) { return; }
-    tracker->RecordStartFrame();
-  }
-
-  virtual void FrameChanged(const nsIntRect* dirtyRect) MOZ_OVERRIDE
-  {
-    LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::FrameChanged");
-    nsRefPtr<imgStatusTracker> tracker = mTracker.get();
-    if (!tracker) { return; }
-    tracker->RecordFrameChanged(dirtyRect);
-  }
-
   virtual void OnStopFrame() MOZ_OVERRIDE
   {
     LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::OnStopFrame");
@@ -153,7 +137,6 @@ imgStatusTracker::imgStatusTracker(Image* aImage)
 imgStatusTracker::imgStatusTracker(const imgStatusTracker& aOther)
   : mImage(aOther.mImage)
   , mState(aOther.mState)
-    
     
     
     
@@ -370,7 +353,7 @@ imgStatusTracker::NotifyCurrentState(imgRequestProxy* proxy)
 
 #define NOTIFY_IMAGE_OBSERVERS(func) \
   do { \
-    ProxyArray::ForwardIterator iter(proxies); \
+    ProxyArray::ForwardIterator iter(aProxies); \
     while (iter.HasMore()) { \
       nsRefPtr<imgRequestProxy> proxy = iter.GetNext().get(); \
       if (proxy && !proxy->NotificationsDeferred()) { \
@@ -380,57 +363,57 @@ imgStatusTracker::NotifyCurrentState(imgRequestProxy* proxy)
   } while (false);
 
  void
-imgStatusTracker::SyncNotifyState(ProxyArray& proxies,
-                                  bool hasImage, uint32_t state,
-                                  nsIntRect& dirtyRect)
+imgStatusTracker::SyncNotifyState(ProxyArray& aProxies,
+                                  bool aHasImage, uint32_t aState,
+                                  const nsIntRect& aDirtyRect)
 {
   MOZ_ASSERT(NS_IsMainThread());
   
-  if (state & FLAG_REQUEST_STARTED)
+  if (aState & FLAG_REQUEST_STARTED)
     NOTIFY_IMAGE_OBSERVERS(OnStartRequest());
 
   
-  if (state & FLAG_HAS_SIZE)
+  if (aState & FLAG_HAS_SIZE)
     NOTIFY_IMAGE_OBSERVERS(OnStartContainer());
 
   
-  if (state & FLAG_DECODE_STARTED)
+  if (aState & FLAG_DECODE_STARTED)
     NOTIFY_IMAGE_OBSERVERS(OnStartDecode());
 
   
-  if (state & FLAG_ONLOAD_BLOCKED)
+  if (aState & FLAG_ONLOAD_BLOCKED)
     NOTIFY_IMAGE_OBSERVERS(BlockOnload());
 
-  if (hasImage) {
+  if (aHasImage) {
     
     
     
     
-    if (!dirtyRect.IsEmpty())
-      NOTIFY_IMAGE_OBSERVERS(OnFrameUpdate(&dirtyRect));
+    if (!aDirtyRect.IsEmpty())
+      NOTIFY_IMAGE_OBSERVERS(OnFrameUpdate(&aDirtyRect));
 
-    if (state & FLAG_FRAME_STOPPED)
+    if (aState & FLAG_FRAME_STOPPED)
       NOTIFY_IMAGE_OBSERVERS(OnStopFrame());
 
     
-    if (state & FLAG_IS_ANIMATED)
+    if (aState & FLAG_IS_ANIMATED)
       NOTIFY_IMAGE_OBSERVERS(OnImageIsAnimated());
   }
 
   
   
   
-  if (state & FLAG_ONLOAD_UNBLOCKED) {
+  if (aState & FLAG_ONLOAD_UNBLOCKED) {
     NOTIFY_IMAGE_OBSERVERS(UnblockOnload());
   }
 
-  if (state & FLAG_DECODE_STOPPED) {
-    NS_ABORT_IF_FALSE(hasImage, "stopped decoding without ever having an image?");
+  if (aState & FLAG_DECODE_STOPPED) {
+    MOZ_ASSERT(aHasImage, "Stopped decoding without ever having an image?");
     NOTIFY_IMAGE_OBSERVERS(OnStopDecode());
   }
 
-  if (state & FLAG_REQUEST_STOPPED) {
-    NOTIFY_IMAGE_OBSERVERS(OnStopRequest(state & FLAG_MULTIPART_STOPPED));
+  if (aState & FLAG_REQUEST_STOPPED) {
+    NOTIFY_IMAGE_OBSERVERS(OnStopRequest(aState & FLAG_MULTIPART_STOPPED));
   }
 }
 
@@ -440,22 +423,6 @@ imgStatusTracker::Difference(imgStatusTracker* aOther) const
   MOZ_ASSERT(aOther, "aOther cannot be null");
   ImageStatusDiff diff;
   diff.diffState = ~mState & aOther->mState;
-
-  
-  
-  
-  const uint32_t combinedState = mState | aOther->mState;
-  const bool doInvalidations = !(mState & FLAG_DECODE_STOPPED) ||
-                               aOther->mState & FLAG_DECODE_STOPPED ||
-                               combinedState & FLAG_HAS_ERROR;
-
-  
-  
-  if (doInvalidations) {
-    diff.invalidRect = aOther->mInvalidRect;
-    aOther->mInvalidRect.SetEmpty();
-  }
-
   return diff;
 }
 
@@ -476,18 +443,15 @@ imgStatusTracker::ApplyDifference(const ImageStatusDiff& aDiff)
 }
 
 void
-imgStatusTracker::SyncNotifyDifference(const ImageStatusDiff& diff)
+imgStatusTracker::SyncNotifyDifference(const ImageStatusDiff& aDiff,
+                                       const nsIntRect& aInvalidRect )
 {
   MOZ_ASSERT(NS_IsMainThread(), "Use mConsumers on main thread only");
   LOG_SCOPE(GetImgLog(), "imgStatusTracker::SyncNotifyDifference");
 
-  nsIntRect invalidRect = mInvalidRect.Union(diff.invalidRect);
+  SyncNotifyState(mConsumers, !!mImage, aDiff.diffState, aInvalidRect);
 
-  SyncNotifyState(mConsumers, !!mImage, diff.diffState, invalidRect);
-
-  mInvalidRect.SetEmpty();
-
-  if (diff.diffState & FLAG_HAS_ERROR) {
+  if (aDiff.diffState & FLAG_HAS_ERROR) {
     FireFailureNotification();
   }
 }
@@ -649,14 +613,6 @@ imgStatusTracker::SendStartContainer(imgRequestProxy* aProxy)
 }
 
 void
-imgStatusTracker::RecordStartFrame()
-{
-  mInvalidRect.SetEmpty();
-}
-
-
-
-void
 imgStatusTracker::RecordStopFrame()
 {
   NS_ABORT_IF_FALSE(mImage, "RecordStopFrame called before we have an Image");
@@ -744,23 +700,6 @@ imgStatusTracker::OnUnlockedDraw()
       SendUnlockedDraw(proxy);
     }
   }
-}
-
-void
-imgStatusTracker::RecordFrameChanged(const nsIntRect* aDirtyRect)
-{
-  NS_ABORT_IF_FALSE(mImage,
-                    "RecordFrameChanged called before we have an Image");
-  mInvalidRect = mInvalidRect.Union(*aDirtyRect);
-}
-
-void
-imgStatusTracker::SendFrameChanged(imgRequestProxy* aProxy,
-                                   const nsIntRect* aDirtyRect)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!aProxy->NotificationsDeferred())
-    aProxy->OnFrameUpdate(aDirtyRect);
 }
 
 
@@ -891,22 +830,6 @@ imgStatusTracker::OnDiscard()
     nsRefPtr<imgRequestProxy> proxy = iter.GetNext().get();
     if (proxy) {
       SendDiscard(proxy);
-    }
-  }
-}
-
-void
-imgStatusTracker::FrameChanged(const nsIntRect* aDirtyRect)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  RecordFrameChanged(aDirtyRect);
-
-  
-  ProxyArray::ForwardIterator iter(mConsumers);
-  while (iter.HasMore()) {
-    nsRefPtr<imgRequestProxy> proxy = iter.GetNext().get();
-    if (proxy) {
-      SendFrameChanged(proxy, aDirtyRect);
     }
   }
 }
