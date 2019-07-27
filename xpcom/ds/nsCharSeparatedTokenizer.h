@@ -29,9 +29,13 @@
 
 
 
-template<bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
-class nsCharSeparatedTokenizerTemplate
+template<typename SubstringType,
+         typename DependentSubstringType,
+         bool IsWhitespace(char16_t)>
+class nsTCharSeparatedTokenizer
 {
+  typedef typename SubstringType::char_type CharType;
+
 public:
     
     
@@ -39,9 +43,9 @@ public:
         SEPARATOR_OPTIONAL = 1
     };
 
-    nsCharSeparatedTokenizerTemplate(const nsSubstring& aSource,
-                                     char16_t aSeparatorChar,
-                                     uint32_t  aFlags = 0)
+    nsTCharSeparatedTokenizer(const SubstringType& aSource,
+                              CharType aSeparatorChar,
+                              uint32_t aFlags = 0)
         : mIter(aSource.Data(), aSource.Length()),
           mEnd(aSource.Data() + aSource.Length(), aSource.Data(),
                aSource.Length()),
@@ -98,9 +102,10 @@ public:
     
 
 
-    const nsDependentSubstring nextToken()
+    const DependentSubstringType nextToken()
     {
-        mozilla::RangedPtr<const char16_t> tokenStart = mIter, tokenEnd = mIter;
+        mozilla::RangedPtr<const CharType> tokenStart = mIter;
+        mozilla::RangedPtr<const CharType> tokenEnd = mIter;
 
         MOZ_ASSERT(mIter == mEnd || !IsWhitespace(*mIter),
                    "Should be at beginning of token if there is one");
@@ -150,165 +155,71 @@ public:
     }
 
 private:
-    mozilla::RangedPtr<const char16_t> mIter;
-    const mozilla::RangedPtr<const char16_t> mEnd;
-    char16_t mSeparatorChar;
+    mozilla::RangedPtr<const CharType> mIter;
+    const mozilla::RangedPtr<const CharType> mEnd;
+    CharType mSeparatorChar;
     bool mWhitespaceBeforeFirstToken;
     bool mWhitespaceAfterCurrentToken;
     bool mSeparatorAfterCurrentToken;
     bool mSeparatorOptional;
 };
 
-class nsCharSeparatedTokenizer: public nsCharSeparatedTokenizerTemplate<>
+template<bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
+class nsCharSeparatedTokenizerTemplate
+  : public nsTCharSeparatedTokenizer<nsSubstring,
+                                     nsDependentSubstring,
+                                     IsWhitespace>
 {
 public:
-    nsCharSeparatedTokenizer(const nsSubstring& aSource,
-                             char16_t aSeparatorChar,
-                             uint32_t  aFlags = 0)
-      : nsCharSeparatedTokenizerTemplate<>(aSource, aSeparatorChar, aFlags)
-    {
-    }
+  nsCharSeparatedTokenizerTemplate(const nsSubstring& aSource,
+                                   char16_t aSeparatorChar,
+                                   uint32_t aFlags = 0)
+    : nsTCharSeparatedTokenizer<nsSubstring,
+                                nsDependentSubstring,
+                                IsWhitespace>(aSource, aSeparatorChar, aFlags)
+  {
+  }
+};
+
+class nsCharSeparatedTokenizer
+  : public nsCharSeparatedTokenizerTemplate<>
+{
+public:
+  nsCharSeparatedTokenizer(const nsSubstring& aSource,
+                           char16_t aSeparatorChar,
+                           uint32_t aFlags = 0)
+    : nsCharSeparatedTokenizerTemplate<>(aSource, aSeparatorChar, aFlags)
+  {
+  }
 };
 
 template<bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
 class nsCCharSeparatedTokenizerTemplate
+  : public nsTCharSeparatedTokenizer<nsCSubstring,
+                                     nsDependentCSubstring,
+                                     IsWhitespace>
 {
 public:
-    
-    
-    enum {
-        SEPARATOR_OPTIONAL = 1
-    };
-
-    nsCCharSeparatedTokenizerTemplate(const nsCSubstring& aSource,
-                                      char aSeparatorChar,
-                                      uint32_t  aFlags = 0)
-        : mIter(aSource.Data(), aSource.Length()),
-          mEnd(aSource.Data() + aSource.Length(), aSource.Data(),
-               aSource.Length()),
-          mSeparatorChar(aSeparatorChar),
-          mWhitespaceBeforeFirstToken(false),
-          mWhitespaceAfterCurrentToken(false),
-          mSeparatorAfterCurrentToken(false),
-          mSeparatorOptional(aFlags & SEPARATOR_OPTIONAL)
-    {
-        
-        while (mIter < mEnd && IsWhitespace(*mIter)) {
-            mWhitespaceBeforeFirstToken = true;
-            ++mIter;
-        }
-    }
-
-    
-
-
-    bool hasMoreTokens() const
-    {
-        MOZ_ASSERT(mIter == mEnd || !IsWhitespace(*mIter),
-                   "Should be at beginning of token if there is one");
-
-        return mIter < mEnd;
-    }
-
-    
-
-
-    bool whitespaceBeforeFirstToken() const
-    {
-        return mWhitespaceBeforeFirstToken;
-    }
-
-    
-
-
-
-
-    bool separatorAfterCurrentToken() const
-    {
-        return mSeparatorAfterCurrentToken;
-    }
-
-    
-
-
-    bool whitespaceAfterCurrentToken() const
-    {
-        return mWhitespaceAfterCurrentToken;
-    }
-
-    
-
-
-    const nsDependentCSubstring nextToken()
-    {
-        mozilla::RangedPtr<const char> tokenStart = mIter, tokenEnd = mIter;
-
-        MOZ_ASSERT(mIter == mEnd || !IsWhitespace(*mIter),
-                   "Should be at beginning of token if there is one");
-
-        
-        
-        while (mIter < mEnd && *mIter != mSeparatorChar) {
-          
-          while (mIter < mEnd &&
-                 !IsWhitespace(*mIter) && *mIter != mSeparatorChar) {
-              ++mIter;
-          }
-          tokenEnd = mIter;
-
-          
-          mWhitespaceAfterCurrentToken = false;
-          while (mIter < mEnd && IsWhitespace(*mIter)) {
-              mWhitespaceAfterCurrentToken = true;
-              ++mIter;
-          }
-          if (mSeparatorOptional) {
-            
-            
-            break;
-          } 
-        }
-
-        mSeparatorAfterCurrentToken = (mIter != mEnd &&
-                                       *mIter == mSeparatorChar);
-        MOZ_ASSERT(mSeparatorOptional ||
-                   (mSeparatorAfterCurrentToken == (mIter < mEnd)),
-                   "If we require a separator and haven't hit the end of "
-                   "our string, then we shouldn't have left the loop "
-                   "unless we hit a separator");
-
-        
-        if (mSeparatorAfterCurrentToken) {
-            ++mIter;
-
-            while (mIter < mEnd && IsWhitespace(*mIter)) {
-                mWhitespaceAfterCurrentToken = true;
-                ++mIter;
-            }
-        }
-
-        return Substring(tokenStart.get(), tokenEnd.get());
-    }
-
-private:
-    mozilla::RangedPtr<const char> mIter;
-    const mozilla::RangedPtr<const char> mEnd;
-    char mSeparatorChar;
-    bool mWhitespaceBeforeFirstToken;
-    bool mWhitespaceAfterCurrentToken;
-    bool mSeparatorAfterCurrentToken;
-    bool mSeparatorOptional;
+  nsCCharSeparatedTokenizerTemplate(const nsCSubstring& aSource,
+                                    char aSeparatorChar,
+                                    uint32_t aFlags = 0)
+    : nsTCharSeparatedTokenizer<nsCSubstring,
+                                nsDependentCSubstring,
+                                IsWhitespace>(aSource, aSeparatorChar, aFlags)
+  {
+  }
 };
 
-class nsCCharSeparatedTokenizer: public nsCCharSeparatedTokenizerTemplate<>
+class nsCCharSeparatedTokenizer
+  : public nsCCharSeparatedTokenizerTemplate<>
 {
 public:
-    nsCCharSeparatedTokenizer(const nsCSubstring& aSource,
-                              char aSeparatorChar,
-                              uint32_t aFlags = 0)
-      : nsCCharSeparatedTokenizerTemplate<>(aSource, aSeparatorChar, aFlags)
-    {
-    }
+  nsCCharSeparatedTokenizer(const nsCSubstring& aSource,
+                            char aSeparatorChar,
+                            uint32_t aFlags = 0)
+    : nsCCharSeparatedTokenizerTemplate<>(aSource, aSeparatorChar, aFlags)
+  {
+  }
 };
 
-#endif
+#endif 
