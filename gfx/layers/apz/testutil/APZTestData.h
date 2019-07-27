@@ -42,10 +42,9 @@ class APZTestData {
   friend struct APZTestDataToJSConverter;
 public:
   void StartNewPaint(SequenceNumber aSequenceNumber) {
+    
+    MOZ_ASSERT(mPaints.find(aSequenceNumber) == mPaints.end());
     mPaints.insert(DataStore::value_type(aSequenceNumber, Bucket()));
-    
-    
-    
   }
   void LogTestDataForPaint(SequenceNumber aSequenceNumber,
                            ViewID aScrollId,
@@ -93,10 +92,9 @@ private:
     }
     Bucket& bucket = bucketIterator->second;
     ScrollFrameData& scrollFrameData = bucket[aScrollId];  
+    MOZ_ASSERT(scrollFrameData.find(aKey) == scrollFrameData.end()
+            || scrollFrameData[aKey] == aValue);
     scrollFrameData.insert(ScrollFrameData::value_type(aKey, aValue));
-    
-    
-    
   }
 };
 
