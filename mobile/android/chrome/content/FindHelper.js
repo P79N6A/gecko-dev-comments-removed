@@ -8,7 +8,8 @@ var FindHelper = {
   _targetTab: null,
   _initialViewport: null,
   _viewportChanged: false,
-  _matchesCountResult: null,
+  _result: null,
+  _limit: 0,
 
   observe: function(aMessage, aTopic, aData) {
     switch(aTopic) {
@@ -31,6 +32,13 @@ var FindHelper = {
   },
 
   _findOpened: function() {
+    try {
+      this._limit = Services.prefs.getIntPref("accessibility.typeaheadfind.matchesCountLimit");
+    } catch (e) {
+      
+      this._limit = 0;
+    }
+
     Messaging.addListener((data) => {
       this.doFind(data.searchString, data.matchCase);
       return this._getMatchesCountResult(data.searchString);
@@ -90,18 +98,22 @@ var FindHelper = {
 
 
   _getMatchesCountResult: function(findString) {
-      
-      this._matchesCountResult = null;
-      this._finder.requestMatchesCount(findString);
+    
+    if (this._limit <= 0) {
+      return { total: 0, current: 0, limit: 0 };
+    }
 
-      return this._matchesCountResult;
+    
+    this._finder.requestMatchesCount(findString, this._limit);
+    return this._result;
   },
 
   
 
 
   onMatchesCountResult: function(result) {
-    this._matchesCountResult = result;
+    this._result = result;
+    this._result.limit = this._limit;
   },
 
   doFind: function(searchString, matchCase) {

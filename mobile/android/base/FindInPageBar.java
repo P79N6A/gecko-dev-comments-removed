@@ -223,26 +223,33 @@ public class FindInPageBar extends LinearLayout implements TextWatcher, View.OnC
             @Override
             public void onResponse(NativeJSObject nativeJSObject) {
                 final int total = nativeJSObject.optInt("total", 0);
-                final int current = nativeJSObject.optInt("current", 0);
-                updateResult(total, current);
+                if (total == -1) {
+                    final int limit = nativeJSObject.optInt("limit", 0);
+                    updateResult(Integer.toString(limit) + "+");
+                } else if (total > 0) {
+                    final int current = nativeJSObject.optInt("current", 0);
+                    updateResult(Integer.toString(current) + "/" + Integer.toString(total));
+                } else {
+                    
+                    
+                    
+                    updateResult("");
+                }
             }
 
             @Override
             public void onError(NativeJSObject error) {
                 
-                updateResult(0, 0);
                 Log.d(LOGTAG, "No response from Gecko on request to match string: [" +
                     searchString + "]");
+                updateResult("");
             }
 
-            private void updateResult(int total, int current) {
-                final Boolean statusVisibility = (total > 0);
-                final String statusText = current + "/" + total;
-
+            private void updateResult(final String statusText) {
                 ThreadUtils.postToUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mStatusText.setVisibility(statusVisibility ? View.VISIBLE : View.GONE);
+                        mStatusText.setVisibility(statusText.isEmpty() ? View.GONE : View.VISIBLE);
                         mStatusText.setText(statusText);
                     }
                 });
