@@ -1639,10 +1639,14 @@ nsEventStatus AsyncPanZoomController::OnPanBegin(const PanGestureInput& aEvent) 
   }
 
   float dx = aEvent.mPanDisplacement.x, dy = aEvent.mPanDisplacement.y;
-  double angle = atan2(dy, dx); 
-  angle = fabs(angle); 
 
-  HandlePanning(angle);
+  if (dx || dy) {
+    double angle = atan2(dy, dx); 
+    angle = fabs(angle); 
+    HandlePanning(angle);
+  } else {
+    SetState(PANNING);
+  }
 
   return nsEventStatus_eConsumeNoDefault;
 }
