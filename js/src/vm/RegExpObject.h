@@ -378,6 +378,14 @@ class RegExpObject : public NativeObject
 
     
 
+
+
+
+    static Shape *
+    assignInitialShape(ExclusiveContext *cx, Handle<RegExpObject*> obj);
+
+    
+
     static unsigned lastIndexSlot() { return LAST_INDEX_SLOT; }
 
     const Value &getLastIndex() const { return getSlot(LAST_INDEX_SLOT); }
@@ -445,19 +453,6 @@ class RegExpObject : public NativeObject
 
   private:
     friend class RegExpObjectBuilder;
-
-    
-    friend bool
-    EmptyShape::ensureInitialCustomShape<RegExpObject>(ExclusiveContext *cx,
-                                                       Handle<RegExpObject*> obj);
-
-    
-
-
-
-
-    static Shape *
-    assignInitialShape(ExclusiveContext *cx, Handle<RegExpObject*> obj);
 
     bool init(ExclusiveContext *cx, HandleAtom source, RegExpFlag flags);
 

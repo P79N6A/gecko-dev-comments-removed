@@ -34,19 +34,6 @@ class ErrorObject : public NativeObject
     friend JSObject *
     ::js_InitExceptionClasses(JSContext *cx, JS::HandleObject global);
 
-    
-    friend bool
-    EmptyShape::ensureInitialCustomShape<ErrorObject>(ExclusiveContext *cx,
-                                                      Handle<ErrorObject*> obj);
-
-    
-
-
-
-
-    static Shape *
-    assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj);
-
     static bool
     init(JSContext *cx, Handle<ErrorObject*> obj, JSExnType type,
          ScopedJSFreePtr<JSErrorReport> *errorReport, HandleString fileName, HandleString stack,
@@ -84,6 +71,14 @@ class ErrorObject : public NativeObject
     create(JSContext *cx, JSExnType type, HandleString stack, HandleString fileName,
            uint32_t lineNumber, uint32_t columnNumber, ScopedJSFreePtr<JSErrorReport> *report,
            HandleString message);
+
+    
+
+
+
+
+    static Shape *
+    assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj);
 
     JSExnType type() const {
         return JSExnType(getReservedSlot(EXNTYPE_SLOT).toInt32());
