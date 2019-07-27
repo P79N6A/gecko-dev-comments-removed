@@ -87,16 +87,23 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
 
 
-  toDocShell: win => win.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIWebNavigation)
-                        .QueryInterface(Ci.nsIDocShell),
 
-  
 
 
 
   get docShells() {
-    return this.tabActor.windows.map(this.toDocShell);
+    let docShellsEnum = this.tabActor.originalDocShell.getDocShellEnumerator(
+      Ci.nsIDocShellTreeItem.typeAll,
+      Ci.nsIDocShell.ENUMERATE_FORWARDS
+    );
+
+    let docShells = [];
+    while (docShellsEnum.hasMoreElements()) {
+      let docShell = docShellsEnum.getNext();
+      docShells.push(docShell.QueryInterface(Ci.nsIDocShell));
+    }
+
+    return docShells;
   },
 
   
@@ -171,7 +178,12 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
   _onWindowReady: function({window}) {
     if (this._isRecording) {
-      this.toDocShell(window).recordProfileTimelineMarkers = true;
+      
+      
+      let docShell = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIWebNavigation)
+                           .QueryInterface(Ci.nsIDocShell);
+      docShell.recordProfileTimelineMarkers = true;
     }
   }
 });
