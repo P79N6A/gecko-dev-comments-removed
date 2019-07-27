@@ -586,10 +586,8 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
       
       
       
-      
       if (jsFrames[jsIndex].hasTrackedOptimizations) {
         aProfile.addTag(ProfileEntry('J', jsFrames[jsIndex].returnAddress));
-        aProfile.addTag(ProfileEntry('o', jsFrames[jsIndex].trackedOptimizationIndex));
       }
 
       jsIndex--;
