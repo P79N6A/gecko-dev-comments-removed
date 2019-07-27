@@ -849,7 +849,19 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   LogicalPoint floatPos(wm);
-  if ((NS_STYLE_FLOAT_LEFT == floatDisplay->mFloats) == wm.IsBidiLTR()) {
+  bool leftFloat = NS_STYLE_FLOAT_LEFT == floatDisplay->mFloats;
+  bool ltr = wm.IsBidiLTR();
+  bool vertical = wm.IsVertical();
+
+  if (vertical) {
+    
+    
+    
+    
+    floatPos.I(wm) = leftFloat
+                      ? floatAvailableSpace.mRect.Y(wm)
+                      : floatAvailableSpace.mRect.YMost(wm) - floatMarginISize;
+  } else if (leftFloat == ltr) {
     floatPos.I(wm) = floatAvailableSpace.mRect.IStart(wm);
   }
   else {
