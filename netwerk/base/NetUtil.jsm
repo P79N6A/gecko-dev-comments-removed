@@ -22,6 +22,9 @@ const Cu = Components.utils;
 
 const PR_UINT32_MAX = 0xffffffff;
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 
 
 
@@ -96,7 +99,9 @@ this.NetUtil = {
 
 
 
-    asyncFetch: function NetUtil_asyncOpen(aSource, aCallback)
+
+
+    asyncFetch: function NetUtil_asyncFetch(aSource, aCallback)
     {
         if (!aSource || !aCallback) {
             let exception = new Components.Exception(
@@ -154,30 +159,6 @@ this.NetUtil = {
     },
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     asyncFetch2: function NetUtil_asyncFetch2(aSource,
@@ -316,92 +297,180 @@ this.NetUtil = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     newChannel: function NetUtil_newChannel(aWhatToLoad, aOriginCharset,
                                             aBaseURI)
     {
-        if (!aWhatToLoad) {
-            let exception = new Components.Exception(
-                "Must have a non-null string spec, nsIURI, or nsIFile object",
+        
+        if (typeof aWhatToLoad == "string" ||
+            (aWhatToLoad instanceof Ci.nsIFile) ||
+            (aWhatToLoad instanceof Ci.nsIURI)) {
+
+            let uri = (aWhatToLoad instanceof Ci.nsIURI)
+                      ? aWhatToLoad
+                      : this.newURI(aWhatToLoad, aOriginCharset, aBaseURI);
+
+            return this.ioService.newChannelFromURI(uri);
+        }
+
+        
+        if (typeof aWhatToLoad != "object" ||
+            aOriginCharset !== undefined ||
+            aBaseURI !== undefined) {
+
+            throw new Components.Exception(
+                "newChannel requires a single object argument",
                 Cr.NS_ERROR_INVALID_ARG,
                 Components.stack.caller
             );
-            throw exception;
         }
 
-        let uri = aWhatToLoad;
-        if (!(aWhatToLoad instanceof Ci.nsIURI)) {
-            
-            uri = this.newURI(aWhatToLoad, aOriginCharset, aBaseURI);
+        let { uri,
+              loadingNode,
+              loadingPrincipal,
+              loadUsingSystemPrincipal,
+              triggeringPrincipal,
+              securityFlags,
+              contentPolicyType } = aWhatToLoad;
+
+        if (!uri) {
+            throw new Components.Exception(
+                "newChannel requires the 'uri' property on the options object.",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
         }
 
-        return this.ioService.newChannelFromURI(uri);
+        if (typeof uri == "string") {
+            uri = this.newURI(uri);
+        }
+
+        if (!loadingNode && !loadingPrincipal && !loadUsingSystemPrincipal) {
+            throw new Components.Exception(
+                "newChannel requires at least one of the 'loadingNode'," +
+                " 'loadingPrincipal', or 'loadUsingSystemPrincipal'" +
+                " properties on the options object.",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+        }
+
+        if (loadUsingSystemPrincipal === true) {
+            if (loadingNode || loadingPrincipal) {
+                throw new Components.Exception(
+                    "newChannel does not accept 'loadUsingSystemPrincipal'" +
+                    " if the 'loadingNode' or 'loadingPrincipal' properties" +
+                    " are present on the options object.",
+                    Cr.NS_ERROR_INVALID_ARG,
+                    Components.stack.caller
+                );
+            }
+            loadingPrincipal = Services.scriptSecurityManager
+                                       .getSystemPrincipal();
+        } else if (loadUsingSystemPrincipal !== undefined) {
+            throw new Components.Exception(
+                "newChannel requires the 'loadUsingSystemPrincipal'" +
+                " property on the options object to be 'true' or 'undefined'.",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+        }
+
+        if (securityFlags === undefined) {
+            securityFlags = Ci.nsILoadInfo.SEC_NORMAL;
+        }
+
+        if (contentPolicyType === undefined) {
+            if (!loadUsingSystemPrincipal) {
+                throw new Components.Exception(
+                    "newChannel requires the 'contentPolicyType' property on" +
+                    " the options object unless loading from system principal.",
+                    Cr.NS_ERROR_INVALID_ARG,
+                    Components.stack.caller
+                );
+            }
+            contentPolicyType = Ci.nsIContentPolicy.TYPE_OTHER;
+        }
+
+        return this.ioService.newChannelFromURI2(uri,
+                                                 loadingNode || null,
+                                                 loadingPrincipal || null,
+                                                 triggeringPrincipal || null,
+                                                 securityFlags,
+                                                 contentPolicyType);
     },
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     newChannel2: function NetUtil_newChannel2(aWhatToLoad,
@@ -533,12 +602,3 @@ this.NetUtil = {
                                 getService(Ci.nsIIOService);
     },
 };
-
-
-
-
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-
-
-XPCOMUtils.defineLazyServiceGetter(this, "ioUtil", "@mozilla.org/io-util;1",
-                                   "nsIIOUtil");
