@@ -80,17 +80,6 @@ protected:
   nsPresContext* GetPresContext();
   nsIDocument* GetDocument();
   mozilla::layers::LayerTransactionChild* GetLayerTransaction();
-  
-
-
-
-
-
-
-
-
-  nsresult GetTextEventDispatcher(
-             TextEventDispatcher** aDispatcher);
 
   nsView* GetViewToDispatchEvent(nsPresContext* presContext, nsIPresShell** presShell);
 
