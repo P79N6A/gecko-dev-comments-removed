@@ -80,6 +80,7 @@
 
 
 
+
 #define FOR_EACH_OPCODE(macro) \
     /* legend:  op      val   name          image       len use def  format */ \
     /*
@@ -1620,6 +1621,7 @@
     macro(JSOP_FORCEINTERPRETER, 207, "forceinterpreter", NULL,  1,  0,  0,  JOF_BYTE) \
     \
     
+
 
 
 
