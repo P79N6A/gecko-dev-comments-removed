@@ -5,10 +5,6 @@
 
 var FullScreen = {
   _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
-  get _fullScrToggler() {
-    delete this._fullScrToggler;
-    return this._fullScrToggler = document.getElementById("fullscr-toggler");
-  },
 
   init: function() {
     
@@ -46,6 +42,12 @@ var FullScreen = {
     document.getElementById("exitFullScreenItem").hidden = !enterFS;
 #endif
 
+    if (!this._fullScrToggler) {
+      this._fullScrToggler = document.getElementById("fullscr-toggler");
+      this._fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
+      this._fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
+    }
+
     
     
     
@@ -65,14 +67,6 @@ var FullScreen = {
     this.showXULChrome("toolbar", !enterFS);
 
     if (enterFS) {
-      
-      
-      
-      
-      if (!document.mozFullScreen) {
-        this._fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
-        this._fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
-      }
       if (gPrefService.getBoolPref("browser.fullscreen.autohide"))
         gBrowser.mPanelContainer.addEventListener("mousemove",
                                                   this._collapseCallback, false);
@@ -187,11 +181,6 @@ var FullScreen = {
     
     this._cancelAnimation();
     this.mouseoverToggle(false);
-
-    
-    
-    this._fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
-    this._fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
   },
 
   cleanup: function () {
@@ -203,8 +192,6 @@ var FullScreen = {
       document.removeEventListener("popuphidden", this._setPopupOpen, false);
       gPrefService.removeObserver("browser.fullscreen", this);
 
-      this._fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
-      this._fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
       this.cancelWarning();
       gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
@@ -540,7 +527,7 @@ var FullScreen = {
     gNavToolbox.style.marginTop =
       aShow ? "" : -gNavToolbox.getBoundingClientRect().height + "px";
 
-    this._fullScrToggler.collapsed = aShow;
+    this._fullScrToggler.hidden = aShow || document.mozFullScreen;
     this._isChromeCollapsed = !aShow;
     if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 2)
       this._shouldAnimate = true;
