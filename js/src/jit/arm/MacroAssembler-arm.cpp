@@ -1790,6 +1790,17 @@ MacroAssemblerARMCompat::callIon(Register callee)
 }
 
 void
+MacroAssemblerARMCompat::callIonFromAsmJS(Register callee)
+{
+    ma_callIonNoPush(callee);
+
+    
+    
+    
+    subPtr(Imm32(sizeof(void*)), sp);
+}
+
+void
 MacroAssemblerARMCompat::reserveStack(uint32_t amount)
 {
     if (amount)
