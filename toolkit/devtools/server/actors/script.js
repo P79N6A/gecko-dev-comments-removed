@@ -29,6 +29,7 @@ loader.lazyGetter(this, "Debugger", () => {
 loader.lazyRequireGetter(this, "SourceMapConsumer", "source-map", true);
 loader.lazyRequireGetter(this, "SourceMapGenerator", "source-map", true);
 loader.lazyRequireGetter(this, "CssLogic", "devtools/styleinspector/css-logic", true);
+loader.lazyRequireGetter(this, "events", "sdk/event/core");
 
 let TYPED_ARRAY_CLASSES = ["Uint8Array", "Uint8ClampedArray", "Uint16Array",
       "Uint32Array", "Int8Array", "Int16Array", "Int32Array", "Float32Array",
@@ -444,6 +445,7 @@ function ThreadActor(aParent, aGlobal)
   this._tabClosed = false;
   this._scripts = null;
   this._sources = null;
+  this._pauseOnDOMEvents = null;
 
   this._options = {
     useSourceMaps: false,
@@ -467,6 +469,8 @@ function ThreadActor(aParent, aGlobal)
   this.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
   this.onDebuggerStatement = this.onDebuggerStatement.bind(this);
   this.onNewScript = this.onNewScript.bind(this);
+  this._onWindowReady = this._onWindowReady.bind(this);
+  events.on(this._parent, "window-ready", this._onWindowReady);
   
   
   this.wrappedJSObject = this;
@@ -620,6 +624,7 @@ ThreadActor.prototype = {
     
     this._sourceActorStore = null;
 
+    events.off(this._parent, "window-ready", this._onWindowReady);
     this.clearDebuggees();
     this.conn.removeActorPool(this._threadLifetimePool);
     this._threadLifetimePool = null;
@@ -1007,6 +1012,16 @@ ThreadActor.prototype = {
                 .getService(Ci.nsIEventListenerService);
       els.addListenerForAllEvents(this.global, this._allEventsListener, true);
     }
+  },
+
+  
+
+
+
+  _onWindowReady: function () {
+    this._maybeListenToEvents({
+      pauseOnDOMEvents: this._pauseOnDOMEvents
+    });
   },
 
   
