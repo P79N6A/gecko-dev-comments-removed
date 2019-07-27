@@ -9,10 +9,20 @@ const { TabSources } = require("devtools/server/actors/utils/TabSources");
 const promise = require("promise");
 const makeDebugger = require("devtools/server/actors/utils/make-debugger");
 
-var gTestGlobals = [];
+let gTestGlobals = [];
 DebuggerServer.addTestGlobal = function(aGlobal) {
   gTestGlobals.push(aGlobal);
 };
+
+DebuggerServer.getTestGlobal = function(name) {
+  for (let g of gTestGlobals) {
+    if (g.__name == name) {
+      return g;
+    }
+  }
+
+  return null;
+}
 
 
 
