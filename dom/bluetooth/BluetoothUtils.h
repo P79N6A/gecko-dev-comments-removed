@@ -127,7 +127,6 @@ BroadcastSystemMessage(const nsAString& aType,
 
 
 
-#ifdef MOZ_B2G_BT_API_V2
 
 
 
@@ -177,18 +176,14 @@ DispatchReplyError(BluetoothReplyRunnable* aRunnable,
 void
 DispatchReplyError(BluetoothReplyRunnable* aRunnable,
                    const enum BluetoothStatus aStatus);
-#else
 
+#if MOZ_B2G_BT_API_V2
+
+#else
 void
 DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
                        const BluetoothValue& aValue,
                        const nsAString& aErrorStr);
-
-
-void
-DispatchStatusChangedEvent(const nsAString& aType,
-                           const nsAString& aDeviceAddress,
-                           bool aStatus);
 #endif
 
 void
