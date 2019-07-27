@@ -248,11 +248,10 @@ public class ReadingListSynchronizer {
       }
 
       if (failures == 0) {
-        try {
-          next.next();
-        } catch (Exception e) {
-        }
+        next.next();
+        return;
       }
+
       next.fail();
     }
   }
@@ -305,6 +304,149 @@ public class ReadingListSynchronizer {
     }
   }
 
+  private static class ModifiedUploadDelegate implements ReadingListRecordUploadDelegate {
+    private final ReadingListChangeAccumulator acc;
+
+    public volatile int failures = 0;
+    private final StageDelegate next;
+
+    ModifiedUploadDelegate(ReadingListChangeAccumulator acc, StageDelegate next) {
+      this.acc = acc;
+      this.next = next;
+    }
+
+    @Override
+    public void onInvalidUpload(ClientReadingListRecord up,
+                                ReadingListResponse response) {
+      recordFailed(up);
+    }
+
+    @Override
+    public void onConflict(ClientReadingListRecord up,
+                           ReadingListResponse response) {
+      
+      failures++;
+    }
+
+    @Override
+    public void onSuccess(ClientReadingListRecord up,
+                          ReadingListRecordResponse response,
+                          ServerReadingListRecord down) {
+      if (!TextUtils.equals(up.getGUID(), down.getGUID())) {
+        
+        
+        
+        
+        
+        
+        
+        
+      }
+
+      
+      
+      acc.addChangedRecord(up.givenServerRecord(down));
+    }
+
+    @Override
+    public void onBadRequest(ClientReadingListRecord up, MozResponse response) {
+      recordFailed(up);
+    }
+
+    @Override
+    public void onFailure(ClientReadingListRecord up, Exception ex) {
+      recordFailed(up);
+    }
+
+    @Override
+    public void onFailure(ClientReadingListRecord up, MozResponse response) {
+      
+      
+      if (response.getStatusCode() == 404) {
+        
+        
+        Logger.warn(LOG_TAG, "Ignoring 404 response patching record with guid: " + up.getGUID());
+      } else if (response.getStatusCode() == 409) {
+        
+        
+        Logger.info(LOG_TAG, "409 response seen; deleting record with guid: " + up.getGUID());
+        acc.addDeletion(up);
+      } else {
+        
+        
+        recordFailed(up);
+      }
+    }
+
+    private void recordFailed(ClientReadingListRecord up) {
+      ++failures;
+    }
+
+    @Override
+    public void onBatchDone() {
+      try {
+        acc.finish();
+      } catch (Exception e) {
+        next.fail(e);
+        return;
+      }
+
+      if (failures == 0) {
+        next.next();
+        return;
+      }
+
+      next.fail();
+    }
+  }
+
+  private Queue<ClientReadingListRecord> collectModifiedFromCursor(final Cursor cursor) {
+    try {
+      final Queue<ClientReadingListRecord> toUpload = new LinkedList<>();
+
+      final int columnGUID = cursor.getColumnIndexOrThrow(ReadingListItems.GUID);
+      final int columnExcerpt = cursor.getColumnIndexOrThrow(ReadingListItems.EXCERPT);
+      final int columnResolvedURL = cursor.getColumnIndexOrThrow(ReadingListItems.RESOLVED_URL);
+      final int columnResolvedTitle = cursor.getColumnIndexOrThrow(ReadingListItems.RESOLVED_TITLE);
+      
+      
+
+      while (cursor.moveToNext()) {
+        final String guid = cursor.getString(columnGUID);
+        if (guid == null) {
+          
+          
+          
+          continue;
+        }
+
+        final ExtendedJSONObject o = new ExtendedJSONObject();
+        o.put("id", guid);
+        final String excerpt = cursor.getString(columnExcerpt); 
+        final String resolvedURL = cursor.getString(columnResolvedURL); 
+        final String resolvedTitle = cursor.getString(columnResolvedTitle); 
+        if (excerpt == null && resolvedURL == null && resolvedTitle == null) {
+          
+          continue;
+        }
+        o.put("excerpt", excerpt);
+        o.put("resolved_url", resolvedURL);
+        o.put("resolved_title", resolvedTitle);
+        
+        
+
+        final ClientMetadata cm = null;
+        final ServerMetadata sm = new ServerMetadata(guid, -1L);
+        final ClientReadingListRecord record = new ClientReadingListRecord(sm, cm, o);
+        toUpload.add(record);
+      }
+
+      return toUpload;
+    } finally {
+      cursor.close();
+    }
+  }
+
   private Queue<ClientReadingListRecord> accumulateNewItems(Cursor cursor) {
     try {
       final Queue<ClientReadingListRecord> toUpload = new LinkedList<>();
@@ -335,8 +477,11 @@ public class ReadingListSynchronizer {
 
       
       if (toUpload.isEmpty()) {
+        Logger.debug(LOG_TAG, "No new unread changes to upload. Skipping.");
         delegate.next();
         return;
+      } else {
+        Logger.debug(LOG_TAG, "Uploading " + toUpload.size() + " new unread changes.");
       }
 
       
@@ -368,6 +513,8 @@ public class ReadingListSynchronizer {
         Logger.debug(LOG_TAG, "No new items to upload. Skipping.");
         delegate.next();
         return;
+      } else {
+        Logger.debug(LOG_TAG, "Uploading " + toUpload.size() + " new items.");
       }
 
       final ReadingListChangeAccumulator acc = this.local.getChangeAccumulator();
@@ -420,9 +567,79 @@ public class ReadingListSynchronizer {
     }
   }
 
-  private void uploadModified(final StageDelegate delegate) {
-    
-    delegate.next();
+  protected void uploadModified(final StageDelegate delegate) {
+    try {
+      
+      
+      
+      
+      
+      final Cursor cursor = this.local.getModified();
+
+      if (cursor == null) {
+        delegate.fail(new RuntimeException("Unable to get modified item cursor."));
+        return;
+      }
+
+      final Queue<ClientReadingListRecord> toUpload = collectModifiedFromCursor(cursor);
+
+      
+      if (toUpload.isEmpty()) {
+        Logger.debug(LOG_TAG, "No modified items to upload. Skipping.");
+        delegate.next();
+        return;
+      } else {
+        Logger.debug(LOG_TAG, "Uploading " + toUpload.size() + " modified items.");
+      }
+
+      final ReadingListChangeAccumulator acc = this.local.getChangeAccumulator();
+      final ModifiedUploadDelegate uploadDelegate = new ModifiedUploadDelegate(acc, new StageDelegate() {
+        private boolean tryFlushChanges() {
+          Logger.debug(LOG_TAG, "Flushing post-upload changes.");
+          try {
+            acc.finish();
+            return true;
+          } catch (Exception e) {
+            Logger.warn(LOG_TAG, "Flushing changes failed! This sync went wrong.", e);
+            delegate.fail(e);
+            return false;
+          }
+        }
+
+        @Override
+        public void next() {
+          Logger.debug(LOG_TAG, "Modified items uploaded successfully.");
+
+          if (tryFlushChanges()) {
+            delegate.next();
+          }
+        }
+
+        @Override
+        public void fail() {
+          Logger.warn(LOG_TAG, "Couldn't upload modified items.");
+          if (tryFlushChanges()) {
+            delegate.fail();
+          }
+        }
+
+        @Override
+        public void fail(Exception e) {
+          Logger.warn(LOG_TAG, "Couldn't upload modified items.", e);
+          if (tryFlushChanges()) {
+            delegate.fail(e);
+          }
+        }
+      });
+
+      
+      
+      
+      this.remote.patch(toUpload, executor, uploadDelegate);
+    } catch (Exception e) {
+      delegate.fail(e);
+      return;
+    }
   }
 
   private void downloadIncoming(final long since, final StageDelegate delegate) {
