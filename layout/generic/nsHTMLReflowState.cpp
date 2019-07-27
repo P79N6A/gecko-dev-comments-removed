@@ -192,6 +192,16 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*           aPresContext,
   AvailableISize() = aAvailableSpace.ISize(mWritingMode);
   AvailableBSize() = aAvailableSpace.BSize(mWritingMode);
 
+  if (mWritingMode.IsOrthogonalTo(aParentReflowState.GetWritingMode())) {
+    
+    
+    
+    if (AvailableISize() == NS_UNCONSTRAINEDSIZE &&
+        aParentReflowState.ComputedBSize() != NS_UNCONSTRAINEDSIZE) {
+      AvailableISize() = aParentReflowState.ComputedBSize();
+    }
+  }
+
   mFloatManager = aParentReflowState.mFloatManager;
   if (frame->IsFrameOfType(nsIFrame::eLineParticipant))
     mLineLayout = aParentReflowState.mLineLayout;
