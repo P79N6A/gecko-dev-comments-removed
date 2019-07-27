@@ -70,8 +70,11 @@ function WebConsoleActor(aConnection, aParentActor)
 
   this._netEvents = new Map();
   this._gripDepth = 0;
+  this._listeners = new Set();
 
   this._onWillNavigate = this._onWillNavigate.bind(this);
+  this._onChangedToplevelDocument = this._onChangedToplevelDocument.bind(this);
+  events.on(this.parentActor, "changed-toplevel-document", this._onChangedToplevelDocument);
   this._onObserverNotification = this._onObserverNotification.bind(this);
   if (this.parentActor.isRootActor) {
     Services.obs.addObserver(this._onObserverNotification,
@@ -124,6 +127,14 @@ WebConsoleActor.prototype =
 
 
   _netEvents: null,
+
+  
+
+
+
+
+
+  _listeners: null,
 
   
 
@@ -336,6 +347,7 @@ WebConsoleActor.prototype =
       this.consoleReflowListener.destroy();
       this.consoleReflowListener = null;
     }
+    events.off(this.parentActor, "changed-toplevel-document", this._onChangedToplevelDocument);
     this.conn.removeActorPool(this._actorPool);
     if (this.parentActor.isRootActor) {
       Services.obs.removeObserver(this._onObserverNotification,
@@ -564,6 +576,10 @@ WebConsoleActor.prototype =
           break;
       }
     }
+
+    
+    startedListeners.forEach(this._listeners.add, this._listeners);
+
     return {
       startedListeners: startedListeners,
       nativeConsoleAPI: this.hasNativeConsoleAPI(this.window),
@@ -631,6 +647,9 @@ WebConsoleActor.prototype =
           break;
       }
     }
+
+    
+    stoppedListeners.forEach(this._listeners.delete, this._listeners);
 
     return { stoppedListeners: stoppedListeners };
   },
@@ -1405,6 +1424,24 @@ WebConsoleActor.prototype =
       events.off(this.parentActor, "will-navigate", this._onWillNavigate);
       this._progressListenerActive = false;
     }
+  },
+
+  
+
+
+
+  _onChangedToplevelDocument: function WCA__onChangedToplevelDocument()
+  {
+    
+    let listeners = [...this._listeners];
+
+    
+    
+    this.onStopListeners({listeners: listeners.slice()});
+
+    
+    
+    this.onStartListeners({listeners: listeners});
   },
 };
 
