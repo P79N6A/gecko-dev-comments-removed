@@ -397,7 +397,12 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
           nextY += (childBoxSize->right);
         else 
           nextY -= (childBoxSize->left);
-        childRect.x = originalClientRect.x;
+        if (GetFrameDirection(aBox) == NS_STYLE_DIRECTION_LTR) {
+          childRect.x = originalClientRect.x;
+        } else {
+          
+          childRect.x = clientRect.x + originalClientRect.width - childRect.width;
+        }
       }
       
       
@@ -527,6 +532,13 @@ nsSprocketLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
             newChildRect.x = childRect.XMost() - newChildRect.width;
           else
             newChildRect.y = childRect.YMost() - newChildRect.height;
+        }
+
+        if (!(frameState & NS_STATE_IS_HORIZONTAL)) {
+          if (GetFrameDirection(aBox) != NS_STYLE_DIRECTION_LTR) {
+            
+            newChildRect.x = childRect.XMost() - newChildRect.width;
+          }
         }
 
         
