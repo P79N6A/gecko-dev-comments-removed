@@ -561,11 +561,10 @@ template<typename T>
 gfxTextRun *
 MakeTextRun(const T *aText, uint32_t aLength,
             gfxFontGroup *aFontGroup, const gfxFontGroup::Parameters* aParams,
-            uint32_t aFlags, gfxMissingFontRecorder *aMFR)
+            uint32_t aFlags)
 {
     nsAutoPtr<gfxTextRun> textRun(aFontGroup->MakeTextRun(aText, aLength,
-                                                          aParams, aFlags,
-                                                          aMFR));
+                                                          aParams, aFlags));
     if (!textRun) {
         return nullptr;
     }
@@ -843,7 +842,6 @@ public:
     mCurrentFramesAllSameTextRun(nullptr),
     mContext(aContext),
     mLineContainer(aLineContainer),
-    mMissingFonts(aPresContext->MissingFontRecorder()),
     mBidiEnabled(aPresContext->BidiEnabled()),
     mSkipIncompleteTextRuns(false),
     mWhichTextRun(aWhichTextRun),
@@ -973,7 +971,7 @@ public:
                                             aCapitalize, mContext);
     }
 
-    void Finish(gfxMissingFontRecorder* aMFR) {
+    void Finish() {
       NS_ASSERTION(!(mTextRun->GetFlags() &
                      (gfxTextRunFactory::TEXT_UNUSED_FLAGS |
                       nsTextFrameUtils::TEXT_UNUSED_FLAG)),
@@ -981,7 +979,7 @@ public:
       if (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_TRANSFORMED) {
         nsTransformedTextRun* transformedTextRun =
           static_cast<nsTransformedTextRun*>(mTextRun);
-        transformedTextRun->FinishSettingProperties(mContext, aMFR);
+        transformedTextRun->FinishSettingProperties(mContext);
       }
       
       
@@ -1009,7 +1007,6 @@ private:
   
   
   nsIFrame*                     mCommonAncestorWithLastFrame;
-  gfxMissingFontRecorder*       mMissingFonts;
   
   
   uint32_t                      mMaxTextLength;
@@ -1509,7 +1506,7 @@ void BuildTextRunsScanner::FlushLineBreaks(gfxTextRun* aTrailingTextRun)
       
       
     }
-    mBreakSinks[i]->Finish(mMissingFonts);
+    mBreakSinks[i]->Finish();
   }
   mBreakSinks.Clear();
 
@@ -2141,30 +2138,26 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     const char16_t* text = static_cast<const char16_t*>(textPtr);
     if (transformingFactory) {
       textRun = transformingFactory->MakeTextRun(text, transformedLength, &params,
-                                                 fontGroup, textFlags, styles.Elements(),
-                                                 mMissingFonts);
+                                                 fontGroup, textFlags, styles.Elements());
       if (textRun) {
         
         transformingFactory.forget();
       }
     } else {
-      textRun = MakeTextRun(text, transformedLength, fontGroup, &params,
-                            textFlags, mMissingFonts);
+      textRun = MakeTextRun(text, transformedLength, fontGroup, &params, textFlags);
     }
   } else {
     const uint8_t* text = static_cast<const uint8_t*>(textPtr);
     textFlags |= gfxFontGroup::TEXT_IS_8BIT;
     if (transformingFactory) {
       textRun = transformingFactory->MakeTextRun(text, transformedLength, &params,
-                                                 fontGroup, textFlags, styles.Elements(),
-                                                 mMissingFonts);
+                                                 fontGroup, textFlags, styles.Elements());
       if (textRun) {
         
         transformingFactory.forget();
       }
     } else {
-      textRun = MakeTextRun(text, transformedLength, fontGroup, &params,
-                            textFlags, mMissingFonts);
+      textRun = MakeTextRun(text, transformedLength, fontGroup, &params, textFlags);
     }
   }
   if (!textRun) {

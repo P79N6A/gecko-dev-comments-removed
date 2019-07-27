@@ -3083,22 +3083,6 @@ CanvasRenderingContext2D::GetHitRegionRect(Element* aElement, nsRect& aRect)
 
 struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcessor
 {
-  CanvasBidiProcessor()
-    : nsBidiPresUtils::BidiProcessor()
-  {
-    if (Preferences::GetBool(GFX_MISSING_FONTS_NOTIFY_PREF)) {
-      mMissingFonts = new gfxMissingFontRecorder();
-    }
-  }
-
-  ~CanvasBidiProcessor()
-  {
-    
-    if (mMissingFonts) {
-      mMissingFonts->Flush();
-    }
-  }
-
   typedef CanvasRenderingContext2D::ContextState ContextState;
 
   virtual void SetText(const char16_t* text, int32_t length, nsBidiDirection direction)
@@ -3115,8 +3099,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
                                      length,
                                      mThebes,
                                      mAppUnitsPerDevPixel,
-                                     flags,
-                                     mMissingFonts);
+                                     flags);
   }
 
   virtual nscoord GetWidth()
@@ -3353,10 +3336,6 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
 
   
   gfxFontGroup* mFontgrp;
-
-  
-  
-  nsAutoPtr<gfxMissingFontRecorder> mMissingFonts;
 
   
   int32_t mAppUnitsPerDevPixel;
