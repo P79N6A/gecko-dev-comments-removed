@@ -25,6 +25,10 @@
 
 #include "OpusParser.h"
 
+namespace mozilla {
+static const unsigned NS_PER_USEC = 1000;
+static const double NS_PER_S = 1e9;
+
 
 
 
@@ -32,27 +36,51 @@
 class NesteggPacketHolder {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(NesteggPacketHolder)
-  NesteggPacketHolder(nestegg_packet* aPacket, int64_t aOffset)
-    : mPacket(aPacket), mOffset(aOffset) {}
+  NesteggPacketHolder() : mPacket(nullptr), mOffset(-1), mTimestamp(-1) {}
+
+  bool Init(nestegg_packet* aPacket, int64_t aOffset)
+  {
+    uint64_t timestamp_ns;
+    if (nestegg_packet_tstamp(aPacket, &timestamp_ns) == -1) {
+      return false;
+    }
+
+    
+    
+    mTimestamp = timestamp_ns / 1000;
+    mPacket = aPacket;
+    mOffset = aOffset;
+
+    return true;
+  }
+
+  nestegg_packet* Packet() { MOZ_ASSERT(IsInitialized()); return mPacket; }
+  int64_t Offset() { MOZ_ASSERT(IsInitialized()); return mOffset; }
+  int64_t Timestamp() { MOZ_ASSERT(IsInitialized()); return mTimestamp; }
+
+private:
+  ~NesteggPacketHolder()
+  {
+    nestegg_free_packet(mPacket);
+  }
+
+  bool IsInitialized() { return mOffset >= 0; }
 
   nestegg_packet* mPacket;
+
   
   
   int64_t mOffset;
-private:
-  ~NesteggPacketHolder() {
-    nestegg_free_packet(mPacket);
-  }
+
+  
+  int64_t mTimestamp;
 
   
   NesteggPacketHolder(const NesteggPacketHolder &aOther);
   NesteggPacketHolder& operator= (NesteggPacketHolder const& aOther);
 };
 
-namespace mozilla {
 class WebMBufferedState;
-static const unsigned NS_PER_USEC = 1000;
-static const double NS_PER_S = 1e9;
 
 
 class WebMPacketQueue {
@@ -174,7 +202,7 @@ protected:
   
   
   
-  bool DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset);
+  bool DecodeAudioPacket(NesteggPacketHolder* aHolder);
   bool DecodeVorbis(const unsigned char* aData, size_t aLength,
                     int64_t aOffset, uint64_t aTstampUsecs,
                     int32_t* aTotalFrames);
