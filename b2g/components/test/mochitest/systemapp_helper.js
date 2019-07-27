@@ -94,7 +94,7 @@ let steps = [
     
     
     function removedListener() {
-      assert.ok(false, "Listener isn't correctly removed from the pending list");
+      assert(false, "Listener isn't correctly removed from the pending list");
     }
     SystemAppProxy.addEventListener("mozChromeEvent", removedListener);
     SystemAppProxy.removeEventListener("mozChromeEvent", removedListener);
