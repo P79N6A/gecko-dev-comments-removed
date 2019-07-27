@@ -252,8 +252,6 @@ CompositorChild::RecvUpdatePluginConfigurations(const nsIntPoint& aContentOffset
       
       if (isVisible) {
         
-        nsIntRect bounds = aPlugins[pluginsIdx].bounds();
-        nsIntRect rect(0, 0, bounds.width, bounds.height);
 #if defined(XP_WIN)
         
         
