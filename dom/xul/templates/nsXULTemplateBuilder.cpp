@@ -1711,7 +1711,7 @@ nsXULTemplateBuilder::CompileQueries()
     }
 
     
-    if (PR_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG))
+    if (MOZ_LOG_TEST(gXULTemplateLog, PR_LOG_DEBUG))
         mFlags |= eLoggingEnabled;
 
     nsCOMPtr<nsIDOMNode> rootnode = do_QueryInterface(mRoot);
