@@ -77,7 +77,6 @@
 #include "IHistory.h"
 #include "nsViewSourceHandler.h"
 #include "nsWhitespaceTokenizer.h"
-#include "nsICookieService.h"
 
 
 
@@ -208,6 +207,10 @@
 #endif
 
 #include "mozIThirdPartyUtil.h"
+
+
+#define COOKIE_BEHAVIOR_ACCEPT 0 // Allow all cookies.
+#define COOKIE_BEHAVIOR_REJECT_FOREIGN 1 // Reject all third-party cookies.
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
@@ -14084,8 +14087,8 @@ nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate,
       NS_ENSURE_SUCCESS(result, result);
       if (isThirdPartyURI &&
           (Preferences::GetInt("network.cookie.cookieBehavior",
-                               nsICookieService::BEHAVIOR_ACCEPT) ==
-                               nsICookieService::BEHAVIOR_REJECT_FOREIGN)) {
+                               COOKIE_BEHAVIOR_ACCEPT) ==
+                               COOKIE_BEHAVIOR_REJECT_FOREIGN)) {
         return NS_OK;
       }
     }

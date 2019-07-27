@@ -18,6 +18,12 @@ namespace mozilla {
 namespace net {
 
 
+static const int32_t BEHAVIOR_ACCEPT = 0;
+static const int32_t BEHAVIOR_REJECTFOREIGN = 1;
+
+static const int32_t BEHAVIOR_LIMITFOREIGN = 3;
+
+
 static const char kPrefCookieBehavior[] = "network.cookie.cookieBehavior";
 static const char kPrefThirdPartySession[] =
   "network.cookie.thirdparty.sessionOnly";
@@ -40,7 +46,7 @@ NS_IMPL_ISUPPORTS(CookieServiceChild,
                   nsISupportsWeakReference)
 
 CookieServiceChild::CookieServiceChild()
-  : mCookieBehavior(nsICookieService::BEHAVIOR_ACCEPT)
+  : mCookieBehavior(BEHAVIOR_ACCEPT)
   , mThirdPartySession(false)
 {
   NS_ASSERTION(IsNeckoChild(), "not a child process");
@@ -74,9 +80,7 @@ CookieServiceChild::PrefChanged(nsIPrefBranch *aPrefBranch)
   int32_t val;
   if (NS_SUCCEEDED(aPrefBranch->GetIntPref(kPrefCookieBehavior, &val)))
     mCookieBehavior =
-      val >= nsICookieService::BEHAVIOR_ACCEPT &&
-      val <= nsICookieService::BEHAVIOR_LIMIT_FOREIGN
-        ? val : nsICookieService::BEHAVIOR_ACCEPT;
+      val >= BEHAVIOR_ACCEPT && val <= BEHAVIOR_LIMITFOREIGN ? val : BEHAVIOR_ACCEPT;
 
   bool boolval;
   if (NS_SUCCEEDED(aPrefBranch->GetBoolPref(kPrefThirdPartySession, &boolval)))
@@ -91,9 +95,7 @@ CookieServiceChild::PrefChanged(nsIPrefBranch *aPrefBranch)
 bool
 CookieServiceChild::RequireThirdPartyCheck()
 {
-  return mCookieBehavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN ||
-    mCookieBehavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN ||
-    mThirdPartySession;
+  return mCookieBehavior == BEHAVIOR_REJECTFOREIGN || mCookieBehavior == BEHAVIOR_LIMITFOREIGN || mThirdPartySession;
 }
 
 nsresult
