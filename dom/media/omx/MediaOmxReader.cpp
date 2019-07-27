@@ -420,7 +420,7 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
     
     int64_t pos = mDecoder->GetResource()->Tell();
 
-    VideoData *v;
+    nsRefPtr<VideoData> v;
     if (!frame.mGraphicBuffer) {
 
       VideoData::YCbCrBuffer b;

@@ -403,7 +403,7 @@ void MediaDecoderStateMachine::SendStreamData()
     }
 
     if (mInfo.HasAudio()) {
-      nsAutoTArray<AudioData*,10> audio;
+      nsAutoTArray<nsRefPtr<AudioData>,10> audio;
       
       
       AudioQueue().GetElementsAfter(stream->mLastAudioPacketTime, &audio);
@@ -425,7 +425,7 @@ void MediaDecoderStateMachine::SendStreamData()
     }
 
     if (mInfo.HasVideo()) {
-      nsAutoTArray<VideoData*,10> video;
+      nsAutoTArray<nsRefPtr<VideoData>,10> video;
       
       
       VideoQueue().GetElementsAfter(stream->mNextVideoTime, &video);
@@ -490,7 +490,7 @@ void MediaDecoderStateMachine::SendStreamData()
       if (!a || a->GetEndTime() >= minLastAudioPacketTime)
         break;
       OnAudioEndTimeUpdate(std::max(mAudioEndTime, a->GetEndTime()));
-      delete AudioQueue().PopFront();
+      nsRefPtr<AudioData> releaseMe = AudioQueue().PopFront();
     }
 
     if (finished) {
@@ -691,7 +691,7 @@ void
 MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  nsAutoPtr<AudioData> audio(aAudioSample);
+  nsRefPtr<AudioData> audio(aAudioSample);
   MOZ_ASSERT(audio);
   mAudioRequestPending = false;
 
@@ -702,7 +702,7 @@ MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
 
   switch (mState) {
     case DECODER_STATE_DECODING_FIRSTFRAME: {
-      Push(audio.forget());
+      Push(audio);
       MaybeFinishDecodeFirstFrame();
       return;
     }
@@ -710,7 +710,7 @@ MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
     case DECODER_STATE_BUFFERING:
     case DECODER_STATE_DECODING: {
       
-      Push(audio.forget());
+      Push(audio);
       return;
     }
 
@@ -738,11 +738,11 @@ MediaDecoderStateMachine::OnAudioDecoded(AudioData* aAudioSample)
         }
         if (mCurrentSeekTarget.mType == SeekTarget::PrevSyncPoint) {
           
-          AudioQueue().Push(audio.forget());
+          AudioQueue().Push(audio);
         } else {
           
           
-          if (NS_FAILED(DropAudioUpToSeekTarget(audio.forget()))) {
+          if (NS_FAILED(DropAudioUpToSeekTarget(audio))) {
             DecodeError();
             return;
           }
@@ -837,7 +837,8 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
     
     
     
-    VideoQueue().Push(mFirstVideoFrameAfterSeek.forget());
+    VideoQueue().Push(mFirstVideoFrameAfterSeek);
+    mFirstVideoFrameAfterSeek = nullptr;
   }
   isAudio ? AudioQueue().Finish() : VideoQueue().Finish();
   switch (mState) {
@@ -901,7 +902,7 @@ void
 MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  nsAutoPtr<VideoData> video(aVideoSample);
+  nsRefPtr<VideoData> video(aVideoSample);
   mVideoRequestPending = false;
 
   SAMPLE_LOG("OnVideoDecoded [%lld,%lld] disc=%d",
@@ -911,14 +912,14 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
 
   switch (mState) {
     case DECODER_STATE_DECODING_FIRSTFRAME: {
-      Push(video.forget());
+      Push(video);
       MaybeFinishDecodeFirstFrame();
       return;
     }
 
     case DECODER_STATE_BUFFERING:
     case DECODER_STATE_DECODING: {
-      Push(video.forget());
+      Push(video);
       
       
       
@@ -962,11 +963,11 @@ MediaDecoderStateMachine::OnVideoDecoded(VideoData* aVideoSample)
         }
         if (mCurrentSeekTarget.mType == SeekTarget::PrevSyncPoint) {
           
-          VideoQueue().Push(video.forget());
+          VideoQueue().Push(video);
         } else {
           
           
-          if (NS_FAILED(DropVideoUpToSeekTarget(video.forget()))) {
+          if (NS_FAILED(DropVideoUpToSeekTarget(video))) {
             DecodeError();
             return;
           }
@@ -2795,7 +2796,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
   
   int64_t remainingTime = AUDIO_DURATION_USECS;
   NS_ASSERTION(clock_time >= mStartTime, "Should have positive clock time.");
-  nsAutoPtr<VideoData> currentFrame;
+  nsRefPtr<VideoData> currentFrame;
   if (VideoQueue().GetSize() > 0) {
     VideoData* frame = VideoQueue().PeekFront();
 #ifdef PR_LOGGING
@@ -2810,7 +2811,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
       }
 #endif
       currentFrame = frame;
-      VideoQueue().PopFront();
+      nsRefPtr<VideoData> releaseMe = VideoQueue().PopFront();
       
       
       mDecoder->GetReentrantMonitor().NotifyAll();
@@ -2836,7 +2837,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
       mDecoder->IsExpectingMoreData()) {
     if (JustExitedQuickBuffering() || HasLowUndecodedData()) {
       if (currentFrame) {
-        VideoQueue().PushFront(currentFrame.forget());
+        VideoQueue().PushFront(currentFrame);
       }
       StartBuffering();
       
@@ -2906,7 +2907,7 @@ void MediaDecoderStateMachine::AdvanceFrame()
 nsresult
 MediaDecoderStateMachine::DropVideoUpToSeekTarget(VideoData* aSample)
 {
-  nsAutoPtr<VideoData> video(aSample);
+  nsRefPtr<VideoData> video(aSample);
   MOZ_ASSERT(video);
   DECODER_LOG("DropVideoUpToSeekTarget() frame [%lld, %lld] dup=%d",
               video->mTime, video->GetEndTime(), video->mDuplicate);
@@ -2921,7 +2922,7 @@ MediaDecoderStateMachine::DropVideoUpToSeekTarget(VideoData* aSample)
   if (video->mDuplicate &&
       mFirstVideoFrameAfterSeek &&
       !mFirstVideoFrameAfterSeek->mDuplicate) {
-    VideoData* temp =
+    nsRefPtr<VideoData> temp =
       VideoData::ShallowCopyUpdateTimestampAndDuration(mFirstVideoFrameAfterSeek,
                                                        video->mTime,
                                                        video->mDuration);
@@ -2939,7 +2940,7 @@ MediaDecoderStateMachine::DropVideoUpToSeekTarget(VideoData* aSample)
       
       
       
-      VideoData* temp = VideoData::ShallowCopyUpdateTimestamp(video, target);
+      nsRefPtr<VideoData> temp = VideoData::ShallowCopyUpdateTimestamp(video, target);
       video = temp;
     }
     mFirstVideoFrameAfterSeek = nullptr;
@@ -2947,16 +2948,16 @@ MediaDecoderStateMachine::DropVideoUpToSeekTarget(VideoData* aSample)
     DECODER_LOG("DropVideoUpToSeekTarget() found video frame [%lld, %lld] containing target=%lld",
                 video->mTime, video->GetEndTime(), target);
 
-    VideoQueue().PushFront(video.forget());
-
+    VideoQueue().PushFront(video);
   }
+
   return NS_OK;
 }
 
 nsresult
 MediaDecoderStateMachine::DropAudioUpToSeekTarget(AudioData* aSample)
 {
-  nsAutoPtr<AudioData> audio(aSample);
+  nsRefPtr<AudioData> audio(aSample);
   MOZ_ASSERT(audio &&
              mCurrentSeekTarget.IsValid() &&
              mCurrentSeekTarget.mType == SeekTarget::Accurate);
@@ -2982,7 +2983,7 @@ MediaDecoderStateMachine::DropAudioUpToSeekTarget(AudioData* aSample)
     
     
     DECODER_WARN("Audio not synced after seek, maybe a poorly muxed file?");
-    AudioQueue().Push(audio.forget());
+    AudioQueue().Push(audio);
     return NS_OK;
   }
 
@@ -3011,14 +3012,14 @@ MediaDecoderStateMachine::DropAudioUpToSeekTarget(AudioData* aSample)
   if (!duration.isValid()) {
     return NS_ERROR_FAILURE;
   }
-  nsAutoPtr<AudioData> data(new AudioData(audio->mOffset,
-                                          mCurrentSeekTarget.mTime,
-                                          duration.value(),
-                                          frames,
-                                          audioData.forget(),
-                                          channels,
-                                          audio->mRate));
-  AudioQueue().PushFront(data.forget());
+  nsRefPtr<AudioData> data(new AudioData(audio->mOffset,
+                                         mCurrentSeekTarget.mTime,
+                                         duration.value(),
+                                         frames,
+                                         audioData.forget(),
+                                         channels,
+                                         audio->mRate));
+  AudioQueue().PushFront(data);
 
   return NS_OK;
 }

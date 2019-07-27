@@ -142,7 +142,6 @@ public:
   virtual ~MediaDataDecoderCallback() {}
 
   
-  
   virtual void Output(MediaData* aData) = 0;
 
   

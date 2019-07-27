@@ -89,12 +89,12 @@ GonkMediaDataDecoder::ProcessDecode(mp4_demuxer::MP4Sample* aSample)
 void
 GonkMediaDataDecoder::ProcessOutput()
 {
-  nsAutoPtr<MediaData> output;
+  nsRefPtr<MediaData> output;
   nsresult rv;
   while (true && !mDrainComplete) {
     rv = mManager->Output(mLastStreamOffset, output);
     if (rv == NS_OK) {
-      mCallback->Output(output.forget());
+      mCallback->Output(output);
       continue;
     } else if (rv == NS_ERROR_NOT_AVAILABLE && mSignaledEOS) {
       
@@ -114,8 +114,8 @@ GonkMediaDataDecoder::ProcessOutput()
     ALOG("Failed to output data");
     
     if (rv == NS_ERROR_ABORT) {
-      if (output.get() != nullptr) {
-        mCallback->Output(output.forget());
+      if (output) {
+        mCallback->Output(output);
       }
       mCallback->DrainComplete();
       mSignaledEOS = false;

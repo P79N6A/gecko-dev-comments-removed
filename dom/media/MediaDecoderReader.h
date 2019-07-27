@@ -322,7 +322,7 @@ public:
 
   
   
-  nsresult Await(nsAutoPtr<AudioData>& aSample);
+  nsresult Await(nsRefPtr<AudioData>& aSample);
 
   
   void Cancel();
@@ -330,7 +330,7 @@ public:
 private:
   Monitor mMonitor;
   nsresult mStatus;
-  nsAutoPtr<AudioData> mSample;
+  nsRefPtr<AudioData> mSample;
   bool mHaveResult;
 };
 

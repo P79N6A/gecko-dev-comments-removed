@@ -24,6 +24,8 @@ class ImageContainer;
 class MediaData {
 public:
 
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaData)
+
   enum Type {
     AUDIO_DATA = 0,
     VIDEO_DATA
@@ -39,8 +41,6 @@ public:
     , mDuration(aDuration)
     , mDiscontinuity(false)
   {}
-
-  virtual ~MediaData() {}
 
   
   const Type mType;
@@ -60,6 +60,9 @@ public:
 
   int64_t GetEndTime() const { return mTime + mDuration; }
 
+protected:
+  virtual ~MediaData() {}
+
 };
 
 
@@ -77,15 +80,7 @@ public:
     , mFrames(aFrames)
     , mChannels(aChannels)
     , mRate(aRate)
-    , mAudioData(aData)
-  {
-    MOZ_COUNT_CTOR(AudioData);
-  }
-
-  ~AudioData()
-  {
-    MOZ_COUNT_DTOR(AudioData);
-  }
+    , mAudioData(aData) {}
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
@@ -100,6 +95,9 @@ public:
   nsRefPtr<SharedBuffer> mAudioBuffer;
   
   nsAutoArrayPtr<AudioDataValue> mAudioData;
+
+protected:
+  ~AudioData() {}
 };
 
 namespace layers {
@@ -143,81 +141,81 @@ public:
   
   
   
-  static VideoData* Create(VideoInfo& aInfo,
-                           ImageContainer* aContainer,
-                           Image* aImage,
-                           int64_t aOffset,
-                           int64_t aTime,
-                           int64_t aDuration,
-                           const YCbCrBuffer &aBuffer,
-                           bool aKeyframe,
-                           int64_t aTimecode,
-                           const IntRect& aPicture);
+  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
+                                            ImageContainer* aContainer,
+                                            Image* aImage,
+                                            int64_t aOffset,
+                                            int64_t aTime,
+                                            int64_t aDuration,
+                                            const YCbCrBuffer &aBuffer,
+                                            bool aKeyframe,
+                                            int64_t aTimecode,
+                                            const IntRect& aPicture);
 
   
-  static VideoData* Create(VideoInfo& aInfo,
-                           ImageContainer* aContainer,
-                           int64_t aOffset,
-                           int64_t aTime,
-                           int64_t aDuration,
-                           const YCbCrBuffer &aBuffer,
-                           bool aKeyframe,
-                           int64_t aTimecode,
-                           const IntRect& aPicture);
+  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
+                                            ImageContainer* aContainer,
+                                            int64_t aOffset,
+                                            int64_t aTime,
+                                            int64_t aDuration,
+                                            const YCbCrBuffer &aBuffer,
+                                            bool aKeyframe,
+                                            int64_t aTimecode,
+                                            const IntRect& aPicture);
 
   
-  static VideoData* Create(VideoInfo& aInfo,
-                           Image* aImage,
-                           int64_t aOffset,
-                           int64_t aTime,
-                           int64_t aDuration,
-                           const YCbCrBuffer &aBuffer,
-                           bool aKeyframe,
-                           int64_t aTimecode,
-                           const IntRect& aPicture);
+  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
+                                            Image* aImage,
+                                            int64_t aOffset,
+                                            int64_t aTime,
+                                            int64_t aDuration,
+                                            const YCbCrBuffer &aBuffer,
+                                            bool aKeyframe,
+                                            int64_t aTimecode,
+                                            const IntRect& aPicture);
 
-  static VideoData* Create(VideoInfo& aInfo,
-                           ImageContainer* aContainer,
-                           int64_t aOffset,
-                           int64_t aTime,
-                           int64_t aDuration,
-                           layers::TextureClient* aBuffer,
-                           bool aKeyframe,
-                           int64_t aTimecode,
-                           const IntRect& aPicture);
+  static already_AddRefed<VideoData> Create(VideoInfo& aInfo,
+                                             ImageContainer* aContainer,
+                                             int64_t aOffset,
+                                             int64_t aTime,
+                                             int64_t aDuration,
+                                             layers::TextureClient* aBuffer,
+                                             bool aKeyframe,
+                                             int64_t aTimecode,
+                                             const IntRect& aPicture);
 
-  static VideoData* CreateFromImage(VideoInfo& aInfo,
-                                    ImageContainer* aContainer,
-                                    int64_t aOffset,
-                                    int64_t aTime,
-                                    int64_t aDuration,
-                                    const nsRefPtr<Image>& aImage,
-                                    bool aKeyframe,
-                                    int64_t aTimecode,
-                                    const IntRect& aPicture);
-
-  
-  
-  
-  
-  
-  
-  
-  static VideoData* ShallowCopyUpdateDuration(VideoData* aOther,
-                                              int64_t aDuration);
+  static already_AddRefed<VideoData> CreateFromImage(VideoInfo& aInfo,
+                                                     ImageContainer* aContainer,
+                                                     int64_t aOffset,
+                                                     int64_t aTime,
+                                                     int64_t aDuration,
+                                                     const nsRefPtr<Image>& aImage,
+                                                     bool aKeyframe,
+                                                     int64_t aTimecode,
+                                                     const IntRect& aPicture);
 
   
   
   
-  static VideoData* ShallowCopyUpdateTimestamp(VideoData* aOther,
-                                               int64_t aTimestamp);
+  
+  
+  
+  
+  static already_AddRefed<VideoData> ShallowCopyUpdateDuration(VideoData* aOther,
+                                                               int64_t aDuration);
 
   
   
   
-  static VideoData* ShallowCopyUpdateTimestampAndDuration(VideoData* aOther,
-                                                          int64_t aTimestamp,
-                                                          int64_t aDuration);
+  static already_AddRefed<VideoData> ShallowCopyUpdateTimestamp(VideoData* aOther,
+                                                                int64_t aTimestamp);
+
+  
+  
+  
+  static already_AddRefed<VideoData>
+  ShallowCopyUpdateTimestampAndDuration(VideoData* aOther, int64_t aTimestamp,
+                                        int64_t aDuration);
 
   
   
@@ -230,15 +228,14 @@ public:
   
   
   
-  static VideoData* CreateDuplicate(int64_t aOffset,
-                                    int64_t aTime,
-                                    int64_t aDuration,
-                                    int64_t aTimecode)
+  static already_AddRefed<VideoData> CreateDuplicate(int64_t aOffset,
+                                                     int64_t aTime,
+                                                     int64_t aDuration,
+                                                     int64_t aTimecode)
   {
-    return new VideoData(aOffset, aTime, aDuration, aTimecode);
+    nsRefPtr<VideoData> rv = new VideoData(aOffset, aTime, aDuration, aTimecode);
+    return rv.forget();
   }
-
-  ~VideoData();
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
@@ -259,7 +256,6 @@ public:
   const bool mDuplicate;
   const bool mKeyframe;
 
-public:
   VideoData(int64_t aOffset,
             int64_t aTime,
             int64_t aDuration,
@@ -272,8 +268,10 @@ public:
             int64_t aTimecode,
             IntSize aDisplay);
 
+protected:
+  ~VideoData();
 };
 
 } 
 
-#endif
+#endif 

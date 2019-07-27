@@ -214,7 +214,7 @@ void
 AppleVDADecoder::ClearReorderedFrames()
 {
   while (!mReorderQueue.IsEmpty()) {
-    delete mReorderQueue.Pop();
+    mReorderQueue.Pop();
   }
 }
 
@@ -250,7 +250,7 @@ AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
     static_cast<layers::MacIOSurfaceImage*>(image.get());
   videoImage->SetSurface(macSurface);
 
-  nsAutoPtr<VideoData> data;
+  nsRefPtr<VideoData> data;
   data = VideoData::CreateFromImage(info,
                                     mImageContainer,
                                     aFrameRef->byte_offset,
@@ -268,10 +268,10 @@ AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
 
   
   
-  mReorderQueue.Push(data.forget());
+  mReorderQueue.Push(data);
   
   while (mReorderQueue.Length() > 0) {
-    VideoData* readyData = mReorderQueue.Pop();
+    nsRefPtr<VideoData> readyData = mReorderQueue.Pop();
     if (readyData->mTime <= aFrameRef->decode_timestamp) {
       LOG("returning queued frame with pts %lld", readyData->mTime);
       mCallback->Output(readyData);

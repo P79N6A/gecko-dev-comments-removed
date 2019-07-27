@@ -877,7 +877,7 @@ protected:
   
   
   
-  nsAutoPtr<VideoData> mFirstVideoFrameAfterSeek;
+  nsRefPtr<VideoData> mFirstVideoFrameAfterSeek;
 
   
   

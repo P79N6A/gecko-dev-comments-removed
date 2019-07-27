@@ -42,7 +42,7 @@ public:
   
   
   virtual HRESULT Output(int64_t aStreamOffset,
-                         nsAutoPtr<MediaData>& aOutput) = 0;
+                         nsRefPtr<MediaData>& aOutput) = 0;
 
   
   virtual void Shutdown() = 0;
