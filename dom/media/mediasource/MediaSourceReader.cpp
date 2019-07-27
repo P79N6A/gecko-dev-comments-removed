@@ -1028,7 +1028,7 @@ MediaSourceReader::GetBuffered(dom::TimeRanges* aBuffered)
   for (uint32_t i = 0; i < activeRanges.Length(); ++i) {
     TimeRanges* sourceRanges = activeRanges[i];
 
-    if (IsEnded()) {
+    if (IsEnded() && sourceRanges->GetEndTime() >= 0) {
       
       
       
