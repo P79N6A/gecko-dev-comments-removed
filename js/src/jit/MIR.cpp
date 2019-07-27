@@ -544,8 +544,12 @@ MConstant::valueHash() const
 {
     
     
-    return (HashNumber)JSVAL_TO_IMPL(value_).asBits;
+    
+    
+    uint64_t bits = JSVAL_TO_IMPL(value_).asBits;
+    return (HashNumber)bits ^ (HashNumber)(bits >> 32);
 }
+
 bool
 MConstant::congruentTo(const MDefinition *ins) const
 {
