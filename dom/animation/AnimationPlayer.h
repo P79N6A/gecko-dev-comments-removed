@@ -71,6 +71,13 @@ public:
   virtual CSSTransitionPlayer* AsCSSTransitionPlayer() { return nullptr; }
 
   
+  
+  enum LimitBehavior {
+    AutoRewind = 0,
+    Continue = 1
+  };
+
+  
   Animation* GetSource() const { return mSource; }
   AnimationTimeline* Timeline() const { return mTimeline; }
   Nullable<TimeDuration> GetStartTime() const { return mStartTime; }
@@ -83,7 +90,8 @@ public:
   void SilentlySetPlaybackRate(double aPlaybackRate);
   AnimationPlayState PlayState() const;
   virtual Promise* GetReady(ErrorResult& aRv);
-  virtual void Play();
+  virtual Promise* GetFinished(ErrorResult& aRv);
+  virtual void Play(LimitBehavior aLimitBehavior);
   virtual void Pause();
   bool IsRunningOnCompositor() const { return mIsRunningOnCompositor; }
 
@@ -97,7 +105,7 @@ public:
   void SetCurrentTimeAsDouble(const Nullable<double>& aCurrentTime,
                               ErrorResult& aRv);
   virtual AnimationPlayState PlayStateFromJS() const { return PlayState(); }
-  virtual void PlayFromJS() { Play(); }
+  virtual void PlayFromJS() { Play(LimitBehavior::AutoRewind); }
   
   
   
@@ -252,10 +260,12 @@ public:
                     bool& aNeedsRefreshes);
 
 protected:
-  void DoPlay();
+  void DoPlay(LimitBehavior aLimitBehavior);
   void DoPause();
   void ResumeAt(const TimeDuration& aResumeTime);
 
+  void UpdateTiming();
+  void UpdateFinishedState(bool aSeekFlag = false);
   void UpdateSourceContent();
   void FlushStyle() const;
   void PostUpdate();
@@ -265,6 +275,8 @@ protected:
 
 
   void CancelPendingTasks();
+
+  bool IsFinished() const;
 
   bool IsPossiblyOrphanedPendingPlayer() const;
   StickyTimeDuration SourceContentEnd() const;
@@ -280,12 +292,21 @@ protected:
   Nullable<TimeDuration> mStartTime; 
   Nullable<TimeDuration> mHoldTime;  
   Nullable<TimeDuration> mPendingReadyTime; 
+  Nullable<TimeDuration> mPreviousCurrentTime; 
   double mPlaybackRate;
 
   
   
   
+  
   nsRefPtr<Promise> mReady;
+
+  
+  
+  
+  
+  
+  nsRefPtr<Promise> mFinished;
 
   
   
@@ -297,9 +318,6 @@ protected:
   PendingState mPendingState;
 
   bool mIsRunningOnCompositor;
-  
-  
-  
   
   
   bool mIsPreviousStateFinished; 

@@ -81,7 +81,7 @@ public:
 
   
   
-  void PlayFromStyle() { DoPlay(); }
+  void PlayFromStyle() { DoPlay(AnimationPlayer::LimitBehavior::Continue); }
 
 protected:
   virtual ~CSSTransitionPlayer() { }
