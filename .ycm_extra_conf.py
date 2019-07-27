@@ -21,7 +21,14 @@ def FlagsForFile(filename):
     out.encoding = None
     mach.run(['compileflags', filename], stdout=out, stderr=out)
 
+    flag_list = shlex.split(out.getvalue())
+
+    
+    
+    
+    final_flags = [x for x in flag_list if not x.startswith('-march=armv')]
+
     return {
-        'flags': shlex.split(out.getvalue()),
+        'flags': final_flags,
         'do_cache': True
     }
