@@ -41,10 +41,6 @@ public:
     CloseSocket();
   }
 
-  virtual void OnConnectSuccess() override;
-  virtual void OnConnectError() override;
-  virtual void OnDisconnect() override;
-
   inline void GetAddress(nsAString& aDeviceAddress)
   {
     GetSocketAddr(aDeviceAddress);
@@ -57,14 +53,6 @@ public:
 
 
   void ReceiveSocketData(nsAutoPtr<mozilla::ipc::UnixSocketBuffer>& aBuffer);
-
-  
-
-
-
-
-
-  void SendSocketData(mozilla::ipc::UnixSocketIOBuffer* aBuffer) override;
 
   
 
@@ -104,13 +92,21 @@ public:
   
 
 
+  void GetSocketAddr(nsAString& aAddrStr);
+
+  
+  
+
+  void SendSocketData(mozilla::ipc::UnixSocketIOBuffer* aBuffer) override;
+
+  
+  
 
   void CloseSocket() override;
 
-  
-
-
-  void GetSocketAddr(nsAString& aAddrStr);
+  void OnConnectSuccess() override;
+  void OnConnectError() override;
+  void OnDisconnect() override;
 
 private:
   class BluetoothSocketIO;
