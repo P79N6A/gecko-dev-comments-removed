@@ -2117,7 +2117,7 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
     RootedShape shape(cxArg, foundShape);
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
         
-        if (pobj != obj)
+        if (pobj != receiver)
             shape = nullptr;
     } else {
         
