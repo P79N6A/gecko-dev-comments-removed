@@ -242,3 +242,24 @@ function* openAndCloseToolbox(nbOfTimes, usageTime, toolId) {
     yield gDevTools.closeToolbox(target);
   }
 }
+
+
+
+
+
+
+
+
+
+function waitUntil(predicate, interval = 10) {
+  if (predicate()) {
+    return Promise.resolve(true);
+  }
+  return new Promise(resolve => {
+    setTimeout(function() {
+      waitUntil(predicate).then(() => resolve(true));
+    }, interval);
+  });
+}
+
+
