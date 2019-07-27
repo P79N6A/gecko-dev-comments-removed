@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "DOMStorageIPC.h"
 
@@ -16,9 +16,9 @@
 namespace mozilla {
 namespace dom {
 
-// ----------------------------------------------------------------------------
-// Child
-// ----------------------------------------------------------------------------
+
+
+
 
 NS_IMPL_ADDREF(DOMStorageDBChild)
 
@@ -88,9 +88,9 @@ DOMStorageDBChild::Init()
 nsresult
 DOMStorageDBChild::Shutdown()
 {
-  // There is nothing to do here, IPC will release automatically and
-  // the actual thread running on the parent process will also stop
-  // automatically in profile-before-change topic observer.
+  
+  
+  
   return NS_OK;
 }
 
@@ -98,12 +98,12 @@ void
 DOMStorageDBChild::AsyncPreload(DOMStorageCacheBridge* aCache, bool aPriority)
 {
   if (mIPCOpen) {
-    // Adding ref to cache for the time of preload.  This ensures a reference to
-    // to the cache and that all keys will load into this cache object.
+    
+    
     mLoadingCaches.PutEntry(aCache);
     SendAsyncPreload(aCache->Scope(), aPriority);
   } else {
-    // No IPC, no love.  But the LoadDone call is expected.
+    
     aCache->LoadDone(NS_ERROR_UNEXPECTED);
   }
 }
@@ -129,10 +129,10 @@ DOMStorageDBChild::SyncPreload(DOMStorageCacheBridge* aCache, bool aForceSync)
     return;
   }
 
-  // There is no way to put the child process to a wait state to receive all
-  // incoming async responses from the parent, hence we have to do a sync preload
-  // instead.  We are smart though, we only demand keys that are left to load in
-  // case the async preload has already loaded some keys.
+  
+  
+  
+  
   InfallibleTArray<nsString> keys, values;
   nsresult rv;
   SendPreload(aCache->Scope(), aCache->LoadedCount(), &keys, &values, &rv);
@@ -199,9 +199,9 @@ DOMStorageDBChild::AsyncClear(DOMStorageCacheBridge* aCache)
 bool
 DOMStorageDBChild::ShouldPreloadScope(const nsACString& aScope)
 {
-  // Return true if we didn't receive the aScope list yet.
-  // I tend to rather preserve a bit of early-after-start performance
-  // then a bit of memory here.
+  
+  
+  
   return !mScopesHavingData || mScopesHavingData->Contains(aScope);
 }
 
@@ -243,7 +243,7 @@ DOMStorageDBChild::RecvLoadDone(const nsCString& aScope, const nsresult& aRv)
   if (aCache) {
     aCache->LoadDone(aRv);
 
-    // Just drop reference to this cache now since the load is done.
+    
     mLoadingCaches.RemoveEntry(static_cast<DOMStorageCacheBridge*>(aCache));
   }
 
@@ -265,9 +265,9 @@ DOMStorageDBChild::RecvError(const nsresult& aRv)
   return true;
 }
 
-// ----------------------------------------------------------------------------
-// Parent
-// ----------------------------------------------------------------------------
+
+
+
 
 NS_IMPL_ADDREF(DOMStorageDBParent)
 NS_IMPL_RELEASE(DOMStorageDBParent)
@@ -288,7 +288,7 @@ DOMStorageDBParent::ReleaseIPDLReference()
   Release();
 }
 
-namespace { // anon
+namespace { 
 
 class SendInitialChildDataRunnable : public nsRunnable
 {
@@ -311,8 +311,8 @@ private:
       mozilla::unused << mParent->SendScopesHavingData(scopes);
     }
 
-    // We need to check if the device is in a low disk space situation, so
-    // we can forbid in that case any write in localStorage.
+    
+    
     nsCOMPtr<nsIDiskSpaceWatcher> diskSpaceWatcher =
       do_GetService("@mozilla.org/toolkit/disk-space-watcher;1");
     if (!diskSpaceWatcher) {
@@ -332,7 +332,7 @@ private:
   nsRefPtr<DOMStorageDBParent> mParent;
 };
 
-} // anon
+} 
 
 DOMStorageDBParent::DOMStorageDBParent()
 : mIPCOpen(false)
@@ -342,11 +342,11 @@ DOMStorageDBParent::DOMStorageDBParent()
     observer->AddSink(this);
   }
 
-  // We are always open by IPC only
+  
   AddIPDLReference();
 
-  // Cannot send directly from here since the channel
-  // is not completely built at this moment.
+  
+  
   nsRefPtr<SendInitialChildDataRunnable> r =
     new SendInitialChildDataRunnable(this);
   NS_DispatchToCurrentThread(r);
@@ -381,7 +381,7 @@ DOMStorageDBParent::NewCache(const nsACString& aScope)
 void
 DOMStorageDBParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  // Implement me! Bug 1005169
+  
 }
 
 bool
@@ -404,18 +404,18 @@ DOMStorageDBParent::RecvAsyncGetUsage(const nsCString& aScope)
     return false;
   }
 
-  // The object releases it self in LoadUsage method
+  
   nsRefPtr<UsageParentBridge> usage = new UsageParentBridge(this, aScope);
   db->AsyncGetUsage(usage);
   return true;
 }
 
-namespace { // anon
+namespace { 
 
-// We need another implementation of DOMStorageCacheBridge to do
-// synchronous IPC preload.  This class just receives Load* notifications
-// and fills the returning arguments of RecvPreload with the database
-// values for us.
+
+
+
+
 class SyncLoadCacheHelper : public DOMStorageCacheBridge
 {
 public:
@@ -432,7 +432,7 @@ public:
   , mLoaded(false)
   , mLoadedCount(aAlreadyLoadedCount)
   {
-    // Precaution
+    
     *mRv = NS_ERROR_UNEXPECTED;
   }
 
@@ -441,7 +441,7 @@ public:
   virtual uint32_t LoadedCount() { return mLoadedCount; }
   virtual bool LoadItem(const nsAString& aKey, const nsString& aValue)
   {
-    // Called on the aCache background thread
+    
     if (mLoaded) {
       return false;
     }
@@ -454,7 +454,7 @@ public:
 
   virtual void LoadDone(nsresult aRv)
   {
-    // Called on the aCache background thread
+    
     MonitorAutoLock monitor(mMonitor);
     mLoaded = true;
     *mRv = aRv;
@@ -463,7 +463,7 @@ public:
 
   virtual void LoadWait()
   {
-    // Called on the main thread, exits after LoadDone() call
+    
     MonitorAutoLock monitor(mMonitor);
     while (!mLoaded) {
       monitor.Wait();
@@ -480,7 +480,7 @@ private:
   uint32_t mLoadedCount;
 };
 
-} // anon
+} 
 
 bool
 DOMStorageDBParent::RecvPreload(const nsCString& aScope,
@@ -582,7 +582,7 @@ DOMStorageDBParent::RecvAsyncFlush()
   return true;
 }
 
-// DOMStorageObserverSink
+
 
 nsresult
 DOMStorageDBParent::Observe(const char* aTopic,
@@ -596,9 +596,9 @@ DOMStorageDBParent::Observe(const char* aTopic,
   return NS_OK;
 }
 
-namespace { // anon
+namespace { 
 
-// Results must be sent back on the main thread
+
 class LoadRunnable : public nsRunnable
 {
 public:
@@ -657,9 +657,9 @@ private:
   }
 };
 
-} // anon
+} 
 
-// DOMStorageDBParent::CacheParentBridge
+
 
 bool
 DOMStorageDBParent::CacheParentBridge::LoadItem(const nsAString& aKey, const nsString& aValue)
@@ -679,7 +679,7 @@ DOMStorageDBParent::CacheParentBridge::LoadItem(const nsAString& aKey, const nsS
 void
 DOMStorageDBParent::CacheParentBridge::LoadDone(nsresult aRv)
 {
-  // Prevent send of duplicate LoadDone.
+  
   if (mLoaded) {
     return;
   }
@@ -694,13 +694,13 @@ DOMStorageDBParent::CacheParentBridge::LoadDone(nsresult aRv)
 void
 DOMStorageDBParent::CacheParentBridge::LoadWait()
 {
-  // Should never be called on this implementation
+  
   MOZ_ASSERT(false);
 }
 
-// DOMStorageDBParent::UsageParentBridge
 
-namespace { // anon
+
+namespace { 
 
 class UsageRunnable : public nsRunnable
 {
@@ -727,7 +727,7 @@ private:
   int64_t mUsage;
 };
 
-} // anon
+} 
 
 void
 DOMStorageDBParent::UsageParentBridge::LoadUsage(const int64_t aUsage)
@@ -736,5 +736,5 @@ DOMStorageDBParent::UsageParentBridge::LoadUsage(const int64_t aUsage)
   NS_DispatchToMainThread(r);
 }
 
-} // ::dom
-} // ::mozilla
+} 
+} 
