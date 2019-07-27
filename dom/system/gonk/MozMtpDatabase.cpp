@@ -1243,8 +1243,11 @@ MozMtpDatabase::getObjectInfo(MtpObjectHandle aHandle,
   aInfo.mAssociationDesc = 0;
   aInfo.mSequenceNumber = 0;
   aInfo.mName = ::strdup(entry->mObjectName.get());
-  aInfo.mDateCreated = entry->mDateCreated;
-  aInfo.mDateModified = entry->mDateModified;
+
+  
+  
+  aInfo.mDateCreated = entry->mDateCreated / PR_USEC_PER_SEC;
+  aInfo.mDateModified = entry->mDateModified / PR_USEC_PER_SEC;
   aInfo.mKeywords = ::strdup("fxos,touch");
 
   return MTP_RESPONSE_OK;
