@@ -353,11 +353,16 @@ pref("media.peerconnection.identity.timeout", 10000);
 
 
 pref("media.peerconnection.turn.disable", false);
+#if defined(MOZ_WEBRTC_HARDWARE_AEC_NS)
+pref("media.getusermedia.aec_enabled", false);
+pref("media.getusermedia.noise_enabled", false);
+#else
 pref("media.getusermedia.aec_enabled", true);
+pref("media.getusermedia.noise_enabled", true);
+#endif
+pref("media.getusermedia.noise", 1);
 pref("media.getusermedia.agc_enabled", false);
 pref("media.getusermedia.agc", 1);
-pref("media.getusermedia.noise_enabled", true);
-pref("media.getusermedia.noise", 1);
 
 
 #if defined(XP_MACOSX)
