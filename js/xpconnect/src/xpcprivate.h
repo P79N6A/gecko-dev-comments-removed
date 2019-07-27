@@ -626,7 +626,6 @@ public:
     void OnProcessNextEvent() {
         mSlowScriptCheckpoint = mozilla::TimeStamp::NowLoRes();
         mSlowScriptSecondHalf = false;
-        js::ResetStopwatches(Get()->Runtime());
     }
     void OnAfterProcessNextEvent() {
         mSlowScriptCheckpoint = mozilla::TimeStamp();
@@ -3624,6 +3623,7 @@ public:
         , skipWriteToGlobalPrototype(false)
         , universalXPConnectEnabled(false)
         , forcePermissiveCOWs(false)
+        , CPOWTime(0)
         , skipCOWCallableChecks(false)
         , scriptability(c)
         , scope(nullptr)
@@ -3676,6 +3676,9 @@ public:
     
     
     bool forcePermissiveCOWs;
+
+    
+    PRIntervalTime               CPOWTime;
 
     
     

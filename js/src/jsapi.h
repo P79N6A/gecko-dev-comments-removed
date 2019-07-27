@@ -975,8 +975,8 @@ struct CompartmentTimeStats {
     char compartmentName[1024];
     JSAddonId *addonId;
     JSCompartment *compartment;
-    bool isSystem;
-    js::PerformanceData performance;
+    uint64_t time;  
+    uint64_t cpowTime; 
 };
 
 typedef js::Vector<CompartmentTimeStats, 0, js::SystemAllocPolicy> CompartmentStatsVector;
@@ -5123,35 +5123,6 @@ GetSavedFrameParent(JSContext *cx, HandleObject savedFrame, MutableHandleObject 
 extern JS_PUBLIC_API(bool)
 StringifySavedFrameStack(JSContext *cx, HandleObject stack, MutableHandleString stringp);
 
-
-} 
-
-
-
-
-namespace js {
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-ResetStopwatches(JSRuntime*);
-
-
-
-
-extern JS_PUBLIC_API(void)
-SetStopwatchActive(JSRuntime*, bool);
-extern JS_PUBLIC_API(bool)
-IsStopwatchActive(JSRuntime*);
-
-
-
-
-extern JS_PUBLIC_API(PerformanceData*)
-GetPerformanceData(JSCompartment*);
 
 } 
 

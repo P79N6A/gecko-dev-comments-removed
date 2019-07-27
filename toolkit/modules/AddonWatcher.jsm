@@ -26,13 +26,11 @@ let AddonWatcher = {
     }
 
     if (this._callback) {
-      
       return;
     }
 
     this._interval = Preferences.get("browser.addon-watch.interval", 15000);
     if (this._interval == -1) {
-      
       return;
     }
 
@@ -43,9 +41,6 @@ let AddonWatcher = {
       
       this._ignoreList = new Set();
     }
-
-    
-    Cu.stopwatchMonitoring = true;
     this._timer.initWithCallback(this._checkAddons.bind(this), this._interval, Ci.nsITimer.TYPE_REPEATING_SLACK);
   },
   uninit: function() {
@@ -53,7 +48,6 @@ let AddonWatcher = {
       this._timer.cancel();
       this._timer = null;
     }
-    Cu.stopwatchMonitoring = false;
   },
   _checkAddons: function() {
     let compartmentInfo = Cc["@mozilla.org/compartment-info;1"]
