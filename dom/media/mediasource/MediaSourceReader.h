@@ -192,20 +192,14 @@ private:
   MediaPromiseHolder<SeekPromise> mSeekPromise;
   int64_t mPendingSeekTime;
   bool mWaitingForSeekData;
+  bool mAudioIsSeeking;
+  bool mVideoIsSeeking;
 
   int64_t mTimeThreshold;
   bool mDropAudioBeforeThreshold;
   bool mDropVideoBeforeThreshold;
 
   bool mEnded;
-
-  
-  
-  
-  
-  
-  bool mAudioIsSeeking;
-  bool mVideoIsSeeking;
 
   bool mHasEssentialTrackBuffers;
 
