@@ -830,7 +830,16 @@ public:
   void SetIMEOpenState(bool aOpen);
   void SetASCIICapableOnly(bool aASCIICapableOnly);
 
+  
+
+
   bool IsFocused();
+
+  
+
+
+
+  bool IsOrWouldBeFocused();
 
   static CFArrayRef CreateAllIMEModeList();
   static void DebugPrintAllIMEModes();
