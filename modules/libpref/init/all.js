@@ -4155,7 +4155,7 @@ pref("layout.css.touch_action.enabled", false);
 
 
 
-pref("layout.css.expensive-style-struct-assertions.enabed", false);
+pref("layout.css.expensive-style-struct-assertions.enabled", false);
 
 
 pref("browser.dom.window.dump.enabled", false);
