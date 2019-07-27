@@ -48,7 +48,8 @@ public class UploadAlarmReceiver extends BroadcastReceiver {
 
         @Override
         protected void onHandleIntent(Intent intent) {
-            boolean isRepeating = intent.getBooleanExtra(EXTRA_IS_REPEATING, true);
+            
+            boolean isRepeating = (intent == null)? true : intent.getBooleanExtra(EXTRA_IS_REPEATING, true);
             if (DataStorageManager.getInstance() == null) {
                 DataStorageManager.createGlobalInstance(this, null);
             }
