@@ -2895,8 +2895,13 @@ public class BrowserApp extends GeckoApp
     
     @Override
     public void onSearch(SearchEngine engine, String text) {
+        
+        
+        
+        if (!Tabs.getInstance().getSelectedTab().isPrivate()) {
+            storeSearchQuery(text);
+        }
         recordSearch(engine, "barsuggest");
-        storeSearchQuery(text);
         openUrlAndStopEditing(text, engine.name);
     }
 
