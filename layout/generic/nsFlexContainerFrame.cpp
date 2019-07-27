@@ -531,7 +531,14 @@ public:
     mCrossPosn = aPosn;
   }
 
-  void SetAscent(nscoord aAscent) {
+  
+  
+  
+  
+  
+  
+  
+  void SetAscent(nscoord aAscent) const {
     mAscent = aAscent;
   }
 
@@ -586,7 +593,8 @@ protected:
   nscoord mMainPosn;
   nscoord mCrossSize;
   nscoord mCrossPosn;
-  nscoord mAscent;
+  mutable nscoord mAscent; 
+                           
 
   
   
@@ -1379,6 +1387,13 @@ nsFlexContainerFrame::
   }
 }
 
+
+
+
+static void
+ResolveReflowedChildAscent(nsIFrame* aFrame,
+                           nsHTMLReflowMetrics& aChildDesiredSize);
+
 nscoord
 nsFlexContainerFrame::
   MeasureFlexItemContentHeight(nsPresContext* aPresContext,
@@ -1422,6 +1437,15 @@ nsFlexContainerFrame::
                     0, 0, flags);
 
   aFlexItem.SetHadMeasuringReflow();
+
+  
+  
+  
+  if (aFlexItem.Frame() == mFrames.FirstChild() ||
+      aFlexItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE) {
+    ResolveReflowedChildAscent(aFlexItem.Frame(), childDesiredSize);
+    aFlexItem.SetAscent(childDesiredSize.BlockStartAscent());
+  }
 
   
   
@@ -3332,7 +3356,10 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
   }
 
   
-  if (aItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE) {
+  
+  
+  if (aItem.Frame() == mFrames.FirstChild() ||
+      aItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE) {
     ResolveReflowedChildAscent(aItem.Frame(), childDesiredSize);
     aItem.SetAscent(childDesiredSize.BlockStartAscent());
   }
@@ -3742,12 +3769,24 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                         outerWM, framePos, containerWidth, 0);
 
       
+      if (item->Frame() == mFrames.FirstChild()) {
+        
+        
+        
+        
+        
+        
+        
+        
+        ResolveReflowedChildAscent(item->Frame(), childDesiredSize);
+        item->SetAscent(childDesiredSize.BlockStartAscent());
+      }
+
+      
       
       
       if (item->Frame() == mFrames.FirstChild() &&
           flexContainerAscent == nscoord_MIN) {
-        ResolveReflowedChildAscent(item->Frame(), childDesiredSize);
-
         
         
         
