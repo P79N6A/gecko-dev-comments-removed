@@ -2995,16 +2995,7 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
 
   const nsStyleFont* fontStyle = sc->StyleFont();
 
-  nsIAtom* language = fontStyle->mLanguage;
-  if (!language) {
-    language = presShell->GetPresContext()->GetLanguageFromCharset();
-  }
-
-  
-  const uint32_t aupcp = nsPresContext::AppUnitsPerCSSPixel();
-
-  bool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
-                      presShell->GetPresContext()->Type() == nsPresContext::eContext_Print);
+  nsPresContext *c = presShell->GetPresContext();
 
   
   
@@ -3012,28 +3003,28 @@ CanvasRenderingContext2D::SetFont(const nsAString& font,
   
   MOZ_ASSERT(!fontStyle->mAllowZoom,
              "expected text zoom to be disabled on this nsStyleFont");
-  gfxFontStyle style(fontStyle->mFont.style,
-                     fontStyle->mFont.weight,
-                     fontStyle->mFont.stretch,
-                     NSAppUnitsToFloatPixels(fontStyle->mSize, float(aupcp)),
-                     language,
-                     fontStyle->mExplicitLanguage,
-                     fontStyle->mFont.sizeAdjust,
-                     fontStyle->mFont.systemFont,
-                     printerFont,
-                     fontStyle->mFont.synthesis & NS_FONT_SYNTHESIS_WEIGHT,
-                     fontStyle->mFont.synthesis & NS_FONT_SYNTHESIS_STYLE,
-                     fontStyle->mFont.languageOverride);
+  nsFont resizedFont(fontStyle->mFont);
+  
+  
+  
+  
+  
+  
+  resizedFont.size =
+    (fontStyle->mSize * c->AppUnitsPerDevPixel()) / c->AppUnitsPerCSSPixel();
 
-  fontStyle->mFont.AddFontFeaturesToStyle(&style);
+  nsRefPtr<nsFontMetrics> metrics;
+  c->DeviceContext()->GetMetricsFor(resizedFont,
+                                    fontStyle->mLanguage,
+                                    fontStyle->mExplicitLanguage,
+                                    gfxFont::eHorizontal,
+                                    c->GetUserFontSet(),
+                                    c->GetTextPerfMetrics(),
+                                    *getter_AddRefs(metrics));
 
-  nsPresContext *c = presShell->GetPresContext();
-  CurrentState().fontGroup =
-      gfxPlatform::GetPlatform()->CreateFontGroup(fontStyle->mFont.fontlist,
-                                                  &style,
-                                                  c->GetUserFontSet());
+  gfxFontGroup* newFontGroup = metrics->GetThebesFontGroup();
+  CurrentState().fontGroup = newFontGroup;
   NS_ASSERTION(CurrentState().fontGroup, "Could not get font group");
-  CurrentState().fontGroup->SetTextPerfMetrics(c->GetTextPerfMetrics());
   CurrentState().font = usedFont;
   CurrentState().fontFont = fontStyle->mFont;
   CurrentState().fontFont.size = fontStyle->mSize;
