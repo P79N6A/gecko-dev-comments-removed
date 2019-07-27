@@ -450,7 +450,17 @@ WebGLContext::ValidateBufferFetching(const char *info)
             maxVertices = std::min(maxVertices, checked_maxAllowedCount.value());
             hasPerVertex = true;
         } else {
-            maxInstances = std::min(maxInstances, checked_maxAllowedCount.value() / vd.divisor);
+            CheckedUint32 checked_curMaxInstances = checked_maxAllowedCount * vd.divisor;
+
+            uint32_t curMaxInstances = UINT32_MAX;
+            
+            
+            
+            if (checked_curMaxInstances.isValid()) {
+                curMaxInstances = checked_curMaxInstances.value();
+            }
+
+            maxInstances = std::min(maxInstances, curMaxInstances);
         }
     }
 
