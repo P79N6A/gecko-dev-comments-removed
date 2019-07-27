@@ -115,6 +115,18 @@ private:
 
 
 
+  nsPoint GetTouchCaretPosition();
+
+  
+
+
+
+  nsPoint ClampPositionToScrollFrame(const nsPoint& aPosition);
+
+  
+
+
+
   void SetTouchFramePos(const nsPoint& aOrigin);
 
   void LaunchExpirationTimer();
