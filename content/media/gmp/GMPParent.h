@@ -15,10 +15,10 @@
 #include "nsISupports.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsIFile.h"
 
 class nsILineInputStream;
 class nsIThread;
-class nsIFile;
 
 namespace mozilla {
 namespace gmp {
@@ -76,6 +76,10 @@ public:
   
   
   bool CanBeUsedFrom(const nsAString& aOrigin) const;
+
+  already_AddRefed<nsIFile> GetDirectory() {
+    return nsCOMPtr<nsIFile>(mDirectory).forget();
+  }
 
 private:
   ~GMPParent();
