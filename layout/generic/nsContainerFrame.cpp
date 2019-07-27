@@ -910,9 +910,7 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext* aRenderingContext,
   
   if (aShrinkWrap || IsFrameOfType(eReplaced)) {
     
-    const nsStyleCoord& inlineStyleCoord =
-      aWM.IsVertical() ? StylePosition()->mHeight : StylePosition()->mWidth;
-    if (inlineStyleCoord.GetUnit() == eStyleUnit_Auto) {
+    if (StylePosition()->ISize(aWM).GetUnit() == eStyleUnit_Auto) {
       result.ISize(aWM) = ShrinkWidthToFit(aRenderingContext, availBased);
     }
   } else {
