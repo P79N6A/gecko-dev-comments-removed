@@ -478,17 +478,10 @@ pref("media.video_stats.enabled", true);
 pref("media.audio_data.enabled", false);
 
 
-#ifdef XP_WIN
-pref("layers.async-pan-zoom.enabled", true);
-
-
-pref("layout.event-regions.enabled", true);
-#else
 pref("layers.async-pan-zoom.enabled", false);
 
 
 pref("layout.event-regions.enabled", false);
-#endif
 
 
 
@@ -4115,6 +4108,8 @@ pref("browser.history.maxStateObjectSize", 655360);
 
 
 pref("xpinstall.whitelist.required", true);
+
+pref("xpinstall.signatures.required", false);
 pref("extensions.alwaysUnpack", false);
 pref("extensions.minCompatiblePlatformVersion", "2.0");
 
