@@ -258,16 +258,22 @@ public:
   
   void NotifyAsyncPanZoomStopped();
 
-  
-  
-  
-  void AddProfileTimelineMarker(const char* aName, TracingMetadata aMetaData);
-  void AddProfileTimelineMarker(mozilla::UniquePtr<TimelineMarker>&& aMarker);
-
 private:
   
   mozilla::UniquePtr<mozilla::ObservedDocShell> mObserved;
   bool IsObserved() const { return !!mObserved; }
+
+  
+  
+  
+  
+  
+  friend void mozilla::TimelineConsumers::AddConsumer(nsDocShell* aDocShell);
+  friend void mozilla::TimelineConsumers::RemoveConsumer(nsDocShell* aDocShell);
+  friend void mozilla::TimelineConsumers::AddMarkerForDocShell(
+    nsDocShell* aDocShell, UniquePtr<TimelineMarker>&& aMarker);
+  friend void mozilla::TimelineConsumers::AddMarkerForDocShell(
+    nsDocShell* aDocShell, const char* aName, TracingMetadata aMetaData);
 
 public:
   

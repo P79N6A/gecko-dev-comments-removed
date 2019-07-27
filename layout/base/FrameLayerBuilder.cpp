@@ -3075,7 +3075,7 @@ void ContainerState::FinishPaintedLayerData(PaintedLayerData& aData, FindOpaqueB
       data->mLayer->SetEventRegions(EventRegions());
     }
   }
-  
+
   if (!layer) {
     
     layer = data->mLayer;
@@ -5657,7 +5657,7 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
     if (isRecording) {
       mozilla::UniquePtr<TimelineMarker> marker =
         MakeUnique<LayerTimelineMarker>(docShell, aRegionToDraw);
-      docShell->AddProfileTimelineMarker(Move(marker));
+      TimelineConsumers::AddMarkerForDocShell(docShell, Move(marker));
     }
   }
 
