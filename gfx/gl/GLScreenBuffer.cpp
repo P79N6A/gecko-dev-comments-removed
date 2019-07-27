@@ -525,11 +525,18 @@ GLScreenBuffer::Readback(SharedSurface* src, gfx::DataSourceSurface* dest)
   }
 
   {
+      
+      
+      
+      src->ProducerAcquire();
+
       UniquePtr<ReadBuffer> buffer = CreateRead(src);
       MOZ_ASSERT(buffer);
 
       ScopedBindFramebuffer autoFB(mGL, buffer->mFB);
       ReadPixelsIntoDataSurface(mGL, dest);
+
+      src->ProducerRelease();
   }
 
   if (needsSwap) {
