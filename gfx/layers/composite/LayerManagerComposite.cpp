@@ -272,6 +272,11 @@ LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
     return;
   }
 
+  
+  
+  
+  mCompositor->SetCompositionTime(aTimeStamp);
+
   if (mRoot && mClonedLayerTreeProperties) {
     MOZ_ASSERT(!mTarget);
     nsIntRegion invalid =
@@ -290,9 +295,6 @@ LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
 
  if (mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
     MOZ_ASSERT(!aTimeStamp.IsNull());
-    
-    
-    mCompositor->SetCompositionTime(aTimeStamp);
     
     
     mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
