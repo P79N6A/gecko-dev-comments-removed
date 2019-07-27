@@ -841,9 +841,9 @@ function _loadURIWithFlags(browser, uri, flags, referrer, charset, postdata) {
     browser.userTypedClear++;
   }
 
+  let shouldBeRemote = gMultiProcessBrowser &&
+                       E10SUtils.shouldBrowserBeRemote(uri);
   try {
-    let shouldBeRemote = gMultiProcessBrowser &&
-                         E10SUtils.shouldBrowserBeRemote(uri);
     if (browser.isRemoteBrowser == shouldBeRemote) {
       browser.webNavigation.loadURI(uri, flags, referrer, postdata, null);
     } else {
@@ -853,6 +853,13 @@ function _loadURIWithFlags(browser, uri, flags, referrer, charset, postdata) {
         referrer: referrer ? referrer.spec : null,
       });
     }
+  } catch (e) {
+    
+    
+    
+    
+    gBrowser.updateBrowserRemoteness(browser, shouldBeRemote);
+    browser.webNavigation.loadURI(uri, flags, referrer, postdata, null);
   } finally {
     if (browser.userTypedClear) {
       browser.userTypedClear--;
