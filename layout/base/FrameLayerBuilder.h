@@ -297,11 +297,9 @@ public:
 
   void AddLayerDisplayItem(Layer* aLayer,
                            nsDisplayItem* aItem,
-                           const DisplayItemClip& aClip,
                            LayerState aLayerState,
                            const nsPoint& aTopLeft,
-                           BasicLayerManager* aManager,
-                           nsAutoPtr<nsDisplayItemGeometry> aGeometry);
+                           BasicLayerManager* aManager);
 
   
 
@@ -316,8 +314,7 @@ public:
                             const nsIntRect& aItemVisibleRect,
                             const ContainerState& aContainerState,
                             LayerState aLayerState,
-                            const nsPoint& aTopLeft,
-                            nsAutoPtr<nsDisplayItemGeometry> aGeometry);
+                            const nsPoint& aTopLeft);
 
   
 
@@ -332,9 +329,9 @@ public:
 
   Layer* GetOldLayerFor(nsDisplayItem* aItem, 
                         nsDisplayItemGeometry** aOldGeometry = nullptr, 
-                        DisplayItemClip** aOldClip = nullptr,
-                        nsTArray<nsIFrame*>* aChangedFrames = nullptr,
-                        bool *aIsInvalid = nullptr);
+                        DisplayItemClip** aOldClip = nullptr);
+
+  void ClearCachedGeometry(nsDisplayItem* aItem);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
@@ -415,7 +412,9 @@ public:
     void Invalidate() { mIsInvalid = true; }
 
   private:
-    DisplayItemData(LayerManagerData* aParent, uint32_t aKey, Layer* aLayer, LayerState aLayerState, uint32_t aGeneration);
+    DisplayItemData(LayerManagerData* aParent,
+                    uint32_t aKey,
+                    nsIFrame* aFrame = nullptr);
     DisplayItemData(DisplayItemData &toCopy);
 
     
@@ -433,7 +432,7 @@ public:
 
     void AddFrame(nsIFrame* aFrame);
     void RemoveFrame(nsIFrame* aFrame);
-    void GetFrameListChanges(nsDisplayItem* aOther, nsTArray<nsIFrame*>& aOut);
+    const nsTArray<nsIFrame*>& GetFrameListChanges();
 
     
 
@@ -442,8 +441,21 @@ public:
 
 
 
-    void UpdateContents(Layer* aLayer, LayerState aState,
-                        uint32_t aContainerLayerGeneration, nsDisplayItem* aItem = nullptr);
+
+    void BeginUpdate(Layer* aLayer, LayerState aState,
+                     uint32_t aContainerLayerGeneration, nsDisplayItem* aItem = nullptr);
+
+    
+
+
+
+
+
+
+
+
+    void EndUpdate(nsAutoPtr<nsDisplayItemGeometry> aGeometry);
+    void EndUpdate();
 
     LayerManagerData* mParent;
     nsRefPtr<Layer> mLayer;
@@ -455,6 +467,13 @@ public:
     uint32_t        mDisplayItemKey;
     uint32_t        mContainerLayerGeneration;
     LayerState      mLayerState;
+
+    
+
+
+
+    nsDisplayItem* mItem;
+    nsAutoTArray<nsIFrame*, 1> mFrameListChanges;
 
     
 
@@ -544,6 +563,7 @@ protected:
     nsRefPtr<LayerManager> mInactiveLayerManager;
 
     uint32_t mContainerLayerGeneration;
+
   };
 
   static void RecomputeVisibilityForItems(nsTArray<ClippedDisplayItem>& aItems,
@@ -622,6 +642,8 @@ public:
 
   void SetLayerTreeCompressionMode() { mInLayerTreeCompressionMode = true; }
   bool CheckInLayerTreeCompressionMode();
+
+  void ComputeGeometryChangeForItem(DisplayItemData* aData);
 
 protected:
   void RemoveThebesItemsAndOwnerDataForLayerSubtree(Layer* aLayer,
