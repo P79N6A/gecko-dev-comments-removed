@@ -82,6 +82,12 @@ public:
   
 
 
+  void TextSubstring(int32_t aStartOffset, int32_t aEndOfset,
+                     nsString& aText) const;
+
+  
+
+
   uintptr_t GetWrapper() const { return mWrapper; }
   void SetWrapper(uintptr_t aWrapper) { mWrapper = aWrapper; }
 
@@ -106,6 +112,11 @@ private:
   uint64_t mID;
   role mRole : 31;
   bool mOuterDoc : 1;
+};
+
+enum Interfaces
+{
+  HYPERTEXT = 1
 };
 
 }
