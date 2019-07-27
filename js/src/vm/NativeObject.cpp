@@ -1324,8 +1324,7 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
 
     RootedShape shape(cx);
-    RootedValue updateValue(cx, desc.value());
-    bool shouldDefine = true;
+    RootedValue value(cx, desc.value());
 
     
 
@@ -1363,15 +1362,20 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                                                      : shape->setter());
                 if (!shape)
                     return false;
-                shouldDefine = false;
+                if (!PurgeScopeChain(cx, obj, id))
+                    return false;
+
+                JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, value));
+                if (!CallAddPropertyHook(cx, obj, shape, value))
+                    return false;
+                return result.succeed();
             }
         }
 
         
         
         
-        if (shouldDefine)
-            attrs |= JSPROP_GETTER | JSPROP_SETTER;
+        attrs |= JSPROP_GETTER | JSPROP_SETTER;
     } else if (desc.hasValue()) {
         
         
@@ -1435,7 +1439,7 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                 
                 
                 
-                updateValue = UndefinedValue();
+                value = UndefinedValue();
             } else {
                 
                 
@@ -1445,33 +1449,19 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
                 getter = shape->getter();
                 setter = shape->setter();
                 if (shape->hasSlot())
-                    updateValue = obj->getSlot(shape->slot());
+                    value = obj->getSlot(shape->slot());
             }
         }
     }
 
-    
-
-
-
     if (!PurgeScopeChain(cx, obj, id))
         return false;
 
-    if (shouldDefine) {
-        
-        
-        
-        attrs = ApplyOrDefaultAttributes(attrs) & ~JSPROP_IGNORE_VALUE;
-        return DefinePropertyOrElement(cx, obj, id, getter, setter, attrs, updateValue, result);
-    }
-
-    MOZ_ASSERT(shape);
-
-    JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, updateValue));
-
-    if (!CallAddPropertyHook(cx, obj, shape, updateValue))
-        return false;
-    return result.succeed();
+    
+    
+    
+    attrs = ApplyOrDefaultAttributes(attrs) & ~JSPROP_IGNORE_VALUE;
+    return DefinePropertyOrElement(cx, obj, id, getter, setter, attrs, value, result);
 }
 
 bool
