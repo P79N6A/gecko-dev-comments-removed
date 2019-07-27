@@ -1178,6 +1178,9 @@ function testClasses() {
     function setClassMethods(class_, methods) {
         class_.template.body = methods;
     }
+    function setClassHeritage(class_, heritage) {
+        class_.template.heritage = heritage;
+    }
 
     let simpleConstructor = simpleMethod("constructor", "method", false);
     let emptyFooClass = classStmt(ident("Foo"), null, [simpleConstructor]);
@@ -1319,6 +1322,51 @@ function testClasses() {
 
     
     
+    
+    assertError("class Foo extends null, undefined { constructor() { } }", SyntaxError);
+
+    
+    assertError("class Foo extends (delete x) { constructor() { } }", SyntaxError);
+
+    
+    assertError("class Foo extends { constructor() { } }", SyntaxError);
+
+    
+    setClassMethods(stmt, [simpleConstructor, simpleMethod("extends", "method", false)]);
+    assertStmt("class Foo { constructor() { }; extends() { } }", stmt);
+
+    
+    setClassMethods(stmt, [simpleConstructor]);
+    setClassHeritage(stmt, lit(null));
+    assertStmt("class Foo extends null { constructor() { } }", stmt);
+
+    
+    setClassHeritage(stmt, seqExpr([ident("undefined"), ident("undefined")]));
+    assertStmt("class Foo extends (undefined, undefined) { constructor() { } }", stmt);
+
+    
+    let emptyFunction = funExpr(null, [], blockStmt([]));
+    setClassHeritage(stmt, emptyFunction);
+    assertStmt("class Foo extends function(){ } { constructor() { } }", stmt);
+
+    
+    setClassHeritage(stmt, newExpr(emptyFunction, []));
+    assertStmt("class Foo extends new function(){ }() { constructor() { } }", stmt);
+
+    
+    setClassHeritage(stmt, callExpr(emptyFunction, []));
+    assertStmt("class Foo extends function(){ }() { constructor() { } }", stmt);
+
+    
+    setClassHeritage(stmt, dotExpr(objExpr([]), ident("foo")));
+    assertStmt("class Foo extends {}.foo { constructor() { } }", stmt);
+
+    
+    setClassHeritage(stmt, memExpr(objExpr([]), ident("foo")));
+    assertStmt("class Foo extends {}[foo] { constructor() { } }", stmt);
+
+    
+    
     assertError("class Foo {", SyntaxError);
     assertError("class Foo {;", SyntaxError);
     assertError("class Foo { constructor", SyntaxError);
@@ -1333,6 +1381,7 @@ function testClasses() {
     assertError("class Foo { static *y", SyntaxError);
     assertError("class Foo { static get", SyntaxError);
     assertError("class Foo { static get y", SyntaxError);
+    assertError("class Foo extends", SyntaxError);
 
 }
 
