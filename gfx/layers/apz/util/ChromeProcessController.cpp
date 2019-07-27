@@ -59,6 +59,8 @@ ChromeProcessController::InitializeRoot()
   uint32_t presShellId;
   FrameMetrics::ViewID viewId;
   if (APZCCallbackHelper::GetOrCreateScrollIdentifiers(content, &presShellId, &viewId)) {
+    
+    
     nsLayoutUtils::SetDisplayPortMargins(content, presShell, ScreenMargin(), 0,
         nsLayoutUtils::RepaintMode::DoNotRepaint);
   }
