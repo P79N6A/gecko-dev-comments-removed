@@ -11,6 +11,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 
+
 XPCOMUtils.defineLazyGetter(this, "RIL", function () {
   let obj = {};
   Cu.import("resource://gre/modules/ril_consts.js", obj);
@@ -58,6 +59,7 @@ function debug(s) {
   dump("TelephonyService: " + s + "\n");
 }
 
+
 XPCOMUtils.defineLazyGetter(this, "gRadioInterfaceLayer", function() {
   let ril = { numRadioInterfaces: 0 };
   try {
@@ -66,27 +68,33 @@ XPCOMUtils.defineLazyGetter(this, "gRadioInterfaceLayer", function() {
   return ril;
 });
 
+
 XPCOMUtils.defineLazyServiceGetter(this, "gPowerManagerService",
                                    "@mozilla.org/power/powermanagerservice;1",
                                    "nsIPowerManagerService");
+
 
 XPCOMUtils.defineLazyServiceGetter(this, "gTelephonyMessenger",
                                    "@mozilla.org/ril/system-messenger-helper;1",
                                    "nsITelephonyMessenger");
 
+
 XPCOMUtils.defineLazyServiceGetter(this, "gAudioService",
                                    "@mozilla.org/telephony/audio-service;1",
                                    "nsITelephonyAudioService");
 
+
 XPCOMUtils.defineLazyServiceGetter(this, "gGonkMobileConnectionService",
                                    "@mozilla.org/mobileconnection/mobileconnectionservice;1",
                                    "nsIGonkMobileConnectionService");
+
 
 XPCOMUtils.defineLazyGetter(this, "gPhoneNumberUtils", function() {
   let ns = {};
   Cu.import("resource://gre/modules/PhoneNumberUtils.jsm", ns);
   return ns.PhoneNumberUtils;
 });
+
 
 XPCOMUtils.defineLazyGetter(this, "gDialNumberUtils", function() {
   let ns = {};
