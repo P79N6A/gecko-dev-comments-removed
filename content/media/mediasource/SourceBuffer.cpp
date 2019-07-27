@@ -82,7 +82,7 @@ protected:
 class WebMContainerParser : public ContainerParser {
 public:
   WebMContainerParser()
-    : mTimecodeScale(0)
+    : mParser(0), mOffset(0)
   {}
 
   bool IsInitSegmentPresent(const uint8_t* aData, uint32_t aLength)
@@ -108,25 +108,25 @@ public:
   virtual bool ParseStartAndEndTimestamps(const uint8_t* aData, uint32_t aLength,
                                           double& aStart, double& aEnd)
   {
-    
-    
-    
-
-    WebMBufferedParser parser(0);
-    if (mTimecodeScale != 0) {
-      parser.SetTimecodeScale(mTimecodeScale);
+    bool initSegment = IsInitSegmentPresent(aData, aLength);
+    if (initSegment) {
+      mOffset = 0;
+      mParser = WebMBufferedParser(0);
+      mOverlappedMapping.Clear();
     }
 
+    
+    
     nsTArray<WebMTimeDataOffset> mapping;
+    mapping.AppendElements(mOverlappedMapping);
+    mOverlappedMapping.Clear();
     ReentrantMonitor dummy("dummy");
-    parser.Append(aData, aLength, mapping, dummy);
-
-    mTimecodeScale = parser.GetTimecodeScale();
+    mParser.Append(aData, aLength, mapping, dummy);
 
     
     
     
-    if (IsInitSegmentPresent(aData, aLength)) {
+    if (initSegment) {
       uint32_t length = aLength;
       if (!mapping.IsEmpty()) {
         length = mapping[0].mSyncOffset;
@@ -137,23 +137,40 @@ public:
 
       mInitData.ReplaceElementsAt(0, mInitData.Length(), aData, length);
     }
+    mOffset += aLength;
 
     if (mapping.IsEmpty()) {
       return false;
     }
 
+    
+    uint32_t endIdx = mapping.Length() - 1;
+    while (mOffset < mapping[endIdx].mEndOffset && endIdx > 0) {
+      endIdx -= 1;
+    }
+
+    if (endIdx == 0) {
+      return false;
+    }
+
     static const double NS_PER_S = 1e9;
     aStart = mapping[0].mTimecode / NS_PER_S;
-    aEnd = mapping.LastElement().mTimecode / NS_PER_S;
+    aEnd = mapping[endIdx].mTimecode / NS_PER_S;
+    aEnd += (mapping[endIdx].mTimecode - mapping[endIdx - 1].mTimecode) / NS_PER_S;
 
-    MSE_DEBUG("WebMContainerParser(%p)::ParseStartAndEndTimestamps: [%f, %f] [fso=%lld, leo=%lld]",
-              this, aStart, aEnd, mapping[0].mSyncOffset, mapping.LastElement().mEndOffset);
+    MSE_DEBUG("WebMContainerParser(%p)::ParseStartAndEndTimestamps: [%f, %f] [fso=%lld, leo=%lld, l=%u endIdx=%u]",
+              this, aStart, aEnd, mapping[0].mSyncOffset, mapping[endIdx].mEndOffset, mapping.Length(), endIdx);
+
+    mapping.RemoveElementsAt(0, endIdx + 1);
+    mOverlappedMapping.AppendElements(mapping);
 
     return true;
   }
 
 private:
-  uint32_t mTimecodeScale;
+  WebMBufferedParser mParser;
+  nsTArray<WebMTimeDataOffset> mOverlappedMapping;
+  int64_t mOffset;
 };
 
 class MP4ContainerParser : public ContainerParser {
@@ -585,7 +602,7 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   }
   double start, end;
   if (mParser->ParseStartAndEndTimestamps(aData, aLength, start, end)) {
-    if (start <= mLastParsedTimestamp || mLastParsedTimestamp - start > 0.1) {
+    if (start < mLastParsedTimestamp || start - mLastParsedTimestamp > 0.1) {
       MSE_DEBUG("SourceBuffer(%p)::AppendData: Data (%f, %f) overlaps %f.",
                 this, start, end, mLastParsedTimestamp);
 
