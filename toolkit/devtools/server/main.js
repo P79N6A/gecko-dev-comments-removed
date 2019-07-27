@@ -24,6 +24,9 @@ DevToolsUtils.defineLazyGetter(this, "DebuggerSocket", () => {
   let { DebuggerSocket } = require("devtools/toolkit/security/socket");
   return DebuggerSocket;
 });
+DevToolsUtils.defineLazyGetter(this, "Authentication", () => {
+  return require("devtools/toolkit/security/auth");
+});
 
 
 
@@ -1101,6 +1104,14 @@ var DebuggerServer = {
     }
   }
 };
+
+
+DevToolsUtils.defineLazyGetter(DebuggerServer, "Authenticators", () => {
+  return Authentication.Authenticators;
+});
+DevToolsUtils.defineLazyGetter(DebuggerServer, "AuthenticationResult", () => {
+  return Authentication.AuthenticationResult;
+});
 
 EventEmitter.decorate(DebuggerServer);
 

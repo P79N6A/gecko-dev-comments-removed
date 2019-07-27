@@ -15,6 +15,50 @@ loader.lazyRequireGetter(this, "prompt",
 
 
 
+function createEnum(obj) {
+  for (let key in obj) {
+    obj[key] = key;
+  }
+  return obj;
+}
+
+
+
+
+
+
+
+let AuthenticationResult = exports.AuthenticationResult = createEnum({
+
+  
+
+
+  DISABLE_ALL: null,
+
+  
+
+
+  DENY: null,
+
+  
+
+
+  ALLOW: null,
+
+  
+
+
+
+
+  ALLOW_PERSIST: null
+
+});
+
+
+
+
+
+
 
 
 
@@ -85,15 +129,17 @@ Prompt.Server.prototype = {
 
 
 
+
   authenticate(session) {
     if (!Services.prefs.getBoolPref("devtools.debugger.prompt-connection")) {
-      return true;
+      return AuthenticationResult.ALLOW;
     }
     session.authentication = this.mode;
     return this.allowConnection(session);
   },
 
   
+
 
 
 
@@ -209,12 +255,14 @@ OOBCert.Server.prototype = {
 
 
 
+
   authenticate(session) {
     session.authentication = this.mode;
     return this.allowConnection(session);
   },
 
   
+
 
 
 
