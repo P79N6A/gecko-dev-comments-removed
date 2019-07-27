@@ -70,7 +70,6 @@ class ChromeCast implements GeckoMediaPlayer {
             
             if (mediaStatus.getPlayerState() == MediaStatus.PLAYER_STATE_IDLE &&
                 mediaStatus.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
-                stop(null);
 
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Casting:Stop", null));
             }
