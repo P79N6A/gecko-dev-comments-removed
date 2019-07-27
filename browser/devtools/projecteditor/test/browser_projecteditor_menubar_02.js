@@ -98,7 +98,11 @@ let test = asyncTest(function*() {
   is (cmdSave.getAttribute("disabled"), "", "File menu item is enabled");
   is (cmdSaveas.getAttribute("disabled"), "", "File menu item is enabled");
 
-  is (cmdUndo.getAttribute("disabled"), "", "Edit menu item is enabled");
+  
+  
+  info ('cmdUndo.getAttribute("disabled") is: "' + cmdUndo.getAttribute("disabled") + '"');
+  ok (editor.editor.canUndo(), "Edit menu item is enabled");
+
   is (cmdRedo.getAttribute("disabled"), "true", "Edit menu item is disabled");
   is (cmdCut.getAttribute("disabled"), "true", "Edit menu item is disabled");
   is (cmdCopy.getAttribute("disabled"), "true", "Edit menu item is disabled");
