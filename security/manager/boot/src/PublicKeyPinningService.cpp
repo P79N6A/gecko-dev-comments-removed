@@ -3,23 +3,24 @@
 
 
 #include "PublicKeyPinningService.h"
-#include "pkix/nullptr.h"
-#include "StaticHPKPins.h" 
 
 #include "cert.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Telemetry.h"
 #include "nsISiteSecurityService.h"
+#include "nssb64.h"
 #include "nsServiceManagerUtils.h"
 #include "nsSiteSecurityService.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nssb64.h"
+#include "pkix/nullptr.h"
 #include "pkix/pkixtypes.h"
 #include "prlog.h"
+#include "RootCertificateTelemetryUtils.h"
 #include "ScopedNSSTypes.h"
 #include "seccomon.h"
 #include "sechash.h"
+#include "StaticHPKPins.h" 
 
 using namespace mozilla;
 using namespace mozilla::pkix;
@@ -269,6 +270,16 @@ CheckPinsForHostname(const CERTCertList *certList, const char *hostname,
     } else {
       Telemetry::Accumulate(histogram, result ? 1 : 0);
     }
+
+    
+    CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
+    
+    if (!CERT_LIST_END(rootNode, certList)) {
+      if (!result) {
+        AccumulateTelemetryForRootCA(Telemetry::CERT_PINNING_FAILURES_BY_CA, rootNode->cert);
+      }
+    }
+
     PR_LOG(gPublicKeyPinningLog, PR_LOG_DEBUG,
            ("pkpin: Pin check %s for %s host '%s' (mode=%s)\n",
             result ? "passed" : "failed",
