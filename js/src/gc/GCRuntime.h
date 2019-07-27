@@ -533,7 +533,6 @@ class GCRuntime
 
     
     void releaseArena(ArenaHeader *aheader, const AutoLockGC &lock);
-    void decommitArena(ArenaHeader *aheader, AutoLockGC &lock);
 
     void releaseHeldRelocatedArenas();
 
