@@ -237,9 +237,6 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     if (NS_FAILED(rv))
         return rv;
 
-    bool useSandbox =
-        (aExecutionPolicy == nsIScriptChannel::EXECUTE_IN_SANDBOX);
-
     
     
     AutoEntryScript entryScript(innerGlobal, true,
@@ -248,90 +245,37 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     JS::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());
     NS_ENSURE_TRUE(globalJSObject, NS_ERROR_UNEXPECTED);
 
-    if (!useSandbox) {
-        
-        
-        nsIPrincipal* objectPrincipal = nsContentUtils::ObjectPrincipal(globalJSObject);
+    
+    
+    nsIPrincipal* objectPrincipal = nsContentUtils::ObjectPrincipal(globalJSObject);
 
-        bool subsumes;
-        rv = principal->Subsumes(objectPrincipal, &subsumes);
-        if (NS_FAILED(rv))
-            return rv;
+    bool subsumes;
+    rv = principal->Subsumes(objectPrincipal, &subsumes);
+    if (NS_FAILED(rv))
+        return rv;
 
-        useSandbox = !subsumes;
+    if (!subsumes) {
+        return NS_ERROR_DOM_RETVAL_UNDEFINED;
     }
 
     JS::Rooted<JS::Value> v (cx, JS::UndefinedValue());
     
-    if (useSandbox) {
-        
-        
-        
-        
-
-        
-        
-        if (!securityManager->ScriptAllowed(globalJSObject)) {
-            
-            
-            return NS_ERROR_DOM_RETVAL_UNDEFINED;
-        }
-
-        nsIXPConnect *xpc = nsContentUtils::XPConnect();
-
-        nsCOMPtr<nsIXPConnectJSObjectHolder> sandbox;
-        
-        rv = xpc->CreateSandbox(cx, nullptr, getter_AddRefs(sandbox));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        
-        
-        
-        
-        JS::Rooted<JSObject*> sandboxObj(cx, sandbox->GetJSObject());
-        NS_ENSURE_STATE(sandboxObj);
-        sandboxObj = js::UncheckedUnwrap(sandboxObj);
-        JSAutoCompartment ac(cx, sandboxObj);
-
-        
-        
-        nsCxPusher pusher;
-        pusher.Push(cx);
-        rv = xpc->EvalInSandboxObject(NS_ConvertUTF8toUTF16(script),
-                                       nullptr, cx,
-                                      sandboxObj, true, &v);
-
-        
-        
-        if (JS_IsExceptionPending(cx)) {
-            JS_ReportPendingException(cx);
-        }
-    } else {
-        
-        
-        JS::CompileOptions options(cx);
-        options.setFileAndLine(mURL.get(), 1)
-               .setVersion(JSVERSION_DEFAULT);
-        nsJSUtils::EvaluateOptions evalOptions;
-        evalOptions.setCoerceToString(true);
-        rv = nsJSUtils::EvaluateString(cx, NS_ConvertUTF8toUTF16(script),
-                                       globalJSObject, options, evalOptions, &v);
-
-        
-        
-        
-        
-        
-        
-        
-        ::JS_ReportPendingException(cx);
-    }
+    JS::CompileOptions options(cx);
+    options.setFileAndLine(mURL.get(), 1)
+           .setVersion(JSVERSION_DEFAULT);
+    nsJSUtils::EvaluateOptions evalOptions;
+    evalOptions.setCoerceToString(true);
+    rv = nsJSUtils::EvaluateString(cx, NS_ConvertUTF8toUTF16(script),
+                                   globalJSObject, options, evalOptions, &v);
 
     
     
-    if (!JS_WrapValue(cx, &v)) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
+    
+    
+    
+    
+    
+    ::JS_ReportPendingException(cx);
 
     if (NS_FAILED(rv) || !(v.isString() || v.isUndefined())) {
         return NS_ERROR_MALFORMED_URI;
@@ -434,7 +378,7 @@ nsJSChannel::nsJSChannel() :
     mLoadFlags(LOAD_NORMAL),
     mActualLoadFlags(LOAD_NORMAL),
     mPopupState(openOverridden),
-    mExecutionPolicy(EXECUTE_IN_SANDBOX),
+    mExecutionPolicy(NO_EXECUTION),
     mIsAsync(true),
     mIsActive(false),
     mOpenedStreamChannel(false)
