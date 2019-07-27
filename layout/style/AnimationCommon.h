@@ -366,14 +366,20 @@ public:
   
   
   
-  Nullable<mozilla::TimeDuration>
-  GetLocalTimeAt(mozilla::TimeStamp aTime) const {
-    MOZ_ASSERT(aTime.IsNull() || !IsPaused() || aTime >= mPauseStart,
+  
+  
+  Nullable<mozilla::TimeDuration> GetLocalTime() const {
+    const mozilla::TimeStamp& timelineTime = mTimeline->GetCurrentTimeStamp();
+    
+    
+    MOZ_ASSERT(timelineTime.IsNull() || !IsPaused() ||
+               timelineTime >= mPauseStart,
                "if paused, any non-null value of aTime must be at least"
                " mPauseStart");
+
     Nullable<mozilla::TimeDuration> result; 
-    if (!aTime.IsNull()) {
-      result.SetValue((IsPaused() ? mPauseStart : aTime) - mStartTime);
+    if (!timelineTime.IsNull() && !mStartTime.IsNull()) {
+      result.SetValue((IsPaused() ? mPauseStart : timelineTime) - mStartTime);
     }
     return result;
   }

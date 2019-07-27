@@ -56,7 +56,7 @@ struct ElementPropertyTransition : public mozilla::ElementAnimation
   
   
   
-  double ValuePortionFor(mozilla::TimeStamp aRefreshTime) const;
+  double CurrentValuePortion() const;
 };
 
 } 
