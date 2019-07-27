@@ -180,6 +180,36 @@ AnimationPlayer::IsRunning() const
   return computedTiming.mPhase == ComputedTiming::AnimationPhase_Active;
 }
 
+bool
+AnimationPlayer::CanThrottle() const
+{
+  if (!mSource ||
+      mSource->IsFinishedTransition() ||
+      mSource->Properties().IsEmpty()) {
+    return true;
+  }
+
+  if (!mIsRunningOnCompositor) {
+    return false;
+  }
+
+  if (PlayState() != AnimationPlayState::Finished) {
+    
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  return mSource->LastNotification() == Animation::LAST_NOTIFICATION_END;
+}
+
 void
 AnimationPlayer::FlushStyle() const
 {

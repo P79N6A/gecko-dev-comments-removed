@@ -83,7 +83,6 @@ public:
   }
 
   bool IsPaused() const { return mIsPaused; }
-
   bool IsRunning() const;
 
   bool HasCurrentSource() const {
@@ -92,6 +91,11 @@ public:
   bool HasInEffectSource() const {
     return GetSource() && GetSource()->IsInEffect();
   }
+
+  
+  
+  
+  bool CanThrottle() const;
 
   
   Nullable<TimeDuration> mStartTime; 

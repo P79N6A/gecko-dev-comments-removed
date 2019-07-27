@@ -493,29 +493,7 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
   
   if (aFlags == EnsureStyleRule_IsThrottled) {
     for (size_t playerIdx = mPlayers.Length(); playerIdx-- != 0; ) {
-      AnimationPlayer* player = mPlayers[playerIdx];
-
-      
-      
-      if (!player->GetSource() ||
-          player->GetSource()->IsFinishedTransition() ||
-          player->GetSource()->Properties().IsEmpty()) {
-        continue;
-      }
-
-      
-      
-      ComputedTiming computedTiming = player->GetSource()->GetComputedTiming();
-
-      
-      
-      
-      
-      if (!player->mIsRunningOnCompositor ||
-          (computedTiming.mPhase == ComputedTiming::AnimationPhase_After &&
-           player->GetSource()->LastNotification()
-             != Animation::LAST_NOTIFICATION_END))
-      {
+      if (!mPlayers[playerIdx]->CanThrottle()) {
         aFlags = EnsureStyleRule_IsNotThrottled;
         break;
       }
