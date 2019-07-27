@@ -52,8 +52,7 @@ static nsresult
 getWrapper(JSContext *cx,
            JSObject *obj,
            XPCWrappedNative **wrapper,
-           JSObject **cur,
-           XPCWrappedNativeTearOff **tearoff)
+           JSObject **cur)
 {
     
     
@@ -78,7 +77,6 @@ getWrapper(JSContext *cx,
     
     *wrapper = nullptr;
     *cur = nullptr;
-    *tearoff = nullptr;
 
     if (dom::IsDOMObject(obj)) {
         *cur = obj;
@@ -91,11 +89,11 @@ getWrapper(JSContext *cx,
     
     
     
-    
     const js::Class* clasp = js::GetObjectClass(obj);
     if (clasp == &XPC_WN_Tearoff_JSClass) {
-        *tearoff = (XPCWrappedNativeTearOff*) js::GetObjectPrivate(obj);
         obj = js::GetObjectParent(obj);
+        
+        
     }
 
     
@@ -110,7 +108,6 @@ static nsresult
 castNative(JSContext *cx,
            XPCWrappedNative *wrapper,
            JSObject *curArg,
-           XPCWrappedNativeTearOff *tearoff,
            const nsIID &iid,
            void **ppThis,
            nsISupports **pThisRef,
@@ -151,13 +148,12 @@ xpc_qsUnwrapArgImpl(JSContext *cx,
     RootedObject src(cx, &v.toObject());
 
     XPCWrappedNative *wrapper;
-    XPCWrappedNativeTearOff *tearoff;
     JSObject *obj2;
-    nsresult rv = getWrapper(cx, src, &wrapper, &obj2, &tearoff);
+    nsresult rv = getWrapper(cx, src, &wrapper, &obj2);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (wrapper || obj2) {
-        if (NS_FAILED(castNative(cx, wrapper, obj2, tearoff, iid, ppArg,
+        if (NS_FAILED(castNative(cx, wrapper, obj2, iid, ppArg,
                                  ppArgRef, vp)))
             return NS_ERROR_XPC_BAD_CONVERT_JS;
         return NS_OK;
