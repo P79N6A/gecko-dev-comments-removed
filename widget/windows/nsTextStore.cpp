@@ -3951,6 +3951,14 @@ nsTextStore::ProcessMessage(nsWindowBase* aWindow, UINT aMessage,
         aLParam &= ~ISC_SHOWUICOMPOSITIONWINDOW;
       }
       break;
+    case WM_ENTERIDLE:
+      
+      
+      if (!IsComposingOn(aWindow)) {
+        break;
+      }
+      CommitComposition(false);
+      break;
   }
 }
 
