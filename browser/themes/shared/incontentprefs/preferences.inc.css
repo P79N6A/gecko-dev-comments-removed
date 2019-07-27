@@ -183,6 +183,13 @@ treecol {
 }
 
 
+#playDRMContentLink {
+  
+  margin-left: 4px !important;
+  margin-right: 4px !important;
+}
+
+
 
 #applicationsContent {
   padding: 15px 0;
