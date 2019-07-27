@@ -62,9 +62,12 @@ public:
   };
 
   
-  static uint32_t ParseLinkTypes(const nsAString& aTypes);
+  
+  
+  static uint32_t ParseLinkTypes(const nsAString& aTypes,
+                                 nsIPrincipal* aPrincipal);
 
-  static bool IsImportEnabled();
+  static bool IsImportEnabled(nsIPrincipal* aPrincipal);
   
   void UpdateStyleSheetInternal()
   {
