@@ -79,9 +79,9 @@ MOZILLA_PKIX_ENUM_CLASS SignatureAlgorithm
 struct SignedDataWithSignature
 {
 public:
-  InputBuffer data;
+  Input data;
   SignatureAlgorithm algorithm;
-  InputBuffer signature;
+  Input signature;
 
 private:
   void operator=(const SignedDataWithSignature&) ;
@@ -142,16 +142,15 @@ MOZILLA_PKIX_ENUM_CLASS TrustLevel {
 struct CertID
 {
 public:
-  CertID(InputBuffer issuer, InputBuffer issuerSubjectPublicKeyInfo,
-         InputBuffer serialNumber)
+  CertID(Input issuer, Input issuerSubjectPublicKeyInfo, Input serialNumber)
     : issuer(issuer)
     , issuerSubjectPublicKeyInfo(issuerSubjectPublicKeyInfo)
     , serialNumber(serialNumber)
   {
   }
-  const InputBuffer issuer;
-  const InputBuffer issuerSubjectPublicKeyInfo;
-  const InputBuffer serialNumber;
+  const Input issuer;
+  const Input issuerSubjectPublicKeyInfo;
+  const Input serialNumber;
 private:
   void operator=(const CertID&) ;
 };
@@ -165,7 +164,7 @@ public:
   
   
   
-  virtual const InputBuffer* GetDER(size_t i) const = 0;
+  virtual const Input* GetDER(size_t i) const = 0;
 protected:
   DERArray() { }
   virtual ~DERArray() { }
@@ -194,7 +193,7 @@ public:
   
   virtual Result GetCertTrust(EndEntityOrCA endEntityOrCA,
                               const CertPolicyId& policy,
-                              InputBuffer candidateCertDER,
+                              Input candidateCertDER,
                                TrustLevel& trustLevel) = 0;
 
   class IssuerChecker
@@ -207,8 +206,8 @@ public:
     
     
     
-    virtual Result Check(InputBuffer potentialIssuerDER,
-             const InputBuffer* additionalNameConstraints,
+    virtual Result Check(Input potentialIssuerDER,
+             const Input* additionalNameConstraints,
                   bool& keepGoing) = 0;
   protected:
     IssuerChecker();
@@ -259,7 +258,7 @@ public:
   
   
   
-  virtual Result FindIssuer(InputBuffer encodedIssuerName,
+  virtual Result FindIssuer(Input encodedIssuerName,
                             IssuerChecker& checker, PRTime time) = 0;
 
   
@@ -289,8 +288,8 @@ public:
   
   virtual Result CheckRevocation(EndEntityOrCA endEntityOrCA,
                                  const CertID& certID, PRTime time,
-                     const InputBuffer* stapledOCSPresponse,
-                     const InputBuffer* aiaExtension) = 0;
+                     const Input* stapledOCSPresponse,
+                     const Input* aiaExtension) = 0;
 
   
   
@@ -298,7 +297,7 @@ public:
   
   
   
-  virtual Result CheckPublicKey(InputBuffer subjectPublicKeyInfo) = 0;
+  virtual Result CheckPublicKey(Input subjectPublicKeyInfo) = 0;
 
   
   
@@ -308,7 +307,7 @@ public:
   
   
   virtual Result VerifySignedData(const SignedDataWithSignature& signedData,
-                                  InputBuffer subjectPublicKeyInfo) = 0;
+                                  Input subjectPublicKeyInfo) = 0;
 
   
   
@@ -321,7 +320,7 @@ public:
   
   
   static const size_t DIGEST_LENGTH = 20; 
-  virtual Result DigestBuf(InputBuffer item,  uint8_t* digestBuf,
+  virtual Result DigestBuf(Input item,  uint8_t* digestBuf,
                            size_t digestBufLen) = 0;
 protected:
   TrustDomain() { }

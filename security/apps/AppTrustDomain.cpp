@@ -94,8 +94,8 @@ AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot)
 }
 
 Result
-AppTrustDomain::FindIssuer(InputBuffer encodedIssuerName,
-                           IssuerChecker& checker, PRTime time)
+AppTrustDomain::FindIssuer(Input encodedIssuerName, IssuerChecker& checker,
+                           PRTime time)
 
 {
   MOZ_ASSERT(mTrustedRoot);
@@ -112,7 +112,7 @@ AppTrustDomain::FindIssuer(InputBuffer encodedIssuerName,
   
   
   SECItem encodedIssuerNameSECItem =
-    UnsafeMapInputBufferToSECItem(encodedIssuerName);
+    UnsafeMapInputToSECItem(encodedIssuerName);
   ScopedCERTCertList
     candidates(CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
                                           &encodedIssuerNameSECItem, time,
@@ -120,7 +120,7 @@ AppTrustDomain::FindIssuer(InputBuffer encodedIssuerName,
   if (candidates) {
     for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
          !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
-      InputBuffer certDER;
+      Input certDER;
       Result rv = certDER.Init(n->cert->derCert.data, n->cert->derCert.len);
       if (rv != Success) {
         continue; 
@@ -144,7 +144,7 @@ AppTrustDomain::FindIssuer(InputBuffer encodedIssuerName,
 Result
 AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
                              const CertPolicyId& policy,
-                             InputBuffer candidateCertDER,
+                             Input candidateCertDER,
                       TrustLevel& trustLevel)
 {
   MOZ_ASSERT(policy.IsAnyPolicy());
@@ -162,7 +162,7 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   
   
   SECItem candidateCertDERSECItem =
-    UnsafeMapInputBufferToSECItem(candidateCertDER);
+    UnsafeMapInputToSECItem(candidateCertDER);
   ScopedCERTCertificate candidateCert(
     CERT_NewTempCertificate(CERT_GetDefaultCertDB(), &candidateCertDERSECItem,
                             nullptr, false, true));
@@ -201,14 +201,14 @@ AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
 
 Result
 AppTrustDomain::VerifySignedData(const SignedDataWithSignature& signedData,
-                                 InputBuffer subjectPublicKeyInfo)
+                                 Input subjectPublicKeyInfo)
 {
   return ::mozilla::pkix::VerifySignedData(signedData, subjectPublicKeyInfo,
                                            mPinArg);
 }
 
 Result
-AppTrustDomain::DigestBuf(InputBuffer item,  uint8_t* digestBuf,
+AppTrustDomain::DigestBuf(Input item,  uint8_t* digestBuf,
                           size_t digestBufLen)
 {
   return ::mozilla::pkix::DigestBuf(item, digestBuf, digestBufLen);
@@ -216,8 +216,8 @@ AppTrustDomain::DigestBuf(InputBuffer item,  uint8_t* digestBuf,
 
 Result
 AppTrustDomain::CheckRevocation(EndEntityOrCA, const CertID&, PRTime time,
-                                 const InputBuffer*,
-                                 const InputBuffer*)
+                                 const Input*,
+                                 const Input*)
 {
   
   
@@ -236,7 +236,7 @@ AppTrustDomain::IsChainValid(const DERArray& certChain)
 }
 
 Result
-AppTrustDomain::CheckPublicKey(InputBuffer subjectPublicKeyInfo)
+AppTrustDomain::CheckPublicKey(Input subjectPublicKeyInfo)
 {
   return ::mozilla::pkix::CheckPublicKey(subjectPublicKeyInfo);
 }

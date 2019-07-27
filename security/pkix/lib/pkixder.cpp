@@ -32,7 +32,7 @@ namespace internal {
 
 
 Result
-ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
+ExpectTagAndGetLength(Reader& input, uint8_t expectedTag, uint16_t& length)
 {
   PR_ASSERT((expectedTag & 0x1F) != 0x1F); 
 
@@ -90,7 +90,7 @@ ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
 } 
 
 static Result
-OptionalNull(Input& input)
+OptionalNull(Reader& input)
 {
   if (input.Peek(NULLTag)) {
     return Null(input);
@@ -101,7 +101,8 @@ OptionalNull(Input& input)
 namespace {
 
 Result
-DigestAlgorithmOIDValue(Input& algorithmID,  DigestAlgorithm& algorithm)
+DigestAlgorithmOIDValue(Reader& algorithmID,
+                         DigestAlgorithm& algorithm)
 {
   
   
@@ -139,7 +140,7 @@ DigestAlgorithmOIDValue(Input& algorithmID,  DigestAlgorithm& algorithm)
 }
 
 Result
-SignatureAlgorithmOIDValue(Input& algorithmID,
+SignatureAlgorithmOIDValue(Reader& algorithmID,
                             SignatureAlgorithm& algorithm)
 {
   
@@ -235,16 +236,16 @@ SignatureAlgorithmOIDValue(Input& algorithmID,
 
 template <typename OidValueParser, typename Algorithm>
 Result
-AlgorithmIdentifier(OidValueParser oidValueParser, Input& input,
+AlgorithmIdentifier(OidValueParser oidValueParser, Reader& input,
                      Algorithm& algorithm)
 {
-  Input value;
+  Reader value;
   Result rv = ExpectTagAndGetValue(input, SEQUENCE, value);
   if (rv != Success) {
     return rv;
   }
 
-  Input algorithmID;
+  Reader algorithmID;
   rv = ExpectTagAndGetValue(value, der::OIDTag, algorithmID);
   if (rv != Success) {
     return rv;
@@ -265,23 +266,23 @@ AlgorithmIdentifier(OidValueParser oidValueParser, Input& input,
 } 
 
 Result
-SignatureAlgorithmIdentifier(Input& input,
+SignatureAlgorithmIdentifier(Reader& input,
                               SignatureAlgorithm& algorithm)
 {
   return AlgorithmIdentifier(SignatureAlgorithmOIDValue, input, algorithm);
 }
 
 Result
-DigestAlgorithmIdentifier(Input& input,  DigestAlgorithm& algorithm)
+DigestAlgorithmIdentifier(Reader& input,  DigestAlgorithm& algorithm)
 {
   return AlgorithmIdentifier(DigestAlgorithmOIDValue, input, algorithm);
 }
 
 Result
-SignedData(Input& input,  Input& tbs,
+SignedData(Reader& input,  Reader& tbs,
             SignedDataWithSignature& signedData)
 {
-  Input::Mark mark(input.GetMark());
+  Reader::Mark mark(input.GetMark());
 
   Result rv;
   rv = ExpectTagAndGetValue(input, SEQUENCE, tbs);
@@ -289,7 +290,7 @@ SignedData(Input& input,  Input& tbs,
     return rv;
   }
 
-  rv = input.GetInputBuffer(mark, signedData.data);
+  rv = input.GetInput(mark, signedData.data);
   if (rv != Success) {
     return rv;
   }
@@ -307,9 +308,9 @@ SignedData(Input& input,  Input& tbs,
 }
 
 Result
-BitStringWithNoUnusedBits(Input& input,  InputBuffer& value)
+BitStringWithNoUnusedBits(Reader& input,  Input& value)
 {
-  Input valueWithUnusedBits;
+  Reader valueWithUnusedBits;
   Result rv = ExpectTagAndGetValue(input, BIT_STRING, valueWithUnusedBits);
   if (rv != Success) {
     return rv;
@@ -328,13 +329,13 @@ BitStringWithNoUnusedBits(Input& input,  InputBuffer& value)
   if (unusedBitsAtEnd != 0) {
     return Result::ERROR_BAD_DER;
   }
-  Input::Mark mark(valueWithUnusedBits.GetMark());
+  Reader::Mark mark(valueWithUnusedBits.GetMark());
   valueWithUnusedBits.SkipToEnd();
-  return valueWithUnusedBits.GetInputBuffer(mark, value);
+  return valueWithUnusedBits.GetInput(mark, value);
 }
 
 static inline Result
-ReadDigit(Input& input,  int& value)
+ReadDigit(Reader& input,  int& value)
 {
   uint8_t b;
   if (input.Read(b) != Success) {
@@ -348,7 +349,7 @@ ReadDigit(Input& input,  int& value)
 }
 
 static inline Result
-ReadTwoDigits(Input& input, int minValue, int maxValue,  int& value)
+ReadTwoDigits(Reader& input, int minValue, int maxValue,  int& value)
 {
   int hi;
   Result rv = ReadDigit(input, hi);
@@ -384,11 +385,11 @@ namespace internal {
 
 
 Result
-TimeChoice(Input& tagged, uint8_t expectedTag,  PRTime& time)
+TimeChoice(Reader& tagged, uint8_t expectedTag,  PRTime& time)
 {
   int days;
 
-  Input input;
+  Reader input;
   Result rv = ExpectTagAndGetValue(tagged, expectedTag, input);
   if (rv != Success) {
     return rv;

@@ -73,7 +73,7 @@ enum Tag
 MOZILLA_PKIX_ENUM_CLASS EmptyAllowed { No = 0, Yes = 1 };
 
 inline Result
-ExpectTagAndLength(Input& input, uint8_t expectedTag, uint8_t expectedLength)
+ExpectTagAndLength(Reader& input, uint8_t expectedTag, uint8_t expectedLength)
 {
   PR_ASSERT((expectedTag & 0x1F) != 0x1F); 
   PR_ASSERT(expectedLength < 128); 
@@ -97,12 +97,12 @@ ExpectTagAndLength(Input& input, uint8_t expectedTag, uint8_t expectedLength)
 namespace internal {
 
 Result
-ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length);
+ExpectTagAndGetLength(Reader& input, uint8_t expectedTag, uint16_t& length);
 
 } 
 
 inline Result
-ExpectTagAndSkipValue(Input& input, uint8_t tag)
+ExpectTagAndSkipValue(Reader& input, uint8_t tag)
 {
   uint16_t length;
   Result rv = internal::ExpectTagAndGetLength(input, tag, length);
@@ -113,7 +113,7 @@ ExpectTagAndSkipValue(Input& input, uint8_t tag)
 }
 
 inline Result
-ExpectTagAndGetValue(Input& input, uint8_t tag,  InputBuffer& value)
+ExpectTagAndGetValue(Reader& input, uint8_t tag,  Input& value)
 {
   uint16_t length;
   Result rv = internal::ExpectTagAndGetLength(input, tag, length);
@@ -124,7 +124,7 @@ ExpectTagAndGetValue(Input& input, uint8_t tag,  InputBuffer& value)
 }
 
 inline Result
-ExpectTagAndGetValue(Input& input, uint8_t tag,  Input& value)
+ExpectTagAndGetValue(Reader& input, uint8_t tag,  Reader& value)
 {
   uint16_t length;
   Result rv = internal::ExpectTagAndGetLength(input, tag, length);
@@ -137,9 +137,9 @@ ExpectTagAndGetValue(Input& input, uint8_t tag,  Input& value)
 
 
 inline Result
-ExpectTagAndGetTLV(Input& input, uint8_t tag,  InputBuffer& tlv)
+ExpectTagAndGetTLV(Reader& input, uint8_t tag,  Input& tlv)
 {
-  Input::Mark mark(input.GetMark());
+  Reader::Mark mark(input.GetMark());
   uint16_t length;
   Result rv = internal::ExpectTagAndGetLength(input, tag, length);
   if (rv != Success) {
@@ -149,11 +149,11 @@ ExpectTagAndGetTLV(Input& input, uint8_t tag,  InputBuffer& tlv)
   if (rv != Success) {
     return rv;
   }
-  return input.GetInputBuffer(mark, tlv);
+  return input.GetInput(mark, tlv);
 }
 
 inline Result
-End(Input& input)
+End(Reader& input)
 {
   if (!input.AtEnd()) {
     return Result::ERROR_BAD_DER;
@@ -164,9 +164,9 @@ End(Input& input)
 
 template <typename Decoder>
 inline Result
-Nested(Input& input, uint8_t tag, Decoder decoder)
+Nested(Reader& input, uint8_t tag, Decoder decoder)
 {
-  Input nested;
+  Reader nested;
   Result rv = ExpectTagAndGetValue(input, tag, nested);
   if (rv != Success) {
     return rv;
@@ -180,12 +180,12 @@ Nested(Input& input, uint8_t tag, Decoder decoder)
 
 template <typename Decoder>
 inline Result
-Nested(Input& input, uint8_t outerTag, uint8_t innerTag, Decoder decoder)
+Nested(Reader& input, uint8_t outerTag, uint8_t innerTag, Decoder decoder)
 {
   
   
 
-  Input nestedInput;
+  Reader nestedInput;
   Result rv = ExpectTagAndGetValue(input, outerTag, nestedInput);
   if (rv != Success) {
     return rv;
@@ -216,10 +216,10 @@ Nested(Input& input, uint8_t outerTag, uint8_t innerTag, Decoder decoder)
 
 template <typename Decoder>
 inline Result
-NestedOf(Input& input, uint8_t outerTag, uint8_t innerTag,
+NestedOf(Reader& input, uint8_t outerTag, uint8_t innerTag,
          EmptyAllowed mayBeEmpty, Decoder decoder)
 {
-  Input inner;
+  Reader inner;
   Result rv = ExpectTagAndGetValue(input, outerTag, inner);
   if (rv != Success) {
     return rv;
@@ -249,7 +249,7 @@ namespace internal {
 
 
 template <typename T> inline Result
-IntegralValue(Input& input, uint8_t tag, T& value)
+IntegralValue(Reader& input, uint8_t tag, T& value)
 {
   
   
@@ -273,10 +273,10 @@ IntegralValue(Input& input, uint8_t tag, T& value)
 } 
 
 Result
-BitStringWithNoUnusedBits(Input& input,  InputBuffer& value);
+BitStringWithNoUnusedBits(Reader& input,  Input& value);
 
 inline Result
-Boolean(Input& input,  bool& value)
+Boolean(Reader& input,  bool& value)
 {
   Result rv = ExpectTagAndLength(input, BOOLEAN, 1);
   if (rv != Success) {
@@ -301,7 +301,7 @@ Boolean(Input& input,  bool& value)
 
 
 inline Result
-OptionalBoolean(Input& input, bool allowInvalidExplicitEncoding,
+OptionalBoolean(Reader& input, bool allowInvalidExplicitEncoding,
                  bool& value)
 {
   value = false;
@@ -320,7 +320,7 @@ OptionalBoolean(Input& input, bool allowInvalidExplicitEncoding,
 
 
 inline Result
-Enumerated(Input& input, uint8_t& value)
+Enumerated(Reader& input, uint8_t& value)
 {
   return internal::IntegralValue(input, ENUMERATED | 0, value);
 }
@@ -333,7 +333,7 @@ namespace internal {
 
 
 
-Result TimeChoice(Input& input, uint8_t tag,  PRTime& time);
+Result TimeChoice(Reader& input, uint8_t tag,  PRTime& time);
 
 } 
 
@@ -341,7 +341,7 @@ Result TimeChoice(Input& input, uint8_t tag,  PRTime& time);
 
 
 inline Result
-GeneralizedTime(Input& input,  PRTime& time)
+GeneralizedTime(Reader& input,  PRTime& time)
 {
   return internal::TimeChoice(input, GENERALIZED_TIME, time);
 }
@@ -350,7 +350,7 @@ GeneralizedTime(Input& input,  PRTime& time)
 
 
 inline Result
-TimeChoice(Input& input,  PRTime& time)
+TimeChoice(Reader& input,  PRTime& time)
 {
   uint8_t expectedTag = input.Peek(UTCTime) ? UTCTime : GENERALIZED_TIME;
   return internal::TimeChoice(input, expectedTag, time);
@@ -359,7 +359,7 @@ TimeChoice(Input& input,  PRTime& time)
 
 
 inline Result
-Integer(Input& input,  uint8_t& value)
+Integer(Reader& input,  uint8_t& value)
 {
   return internal::IntegralValue(input, INTEGER, value);
 }
@@ -369,7 +369,7 @@ Integer(Input& input,  uint8_t& value)
 
 
 inline Result
-OptionalInteger(Input& input, long defaultValue,  long& value)
+OptionalInteger(Reader& input, long defaultValue,  long& value)
 {
   
   
@@ -392,16 +392,16 @@ OptionalInteger(Input& input, long defaultValue,  long& value)
 }
 
 inline Result
-Null(Input& input)
+Null(Reader& input)
 {
   return ExpectTagAndLength(input, NULLTag, 0);
 }
 
 template <uint8_t Len>
 Result
-OID(Input& input, const uint8_t (&expectedOid)[Len])
+OID(Reader& input, const uint8_t (&expectedOid)[Len])
 {
-  Input value;
+  Reader value;
   Result rv = ExpectTagAndGetValue(input, OIDTag, value);
   if (rv != Success) {
     return rv;
@@ -415,7 +415,7 @@ OID(Input& input, const uint8_t (&expectedOid)[Len])
 
 
 inline Result
-CertificateSerialNumber(Input& input,  InputBuffer& value)
+CertificateSerialNumber(Reader& input,  Input& value)
 {
   
   
@@ -443,7 +443,7 @@ CertificateSerialNumber(Input& input,  InputBuffer& value)
   
   
   if (value.GetLength() > 1) {
-    Input valueInput(value);
+    Reader valueInput(value);
     uint8_t firstByte;
     rv = valueInput.Read(firstByte);
     if (rv != Success) {
@@ -471,14 +471,14 @@ MOZILLA_PKIX_ENUM_CLASS Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 inline Result
-OptionalVersion(Input& input,  Version& version)
+OptionalVersion(Reader& input,  Version& version)
 {
   static const uint8_t TAG = CONTEXT_SPECIFIC | CONSTRUCTED | 0;
   if (!input.Peek(TAG)) {
     version = Version::v1;
     return Success;
   }
-  Input value;
+  Reader value;
   Result rv = ExpectTagAndGetValue(input, TAG, value);
   if (rv != Success) {
     return rv;
@@ -506,7 +506,8 @@ OptionalVersion(Input& input,  Version& version)
 
 template <typename ExtensionHandler>
 inline Result
-OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
+OptionalExtensions(Reader& input, uint8_t tag,
+                   ExtensionHandler extensionHandler)
 {
   if (!input.Peek(tag)) {
     return Success;
@@ -514,9 +515,9 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
 
   Result rv;
 
-  Input extensions;
+  Reader extensions;
   {
-    Input tagged;
+    Reader tagged;
     rv = ExpectTagAndGetValue(input, tag, tagged);
     if (rv != Success) {
       return rv;
@@ -537,7 +538,7 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
   
   
   while (!extensions.AtEnd()) {
-    Input extension;
+    Reader extension;
     rv = ExpectTagAndGetValue(extensions, SEQUENCE, extension);
     if (rv != Success) {
       return rv;
@@ -548,7 +549,7 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
     
     
     
-    Input extnID;
+    Reader extnID;
     rv = ExpectTagAndGetValue(extension, OIDTag, extnID);
     if (rv != Success) {
       return rv;
@@ -558,7 +559,7 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
     if (rv != Success) {
       return rv;
     }
-    InputBuffer extnValue;
+    Input extnValue;
     rv = ExpectTagAndGetValue(extension, OCTET_STRING, extnValue);
     if (rv != Success) {
       return rv;
@@ -581,10 +582,10 @@ OptionalExtensions(Input& input, uint8_t tag, ExtensionHandler extensionHandler)
   return Success;
 }
 
-Result DigestAlgorithmIdentifier(Input& input,
+Result DigestAlgorithmIdentifier(Reader& input,
                                   DigestAlgorithm& algorithm);
 
-Result SignatureAlgorithmIdentifier(Input& input,
+Result SignatureAlgorithmIdentifier(Reader& input,
                                      SignatureAlgorithm& algorithm);
 
 
@@ -603,7 +604,7 @@ Result SignatureAlgorithmIdentifier(Input& input,
 
 
 
-Result SignedData(Input& input,  Input& tbs,
+Result SignedData(Reader& input,  Reader& tbs,
                    SignedDataWithSignature& signedDataWithSignature);
 
 } } } 

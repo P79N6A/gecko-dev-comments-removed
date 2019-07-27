@@ -42,7 +42,7 @@ class BackCert
 {
 public:
   
-  BackCert(InputBuffer certDER, EndEntityOrCA endEntityOrCA,
+  BackCert(Input certDER, EndEntityOrCA endEntityOrCA,
            const BackCert* childCert)
     : der(certDER)
     , endEntityOrCA(endEntityOrCA)
@@ -52,51 +52,51 @@ public:
 
   Result Init();
 
-  const InputBuffer GetDER() const { return der; }
+  const Input GetDER() const { return der; }
   const der::Version GetVersion() const { return version; }
   const SignedDataWithSignature& GetSignedData() const { return signedData; }
-  const InputBuffer GetIssuer() const { return issuer; }
+  const Input GetIssuer() const { return issuer; }
   
   
   
-  const InputBuffer GetValidity() const { return validity; }
-  const InputBuffer GetSerialNumber() const { return serialNumber; }
-  const InputBuffer GetSubject() const { return subject; }
-  const InputBuffer GetSubjectPublicKeyInfo() const
+  const Input GetValidity() const { return validity; }
+  const Input GetSerialNumber() const { return serialNumber; }
+  const Input GetSubject() const { return subject; }
+  const Input GetSubjectPublicKeyInfo() const
   {
     return subjectPublicKeyInfo;
   }
-  const InputBuffer* GetAuthorityInfoAccess() const
+  const Input* GetAuthorityInfoAccess() const
   {
-    return MaybeInputBuffer(authorityInfoAccess);
+    return MaybeInput(authorityInfoAccess);
   }
-  const InputBuffer* GetBasicConstraints() const
+  const Input* GetBasicConstraints() const
   {
-    return MaybeInputBuffer(basicConstraints);
+    return MaybeInput(basicConstraints);
   }
-  const InputBuffer* GetCertificatePolicies() const
+  const Input* GetCertificatePolicies() const
   {
-    return MaybeInputBuffer(certificatePolicies);
+    return MaybeInput(certificatePolicies);
   }
-  const InputBuffer* GetExtKeyUsage() const
+  const Input* GetExtKeyUsage() const
   {
-    return MaybeInputBuffer(extKeyUsage);
+    return MaybeInput(extKeyUsage);
   }
-  const InputBuffer* GetKeyUsage() const
+  const Input* GetKeyUsage() const
   {
-    return MaybeInputBuffer(keyUsage);
+    return MaybeInput(keyUsage);
   }
-  const InputBuffer* GetInhibitAnyPolicy() const
+  const Input* GetInhibitAnyPolicy() const
   {
-    return MaybeInputBuffer(inhibitAnyPolicy);
+    return MaybeInput(inhibitAnyPolicy);
   }
-  const InputBuffer* GetNameConstraints() const
+  const Input* GetNameConstraints() const
   {
-    return MaybeInputBuffer(nameConstraints);
+    return MaybeInput(nameConstraints);
   }
 
 private:
-  const InputBuffer der;
+  const Input der;
 
 public:
   const EndEntityOrCA endEntityOrCA;
@@ -111,31 +111,31 @@ private:
   
   
   
-  static inline const InputBuffer* MaybeInputBuffer(const InputBuffer& item)
+  static inline const Input* MaybeInput(const Input& item)
   {
     return item.GetLength() > 0 ? &item : nullptr;
   }
 
   SignedDataWithSignature signedData;
-  InputBuffer issuer;
+  Input issuer;
   
   
   
-  InputBuffer validity;
-  InputBuffer serialNumber;
-  InputBuffer subject;
-  InputBuffer subjectPublicKeyInfo;
+  Input validity;
+  Input serialNumber;
+  Input subject;
+  Input subjectPublicKeyInfo;
 
-  InputBuffer authorityInfoAccess;
-  InputBuffer basicConstraints;
-  InputBuffer certificatePolicies;
-  InputBuffer extKeyUsage;
-  InputBuffer inhibitAnyPolicy;
-  InputBuffer keyUsage;
-  InputBuffer nameConstraints;
-  InputBuffer subjectAltName;
+  Input authorityInfoAccess;
+  Input basicConstraints;
+  Input certificatePolicies;
+  Input extKeyUsage;
+  Input inhibitAnyPolicy;
+  Input keyUsage;
+  Input nameConstraints;
+  Input subjectAltName;
 
-  Result RememberExtension(Input& extnID, const InputBuffer& extnValue,
+  Result RememberExtension(Reader& extnID, const Input& extnValue,
                             bool& understood);
 
   BackCert(const BackCert&) ;
@@ -154,12 +154,12 @@ public:
 
   virtual size_t GetLength() const { return numItems; }
 
-  virtual const InputBuffer* GetDER(size_t i) const
+  virtual const Input* GetDER(size_t i) const
   {
     return i < numItems ? &items[i] : nullptr;
   }
 
-  Result Append(InputBuffer der)
+  Result Append(Input der)
   {
     if (numItems >= MAX_LENGTH) {
       return Result::FATAL_ERROR_INVALID_ARGS;
@@ -175,7 +175,7 @@ public:
   
   static const size_t MAX_LENGTH = 8;
 private:
-  InputBuffer items[MAX_LENGTH]; 
+  Input items[MAX_LENGTH]; 
   size_t numItems;
 
   NonOwningDERArray(const NonOwningDERArray&) ;

@@ -33,7 +33,7 @@ namespace mozilla { namespace pkix {
 
 
 Result VerifySignedData(const SignedDataWithSignature& sd,
-                        InputBuffer subjectPublicKeyInfo,
+                        Input subjectPublicKeyInfo,
                         void* pkcs11PinArg);
 
 
@@ -47,11 +47,11 @@ Result VerifySignedData(const SignedDataWithSignature& sd,
 
 
 
-Result DigestBuf(InputBuffer item,  uint8_t* digestBuf,
+Result DigestBuf(Input item,  uint8_t* digestBuf,
                  size_t digestBufLen);
 
 
-Result CheckPublicKey(InputBuffer subjectPublicKeyInfo);
+Result CheckPublicKey(Input subjectPublicKeyInfo);
 
 Result MapPRErrorCodeToResult(PRErrorCode errorCode);
 PRErrorCode MapResultToPRErrorCode(Result result);
@@ -76,7 +76,7 @@ enum ErrorCode {
 
 void RegisterErrorTable();
 
-inline SECItem UnsafeMapInputBufferToSECItem(InputBuffer ib)
+inline SECItem UnsafeMapInputToSECItem(Input ib)
 {
   SECItem result = {
     siBuffer,

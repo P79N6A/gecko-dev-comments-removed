@@ -34,7 +34,7 @@
 
 namespace mozilla { namespace pkix {
 
-class Input;
+class Reader;
 
 
 
@@ -51,7 +51,7 @@ class Input;
 
 
 
-class InputBuffer
+class Input
 {
 public:
   
@@ -66,14 +66,14 @@ public:
   
   
   template <uint16_t N>
-  explicit InputBuffer(const uint8_t (&data)[N])
+  explicit Input(const uint8_t (&data)[N])
     : data(data)
     , len(N)
   {
   }
 
   
-  InputBuffer()
+  Input()
     : data(nullptr)
     , len(0u)
   {
@@ -104,7 +104,7 @@ public:
   
   
   
-  Result Init(InputBuffer other)
+  Result Init(Input other)
   {
     return Init(other.data, other.len);
   }
@@ -123,11 +123,11 @@ private:
   const uint8_t* data;
   size_t len;
 
-  void operator=(const InputBuffer&) ; 
+  void operator=(const Input&) ; 
 };
 
 inline bool
-InputBuffersAreEqual(const InputBuffer& a, const InputBuffer& b)
+InputsAreEqual(const Input& a, const Input& b)
 {
   return a.GetLength() == b.GetLength() &&
          !std::memcmp(a.UnsafeGetData(), b.UnsafeGetData(), a.GetLength());
@@ -141,18 +141,18 @@ InputBuffersAreEqual(const InputBuffer& a, const InputBuffer& b)
 
 
 
-class Input
+class Reader
 {
 public:
-  Input()
+  Reader()
     : input(nullptr)
     , end(nullptr)
   {
   }
 
-  explicit Input(InputBuffer buffer)
-    : input(buffer.UnsafeGetData())
-    , end(buffer.UnsafeGetData() + buffer.GetLength())
+  explicit Reader(Input input)
+    : input(input.UnsafeGetData())
+    , end(input.UnsafeGetData() + input.GetLength())
   {
   }
 
@@ -234,13 +234,13 @@ public:
     return Success;
   }
 
-  Result Skip(uint16_t len, Input& skippedInput)
+  Result Skip(uint16_t len, Reader& skipped)
   {
     Result rv = EnsureLength(len);
     if (rv != Success) {
       return rv;
     }
-    rv = skippedInput.Init(input, len);
+    rv = skipped.Init(input, len);
     if (rv != Success) {
       return rv;
     }
@@ -248,13 +248,13 @@ public:
     return Success;
   }
 
-  Result Skip(uint16_t len, InputBuffer& skippedItem)
+  Result Skip(uint16_t len, Input& skipped)
   {
     Result rv = EnsureLength(len);
     if (rv != Success) {
       return rv;
     }
-    rv = skippedItem.Init(input, len);
+    rv = skipped.Init(input, len);
     if (rv != Success) {
       return rv;
     }
@@ -280,16 +280,16 @@ public:
   class Mark
   {
   private:
-    friend class Input;
-    Mark(const Input& input, const uint8_t* mark) : input(input), mark(mark) { }
-    const Input& input;
+    friend class Reader;
+    Mark(const Reader& input, const uint8_t* mark) : input(input), mark(mark) { }
+    const Reader& input;
     const uint8_t* const mark;
     void operator=(const Mark&) ;
   };
 
   Mark GetMark() const { return Mark(*this, input); }
 
-  Result GetInputBuffer(const Mark& mark,  InputBuffer& item)
+  Result GetInput(const Mark& mark,  Input& item)
   {
     if (&mark.input != this || mark.mark > input) {
       PR_NOT_REACHED("invalid mark");
@@ -313,8 +313,8 @@ private:
   const uint8_t* input;
   const uint8_t* end;
 
-  Input(const Input&) ;
-  void operator=(const Input&) ;
+  Reader(const Reader&) ;
+  void operator=(const Reader&) ;
 };
 
 } } 

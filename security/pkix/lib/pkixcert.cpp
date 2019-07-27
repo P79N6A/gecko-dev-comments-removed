@@ -37,13 +37,13 @@ BackCert::Init()
   
   
 
-  Input tbsCertificate;
+  Reader tbsCertificate;
 
   
   
   {
-    Input input(der);
-    Input certificate;
+    Reader input(der);
+    Reader certificate;
     rv = der::ExpectTagAndGetValue(input, der::SEQUENCE, certificate);
     if (rv != Success) {
       return rv;
@@ -161,7 +161,7 @@ BackCert::Init()
 
 
 Result
-BackCert::RememberExtension(Input& extnID, const InputBuffer& extnValue,
+BackCert::RememberExtension(Reader& extnID, const Input& extnValue,
                              bool& understood)
 {
   understood = false;
@@ -203,7 +203,7 @@ BackCert::RememberExtension(Input& extnID, const InputBuffer& extnValue,
     0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01
   };
 
-  InputBuffer* out = nullptr;
+  Input* out = nullptr;
 
   
   
@@ -211,7 +211,7 @@ BackCert::RememberExtension(Input& extnID, const InputBuffer& extnValue,
   
   
   
-  InputBuffer dummyPolicyConstraints;
+  Input dummyPolicyConstraints;
 
   
   

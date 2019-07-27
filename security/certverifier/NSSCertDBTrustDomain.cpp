@@ -96,13 +96,12 @@ static const uint8_t PERMIT_FRANCE_GOV_NAME_CONSTRAINTS_DATA[] =
                        "\x30\x05\x82\x03" ".tf";
 
 Result
-NSSCertDBTrustDomain::FindIssuer(InputBuffer encodedIssuerName,
+NSSCertDBTrustDomain::FindIssuer(Input encodedIssuerName,
                                  IssuerChecker& checker, PRTime time)
 {
   
   
-  SECItem encodedIssuerNameSECItem =
-    UnsafeMapInputBufferToSECItem(encodedIssuerName);
+  SECItem encodedIssuerNameSECItem = UnsafeMapInputToSECItem(encodedIssuerName);
   ScopedCERTCertList
     candidates(CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
                                           &encodedIssuerNameSECItem, time,
@@ -110,22 +109,22 @@ NSSCertDBTrustDomain::FindIssuer(InputBuffer encodedIssuerName,
   if (candidates) {
     for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
          !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
-      InputBuffer certDER;
+      Input certDER;
       Result rv = certDER.Init(n->cert->derCert.data, n->cert->derCert.len);
       if (rv != Success) {
         continue; 
       }
 
       bool keepGoing;
-      InputBuffer anssiSubject;
+      Input anssiSubject;
       rv = anssiSubject.Init(ANSSI_SUBJECT_DATA,
                              sizeof(ANSSI_SUBJECT_DATA) - 1);
       if (rv != Success) {
         return Result::FATAL_ERROR_LIBRARY_FAILURE;
       }
       
-      if (InputBuffersAreEqual(encodedIssuerName, anssiSubject)) {
-        InputBuffer anssiNameConstraints;
+      if (InputsAreEqual(encodedIssuerName, anssiSubject)) {
+        Input anssiNameConstraints;
         if (anssiNameConstraints.Init(
                 PERMIT_FRANCE_GOV_NAME_CONSTRAINTS_DATA,
                 sizeof(PERMIT_FRANCE_GOV_NAME_CONSTRAINTS_DATA) - 1)
@@ -151,7 +150,7 @@ NSSCertDBTrustDomain::FindIssuer(InputBuffer encodedIssuerName,
 Result
 NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
                                    const CertPolicyId& policy,
-                                   InputBuffer candidateCertDER,
+                                   Input candidateCertDER,
                                     TrustLevel& trustLevel)
 {
 #ifdef MOZ_NO_EV_CERTS
@@ -166,8 +165,7 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   
   
   
-  SECItem candidateCertDERSECItem =
-    UnsafeMapInputBufferToSECItem(candidateCertDER);
+  SECItem candidateCertDERSECItem = UnsafeMapInputToSECItem(candidateCertDER);
   ScopedCERTCertificate candidateCert(
     CERT_NewTempCertificate(CERT_GetDefaultCertDB(), &candidateCertDERSECItem,
                             nullptr, false, true));
@@ -221,14 +219,14 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
 
 Result
 NSSCertDBTrustDomain::VerifySignedData(const SignedDataWithSignature& signedData,
-                                       InputBuffer subjectPublicKeyInfo)
+                                       Input subjectPublicKeyInfo)
 {
   return ::mozilla::pkix::VerifySignedData(signedData, subjectPublicKeyInfo,
                                            mPinArg);
 }
 
 Result
-NSSCertDBTrustDomain::DigestBuf(InputBuffer item,
+NSSCertDBTrustDomain::DigestBuf(Input item,
                                  uint8_t* digestBuf, size_t digestBufLen)
 {
   return ::mozilla::pkix::DigestBuf(item, digestBuf, digestBufLen);
@@ -262,11 +260,11 @@ OCSPFetchingTypeToTimeoutTime(NSSCertDBTrustDomain::OCSPFetching ocspFetching)
 
 static Result
 GetOCSPAuthorityInfoAccessLocation(PLArenaPool* arena,
-                                   InputBuffer aiaExtension,
+                                   Input aiaExtension,
                                     char const*& url)
 {
   url = nullptr;
-  SECItem aiaExtensionSECItem = UnsafeMapInputBufferToSECItem(aiaExtension);
+  SECItem aiaExtensionSECItem = UnsafeMapInputToSECItem(aiaExtension);
   CERTAuthInfoAccess** aia =
     CERT_DecodeAuthInfoAccessExtension(arena, &aiaExtensionSECItem);
   if (!aia) {
@@ -310,8 +308,8 @@ GetOCSPAuthorityInfoAccessLocation(PLArenaPool* arena,
 Result
 NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
                                       const CertID& certID, PRTime time,
-                          const InputBuffer* stapledOCSPResponse,
-                          const InputBuffer* aiaExtension)
+                          const Input* stapledOCSPResponse,
+                          const Input* aiaExtension)
 {
   
   
@@ -487,7 +485,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
 
   
   
-  InputBuffer response;
+  Input response;
   bool attemptedRequest;
   if (cachedResponseResult == Success ||
       cachedResponseResult == Result::ERROR_OCSP_UNKNOWN_CERT ||
@@ -589,7 +587,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
 Result
 NSSCertDBTrustDomain::VerifyAndMaybeCacheEncodedOCSPResponse(
   const CertID& certID, PRTime time, uint16_t maxLifetimeInDays,
-  InputBuffer encodedResponse, EncodedResponseSource responseSource,
+  Input encodedResponse, EncodedResponseSource responseSource,
    bool& expired)
 {
   PRTime thisUpdate = 0;
@@ -668,7 +666,7 @@ NSSCertDBTrustDomain::IsChainValid(const DERArray& certArray)
 }
 
 Result
-NSSCertDBTrustDomain::CheckPublicKey(InputBuffer subjectPublicKeyInfo)
+NSSCertDBTrustDomain::CheckPublicKey(Input subjectPublicKeyInfo)
 {
   return ::mozilla::pkix::CheckPublicKey(subjectPublicKeyInfo);
 }
