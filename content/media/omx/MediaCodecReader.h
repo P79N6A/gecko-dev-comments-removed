@@ -78,6 +78,7 @@ public:
   virtual bool HasAudio();
   virtual bool HasVideo();
 
+  virtual void PreReadMetadata() MOZ_OVERRIDE;
   
   
   
@@ -152,7 +153,14 @@ protected:
 
   virtual bool CreateExtractor();
 
+  
+  
+  void UpdateIsWaitingMediaResources();
+
   android::sp<android::MediaExtractor> mExtractor;
+  
+  
+  bool mIsWaitingResources;
 
 private:
   
