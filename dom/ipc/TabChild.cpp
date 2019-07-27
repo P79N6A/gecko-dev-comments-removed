@@ -1534,15 +1534,22 @@ TabChild::ProvideWindowCommon(nsIDOMWindow* aOpener,
     
     features.AppendLiteral(",remote");
 
+    nsresult rv;
+
     if (!SendCreateWindow(newChild,
                           aChromeFlags, aCalledFromJS, aPositionSpecified,
                           aSizeSpecified, url,
                           name, NS_ConvertUTF8toUTF16(features),
                           NS_ConvertUTF8toUTF16(baseURIString),
+                          &rv,
                           aWindowIsNew,
                           &frameScripts,
                           &urlToLoad)) {
       return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    if (NS_FAILED(rv)) {
+      return rv;
     }
   }
   if (!*aWindowIsNew) {
