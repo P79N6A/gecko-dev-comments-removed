@@ -224,9 +224,6 @@ JSObject::isQualifiedVarObj()
 {
     if (is<js::DebugScopeObject>())
         return as<js::DebugScopeObject>().scope().isQualifiedVarObj();
-    
-    
-    
     return hasAllFlags(js::BaseShape::QUALIFIED_VAROBJ);
 }
 
@@ -235,9 +232,7 @@ JSObject::isUnqualifiedVarObj()
 {
     if (is<js::DebugScopeObject>())
         return as<js::DebugScopeObject>().scope().isUnqualifiedVarObj();
-    bool rv = hasAllFlags(js::BaseShape::UNQUALIFIED_VAROBJ);
-    MOZ_ASSERT_IF(rv, is<js::GlobalObject>() || is<js::NonSyntacticVariablesObject>());
-    return rv;
+    return hasAllFlags(js::BaseShape::UNQUALIFIED_VAROBJ);
 }
 
 namespace js {
