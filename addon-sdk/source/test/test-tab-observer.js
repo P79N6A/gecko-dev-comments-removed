@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 
@@ -42,4 +43,5 @@ exports["test unload tab observer"] = function(assert, done) {
   }, 0);
 };
 
-require("sdk/test").run(exports);
+require("test").run(exports);
+

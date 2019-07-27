@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 const tabs = require("sdk/tabs"); 
@@ -175,8 +176,8 @@ exports["test tab.readyState"] = (assert, done) => {
   tabs.open({
     url: "data:text/html;charset=utf-8,test_readyState",
     onOpen: (tab) => {
-      assert.notEqual(["uninitialized", "loading"].indexOf(tab.readyState), -1,
-        "tab is either uninitialized or loading when onOpen");
+      assert.equal(tab.readyState, "uninitialized",
+        "tab is 'uninitialized' when opened");
     },
     onReady: (tab) => {
       assert.notEqual(["interactive", "complete"].indexOf(tab.readyState), -1,
@@ -189,4 +190,4 @@ exports["test tab.readyState"] = (assert, done) => {
   });
 }
 
-require("sdk/test").run(module.exports);
+require("sdk/test").run(exports);

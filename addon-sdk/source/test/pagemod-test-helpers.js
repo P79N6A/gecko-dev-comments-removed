@@ -7,37 +7,33 @@ const { Cc, Ci } = require("chrome");
 const { setTimeout } = require("sdk/timers");
 const { Loader } = require("sdk/test/loader");
 const { openTab, getBrowserForTab, closeTab } = require("sdk/tabs/utils");
-const { getMostRecentBrowserWindow } = require("sdk/window/utils");
 const { merge } = require("sdk/util/object");
 const httpd = require("./lib/httpd");
-const { cleanUI } = require("sdk/test/utils");
 
 const PORT = 8099;
 const PATH = '/test-contentScriptWhen.html';
 
-function createLoader () {
+
+
+exports.testPageMod = function testPageMod(assert, done, testURL, pageModOptions,
+                                           testCallback, timeout) {
+
+  var wm = Cc['@mozilla.org/appshell/window-mediator;1']
+           .getService(Ci.nsIWindowMediator);
+  var browserWindow = wm.getMostRecentWindow("navigator:browser");
+
   let options = merge({}, require('@loader/options'),
                       { prefixURI: require('./fixtures').url() });
-  return Loader(module, null, options);
-}
-exports.createLoader = createLoader;
 
-function openNewTab(url) {
-  return openTab(getMostRecentBrowserWindow(), url, {
+  let loader = Loader(module, null, options);
+  let pageMod = loader.require("sdk/page-mod");
+
+  var pageMods = [new pageMod.PageMod(opts) for each(opts in pageModOptions)];
+
+  let newTab = openTab(browserWindow, testURL, {
     inBackground: false
   });
-}
-exports.openNewTab = openNewTab;
-
-
-
-function testPageMod(assert, done, testURL, pageModOptions,
-                                           testCallback, timeout) {
-  let loader = createLoader();
-  let { PageMod } = loader.require("sdk/page-mod");
-  let pageMods = [new PageMod(opts) for each (opts in pageModOptions)];
-  let newTab = openNewTab(testURL);
-  let b = getBrowserForTab(newTab);
+  var b = getBrowserForTab(newTab);
 
   function onPageLoad() {
     b.removeEventListener("load", onPageLoad, true);
@@ -46,7 +42,7 @@ function testPageMod(assert, done, testURL, pageModOptions,
     
     
     setTimeout(testCallback, timeout,
-      b.contentWindow.wrappedJSObject,
+      b.contentWindow.wrappedJSObject, 
       function () {
         pageMods.forEach(function(mod) mod.destroy());
         
@@ -60,7 +56,6 @@ function testPageMod(assert, done, testURL, pageModOptions,
 
   return pageMods;
 }
-exports.testPageMod = testPageMod;
 
 
 
@@ -82,7 +77,7 @@ exports.handleReadyState = function(url, contentScriptWhen, callbacks) {
         let type = 'on' + readyState[0].toUpperCase() + readyState.substr(1);
 
         if (type in callbacks)
-          callbacks[type](tab);
+          callbacks[type](tab); 
 
         pagemod.destroy();
         loader.unload();
@@ -93,7 +88,7 @@ exports.handleReadyState = function(url, contentScriptWhen, callbacks) {
 
 
 
-function contentScriptWhenServer() {
+exports.contentScriptWhenServer = function() {
   const URL = 'http://localhost:' + PORT + PATH;
 
   const HTML = `/* polyglot js
@@ -114,4 +109,3 @@ function contentScriptWhenServer() {
   srv.URL = URL;
   return srv;
 }
-exports.contentScriptWhenServer = contentScriptWhenServer;

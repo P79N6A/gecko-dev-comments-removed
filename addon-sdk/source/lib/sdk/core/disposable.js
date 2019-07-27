@@ -52,13 +52,11 @@ setup.define(Object, (object, ...args) => object.setup(...args));
 const setupDisposable = disposable => {
   subscribe(disposable, addonUnloadTopic, isWeak(disposable));
 };
-exports.setupDisposable = setupDisposable;
 
 
 const disposeDisposable = disposable => {
   unsubscribe(disposable, addonUnloadTopic);
 };
-exports.disposeDisposable = disposeDisposable;
 
 
 
@@ -131,3 +129,4 @@ uninstall.define(Disposable, dispose);
 
 
 shutdown.define(Disposable, disposable => {});
+

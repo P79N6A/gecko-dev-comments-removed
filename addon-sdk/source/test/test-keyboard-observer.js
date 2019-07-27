@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 const { keyPress } = require("sdk/dom/events/keys");
@@ -33,4 +34,4 @@ exports["test unload keyboard observer"] = function(assert, done) {
   }, 0);
 };
 
-require("sdk/test").run(exports);
+require("test").run(exports);

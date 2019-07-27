@@ -8,10 +8,10 @@ module.metadata = {
 };
 
 const { Cu } = require("chrome");
-const { Task } = require("resource://gre/modules/Task.jsm", {});
+const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 const { defer } = require("sdk/core/promise");
 const BaseAssert = require("sdk/test/assert").Assert;
-const { isFunction, isObject, isGenerator } = require("sdk/lang/type");
+const { isFunction, isObject } = require("sdk/lang/type");
 const { extend } = require("sdk/util/object");
 
 exports.Assert = BaseAssert;
@@ -49,10 +49,10 @@ function defineTestSuite(target, suite, prefix) {
 
           
           
-          if (isGenerator(test)) {
+          if (test.isGenerator && test.isGenerator()) {
             options.waitUntilDone();
             Task.spawn(test.bind(null, assert)).
-                catch(assert.fail).
+                then(null, assert.fail).
                 then(assert.end);
           }
 
@@ -60,6 +60,7 @@ function defineTestSuite(target, suite, prefix) {
           
           
           else if (1 < test.length) {
+
             
             
             

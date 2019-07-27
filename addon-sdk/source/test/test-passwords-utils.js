@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 const { store, search, remove } = require("sdk/passwords/utils");
@@ -138,4 +139,4 @@ exports["test site authentication credentials"] = function(assert) {
   assert.ok(!search(options).length, "remove worked");
 };
 
-require("sdk/test").run(exports);
+require("test").run(exports);

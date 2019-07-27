@@ -1,13 +1,6 @@
-
-
-
-
 package org.mozilla.gecko.tests;
-
 import org.mozilla.gecko.Actions;
 import org.mozilla.gecko.R;
-
-import com.jayway.android.robotium.solo.Condition;
 
 import android.view.View;
 
@@ -55,10 +48,10 @@ public class testClearPrivateData extends PixelTest {
     }
 
     private void verifyHistoryCount(final int expectedCount) {
-        boolean match = waitForCondition(new Condition() {
+        boolean match = waitForTest( new BooleanTest() {
             @Override
-            public boolean isSatisfied() {
-                return mDatabaseHelper.getBrowserDBUrls(DatabaseHelper.BrowserDataType.HISTORY).size() == expectedCount;
+            public boolean test() {
+                return (mDatabaseHelper.getBrowserDBUrls(DatabaseHelper.BrowserDataType.HISTORY).size() == expectedCount);
             }
         }, TEST_WAIT_MS);
         mAsserter.ok(match, "Checking that the number of history items is correct", String.valueOf(expectedCount) + " history items present in the database");

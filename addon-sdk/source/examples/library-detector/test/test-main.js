@@ -1,10 +1,7 @@
 
 
 
- "use strict";
 
-exports.testMain = function(assert) {
-  assert.pass("TODO: Write some tests.");
+exports.testMain = function(test) {
+  test.pass("TODO: Write some tests.");
 };
-
-require("sdk/test").run(exports);

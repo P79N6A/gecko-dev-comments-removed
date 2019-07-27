@@ -50,8 +50,7 @@ function getPreferedLocales(caseSensitve) {
     addLocale(browserUiLocale);
 
   
-  let contentLocales = prefs.getLocalized(PREF_ACCEPT_LANGUAGES, "") ||
-                       prefs.get(PREF_ACCEPT_LANGUAGES, "");
+  let contentLocales = prefs.get(PREF_ACCEPT_LANGUAGES, "");
   if (contentLocales) {
     
     

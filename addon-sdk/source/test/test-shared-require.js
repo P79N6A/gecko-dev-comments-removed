@@ -1,11 +1,10 @@
-
-
-
 "use strict";
 
 const { Cu } = require("chrome");
 
 const requireURI = require.resolve("toolkit/require.js");
+
+
 
 const jsm = Cu.import(requireURI, {});
 
@@ -33,4 +32,4 @@ exports.testSameRequire = (assert) => {
                "require function is same in both contexts");
 };
 
-require("sdk/test").run(exports)
+require("test").run(exports)

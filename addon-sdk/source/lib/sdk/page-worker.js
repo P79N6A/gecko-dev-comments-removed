@@ -28,9 +28,9 @@ const { Rules } = require('./util/rules');
 const { merge } = require('./util/object');
 const { data } = require('./self');
 
-const views = new WeakMap();
-const workers = new WeakMap();
-const pages = new WeakMap();
+const views = WeakMap();
+const workers = WeakMap();
+const pages = WeakMap();
 
 const readyEventNames = [
   'DOMContentLoaded',

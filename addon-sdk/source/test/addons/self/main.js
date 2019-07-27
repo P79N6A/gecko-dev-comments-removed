@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 const self = require("sdk/self");

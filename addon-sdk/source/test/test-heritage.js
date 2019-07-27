@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 const { Class, extend, mix, obscure } = require('sdk/core/heritage');
@@ -298,4 +299,4 @@ exports['test composition with objects'] = function(assert) {
   assert.equal(f.e, 5, 'implements e');
 };
 
-require("sdk/test").run(exports);
+require("test").run(exports);

@@ -3,6 +3,7 @@
 
 
 const timer = require("sdk/timers");
+const { Loader } = require("sdk/test/loader");
 
 var setupCalled = false, teardownCalled = false;
 

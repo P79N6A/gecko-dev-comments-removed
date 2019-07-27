@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 const { Hotkey } = require("sdk/hotkeys");
@@ -138,7 +139,7 @@ exports["test no exception on unmodified keypress"] = function(assert) {
 exports["test hotkey: automatic destroy"] = function(assert, done) {
   
   let loader = Loader(module);
-
+  
   var called = false;
   var element = loader.require("sdk/deprecated/window-utils").activeBrowserWindow.document.documentElement;
   var hotkey = loader.require("sdk/hotkeys").Hotkey({
@@ -147,17 +148,17 @@ exports["test hotkey: automatic destroy"] = function(assert, done) {
       called = true;
     }
   });
-
+  
   
   loader.unload();
-
+  
   
   keyDown(element, "accel-shift-x");
-
+  
   timer.setTimeout(function () {
     assert.ok(!called, "Hotkey is destroyed and not called.");
     done();
   }, 0);
 };
 
-require("sdk/test").run(exports);
+require("test").run(exports);

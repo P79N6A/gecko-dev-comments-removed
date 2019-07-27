@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 module.metadata = {
@@ -97,4 +98,4 @@ exports["test browser events ignore other wins"] = function(assert, done) {
   let window = open("data:text/html,not a browser");
 };
 
-require("sdk/test").run(exports);
+require("test").run(exports);

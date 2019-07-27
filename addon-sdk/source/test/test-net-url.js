@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 const { readURI, readURISync } = require("sdk/net/url");
@@ -134,4 +135,4 @@ exports["test async readURI with chrome URI"] = function(assert, done) {
   assert.equal(content, "", "The URL content is not load yet");
 }
 
-require("sdk/test").run(exports)
+require("test").run(exports)

@@ -14,47 +14,14 @@ const make = (exports, rootURI, components) => {
 
   
   
-  const unload = uri => {
-    delete loader.sandboxes[uri];
-    delete loader.modules[uri];
-  };
-
-  const builtins = new Set(Object.keys(loader.modules));
-
-  
-  
   
   
   
 
-  const require = (id, options={}) => {
-    const { reload, all } = options;
+  const require = id => {
     const requirerURI = components.stack.caller.filename;
     const requirer = Module(requirerURI, requirerURI);
-    const require = Require(loader, requirer);
-    if (reload) {
-      
-      
-      
-      
-      
-      
-      
-      
-      components.classes["@mozilla.org/observer-service;1"].
-        getService(components.interfaces.nsIObserverService).
-        notifyObservers({}, "startupcache-invalidate", null);
-
-      if (all) {
-        for (let uri of Object.keys(loader.sandboxes)) {
-          unload(uri);
-        }
-      }
-      else {
-        unload(require.resolve(id));
-      }
-    }
-    return require(id);
+    return Require(loader, requirer)(id);
   };
 
   require.resolve = id => {

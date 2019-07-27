@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { Class } = require("../../core/heritage");
+const { Trait } = require("../light-traits");
 const { removeListener, on } = require("../../dom/events");
 
 
@@ -15,7 +15,7 @@ const { removeListener, on } = require("../../dom/events");
 
 
 
-exports.DOMEventAssembler = Class({
+exports.DOMEventAssembler = Trait({
   
 
 
@@ -23,16 +23,12 @@ exports.DOMEventAssembler = Class({
 
 
 
-  handleEvent() {
-    throw new TypeError("Instance of DOMEventAssembler must implement `handleEvent` method");
-  },
+  handleEvent: Trait.required,
   
 
 
 
-  get supportedEventsTypes() {
-    throw new TypeError("Instance of DOMEventAssembler must implement `handleEvent` field");
-  },
+  supportedEventsTypes: Trait.required,
   
 
 

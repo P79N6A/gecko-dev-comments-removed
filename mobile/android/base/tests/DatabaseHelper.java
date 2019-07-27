@@ -1,7 +1,3 @@
-
-
-
-
 package org.mozilla.gecko.tests;
 
 import java.util.ArrayList;
@@ -131,21 +127,20 @@ class DatabaseHelper {
         final ContentResolver resolver = mActivity.getContentResolver();
 
         Cursor cursor = null;
-        final BrowserDB db = getProfileDB();
-        if (dataType == BrowserDataType.HISTORY) {
-            cursor = db.getAllVisitedHistory(resolver);
-        } else if (dataType == BrowserDataType.BOOKMARKS) {
-            cursor = db.getBookmarksInFolder(resolver, getFolderIdFromGuid("mobile"));
-        }
-
-        if (cursor == null) {
-            mAsserter.ok(false, "We could not retrieve any data from the database", "The cursor was null");
-            return browserData;
-        }
-
         try {
+            if (dataType == BrowserDataType.HISTORY) {
+                cursor = getProfileDB().getAllVisitedHistory(resolver);
+            } else if (dataType == BrowserDataType.BOOKMARKS) {
+                cursor = getProfileDB().getBookmarksInFolder(resolver, getFolderIdFromGuid("mobile"));
+            }
+
+            if (cursor == null) {
+                mAsserter.ok(false, "We could not retrieve any data from the database", "The cursor was null");
+                return browserData;
+            }
+
             if (!cursor.moveToFirst()) {
-                
+                mAsserter.ok(false, "We could not move to the first item in the database", "moveToFirst failed");
                 return browserData;
             }
 
@@ -155,11 +150,13 @@ class DatabaseHelper {
                     browserData.add(cursor.getString(cursor.getColumnIndex("url")));
                 }
             } while (cursor.moveToNext());
-
-            return browserData;
         } finally {
-            cursor.close();
+            if (cursor != null) {
+                cursor.close();
+            }
         }
+
+        return browserData;
     }
 
     protected BrowserDB getProfileDB() {
