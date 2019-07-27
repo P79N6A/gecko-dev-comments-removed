@@ -1205,6 +1205,15 @@ public:
   }
 
   
+  void SetIsScrollbarContainer()
+  {
+    if (!mIsScrollbarContainer) {
+      mIsScrollbarContainer = true;
+      Mutated();
+    }
+  }
+
+  
   float GetOpacity() { return mOpacity; }
   gfx::CompositionOp GetMixBlendMode() const { return mMixBlendMode; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
@@ -1238,6 +1247,7 @@ public:
   const LayerRect& GetStickyScrollRangeInner() { return mStickyPositionData->mInner; }
   FrameMetrics::ViewID GetScrollbarTargetContainerId() { return mScrollbarTargetId; }
   ScrollDirection GetScrollbarDirection() { return mScrollbarDirection; }
+  bool IsScrollbarContainer() { return mIsScrollbarContainer; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
 
 
@@ -1676,6 +1686,7 @@ protected:
   nsAutoPtr<StickyPositionData> mStickyPositionData;
   FrameMetrics::ViewID mScrollbarTargetId;
   ScrollDirection mScrollbarDirection;
+  bool mIsScrollbarContainer;
   DebugOnly<uint32_t> mDebugColorIndex;
   
   

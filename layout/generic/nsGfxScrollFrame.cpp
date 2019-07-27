@@ -2534,19 +2534,28 @@ MaxZIndexInListOfItemsContainedInFrame(nsDisplayList* aList, nsIFrame* aFrame)
   return maxZIndex;
 }
 
+static const uint32_t APPEND_OWN_LAYER = 0x1;
+static const uint32_t APPEND_POSITIONED = 0x2;
+static const uint32_t APPEND_SCROLLBAR_CONTAINER = 0x4;
+
 static void
 AppendToTop(nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists,
-            nsDisplayList* aSource, nsIFrame* aSourceFrame, bool aOwnLayer,
-            bool aPositioned)
+            nsDisplayList* aSource, nsIFrame* aSourceFrame, uint32_t aFlags)
 {
   if (aSource->IsEmpty())
     return;
 
-  nsDisplayWrapList* newItem = aOwnLayer?
-    new (aBuilder) nsDisplayOwnLayer(aBuilder, aSourceFrame, aSource) :
-    new (aBuilder) nsDisplayWrapList(aBuilder, aSourceFrame, aSource);
+  nsDisplayWrapList* newItem;
+  if (aFlags & APPEND_OWN_LAYER) {
+    uint32_t flags = (aFlags & APPEND_SCROLLBAR_CONTAINER)
+                     ? nsDisplayOwnLayer::SCROLLBAR_CONTAINER
+                     : 0;
+    newItem = new (aBuilder) nsDisplayOwnLayer(aBuilder, aSourceFrame, aSource, flags);
+  } else {
+    newItem = new (aBuilder) nsDisplayWrapList(aBuilder, aSourceFrame, aSource);
+  }
 
-  if (aPositioned) {
+  if (aFlags & APPEND_POSITIONED) {
     
     
     
@@ -2629,11 +2638,14 @@ ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
 
   for (uint32_t i = 0; i < scrollParts.Length(); ++i) {
     uint32_t flags = 0;
+    uint32_t appendToTopFlags = 0;
     if (scrollParts[i] == mVScrollbarBox) {
       flags |= nsDisplayOwnLayer::VERTICAL_SCROLLBAR;
+      appendToTopFlags |= APPEND_SCROLLBAR_CONTAINER;
     }
     if (scrollParts[i] == mHScrollbarBox) {
       flags |= nsDisplayOwnLayer::HORIZONTAL_SCROLLBAR;
+      appendToTopFlags |= APPEND_SCROLLBAR_CONTAINER;
     }
 
     
@@ -2653,13 +2665,18 @@ ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
     
     
     bool isOverlayScrollbar = (flags != 0) && overlayScrollbars;
-    bool createLayer = aCreateLayer || isOverlayScrollbar;
+    if (aCreateLayer || isOverlayScrollbar) {
+      appendToTopFlags |= APPEND_OWN_LAYER;
+    }
+    if (aPositioned) {
+      appendToTopFlags |= APPEND_POSITIONED;
+    }
 
     
     
     ::AppendToTop(aBuilder, aLists,
                   partList.PositionedDescendants(), scrollParts[i],
-                  createLayer, aPositioned);
+                  appendToTopFlags);
   }
 }
 
@@ -3143,9 +3160,11 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
                                        nsRect* aClipRect,
                                        nsTArray<FrameMetrics>* aOutput) const
 {
-  nsRect scrollport = mScrollPort +
-    mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
-  if (mAddClipRectToLayer) {
+  nsPoint toReferenceFrame = mOuter->GetOffsetToCrossDoc(aContainerReferenceFrame);
+  nsRect scrollport = mScrollPort + toReferenceFrame;
+  if (!gfxPrefs::LayoutUseContainersForRootFrames() || mAddClipRectToLayer) {
+    
+    
     *aClipRect = scrollport;
   }
 
