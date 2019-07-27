@@ -701,11 +701,30 @@ struct nsTArray_TypedBase<JS::Heap<E>, Derived>
 namespace detail {
 
 template<class Item, class Comparator>
-struct ItemComparator
+struct ItemComparatorEq
 {
   const Item& mItem;
   const Comparator& mComp;
-  ItemComparator(const Item& aItem, const Comparator& aComp)
+  ItemComparatorEq(const Item& aItem, const Comparator& aComp)
+    : mItem(aItem)
+    , mComp(aComp)
+  {}
+  template<class T>
+  int operator()(const T& aElement) const {
+    if (mComp.Equals(aElement, mItem)) {
+      return 0;
+    }
+
+    return mComp.LessThan(aElement, mItem) ? 1 : -1;
+  }
+};
+
+template<class Item, class Comparator>
+struct ItemComparatorFirstElementGT
+{
+  const Item& mItem;
+  const Comparator& mComp;
+  ItemComparatorFirstElementGT(const Item& aItem, const Comparator& aComp)
     : mItem(aItem)
     , mComp(aComp)
   {}
@@ -1068,22 +1087,17 @@ public:
   
   
   
+  
+  
   template<class Item, class Comparator>
   index_type BinaryIndexOf(const Item& aItem, const Comparator& aComp) const
   {
-    index_type low = 0, high = Length();
-    while (high > low) {
-      index_type mid = (high + low) >> 1;
-      if (aComp.Equals(ElementAt(mid), aItem)) {
-        return mid;
-      }
-      if (aComp.LessThan(ElementAt(mid), aItem)) {
-        low = mid + 1;
-      } else {
-        high = mid;
-      }
-    }
-    return NoIndex;
+    using mozilla::BinarySearchIf;
+    typedef ::detail::ItemComparatorEq<Item, Comparator> Cmp;
+
+    size_t index;
+    bool found = BinarySearchIf(*this, 0, Length(), Cmp(aItem, aComp), &index);
+    return found ? index : NoIndex;
   }
 
   
@@ -1251,7 +1265,7 @@ public:
                                    const Comparator& aComp) const
   {
     using mozilla::BinarySearchIf;
-    typedef ::detail::ItemComparator<Item, Comparator> Cmp;
+    typedef ::detail::ItemComparatorFirstElementGT<Item, Comparator> Cmp;
 
     size_t index;
     BinarySearchIf(*this, 0, Length(), Cmp(aItem, aComp), &index);
