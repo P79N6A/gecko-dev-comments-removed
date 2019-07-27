@@ -54,13 +54,6 @@ class GeckoRuntimeRunner(BaseRunner):
         
         command[1:1] = self.cmdargs
 
-        
-        
-        
-        if mozinfo.isMac and hasattr(platform, 'mac_ver') and \
-                platform.mac_ver()[0][:4] < '10.6':
-            command = ["arch", "-arch", "i386"] + command
-
         if hasattr(self.app_ctx, 'wrap_command'):
             command = self.app_ctx.wrap_command(command)
         return command
