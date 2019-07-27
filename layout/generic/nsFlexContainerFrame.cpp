@@ -160,11 +160,26 @@ public:
                      const WritingMode& aWM);
 
   
+  
   AxisOrientationType GetMainAxis() const  { return mMainAxis;  }
   AxisOrientationType GetCrossAxis() const { return mCrossAxis; }
 
   bool IsMainAxisHorizontal() const { return IsAxisHorizontal(mMainAxis); }
   bool IsCrossAxisHorizontal() const { return IsAxisHorizontal(mCrossAxis); }
+  
+
+  
+  
+  bool IsMainAxisReversed() const {
+    return mIsMainAxisReversed;
+  }
+  
+  
+  bool IsCrossAxisReversed() const {
+    return mIsCrossAxisReversed;
+  }
+
+  bool IsRowOriented() const { return mIsRowOriented; }
 
   nscoord GetMainComponent(const nsSize& aSize) const {
     return GET_MAIN_COMPONENT(*this, aSize.width, aSize.height);
@@ -259,12 +274,27 @@ private:
   
   
   
+  
   static inline bool IsAxisHorizontal(AxisOrientationType aAxis) {
     return eAxis_LR == aAxis || eAxis_RL == aAxis;
   }
-
   AxisOrientationType mMainAxis;
   AxisOrientationType mCrossAxis;
+  
+
+  const WritingMode mWM; 
+
+  bool mIsRowOriented; 
+                       
+
+  bool mIsMainAxisReversed; 
+                            
+  bool mIsCrossAxisReversed; 
+                             
+
+  
+  
+  
   bool mAreAxesInternallyReversed;
 };
 
@@ -2927,7 +2957,8 @@ BlockDirToAxisOrientation(WritingMode::BlockDir aBlockDir)
 
 FlexboxAxisTracker::FlexboxAxisTracker(const nsStylePosition* aStylePosition,
                                        const WritingMode& aWM)
-  : mAreAxesInternallyReversed(false)
+  : mWM(aWM),
+    mAreAxesInternallyReversed(false)
 {
   uint32_t flexDirection = aStylePosition->mFlexDirection;
 
@@ -2936,23 +2967,31 @@ FlexboxAxisTracker::FlexboxAxisTracker(const nsStylePosition* aStylePosition,
   
   
   AxisOrientationType inlineDimension =
-    InlineDirToAxisOrientation(aWM.GetInlineDir());
+    InlineDirToAxisOrientation(mWM.GetInlineDir());
   AxisOrientationType blockDimension =
-    BlockDirToAxisOrientation(aWM.GetBlockDir());
+    BlockDirToAxisOrientation(mWM.GetBlockDir());
 
   
   switch (flexDirection) {
     case NS_STYLE_FLEX_DIRECTION_ROW:
       mMainAxis = inlineDimension;
+      mIsRowOriented = true;
+      mIsMainAxisReversed = false;
       break;
     case NS_STYLE_FLEX_DIRECTION_ROW_REVERSE:
       mMainAxis = GetReverseAxis(inlineDimension);
+      mIsRowOriented = true;
+      mIsMainAxisReversed = true;
       break;
     case NS_STYLE_FLEX_DIRECTION_COLUMN:
       mMainAxis = blockDimension;
+      mIsRowOriented = false;
+      mIsMainAxisReversed = false;
       break;
     case NS_STYLE_FLEX_DIRECTION_COLUMN_REVERSE:
       mMainAxis = GetReverseAxis(blockDimension);
+      mIsRowOriented = false;
+      mIsMainAxisReversed = true;
       break;
     default:
       MOZ_CRASH("Unexpected computed value for 'flex-flow' property");
@@ -2971,6 +3010,9 @@ FlexboxAxisTracker::FlexboxAxisTracker(const nsStylePosition* aStylePosition,
   
   if (aStylePosition->mFlexWrap == NS_STYLE_FLEX_WRAP_WRAP_REVERSE) {
     mCrossAxis = GetReverseAxis(mCrossAxis);
+    mIsCrossAxisReversed = true;
+  } else {
+    mIsCrossAxisReversed = false;
   }
 
   
@@ -2986,6 +3028,8 @@ FlexboxAxisTracker::FlexboxAxisTracker(const nsStylePosition* aStylePosition,
       mMainAxis = GetReverseAxis(mMainAxis);
       mCrossAxis = GetReverseAxis(mCrossAxis);
       mAreAxesInternallyReversed = true;
+      mIsMainAxisReversed = !mIsMainAxisReversed;
+      mIsCrossAxisReversed = !mIsCrossAxisReversed;
     }
   }
 
