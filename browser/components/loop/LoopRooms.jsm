@@ -48,6 +48,61 @@ const extend = function(target, source) {
 
 
 
+
+
+
+const containsParticipant = function(room, participant) {
+  for (let user of room.participants) {
+    if (user.roomConnectionId == participant.roomConnectionId) {
+      return true;
+    }
+  }
+  return false;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+const checkForParticipantsUpdate = function(room, updatedRoom) {
+  
+  
+  if (!("participants" in room)) {
+    return;
+  }
+
+  let participant;
+  
+  for (participant of updatedRoom.participants) {
+    if (!containsParticipant(room, participant)) {
+      eventEmitter.emit("joined", room.roomToken, participant);
+      eventEmitter.emit("joined:" + room.roomToken, participant);
+    }
+  }
+
+  
+  for (participant of room.participants) {
+    if (!containsParticipant(updatedRoom, participant)) {
+      eventEmitter.emit("left", room.roomToken, participant);
+      eventEmitter.emit("left:" + room.roomToken, participant);
+    }
+  }
+};
+
+
+
+
+
+
+
+
 let LoopRoomsInternal = {
   rooms: new Map(),
 
@@ -85,11 +140,23 @@ let LoopRoomsInternal = {
         throw new Error("Missing array of rooms in response.");
       }
 
-      
-      
       for (let room of roomsList) {
+        
+        let orig = this.rooms.get(room.roomToken);
+        if (orig) {
+          checkForParticipantsUpdate(orig, room);
+        }
         this.rooms.set(room.roomToken, room);
-        yield LoopRooms.promise("get", room.roomToken);
+        
+        
+        if (version) {
+          eventEmitter.emit("update", room);
+          eventEmitter.emit("update" + ":" + room.roomToken, room);
+        } else {
+          
+          
+          yield LoopRooms.promise("get", room.roomToken);
+        }
       }
 
       
@@ -113,25 +180,35 @@ let LoopRoomsInternal = {
   get: function(roomToken, callback) {
     let room = this.rooms.has(roomToken) ? this.rooms.get(roomToken) : {};
     
-    if (!room || gDirty || !("participants" in room)) {
-      let sessionType = MozLoopService.userProfile ? LOOP_SESSION_TYPE.FXA :
-                        LOOP_SESSION_TYPE.GUEST;
-      MozLoopService.hawkRequest(sessionType, "/rooms/" + encodeURIComponent(roomToken), "GET")
-        .then(response => {
-          let eventName = ("roomToken" in room) ? "add" : "update";
-          extend(room, JSON.parse(response.body));
-          
-          if ("currSize" in room) {
-            delete room.currSize;
-          }
-          this.rooms.set(roomToken, room);
-
-          eventEmitter.emit(eventName, room);
-          callback(null, room);
-        }, err => callback(err)).catch(err => callback(err));
-    } else {
+    let needsUpdate = !("participants" in room);
+    if (!gDirty && !needsUpdate) {
+      
+      
       callback(null, room);
+      return;
     }
+
+    let sessionType = MozLoopService.userProfile ? LOOP_SESSION_TYPE.FXA :
+                      LOOP_SESSION_TYPE.GUEST;
+    MozLoopService.hawkRequest(sessionType, "/rooms/" + encodeURIComponent(roomToken), "GET")
+      .then(response => {
+        let data = JSON.parse(response.body);
+
+        room.roomToken = roomToken;
+        checkForParticipantsUpdate(room, data);
+        extend(room, data);
+
+        
+        if ("currSize" in room) {
+          delete room.currSize;
+        }
+        this.rooms.set(roomToken, room);
+
+        let eventName = !needsUpdate ? "update" : "add";
+        eventEmitter.emit(eventName, room);
+        eventEmitter.emit(eventName + ":" + roomToken, room);
+        callback(null, room);
+      }, err => callback(err)).catch(err => callback(err));
   },
 
   
@@ -187,6 +264,9 @@ let LoopRoomsInternal = {
   },
 };
 Object.freeze(LoopRoomsInternal);
+
+
+
 
 
 

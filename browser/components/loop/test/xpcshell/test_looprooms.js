@@ -54,6 +54,38 @@ let roomDetail = {
   }]
 };
 
+const kRoomUpdates = {
+  "1": {
+    participants: []
+  },
+  "2": {
+    participants: [{
+      displayName: "Alexis",
+      account: "alexis@example.com",
+      roomConnectionId: "2a1787a6-4a73-43b5-ae3e-906ec1e763cb"
+    }]
+  },
+  "3": {
+    participants: [{
+      displayName: "Adam",
+      roomConnectionId: "781f012b-f1ea-4ce1-9105-7cfc36fb4ec7"
+    }]
+  },
+  "4": {
+    participants: [{
+      displayName: "Adam",
+      roomConnectionId: "781f012b-f1ea-4ce1-9105-7cfc36fb4ec7"
+    }, {
+      displayName: "Alexis",
+      account: "alexis@example.com",
+      roomConnectionId: "2a1787a6-4a73-43b5-ae3e-906ec1e763cb"
+    },  {
+      displayName: "Ruharb",
+      roomConnectionId: "5de6281c-6568-455f-af08-c0b0a973100e"
+    }]
+  }
+};
+
 const kCreateRoomProps = {
   roomName: "UX Discussion",
   expiresIn: 5,
@@ -65,6 +97,76 @@ const kCreateRoomData = {
   roomToken: "_nxD4V4FflQ",
   roomUrl: "http://localhost:3000/rooms/_nxD4V4FflQ",
   expiresAt: 1405534180
+};
+
+const normalizeRoom = function(room) {
+  delete room.currSize;
+  if (!("participants" in room)) {
+    let name = room.roomName;
+    for (let key of Object.getOwnPropertyNames(roomDetail)) {
+      room[key] = roomDetail[key];
+    }
+    room.roomName = name;
+  }
+  return room;
+};
+
+const compareRooms = function(room1, room2) {
+  Assert.deepEqual(normalizeRoom(room1), normalizeRoom(room2));
+};
+
+
+let gExpectedAdds = [];
+let gExpectedUpdates = [];
+let gExpectedJoins = {};
+let gExpectedLeaves = {};
+
+const onRoomAdded = function(e, room) {
+  let expectedIds = gExpectedAdds.map(room => room.roomToken);
+  let idx = expectedIds.indexOf(room.roomToken);
+  Assert.ok(idx > -1, "Added room should be expected");
+  let expected = gExpectedAdds[idx];
+  compareRooms(room, expected);
+  gExpectedAdds.splice(idx, 1);
+};
+
+const onRoomUpdated = function(e, room) {
+  let idx = gExpectedUpdates.indexOf(room.roomToken);
+  Assert.ok(idx > -1, "Updated room should be expected");
+  gExpectedUpdates.splice(idx, 1);
+};
+
+const onRoomJoined = function(e, roomToken, participant) {
+  let participants = gExpectedJoins[roomToken];
+  Assert.ok(participants, "Participant should be expected to join");
+  let idx = participants.indexOf(participant.roomConnectionId);
+  Assert.ok(idx > -1, "Participant should be expected to join");
+  participants.splice(idx, 1);
+  if (!participants.length) {
+    delete gExpectedJoins[roomToken];
+  }
+};
+
+const onRoomLeft = function(e, roomToken, participant) {
+  let participants = gExpectedLeaves[roomToken];
+  Assert.ok(participants, "Participant should be expected to leave");
+  let idx = participants.indexOf(participant.roomConnectionId);
+  Assert.ok(idx > -1, "Participant should be expected to leave");
+  participants.splice(idx, 1);
+  if (!participants.length) {
+    delete gExpectedLeaves[roomToken];
+  }
+};
+
+const parseQueryString = function(qs) {
+  let map = {};
+  let parts = qs.split("=");
+  for (let i = 0, l = parts.length; i < l; ++i) {
+    if (i % 2 === 1) {
+      map[parts[i - 1]] = parts[i];
+    }
+  }
+  return map;
 };
 
 add_task(function* setup_server() {
@@ -85,7 +187,14 @@ add_task(function* setup_server() {
 
       res.write(JSON.stringify(kCreateRoomData));
     } else {
-      res.write(JSON.stringify([...kRooms.values()]));
+      if (req.queryString) {
+        let qs = parseQueryString(req.queryString);
+        let room = kRooms.get("_nxD4V4FflQ");
+        room.participants = kRoomUpdates[qs.version].participants;
+        res.write(JSON.stringify([room]));
+      } else {
+        res.write(JSON.stringify([...kRooms.values()]));
+      }
     }
 
     res.processAsync();
@@ -119,27 +228,13 @@ add_task(function* setup_server() {
     res.processAsync();
     res.finish();
   });
+
+  yield MozLoopService.promiseRegisteredWithServers();
 });
 
-const normalizeRoom = function(room) {
-  delete room.currSize;
-  if (!("participants" in room)) {
-    let name = room.roomName;
-    for (let key of Object.getOwnPropertyNames(roomDetail)) {
-      room[key] = roomDetail[key];
-    }
-    room.roomName = name;
-  }
-  return room;
-};
-
-const compareRooms = function(room1, room2) {
-  Assert.deepEqual(normalizeRoom(room1), normalizeRoom(room2));
-};
 
 add_task(function* test_getAllRooms() {
-  yield MozLoopService.promiseRegisteredWithServers();
-
+  gExpectedAdds.push(...kRooms.values());
   let rooms = yield LoopRooms.promise("getAll");
   Assert.equal(rooms.length, 3);
   for (let room of rooms) {
@@ -147,29 +242,26 @@ add_task(function* test_getAllRooms() {
   }
 });
 
-add_task(function* test_getRoom() {
-  yield MozLoopService.promiseRegisteredWithServers();
 
+add_task(function* test_getRoom() {
   let roomToken = "_nxD4V4FflQ";
   let room = yield LoopRooms.promise("get", roomToken);
   Assert.deepEqual(room, kRooms.get(roomToken));
 });
+
 
 add_task(function* test_errorStates() {
   yield Assert.rejects(LoopRooms.promise("get", "error401"), /Not Found/, "Fetching a non-existent room should fail");
   yield Assert.rejects(LoopRooms.promise("get", "errorMalformed"), /SyntaxError/, "Wrong message format should reject");
 });
 
+
 add_task(function* test_createRoom() {
-  let eventCalled = false;
-  LoopRooms.once("add", (e, room) => {
-    compareRooms(room, kCreateRoomProps);
-    eventCalled = true;
-  });
+  gExpectedAdds.push(kCreateRoomProps);
   let room = yield LoopRooms.promise("create", kCreateRoomProps);
   compareRooms(room, kCreateRoomProps);
-  Assert.ok(eventCalled, "Event should have fired");
 });
+
 
 add_task(function* test_openRoom() {
   let openedUrl;
@@ -189,13 +281,58 @@ add_task(function* test_openRoom() {
   Assert.equal(windowData.roomToken, "fakeToken", "window data should have the roomToken");
 });
 
+
+add_task(function* test_roomUpdates() {
+  gExpectedUpdates.push("_nxD4V4FflQ");
+  gExpectedLeaves["_nxD4V4FflQ"] = [
+    "2a1787a6-4a73-43b5-ae3e-906ec1e763cb",
+    "781f012b-f1ea-4ce1-9105-7cfc36fb4ec7"
+  ];
+  roomsPushNotification("1");
+  yield waitForCondition(() => Object.getOwnPropertyNames(gExpectedLeaves).length === 0);
+
+  gExpectedUpdates.push("_nxD4V4FflQ");
+  gExpectedJoins["_nxD4V4FflQ"] = ["2a1787a6-4a73-43b5-ae3e-906ec1e763cb"];
+  roomsPushNotification("2");
+  yield waitForCondition(() => Object.getOwnPropertyNames(gExpectedJoins).length === 0);
+
+  gExpectedUpdates.push("_nxD4V4FflQ");
+  gExpectedJoins["_nxD4V4FflQ"] = ["781f012b-f1ea-4ce1-9105-7cfc36fb4ec7"];
+  gExpectedLeaves["_nxD4V4FflQ"] = ["2a1787a6-4a73-43b5-ae3e-906ec1e763cb"];
+  roomsPushNotification("3");
+  yield waitForCondition(() => Object.getOwnPropertyNames(gExpectedLeaves).length === 0);
+
+  gExpectedUpdates.push("_nxD4V4FflQ");
+  gExpectedJoins["_nxD4V4FflQ"] = [
+    "2a1787a6-4a73-43b5-ae3e-906ec1e763cb",
+    "5de6281c-6568-455f-af08-c0b0a973100e"];
+  roomsPushNotification("4");
+  yield waitForCondition(() => Object.getOwnPropertyNames(gExpectedJoins).length === 0);
+});
+
+
+add_task(function* () {
+  Assert.strictEqual(gExpectedAdds.length, 0, "No room additions should be expected anymore");
+  Assert.strictEqual(gExpectedUpdates.length, 0, "No room updates should be expected anymore");
+ });
+
 function run_test() {
-  do_register_cleanup(function() {
+  setupFakeLoopServer();
+
+  LoopRooms.on("add", onRoomAdded);
+  LoopRooms.on("update", onRoomUpdated);
+  LoopRooms.on("joined", onRoomJoined);
+  LoopRooms.on("left", onRoomLeft);
+
+  do_register_cleanup(function () {
     
     Chat.open = openChatOrig;
-  });
 
-  setupFakeLoopServer();
+    LoopRooms.off("add", onRoomAdded);
+    LoopRooms.off("update", onRoomUpdated);
+    LoopRooms.off("joined", onRoomJoined);
+    LoopRooms.off("left", onRoomLeft);
+  });
 
   run_next_test();
 }
