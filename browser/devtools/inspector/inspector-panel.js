@@ -739,6 +739,19 @@ InspectorPanel.prototype = {
   
 
 
+  showDOMProperties: function InspectorPanel_showDOMProperties() {
+    this._toolbox.openSplitConsole().then(() => {
+      let panel = this._toolbox.getPanel("webconsole");
+      let jsterm = panel.hud.jsterm;
+
+      jsterm.execute("inspect($0)");
+      jsterm.focusInput();
+    });
+  },
+
+  
+
+
   clearPseudoClasses: function InspectorPanel_clearPseudoClasses() {
     if (!this.walker) {
       return;
