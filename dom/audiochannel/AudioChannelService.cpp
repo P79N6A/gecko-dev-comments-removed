@@ -525,15 +525,26 @@ AudioChannelService::SetDefaultVolumeControlChannelInternal(int32_t aChannel,
   
   
   
-  if ((!aVisible && mDefChannelChildID != aChildID) ||
-      (mDefChannelChildID != aChildID &&
-       mDefChannelChildID != CONTENT_PROCESS_ID_UNKNOWN)) {
+  if (!aVisible && mDefChannelChildID != aChildID) {
+    return;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  else if (aChildID == CONTENT_PROCESS_ID_MAIN &&
+           mDefChannelChildID != CONTENT_PROCESS_ID_UNKNOWN) {
     return;
   }
 
-  mDefChannelChildID = aChildID;
-  nsString channelName;
-
+  mDefChannelChildID = aVisible ? aChildID : CONTENT_PROCESS_ID_UNKNOWN;
+  nsAutoString channelName;
   if (aChannel == -1) {
     channelName.AssignASCII("unknown");
   } else {
