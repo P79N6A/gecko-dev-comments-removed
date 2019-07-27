@@ -2172,27 +2172,17 @@ RelocateCell(Zone *zone, Cell *src, AllocKind thingKind, size_t thingSize)
     
     memcpy(dst, src, thingSize);
 
-    
     if (thingKind <= FINALIZE_OBJECT_LAST) {
         JSObject *srcObj = static_cast<JSObject *>(src);
         JSObject *dstObj = static_cast<JSObject *>(dst);
+
+        
         if (srcObj->hasFixedElements())
             dstObj->setFixedElements();
 
-        if (srcObj->is<ArrayBufferObject>()) {
-            
-            
-            ArrayBufferObject::fixupDataPointerAfterMovingGC(
-                srcObj->as<ArrayBufferObject>(), dstObj->as<ArrayBufferObject>());
-        } else if (srcObj->is<TypedArrayObject>()) {
-            TypedArrayObject &typedArray = srcObj->as<TypedArrayObject>();
-            if (!typedArray.hasBuffer()) {
-                JS_ASSERT(srcObj->getPrivate() ==
-                          srcObj->fixedData(TypedArrayObject::FIXED_DATA_START));
-                dstObj->setPrivate(dstObj->fixedData(TypedArrayObject::FIXED_DATA_START));
-            }
-        }
-
+        
+        if (JSObjectMovedOp op = srcObj->getClass()->ext.objectMovedOp)
+            op(dstObj, srcObj);
 
         JS_ASSERT_IF(dstObj->isNative(),
                      !PtrIsInRange((const Value*)dstObj->getDenseElements(), src, thingSize));

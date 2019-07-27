@@ -122,7 +122,14 @@ const Class ArrayBufferObject::class_ = {
     nullptr,        
     ArrayBufferObject::obj_trace,
     JS_NULL_CLASS_SPEC,
-    JS_NULL_CLASS_EXT
+    {
+        nullptr,    
+        nullptr,    
+        nullptr,    
+        false,      
+        nullptr,    
+        ArrayBufferObject::objectMoved
+    }
 };
 
 const JSFunctionSpec ArrayBufferObject::jsfuncs[] = {
@@ -929,8 +936,11 @@ ArrayBufferObject::sweep(JSCompartment *compartment)
 }
 
  void
-ArrayBufferObject::fixupDataPointerAfterMovingGC(const ArrayBufferObject &src, ArrayBufferObject &dst)
+ArrayBufferObject::objectMoved(JSObject *obj, const JSObject *old)
 {
+    ArrayBufferObject &dst = obj->as<ArrayBufferObject>();
+    const ArrayBufferObject &src = old->as<ArrayBufferObject>();
+
     
     const size_t reservedSlots = JSCLASS_RESERVED_SLOTS(&ArrayBufferObject::class_);
     if (src.dataPointer() == src.fixedData(reservedSlots))
