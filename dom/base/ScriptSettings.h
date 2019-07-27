@@ -319,8 +319,8 @@ private:
 
 
 
-class AutoEntryScript : public AutoJSAPI,
-                        protected ScriptSettingsStackEntry {
+class MOZ_STACK_CLASS AutoEntryScript : public AutoJSAPI,
+                                        protected ScriptSettingsStackEntry {
 public:
   explicit AutoEntryScript(nsIGlobalObject* aGlobalObject,
                   bool aIsMainThread = NS_IsMainThread(),
@@ -341,10 +341,10 @@ private:
   
   
   
-  nsIPrincipal* mWebIDLCallerPrincipal;
+  nsIPrincipal* MOZ_NON_OWNING_REF mWebIDLCallerPrincipal;
   friend nsIPrincipal* GetWebIDLCallerPrincipal();
 
-  nsIDocShell* mDocShellForJSRunToCompletion;
+  nsCOMPtr<nsIDocShell> mDocShellForJSRunToCompletion;
 
   bool mIsMainThread;
 };
