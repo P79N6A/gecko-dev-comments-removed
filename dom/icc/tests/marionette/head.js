@@ -8,6 +8,8 @@ const PREF_KEY_RIL_DEBUGGING_ENABLED = "ril.debugging.enabled";
 
 const DEFAULT_PIN = "0000";
 
+const DEFAULT_PUK = "12345678";
+
 
 Promise.defer = function() { return new Deferred(); }
 function Deferred() {
