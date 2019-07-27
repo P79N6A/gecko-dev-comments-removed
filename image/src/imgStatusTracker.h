@@ -230,9 +230,6 @@ public:
   mozilla::image::ImageStatusDiff Difference(const mozilla::image::ImageStatusDiff& aOther) const;
 
   
-  void ApplyDifference(const mozilla::image::ImageStatusDiff& aDiff);
-
-  
   
   
   void SyncNotifyDifference(const mozilla::image::ImageStatusDiff& aDiff,

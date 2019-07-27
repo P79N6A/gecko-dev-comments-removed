@@ -2997,9 +2997,6 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
                            : nsIntRect();
   }
 
-  diff = image->mStatusTracker->Difference(diff);
-  image->mStatusTracker->ApplyDifference(diff);
-
   if (mNotifying) {
     
     
@@ -3012,6 +3009,8 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
     MOZ_ASSERT(mStatusDiff.IsNoChange(), "Shouldn't have an accumulated change at this point");
     MOZ_ASSERT(mInvalidRect.IsEmpty(), "Shouldn't have an accumulated invalidation rect here");
 
+    diff = image->mStatusTracker->Difference(diff);
+
     while (!diff.IsNoChange() || !invalidRect.IsEmpty()) {
       
       mNotifying = true;
@@ -3021,7 +3020,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
       
       
       
-      diff = mStatusDiff;
+      diff = image->mStatusTracker->Difference(mStatusDiff);
       mStatusDiff = ImageStatusDiff::NoChange();
       invalidRect = mInvalidRect;
       mInvalidRect = nsIntRect();
