@@ -193,6 +193,10 @@ HitTestingTreeNode::HitTest(const ParentLayerPoint& aPoint) const
   
   MOZ_ASSERT(!IsOutsideClip(aPoint));
 
+  if (mOverride & EventRegionsOverride::ForceEmptyHitRegion) {
+    return HitTestResult::HitNothing;
+  }
+
   
   
   
@@ -233,9 +237,10 @@ HitTestingTreeNode::Dump(const char* aPrefix) const
   if (mPrevSibling) {
     mPrevSibling->Dump(aPrefix);
   }
-  printf_stderr("%sHitTestingTreeNode (%p) APZC (%p) g=(%s) %sr=(%s) t=(%s) c=(%s)\n",
+  printf_stderr("%sHitTestingTreeNode (%p) APZC (%p) g=(%s) %s%sr=(%s) t=(%s) c=(%s)\n",
     aPrefix, this, mApzc.get(), mApzc ? Stringify(mApzc->GetGuid()).c_str() : "",
     (mOverride & EventRegionsOverride::ForceDispatchToContent) ? "fdtc " : "",
+    (mOverride & EventRegionsOverride::ForceEmptyHitRegion) ? "fehr " : "",
     Stringify(mEventRegions).c_str(), Stringify(mTransform).c_str(),
     mClipRegion ? Stringify(mClipRegion.ref()).c_str() : "none");
   if (mLastChild) {

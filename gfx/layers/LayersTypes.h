@@ -229,7 +229,9 @@ enum EventRegionsOverride {
   
   ForceDispatchToContent = (1 << 0),
   
-  ALL_BITS               = (1 << 1) - 1
+  ForceEmptyHitRegion    = (1 << 1),
+  
+  ALL_BITS               = (1 << 2) - 1
 };
 
 MOZ_ALWAYS_INLINE EventRegionsOverride
