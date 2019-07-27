@@ -6035,6 +6035,7 @@ nsHTMLEditRules::GetParagraphFormatNodes(nsTArray<OwningNonNull<nsINode>>& outAr
     
     if (!mHTMLEditor->IsEditable(testNode)) {
       outArrayOfNodes.RemoveElementAt(i);
+      continue;
     }
 
     
