@@ -344,32 +344,30 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
   
   
   
-  float lowPrecisionOpacityReduction;
+  
+  
+  
+  gfxRGBA backgroundColor(0);
   if (aOpacity == 1.0f && gfxPrefs::LowPrecisionOpacity() < 1.0f) {
     
     
-    gfxRGBA backgroundColor(0);
     for (ContainerLayer* ancestor = GetLayer()->GetParent(); ancestor; ancestor = ancestor->GetParent()) {
       if (ancestor->GetFrameMetrics().IsScrollable()) {
         backgroundColor = ancestor->GetBackgroundColor();
         break;
       }
     }
-    
-    if (backgroundColor.a == 1.0f) {
-      lowPrecisionOpacityReduction = gfxPrefs::LowPrecisionOpacity();
-    } else {
-      lowPrecisionOpacityReduction = 1.0f;
-    }
-  } else {
-    lowPrecisionOpacityReduction = 1.0f;
   }
+  float lowPrecisionOpacityReduction =
+        (aOpacity == 1.0f && backgroundColor.a == 1.0f)
+        ? gfxPrefs::LowPrecisionOpacity() : 1.0f;
 
   
-  RenderLayerBuffer(mLowPrecisionTiledBuffer, aEffectChain,
-                    lowPrecisionOpacityReduction * aOpacity, aFilter, aClipRect,
-                    aLayerProperties->mVisibleRegion, aTransform);
-  RenderLayerBuffer(mTiledBuffer, aEffectChain, aOpacity, aFilter,
+  RenderLayerBuffer(mLowPrecisionTiledBuffer,
+                    lowPrecisionOpacityReduction < 1.0f ? &backgroundColor : nullptr,
+                    aEffectChain, lowPrecisionOpacityReduction * aOpacity,
+                    aFilter, aClipRect, aLayerProperties->mVisibleRegion, aTransform);
+  RenderLayerBuffer(mTiledBuffer, nullptr, aEffectChain, aOpacity, aFilter,
                     aClipRect, aLayerProperties->mVisibleRegion, aTransform);
 
   
@@ -389,6 +387,7 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
 
 void
 TiledContentHost::RenderTile(const TileHost& aTile,
+                             const gfxRGBA* aBackgroundColor,
                              EffectChain& aEffectChain,
                              float aOpacity,
                              const gfx::Matrix4x4& aTransform,
@@ -410,6 +409,16 @@ TiledContentHost::RenderTile(const TileHost& aTile,
 
   if (!quad.Intersects(mCompositor->ClipRectInLayersCoordinates(aClipRect))) {
     return;
+  }
+
+  if (aBackgroundColor) {
+    MOZ_ASSERT(aOpacity == 1.0f);
+    aEffectChain.mPrimaryEffect = new EffectSolidColor(ToColor(*aBackgroundColor));
+    nsIntRegionRectIterator it(aScreenRegion);
+    for (const nsIntRect* rect = it.Next(); rect != nullptr; rect = it.Next()) {
+      Rect graphicsRect(rect->x, rect->y, rect->width, rect->height);
+      mCompositor->DrawQuad(graphicsRect, aClipRect, aEffectChain, 1.0, aTransform);
+    }
   }
 
   AutoLockTextureHost autoLock(aTile.mTextureHost);
@@ -450,6 +459,7 @@ TiledContentHost::RenderTile(const TileHost& aTile,
 
 void
 TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
+                                    const gfxRGBA* aBackgroundColor,
                                     EffectChain& aEffectChain,
                                     float aOpacity,
                                     const gfx::Filter& aFilter,
@@ -523,8 +533,9 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
           nsIntPoint tileOffset((x - tileStartX) * resolution,
                                 (y - tileStartY) * resolution);
           gfx::IntSize tileSize = aLayerBuffer.GetTileSize();
-          RenderTile(tileTexture, aEffectChain, aOpacity, aTransform, aFilter, aClipRect, tileDrawRegion,
-                     tileOffset, nsIntSize(tileSize.width, tileSize.height));
+          RenderTile(tileTexture, aBackgroundColor, aEffectChain, aOpacity, aTransform,
+                     aFilter, aClipRect, tileDrawRegion, tileOffset,
+                     nsIntSize(tileSize.width, tileSize.height));
         }
       }
       tileY++;
