@@ -47,9 +47,7 @@ const REASON_SHUTDOWN = "shutdown";
 
 const ENVIRONMENT_CHANGE_LISTENER = "TelemetrySession::onEnvironmentChange";
 
-const SEC_IN_ONE_DAY  = 24 * 60 * 60;
-const MS_IN_ONE_DAY   = SEC_IN_ONE_DAY * 1000;
-
+const MS_IN_ONE_HOUR  = 60 * 60 * 1000;
 const MIN_SUBSESSION_LENGTH_MS = 10 * 60 * 1000;
 
 
@@ -201,6 +199,17 @@ function areTimesClose(t1, t2, tolerance) {
 
 
 
+function getNextMidnight(date) {
+  let nextMidnight = new Date(truncateToDays(date));
+  nextMidnight.setDate(nextMidnight.getDate() + 1);
+  return nextMidnight;
+}
+
+
+
+
+
+
 
 function getNearestMidnight(date) {
   let lastMidnight = truncateToDays(date);
@@ -208,8 +217,7 @@ function getNearestMidnight(date) {
     return lastMidnight;
   }
 
-  let nextMidnightDate = new Date(lastMidnight);
-  nextMidnightDate.setDate(nextMidnightDate.getDate() + 1);
+  const nextMidnightDate = getNextMidnight(date);
   if (areTimesClose(date.getTime(), nextMidnightDate.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
     return nextMidnightDate;
   }
@@ -421,6 +429,7 @@ let TelemetryScheduler = {
   
   _schedulerInterval: 0,
   _shuttingDown: true,
+  _isUserIdle: false,
 
   
 
@@ -429,12 +438,12 @@ let TelemetryScheduler = {
     this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, "TelemetryScheduler::");
     this._log.trace("init");
     this._shuttingDown = false;
+    this._isUserIdle = false;
     
     
     let now = Policy.now();
     this._lastDailyPingTime = now.getTime();
     this._lastSessionCheckpointTime = now.getTime();
-    this._schedulerInterval = SCHEDULER_TICK_INTERVAL_MS;
     this._rescheduleTimeout();
     idleService.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
   },
@@ -443,7 +452,7 @@ let TelemetryScheduler = {
 
 
   _rescheduleTimeout: function() {
-    this._log.trace("_rescheduleTimeout - timeout: " + this._schedulerInterval);
+    this._log.trace("_rescheduleTimeout - isUserIdle: " + this._isUserIdle);
     if (this._shuttingDown) {
       this._log.warn("_rescheduleTimeout - already shutdown");
       return;
@@ -453,8 +462,31 @@ let TelemetryScheduler = {
       Policy.clearSchedulerTickTimeout(this._schedulerTimer);
     }
 
+    const now = Policy.now();
+    let timeout = SCHEDULER_TICK_INTERVAL_MS;
+
+    
+    if (this._isUserIdle) {
+      timeout = SCHEDULER_TICK_IDLE_INTERVAL_MS;
+      
+      
+      const nextMidnight = getNextMidnight(now);
+      timeout = Math.min(timeout, nextMidnight.getTime() - now.getTime());
+    }
+
+    this._log.trace("_rescheduleTimeout - scheduling next tick for " + new Date(now.getTime() + timeout));
     this._schedulerTimer =
-      Policy.setSchedulerTickTimeout(() => this._onSchedulerTick(), this._schedulerInterval);
+      Policy.setSchedulerTickTimeout(() => this._onSchedulerTick(), timeout);
+  },
+
+  _sentDailyPingToday: function(nowDate) {
+    
+    const todayDate = truncateToDays(nowDate);
+    const nearestMidnight = getNearestMidnight(nowDate);
+    
+    const checkDate = nearestMidnight || todayDate;
+    
+    return (this._lastDailyPingTime >= (checkDate.getTime() - SCHEDULER_MIDNIGHT_TOLERANCE_MS));
   },
 
   
@@ -463,31 +495,37 @@ let TelemetryScheduler = {
 
 
   _isDailyPingDue: function(nowDate) {
-    let nearestMidnight = getNearestMidnight(nowDate);
-    if (nearestMidnight) {
-      let subsessionLength = Math.abs(nowDate.getTime() - this._lastDailyPingTime);
-      if (subsessionLength < MIN_SUBSESSION_LENGTH_MS) {
-        
-        return false;
-      } else if (areTimesClose(this._lastDailyPingTime, nearestMidnight.getTime(),
-                               SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
-        
-        return false;
-      }
+    const sentPingToday = this._sentDailyPingToday(nowDate);
+
+    
+    if (sentPingToday) {
+      this._log.trace("_isDailyPingDue - already sent one today");
+      return false;
+    }
+
+    const nearestMidnight = getNearestMidnight(nowDate);
+    if (!sentPingToday && !nearestMidnight) {
+      
+      this._log.trace("_isDailyPingDue - daily ping is overdue... computer went to sleep?");
       return true;
     }
 
-    let lastDailyPingDate = truncateToDays(new Date(this._lastDailyPingTime));
     
-    let todayDate = truncateToDays(nowDate);
-    
-    
-    if ((lastDailyPingDate.getTime() != todayDate.getTime()) &&
-        !areTimesClose(this._lastDailyPingTime, todayDate.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
-      
-      return true;
+    const timeSinceLastDaily = nowDate.getTime() - this._lastDailyPingTime;
+    if (timeSinceLastDaily < MIN_SUBSESSION_LENGTH_MS) {
+      this._log.trace("_isDailyPingDue - delaying daily to keep minimum session length");
+      return false;
     }
-    return false;
+
+    
+    
+    if (!this._isUserIdle && (nowDate.getTime() < nearestMidnight.getTime())) {
+      this._log.trace("_isDailyPingDue - waiting for user idle period");
+      return false;
+    }
+
+    this._log.trace("_isDailyPingDue - is due");
+    return true;
   },
 
   
@@ -512,13 +550,13 @@ let TelemetryScheduler = {
     switch(aTopic) {
       case "idle":
         
-        this._schedulerInterval = SCHEDULER_TICK_IDLE_INTERVAL_MS;
-        this._rescheduleTimeout();
+        this._isUserIdle = true;
+        return this._onSchedulerTick();
         break;
       case "active":
         
-        this._schedulerInterval = SCHEDULER_TICK_INTERVAL_MS;
-        this._rescheduleTimeout();
+        this._isUserIdle = false;
+        return this._onSchedulerTick();
         break;
     }
   },
@@ -531,7 +569,7 @@ let TelemetryScheduler = {
   _onSchedulerTick: function() {
     if (this._shuttingDown) {
       this._log.warn("_onSchedulerTick - already shutdown.");
-      return;
+      return Promise.reject(new Error("Already shutdown."));
     }
 
     let promise = Promise.resolve();
