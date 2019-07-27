@@ -64,7 +64,7 @@ JitOptions::JitOptions()
     SET_DEFAULT(checkRangeAnalysis, false);
 
     
-    SET_DEFAULT(disableScalarReplacement, true); 
+    SET_DEFAULT(disableScalarReplacement, false);
 
     
     SET_DEFAULT(disableGvn, false);
