@@ -405,8 +405,6 @@ public:
 
     
     
-    int64_t mLastAudioPacketTime; 
-    int64_t mLastAudioPacketEndTime; 
     
     int64_t mAudioFramesWritten;
     
@@ -416,6 +414,7 @@ public:
     
     
     int64_t mNextVideoTime; 
+    int64_t mNextAudioTime; 
     MediaDecoder* mDecoder;
     
     

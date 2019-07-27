@@ -326,48 +326,39 @@ void MediaDecoderStateMachine::SendStreamAudio(AudioData* aAudio,
                                                DecodedStreamData* aStream,
                                                AudioSegment* aOutput)
 {
-  NS_ASSERTION(OnDecodeThread() ||
-               OnStateMachineThread(), "Should be on decode thread or state machine thread");
+  NS_ASSERTION(OnDecodeThread() || OnStateMachineThread(),
+               "Should be on decode thread or state machine thread");
   AssertCurrentThreadInMonitor();
 
-  if (aAudio->mTime <= aStream->mLastAudioPacketTime) {
-    
+  
+  
+  CheckedInt64 audioWrittenOffset = aStream->mAudioFramesWritten +
+      UsecsToFrames(mInfo.mAudio.mRate, aStream->mInitialTime + mStartTime);
+  CheckedInt64 frameOffset = UsecsToFrames(mInfo.mAudio.mRate, aAudio->mTime);
+
+  if (!audioWrittenOffset.isValid() ||
+      !frameOffset.isValid() ||
+      
+      frameOffset.value() + aAudio->mFrames <= audioWrittenOffset.value()) {
     return;
   }
-  aStream->mLastAudioPacketTime = aAudio->mTime;
-  aStream->mLastAudioPacketEndTime = aAudio->GetEndTime();
 
-  
-  
-  CheckedInt64 audioWrittenOffset = UsecsToFrames(mInfo.mAudio.mRate,
-      aStream->mInitialTime + mStartTime) + aStream->mAudioFramesWritten;
-  CheckedInt64 frameOffset = UsecsToFrames(mInfo.mAudio.mRate, aAudio->mTime);
-  if (!audioWrittenOffset.isValid() || !frameOffset.isValid())
-    return;
   if (audioWrittenOffset.value() < frameOffset.value()) {
+    int64_t silentFrames = frameOffset.value() - audioWrittenOffset.value();
     
-    VERBOSE_LOG("writing %d frames of silence to MediaStream",
-                int32_t(frameOffset.value() - audioWrittenOffset.value()));
+    VERBOSE_LOG("writing %lld frames of silence to MediaStream", silentFrames);
     AudioSegment silence;
-    silence.InsertNullDataAtStart(frameOffset.value() - audioWrittenOffset.value());
-    aStream->mAudioFramesWritten += silence.GetDuration();
+    StreamTime duration = aStream->mStream->TicksToTimeRoundDown(
+        mInfo.mAudio.mRate, silentFrames);
+    silence.InsertNullDataAtStart(duration);
+    aStream->mAudioFramesWritten += silentFrames;
+    audioWrittenOffset += silentFrames;
     aOutput->AppendFrom(&silence);
   }
 
-  int64_t offset;
-  if (aStream->mAudioFramesWritten == 0) {
-    NS_ASSERTION(frameOffset.value() <= audioWrittenOffset.value(),
-                 "Otherwise we'd have taken the write-silence path");
-    
-    offset = audioWrittenOffset.value() - frameOffset.value();
-  } else {
-    
-    offset = 0;
-  }
+  MOZ_ASSERT(audioWrittenOffset.value() >= frameOffset.value());
 
-  if (offset >= aAudio->mFrames)
-    return;
-
+  int64_t offset = audioWrittenOffset.value() - frameOffset.value();
   size_t framesToWrite = aAudio->mFrames - offset;
 
   aAudio->EnsureAudioBuffer();
@@ -383,6 +374,8 @@ void MediaDecoderStateMachine::SendStreamAudio(AudioData* aAudio,
               aAudio->mTime);
   aStream->mAudioFramesWritten += framesToWrite;
   aOutput->ApplyVolume(mVolume);
+
+  aStream->mNextAudioTime = aAudio->GetEndTime();
 }
 
 static void WriteVideoToMediaStream(MediaStream* aStream,
@@ -437,25 +430,36 @@ void MediaDecoderStateMachine::SendStreamData()
         mediaStream->AddAudioTrack(kAudioTrack, mInfo.mAudio.mRate, 0, audio);
         stream->mStream->DispatchWhenNotEnoughBuffered(kAudioTrack,
             GetStateMachineThread(), GetWakeDecoderRunnable());
+        stream->mNextAudioTime = mStartTime + stream->mInitialTime;
       }
       if (mInfo.HasVideo()) {
         VideoSegment* video = new VideoSegment();
         mediaStream->AddTrack(kVideoTrack, 0, video);
         stream->mStream->DispatchWhenNotEnoughBuffered(kVideoTrack,
             GetStateMachineThread(), GetWakeDecoderRunnable());
+
+        
+        
+        
+        
+        stream->mNextVideoTime = mStartTime + stream->mInitialTime;
       }
       stream->mStreamInitialized = true;
     }
 
     if (mInfo.HasAudio()) {
+      MOZ_ASSERT(stream->mNextAudioTime != -1, "Should've been initialized");
       nsAutoTArray<nsRefPtr<AudioData>,10> audio;
       
       
-      AudioQueue().GetElementsAfter(stream->mLastAudioPacketTime, &audio);
+      AudioQueue().GetElementsAfter(stream->mNextAudioTime, &audio);
       AudioSegment output;
       for (uint32_t i = 0; i < audio.Length(); ++i) {
         SendStreamAudio(audio[i], stream, &output);
       }
+      
+      
+      
       if (output.GetDuration() > 0) {
         mediaStream->AppendToTrack(kAudioTrack, &output);
       }
@@ -463,13 +467,13 @@ void MediaDecoderStateMachine::SendStreamData()
         mediaStream->EndTrack(kAudioTrack);
         stream->mHaveSentFinishAudio = true;
       }
-      minLastAudioPacketTime = std::min(minLastAudioPacketTime, stream->mLastAudioPacketTime);
       endPosition = std::max(endPosition,
           mediaStream->TicksToTimeRoundDown(mInfo.mAudio.mRate,
                                             stream->mAudioFramesWritten));
     }
 
     if (mInfo.HasVideo()) {
+      MOZ_ASSERT(stream->mNextVideoTime != -1, "Should've been initialized");
       nsAutoTArray<nsRefPtr<VideoData>,10> video;
       
       
@@ -480,6 +484,13 @@ void MediaDecoderStateMachine::SendStreamData()
         if (stream->mNextVideoTime < v->mTime) {
           VERBOSE_LOG("writing last video to MediaStream %p for %lldus",
                       mediaStream, v->mTime - stream->mNextVideoTime);
+          
+          
+
+          
+          
+          
+          
           
           
           WriteVideoToMediaStream(mediaStream, stream->mLastVideoImage,
@@ -523,26 +534,26 @@ void MediaDecoderStateMachine::SendStreamData()
     }
   }
 
-  if (mAudioCaptured) {
+  const auto clockTime = GetClock();
+  while (true) {
+    const AudioData* a = AudioQueue().PeekFront();
     
-    while (true) {
-      const AudioData* a = AudioQueue().PeekFront();
-      
-      
-      
-      
-      
-      
-      if (!a || a->GetEndTime() >= minLastAudioPacketTime)
-        break;
+    
+    
+    
+    if (a && a->mTime <= clockTime) {
       OnAudioEndTimeUpdate(std::max(mAudioEndTime, a->GetEndTime()));
       nsRefPtr<AudioData> releaseMe = AudioQueue().PopFront();
+      continue;
     }
+    break;
+  }
 
-    if (finished) {
-      mAudioCompleted = true;
-      UpdateReadyState();
-    }
+  
+  
+  if (finished && AudioQueue().GetSize() == 0) {
+    mAudioCompleted = true;
+    UpdateReadyState();
   }
 }
 
