@@ -28,10 +28,9 @@ using JS::ubi::Node;
 using JS::ubi::TracerConcrete;
 
 
-const jschar *Concrete<void>::typeName() const      { MOZ_ASSUME_UNREACHABLE("null ubi::Node"); }
-size_t Concrete<void>::size() const                 { MOZ_ASSUME_UNREACHABLE("null ubi::Node"); }
-EdgeRange *Concrete<void>::edges(JSContext *) const { MOZ_ASSUME_UNREACHABLE("null ubi::Node"); }
-
+const jschar *Concrete<void>::typeName() const      { MOZ_CRASH("null ubi::Node"); }
+size_t Concrete<void>::size() const                 { MOZ_CRASH("null ubi::Node"); }
+EdgeRange *Concrete<void>::edges(JSContext *) const { MOZ_CRASH("null ubi::Node"); }
 
 Node::Node(JSGCTraceKind kind, void *ptr)
 {
@@ -46,10 +45,9 @@ Node::Node(JSGCTraceKind kind, void *ptr)
       case JSTRACE_TYPE_OBJECT: construct(static_cast<js::types::TypeObject *>(ptr)); break;
 
       default:
-        MOZ_ASSUME_UNREACHABLE("bad JSGCTraceKind passed to JS::ubi::Node::Node");
+        MOZ_CRASH("bad JSGCTraceKind passed to JS::ubi::Node::Node");
     }
 }
-
 
 Node::Node(Value value)
 {

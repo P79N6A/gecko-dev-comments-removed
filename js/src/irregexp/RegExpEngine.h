@@ -526,7 +526,7 @@ class RegExpNode
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start) {
-        MOZ_ASSUME_UNREACHABLE("Bad call");
+        MOZ_CRASH("Bad call");
     }
 
     
@@ -904,14 +904,14 @@ class EndNode : public RegExpNode
                                       bool not_at_start)
     {
         
-        MOZ_ASSUME_UNREACHABLE("Bad call");
+        MOZ_CRASH("Bad call");
     }
     virtual void FillInBMInfo(int offset,
                               int budget,
                               BoyerMooreLookahead* bm,
                               bool not_at_start) {
         
-        MOZ_ASSUME_UNREACHABLE("Bad call");
+        MOZ_CRASH("Bad call");
     }
 
   private:
