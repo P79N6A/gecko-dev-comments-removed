@@ -1126,14 +1126,6 @@ protected:
 
   
   
-  bool mIsDormant;
-
-  
-  
-  bool mIsExitingDormant;
-
-  
-  
   
   
   
