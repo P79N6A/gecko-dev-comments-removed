@@ -1339,7 +1339,7 @@ APZCTreeManager::BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomControll
     result->Add(apzc);
 
     if (apzc->GetScrollHandoffParentId() == FrameMetrics::NULL_SCROLL_ID) {
-      if (!apzc->HasNoParentWithSameLayersId()) {
+      if (!apzc->IsRootForLayersId()) {
         
         NS_WARNING("Found a non-root APZ with no handoff parent");
       }
@@ -1367,6 +1367,7 @@ APZCTreeManager::BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomControll
         break;
       }
     }
+    
     if (!scrollParent) {
       ScrollableLayerGuid guid(parent->GetGuid().mLayersId, 0, apzc->GetScrollHandoffParentId());
       nsRefPtr<HitTestingTreeNode> node = GetTargetNode(guid, &GuidComparatorIgnoringPresShell);
