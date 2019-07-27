@@ -169,7 +169,7 @@ this.ContentControl.prototype = {
       });
       try {
         if (aMessage.json.activateIfKey &&
-          aAccessible.role != Roles.KEY) {
+          !Utils.isActivatableOnFingerUp(aAccessible)) {
           
           return;
         }
@@ -210,7 +210,7 @@ this.ContentControl.prototype = {
         }
       }
 
-      if (aAccessible.role !== Roles.KEY) {
+      if (!Utils.isActivatableOnFingerUp(aAccessible)) {
         
         this._contentScope.get().sendAsyncMessage('AccessFu:Present',
           Presentation.actionInvoked(aAccessible, 'click'));

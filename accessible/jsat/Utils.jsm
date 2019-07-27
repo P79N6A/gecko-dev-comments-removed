@@ -470,6 +470,14 @@ this.Utils = {
       }));
     }
 
+  },
+
+  isActivatableOnFingerUp: function isActivatableOnFingerUp(aAccessible) {
+    if (aAccessible.role === Roles.KEY) {
+      return true;
+    }
+    let quick_activate = this.getAttributes(aAccessible)['moz-quick-activate'];
+    return quick_activate && JSON.parse(quick_activate);
   }
 };
 
