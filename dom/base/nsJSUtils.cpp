@@ -192,13 +192,15 @@ nsJSUtils::EvaluateString(JSContext* aCx,
 
   MOZ_ASSERT_IF(aCompileOptions.versionSet,
                 aCompileOptions.version != JSVERSION_UNKNOWN);
-  MOZ_ASSERT_IF(aEvaluateOptions.coerceToString, aEvaluateOptions.needResult);
-  MOZ_ASSERT_IF(!aEvaluateOptions.reportUncaught, aEvaluateOptions.needResult);
+  MOZ_ASSERT_IF(aEvaluateOptions.coerceToString, !aCompileOptions.noScriptRval);
+  MOZ_ASSERT_IF(!aEvaluateOptions.reportUncaught, !aCompileOptions.noScriptRval);
+  
+  
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
   MOZ_ASSERT(aSrcBuf.get());
   MOZ_ASSERT(js::GetGlobalForObjectCrossCompartment(aEvaluationGlobal) ==
              aEvaluationGlobal);
-  MOZ_ASSERT_IF(aOffThreadToken, !aEvaluateOptions.needResult);
+  MOZ_ASSERT_IF(aOffThreadToken, aCompileOptions.noScriptRval);
 
   
   
@@ -251,7 +253,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
         ok = false;
       }
     } else if (ok) {
-      if (aEvaluateOptions.needResult) {
+      if (!aCompileOptions.noScriptRval) {
         ok = JS::Evaluate(aCx, scopeChain, aCompileOptions, aSrcBuf, aRetValue);
       } else {
         ok = JS::Evaluate(aCx, scopeChain, aCompileOptions, aSrcBuf);
@@ -269,7 +271,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   if (!ok) {
     if (aEvaluateOptions.reportUncaught) {
       ReportPendingException(aCx);
-      if (aEvaluateOptions.needResult) {
+      if (!aCompileOptions.noScriptRval) {
         aRetValue.setUndefined();
       }
     } else {
@@ -277,20 +279,17 @@ nsJSUtils::EvaluateString(JSContext* aCx,
                                       : NS_ERROR_OUT_OF_MEMORY;
       JS::Rooted<JS::Value> exn(aCx);
       JS_GetPendingException(aCx, &exn);
-      if (aEvaluateOptions.needResult) {
-        aRetValue.set(exn);
-      }
+      MOZ_ASSERT(!aCompileOptions.noScriptRval); 
+      aRetValue.set(exn);
       JS_ClearPendingException(aCx);
     }
   }
 
   
-  if (aEvaluateOptions.needResult) {
-    JS::Rooted<JS::Value> v(aCx, aRetValue);
-    if (!JS_WrapValue(aCx, &v)) {
+  if (!aCompileOptions.noScriptRval) {
+    if (!JS_WrapValue(aCx, aRetValue)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    aRetValue.set(v);
   }
   return rv;
 }
@@ -314,7 +313,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
                           JS::CompileOptions& aCompileOptions)
 {
   EvaluateOptions options(aCx);
-  options.setNeedResult(false);
+  aCompileOptions.setNoScriptRval(true);
   JS::RootedValue unused(aCx);
   return EvaluateString(aCx, aScript, aEvaluationGlobal, aCompileOptions,
                         options, &unused);
@@ -328,7 +327,7 @@ nsJSUtils::EvaluateString(JSContext* aCx,
                           void **aOffThreadToken)
 {
   EvaluateOptions options(aCx);
-  options.setNeedResult(false);
+  aCompileOptions.setNoScriptRval(true);
   JS::RootedValue unused(aCx);
   return EvaluateString(aCx, aSrcBuf, aEvaluationGlobal, aCompileOptions,
                         options, &unused, aOffThreadToken);
