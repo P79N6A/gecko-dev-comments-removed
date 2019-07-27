@@ -87,6 +87,14 @@ extern bool gBluetoothDebugFlag;
 
 
 
+
+#define BT_INSERT_NAMED_VALUE(array, index, name, value)                      \
+  array.InsertElementAt(index, BluetoothNamedValue(NS_LITERAL_STRING(name),   \
+                                                   BluetoothValue(value)))
+
+
+
+
 #define BT_ENSURE_TRUE_VOID_BROADCAST_SYSMSG(type, parameters)       \
   do {                                                               \
     if (!BroadcastSystemMessage(type, parameters)) {                 \
