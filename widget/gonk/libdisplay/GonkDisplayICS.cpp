@@ -168,14 +168,7 @@ GonkDisplayICS::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
 {
     
     
-    mFBSurface->compositionComplete();
-
-    if (!mHwc) {
-        return true;
-    }
-
-    mHwc->prepare(mHwc, nullptr);
-    return !mHwc->set(mHwc, dpy, sur, 0);
+    return !mFBSurface->compositionComplete();
 }
 
 ANativeWindowBuffer*
