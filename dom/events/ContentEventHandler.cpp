@@ -314,6 +314,17 @@ ContentEventHandler::GetNativeTextLength(nsIContent* aContent,
   return GetTextLength(aContent, LINE_BREAK_TYPE_NATIVE, aMaxLength);
 }
 
+static inline uint32_t
+GetBRLength(LineBreakType aLineBreakType)
+{
+#if defined(XP_WIN)
+  
+  return (aLineBreakType == LINE_BREAK_TYPE_NATIVE) ? 2 : 1;
+#else
+  return 1;
+#endif
+}
+
  uint32_t
 ContentEventHandler::GetTextLength(nsIContent* aContent,
                                    LineBreakType aLineBreakType,
@@ -344,12 +355,7 @@ ContentEventHandler::GetTextLength(nsIContent* aContent,
     uint32_t length = std::min(text->GetLength(), aMaxLength);
     return length + textLengthDifference;
   } else if (IsContentBR(aContent)) {
-#if defined(XP_WIN)
-    
-    return (aLineBreakType == LINE_BREAK_TYPE_NATIVE) ? 2 : 1;
-#else
-    return 1;
-#endif
+    return GetBRLength(aLineBreakType);
   }
   return 0;
 }
@@ -393,7 +399,6 @@ static nsresult GenerateFlatTextContent(nsRange* aRange,
     return NS_OK;
   }
 
-  nsAutoString tmpStr;
   for (; !iter->IsDone(); iter->Next()) {
     nsINode* node = iter->GetCurrentNode();
     if (!node) {
@@ -420,6 +425,171 @@ static nsresult GenerateFlatTextContent(nsRange* aRange,
   if (aLineBreakType == LINE_BREAK_TYPE_NATIVE) {
     ConvertToNativeNewlines(aString);
   }
+  return NS_OK;
+}
+
+static FontRange*
+AppendFontRange(nsTArray<FontRange>& aFontRanges, uint32_t aBaseOffset)
+{
+  FontRange* fontRange = aFontRanges.AppendElement();
+  fontRange->mStartOffset = aBaseOffset;
+  return fontRange;
+}
+
+ uint32_t
+ContentEventHandler::GetTextLengthInRange(nsIContent* aContent,
+                                          uint32_t aXPStartOffset,
+                                          uint32_t aXPEndOffset,
+                                          LineBreakType aLineBreakType)
+{
+  return aLineBreakType == LINE_BREAK_TYPE_NATIVE ?
+    GetNativeTextLength(aContent, aXPStartOffset, aXPEndOffset) :
+    aXPEndOffset - aXPStartOffset;
+}
+
+ void
+ContentEventHandler::AppendFontRanges(FontRangeArray& aFontRanges,
+                                      nsIContent* aContent,
+                                      int32_t aBaseOffset,
+                                      int32_t aXPStartOffset,
+                                      int32_t aXPEndOffset,
+                                      LineBreakType aLineBreakType)
+{
+  nsIFrame* frame = aContent->GetPrimaryFrame();
+  if (!frame) {
+    
+    AppendFontRange(aFontRanges, aBaseOffset);
+    return;
+  }
+
+  int32_t baseOffset = aBaseOffset;
+  nsTextFrame* curr = do_QueryFrame(frame);
+  MOZ_ASSERT(curr, "Not a text frame");
+  while (curr) {
+    int32_t frameXPStart = std::max(curr->GetContentOffset(), aXPStartOffset);
+    int32_t frameXPEnd = std::min(curr->GetContentEnd(), aXPEndOffset);
+    if (frameXPStart >= frameXPEnd) {
+      curr = static_cast<nsTextFrame*>(curr->GetNextContinuation());
+      continue;
+    }
+
+    gfxSkipCharsIterator iter = curr->EnsureTextRun(nsTextFrame::eInflated);
+    gfxTextRun* textRun = curr->GetTextRun(nsTextFrame::eInflated);
+
+    nsTextFrame* next = nullptr;
+    if (frameXPEnd < aXPEndOffset) {
+      next = static_cast<nsTextFrame*>(curr->GetNextContinuation());
+      while (next && next->GetTextRun(nsTextFrame::eInflated) == textRun) {
+        frameXPEnd = std::min(next->GetContentEnd(), aXPEndOffset);
+        next = frameXPEnd < aXPEndOffset ?
+          static_cast<nsTextFrame*>(next->GetNextContinuation()) : nullptr;
+      }
+    }
+
+    uint32_t skipStart = iter.ConvertOriginalToSkipped(frameXPStart);
+    uint32_t skipEnd = iter.ConvertOriginalToSkipped(frameXPEnd);
+    gfxTextRun::GlyphRunIterator runIter(
+      textRun, skipStart, skipEnd - skipStart);
+    int32_t lastXPEndOffset = frameXPStart;
+    while (runIter.NextRun()) {
+      gfxFont* font = runIter.GetGlyphRun()->mFont.get();
+      int32_t startXPOffset =
+        iter.ConvertSkippedToOriginal(runIter.GetStringStart());
+      
+      
+      if (startXPOffset >= frameXPEnd) {
+        break;
+      }
+
+      if (startXPOffset > lastXPEndOffset) {
+        
+        AppendFontRange(aFontRanges, baseOffset);
+        baseOffset += GetTextLengthInRange(
+          aContent, lastXPEndOffset, startXPOffset, aLineBreakType);
+        lastXPEndOffset = startXPOffset;
+      }
+
+      FontRange* fontRange = AppendFontRange(aFontRanges, baseOffset);
+      fontRange->mFontName = font->GetName();
+      fontRange->mFontSize = font->GetAdjustedSize();
+
+      
+      
+      int32_t endXPOffset =
+        iter.ConvertSkippedToOriginal(runIter.GetStringEnd());
+      endXPOffset = std::min(frameXPEnd, endXPOffset);
+      baseOffset += GetTextLengthInRange(aContent, startXPOffset, endXPOffset,
+                                         aLineBreakType);
+      lastXPEndOffset = endXPOffset;
+    }
+    if (lastXPEndOffset < frameXPEnd) {
+      
+      
+      AppendFontRange(aFontRanges, baseOffset);
+      baseOffset += GetTextLengthInRange(
+        aContent, lastXPEndOffset, frameXPEnd, aLineBreakType);
+    }
+
+    curr = next;
+  }
+}
+
+ nsresult
+ContentEventHandler::GenerateFlatFontRanges(nsRange* aRange,
+                                            FontRangeArray& aFontRanges,
+                                            uint32_t& aLength,
+                                            LineBreakType aLineBreakType)
+{
+  MOZ_ASSERT(aFontRanges.IsEmpty(), "aRanges must be empty array");
+
+  nsINode* startNode = aRange->GetStartParent();
+  nsINode* endNode = aRange->GetEndParent();
+  if (NS_WARN_IF(!startNode || !endNode)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  int32_t baseOffset = 0;
+  nsCOMPtr<nsIContentIterator> iter = NS_NewContentIterator();
+  for (iter->Init(aRange); !iter->IsDone(); iter->Next()) {
+    nsINode* node = iter->GetCurrentNode();
+    if (NS_WARN_IF(!node)) {
+      break;
+    }
+    if (!node->IsContent()) {
+      continue;
+    }
+    nsIContent* content = node->AsContent();
+
+    if (content->IsNodeOfType(nsINode::eTEXT)) {
+      int32_t startOffset = content != startNode ? 0 : aRange->StartOffset();
+      int32_t endOffset = content != endNode ?
+        content->TextLength() : aRange->EndOffset();
+      AppendFontRanges(aFontRanges, content, baseOffset,
+                       startOffset, endOffset, aLineBreakType);
+      baseOffset += GetTextLengthInRange(content, startOffset, endOffset,
+                                         aLineBreakType);
+    } else if (IsContentBR(content)) {
+      if (aFontRanges.IsEmpty()) {
+        MOZ_ASSERT(baseOffset == 0);
+        FontRange* fontRange = AppendFontRange(aFontRanges, baseOffset);
+        nsIFrame* frame = content->GetPrimaryFrame();
+        if (frame) {
+          const nsFont& font = frame->GetParent()->StyleFont()->mFont;
+          const FontFamilyList& fontList = font.fontlist;
+          const FontFamilyName& fontName = fontList.IsEmpty() ?
+            FontFamilyName(fontList.GetDefaultFontType()) :
+            fontList.GetFontlist()[0];
+          fontName.AppendToString(fontRange->mFontName, false);
+          fontRange->mFontSize =
+            frame->PresContext()->AppUnitsToDevPixels(font.size);
+        }
+      }
+      baseOffset += GetBRLength(aLineBreakType);
+    }
+  }
+
+  aLength = baseOffset;
   return NS_OK;
 }
 
@@ -696,6 +866,18 @@ ContentEventHandler::OnQueryTextContent(WidgetQueryContentEvent* aEvent)
 
   rv = GenerateFlatTextContent(range, aEvent->mReply.mString, lineBreakType);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aEvent->mWithFontRanges) {
+    uint32_t fontRangeLength;
+    rv = GenerateFlatFontRanges(range, aEvent->mReply.mFontRanges,
+                                fontRangeLength, lineBreakType);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    MOZ_ASSERT(fontRangeLength == aEvent->mReply.mString.Length(),
+               "Font ranges doesn't match the string");
+  }
 
   aEvent->mSucceeded = true;
 
