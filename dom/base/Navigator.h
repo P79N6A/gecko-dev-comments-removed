@@ -48,8 +48,6 @@ class nsIDOMMozIccManager;
 
 
 
-void NS_GetNavigatorAppName(nsAString& aAppName);
-
 namespace mozilla {
 namespace dom {
 
@@ -160,6 +158,14 @@ public:
                                                  const nsAString& aName,
                                                  const nsAString& aOwner,
                                                  ErrorResult& aRv);
+
+  static void AppName(nsAString& aAppName, bool aUsePrefOverriddenValue);
+
+  static nsresult GetPlatform(nsAString& aPlatform,
+                              bool aUsePrefOverriddenValue);
+
+  static nsresult GetAppVersion(nsAString& aAppVersion,
+                                bool aUsePrefOverriddenValue);
 
   already_AddRefed<Promise> GetDataStores(const nsAString& aName,
                                           const nsAString& aOwner,
@@ -351,7 +357,5 @@ private:
 } 
 
 nsresult NS_GetNavigatorUserAgent(nsAString& aUserAgent);
-nsresult NS_GetNavigatorPlatform(nsAString& aPlatform);
-nsresult NS_GetNavigatorAppVersion(nsAString& aAppVersion);
 
 #endif 
