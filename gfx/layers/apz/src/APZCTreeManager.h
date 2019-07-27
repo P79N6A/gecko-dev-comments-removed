@@ -407,6 +407,8 @@ private:
                                                       AsyncPanZoomController* aNextSibling,
                                                       const nsIntRegion& aObscured);
 
+  void PrintAPZCInfo(const LayerMetricsWrapper& aLayer,
+                     const AsyncPanZoomController* apzc);
 private:
   
 
