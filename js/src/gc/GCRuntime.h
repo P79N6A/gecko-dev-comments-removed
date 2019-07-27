@@ -571,29 +571,29 @@ class GCRuntime
     void callWeakPointerCallbacks() const;
 
   public:
-    JSRuntime             *rt;
+    JSRuntime *rt;
 
     
-    JS::Zone              *systemZone;
+    JS::Zone *systemZone;
 
     
-    js::gc::ZoneVector    zones;
+    js::gc::ZoneVector zones;
 
 #ifdef JSGC_GENERATIONAL
-    js::Nursery           nursery;
-    js::gc::StoreBuffer   storeBuffer;
+    js::Nursery nursery;
+    js::gc::StoreBuffer storeBuffer;
 #endif
 
     js::gcstats::Statistics stats;
 
-    js::GCMarker          marker;
+    js::GCMarker marker;
 
     
     HeapUsage usage;
 
     
-    GCSchedulingTunables  tunables;
-    GCSchedulingState     schedulingState;
+    GCSchedulingTunables tunables;
+    GCSchedulingState schedulingState;
 
   private:
     
@@ -601,7 +601,7 @@ class GCRuntime
 
 
 
-    js::GCChunkSet        chunkSet;
+    js::GCChunkSet chunkSet;
 
     
 
@@ -610,108 +610,108 @@ class GCRuntime
 
 
 
-    js::gc::Chunk         *systemAvailableChunkListHead;
-    js::gc::Chunk         *userAvailableChunkListHead;
-    js::gc::ChunkPool     emptyChunks_;
+    js::gc::Chunk *systemAvailableChunkListHead;
+    js::gc::Chunk *userAvailableChunkListHead;
+    js::gc::ChunkPool emptyChunks_;
 
-    js::RootedValueMap    rootsHash;
+    js::RootedValueMap rootsHash;
 
-    size_t                maxMallocBytes;
-
-    
-
-
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire>   numArenasFreeCommitted;
-    void                  *verifyPreData;
-    void                  *verifyPostData;
-    bool                  chunkAllocationSinceLastGC;
-    int64_t               nextFullGCTime;
-    int64_t               lastGCTime;
-
-    JSGCMode              mode;
-
-    uint64_t              decommitThreshold;
-
-    
-    bool                  cleanUpEverything;
+    size_t maxMallocBytes;
 
     
 
 
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> numArenasFreeCommitted;
+    void *verifyPreData;
+    void *verifyPostData;
+    bool chunkAllocationSinceLastGC;
+    int64_t nextFullGCTime;
+    int64_t lastGCTime;
 
-    bool                  grayBitsValid;
+    JSGCMode mode;
 
-    volatile uintptr_t    majorGCRequested;
-    JS::gcreason::Reason  majorGCTriggerReason;
+    uint64_t decommitThreshold;
+
+    
+    bool cleanUpEverything;
+
+    
+
+
+
+    bool grayBitsValid;
+
+    volatile uintptr_t majorGCRequested;
+    JS::gcreason::Reason majorGCTriggerReason;
 
 #ifdef JSGC_GENERATIONAL
-    bool                  minorGCRequested;
-    JS::gcreason::Reason  minorGCTriggerReason;
+    bool minorGCRequested;
+    JS::gcreason::Reason minorGCTriggerReason;
 #endif
 
     
-    uint64_t              majorGCNumber;
+    uint64_t majorGCNumber;
 
     
-    uint64_t              jitReleaseNumber;
+    uint64_t jitReleaseNumber;
 
     
-    uint64_t              number;
+    uint64_t number;
 
     
-    uint64_t              startNumber;
+    uint64_t startNumber;
 
     
-    bool                  isIncremental;
+    bool isIncremental;
 
     
-    bool                  isFull;
+    bool isFull;
 
     
-    JSGCInvocationKind    invocationKind;
-
-    
-
-
-
-
-
-    mozilla::DebugOnly<uintptr_t>  disableStrictProxyCheckingCount;
+    JSGCInvocationKind invocationKind;
 
     
 
 
 
-    js::gc::State         incrementalState;
 
-    
-    bool                  lastMarkSlice;
 
-    
-    bool                  sweepOnBackgroundThread;
-
-    
-    bool                  releaseObservedTypes;
-
-    
-    bool                  foundBlackGrayEdges;
-
-    
-    JS::Zone              *sweepingZones;
-
-    
-    unsigned              zoneGroupIndex;
+    mozilla::DebugOnly<uintptr_t> disableStrictProxyCheckingCount;
 
     
 
 
-    JS::Zone              *zoneGroups;
-    JS::Zone              *currentZoneGroup;
-    bool                  sweepingTypes;
-    unsigned              finalizePhase;
-    JS::Zone              *sweepZone;
-    unsigned              sweepKindIndex;
-    bool                  abortSweepAfterCurrentGroup;
+
+    js::gc::State incrementalState;
+
+    
+    bool lastMarkSlice;
+
+    
+    bool sweepOnBackgroundThread;
+
+    
+    bool releaseObservedTypes;
+
+    
+    bool foundBlackGrayEdges;
+
+    
+    JS::Zone *sweepingZones;
+
+    
+    unsigned zoneGroupIndex;
+
+    
+
+
+    JS::Zone *zoneGroups;
+    JS::Zone *currentZoneGroup;
+    bool sweepingTypes;
+    unsigned finalizePhase;
+    JS::Zone *sweepZone;
+    unsigned sweepKindIndex;
+    bool abortSweepAfterCurrentGroup;
 
     
 
@@ -722,7 +722,7 @@ class GCRuntime
     
 
 
-    js::gc::ArenaHeader   *arenasAllocatedDuringSweep;
+    js::gc::ArenaHeader *arenasAllocatedDuringSweep;
 
 #ifdef JS_GC_MARKING_VALIDATION
     js::gc::MarkingValidator *markingValidator;
@@ -733,21 +733,21 @@ class GCRuntime
 
 
 
-    volatile uintptr_t    interFrameGC;
+    volatile uintptr_t interFrameGC;
 
     
-    int64_t               sliceBudget;
-
-    
-
-
-
-    bool                  incrementalAllowed;
+    int64_t sliceBudget;
 
     
 
 
-    unsigned              generationalDisabled;
+
+    bool incrementalAllowed;
+
+    
+
+
+    unsigned generationalDisabled;
 
 #ifdef JSGC_COMPACTING
     
@@ -763,7 +763,7 @@ class GCRuntime
 
 
 
-    bool                  manipulatingDeadZones;
+    bool manipulatingDeadZones;
 
     
 
@@ -773,9 +773,9 @@ class GCRuntime
 
 
 
-    unsigned              objectsMarkedInDeadZones;
+    unsigned objectsMarkedInDeadZones;
 
-    bool                  poked;
+    bool poked;
 
     volatile js::HeapState heapState;
 
@@ -816,19 +816,19 @@ class GCRuntime
 
 
 #ifdef JS_GC_ZEAL
-    int                   zealMode;
-    int                   zealFrequency;
-    int                   nextScheduled;
-    bool                  deterministicOnly;
-    int                   incrementalLimit;
+    int zealMode;
+    int zealFrequency;
+    int nextScheduled;
+    bool deterministicOnly;
+    int incrementalLimit;
 
-    js::Vector<JSObject *, 0, js::SystemAllocPolicy>   selectedForMarking;
+    js::Vector<JSObject *, 0, js::SystemAllocPolicy> selectedForMarking;
 #endif
 
-    bool                  validate;
-    bool                  fullCompartmentChecks;
+    bool validate;
+    bool fullCompartmentChecks;
 
-    Callback<JSGCCallback>  gcCallback;
+    Callback<JSGCCallback> gcCallback;
     CallbackVector<JSFinalizeCallback> finalizeCallbacks;
     CallbackVector<JSWeakPointerCallback> updateWeakPointerCallbacks;
 
@@ -836,13 +836,13 @@ class GCRuntime
 
 
 
-    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire>   mallocBytes;
+    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> mallocBytes;
 
     
 
 
 
-    mozilla::Atomic<bool, mozilla::ReleaseAcquire>   mallocGCTriggered;
+    mozilla::Atomic<bool, mozilla::ReleaseAcquire> mallocGCTriggered;
 
     
 
@@ -854,7 +854,7 @@ class GCRuntime
     Callback<JSTraceDataOp> grayRootTracer;
 
     
-    bool                  alwaysPreserveCode;
+    bool alwaysPreserveCode;
 
 #ifdef DEBUG
     
@@ -874,8 +874,8 @@ class GCRuntime
 #endif
 
     
-    PRLock                *lock;
-    mozilla::DebugOnly<PRThread *>   lockOwner;
+    PRLock *lock;
+    mozilla::DebugOnly<PRThread *> lockOwner;
 
     BackgroundAllocTask allocTask;
     GCHelperState helperState;
