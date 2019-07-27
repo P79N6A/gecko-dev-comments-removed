@@ -9,18 +9,51 @@
 #ifndef mozilla_dom_ScriptSettings_h
 #define mozilla_dom_ScriptSettings_h
 
-#include "nsCxPusher.h"
 #include "MainThreadUtils.h"
 #include "nsIGlobalObject.h"
 #include "nsIPrincipal.h"
 
 #include "mozilla/Maybe.h"
 
+#include "jsapi.h"
+
 class nsPIDOMWindow;
 class nsGlobalWindow;
+class nsIScriptContext;
 
 namespace mozilla {
 namespace dom {
+
+namespace danger {
+
+
+
+
+
+class MOZ_STACK_CLASS AutoCxPusher
+{
+public:
+  explicit AutoCxPusher(JSContext *aCx, bool aAllowNull = false);
+  ~AutoCxPusher();
+
+  nsIScriptContext* GetScriptContext() { return mScx; }
+
+  
+  
+  bool IsStackTop() const;
+
+private:
+  mozilla::Maybe<JSAutoRequest> mAutoRequest;
+  mozilla::Maybe<JSAutoCompartment> mAutoCompartment;
+  nsCOMPtr<nsIScriptContext> mScx;
+  uint32_t mStackDepthAfterPush;
+#ifdef DEBUG
+  JSContext* mPushedContext;
+  unsigned mCompartmentDepthOnEntry;
+#endif
+};
+
+} 
 
 
 
@@ -183,7 +216,7 @@ protected:
   AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread, JSContext* aCx);
 
 private:
-  mozilla::Maybe<AutoCxPusher> mCxPusher;
+  mozilla::Maybe<danger::AutoCxPusher> mCxPusher;
   mozilla::Maybe<JSAutoNullableCompartment> mAutoNullableCompartment;
   JSContext *mCx;
 
@@ -241,7 +274,7 @@ class AutoNoJSAPI : protected ScriptSettingsStackEntry {
 public:
   explicit AutoNoJSAPI(bool aIsMainThread = NS_IsMainThread());
 private:
-  mozilla::Maybe<AutoCxPusher> mCxPusher;
+  mozilla::Maybe<danger::AutoCxPusher> mCxPusher;
 };
 
 } 
