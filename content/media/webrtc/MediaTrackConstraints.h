@@ -42,6 +42,19 @@ public:
         }
       }
     }
+
+    
+    mRequired.mMediaSource = mMediaSource;
+
+    if (mMediaSource != dom::MediaSourceEnum::Camera && mAdvanced.WasPassed()) {
+      
+      auto& array = mAdvanced.Value();
+      for (uint32_t i = 0; i < array.Length(); i++) {
+        if (array[i].mMediaSource == dom::MediaSourceEnum::Camera) {
+          array[i].mMediaSource = mMediaSource;
+        }
+      }
+    }
   }
 protected:
   MediaTrackConstraintSet& Triage(const Kind kind) {
@@ -85,6 +98,9 @@ struct VideoTrackConstraintsN :
     Triage(Kind::Width).mWidth = mWidth;
     Triage(Kind::Height).mHeight = mHeight;
     Triage(Kind::FrameRate).mFrameRate = mFrameRate;
+
+    
+    mRequired.mMediaSource = mMediaSource;
   }
 };
 

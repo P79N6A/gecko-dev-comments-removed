@@ -358,6 +358,12 @@ pref("media.navigator.enabled", true);
 #endif
 
 
+
+
+
+pref("media.getusermedia.screensharing.enabled", false);
+
+
 pref("media.webvtt.enabled", true);
 pref("media.webvtt.regions.enabled", false);
 
