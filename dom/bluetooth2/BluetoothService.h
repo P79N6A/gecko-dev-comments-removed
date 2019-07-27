@@ -315,6 +315,8 @@ public:
   bool
   IsToggling() const;
 
+  static void AcknowledgeToggleBt(bool aEnabled);
+
   void FireAdapterStateChanged(bool aEnable);
   nsresult EnableDisable(bool aEnable,
                          BluetoothReplyRunnable* aRunnable);
@@ -391,6 +393,8 @@ protected:
   
   static BluetoothService*
   Create();
+
+  void CompleteToggleBt(bool aEnabled);
 
   typedef nsClassHashtable<nsStringHashKey, BluetoothSignalObserverList >
   BluetoothSignalObserverTable;

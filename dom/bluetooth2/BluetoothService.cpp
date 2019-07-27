@@ -145,34 +145,7 @@ BluetoothService::ToggleBtAck::ToggleBtAck(bool aEnabled)
 NS_METHOD
 BluetoothService::ToggleBtAck::Run()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-  
-  
-  
-  
-  
-  
-#if defined(MOZ_WIDGET_GONK)
-  if (property_set(PROP_BLUETOOTH_ENABLED, mEnabled ? "true" : "false") != 0) {
-    BT_WARNING("Failed to set bluetooth enabled property");
-  }
-#endif
-
-  NS_ENSURE_TRUE(sBluetoothService, NS_OK);
-
-  if (sInShutdown) {
-    sBluetoothService = nullptr;
-    return NS_OK;
-  }
-
-  
-  
-  sBluetoothService->SetEnabled(mEnabled);
-  sToggleInProgress = false;
-
-  sBluetoothService->FireAdapterStateChanged(mEnabled);
+  BluetoothService::AcknowledgeToggleBt(mEnabled);
 
   return NS_OK;
 }
@@ -708,4 +681,46 @@ BluetoothService::FireAdapterStateChanged(bool aEnable)
   BluetoothSignal signal(NS_LITERAL_STRING("PropertyChanged"),
                          NS_LITERAL_STRING(KEY_ADAPTER), value);
   DistributeSignal(signal);
+}
+
+void
+BluetoothService::AcknowledgeToggleBt(bool aEnabled)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+#if defined(MOZ_WIDGET_GONK)
+  
+  
+  
+  
+  
+  
+  
+  if (property_set(PROP_BLUETOOTH_ENABLED, aEnabled ? "true" : "false") != 0) {
+    BT_WARNING("Failed to set bluetooth enabled property");
+  }
+#endif
+
+  if (sInShutdown) {
+    sBluetoothService = nullptr;
+    return;
+  }
+
+  NS_ENSURE_TRUE_VOID(sBluetoothService);
+
+  sBluetoothService->CompleteToggleBt(aEnabled);
+}
+
+void
+BluetoothService::CompleteToggleBt(bool aEnabled)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  
+  
+  SetEnabled(aEnabled);
+  sToggleInProgress = false;
+
+  FireAdapterStateChanged(aEnabled);
 }
