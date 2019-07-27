@@ -975,7 +975,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   pfd->mBounds.BSize(lineWM) = metrics.BSize(lineWM);
 
   
-  aFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+  aFrame->SetRect(lineWM, pfd->mBounds, ContainerWidthForSpan(psd));
 
   
   aFrame->DidReflow(mPresContext,
@@ -1509,6 +1509,7 @@ nsLineLayout::PlaceTopBottomFrames(PerSpanData* psd,
 #endif
     WritingMode frameWM = pfd->mFrame->GetWritingMode();
     WritingMode lineWM = mRootSpan->mWritingMode;
+    nscoord containerWidth = ContainerWidthForSpan(psd);
     switch (pfd->mBlockDirAlign) {
       case VALIGN_TOP:
         if (span) {
@@ -1518,7 +1519,7 @@ nsLineLayout::PlaceTopBottomFrames(PerSpanData* psd,
           pfd->mBounds.BStart(lineWM) =
             -aDistanceFromStart + pfd->mMargin.BStart(frameWM);
         }
-        pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+        pfd->mFrame->SetRect(lineWM, pfd->mBounds, containerWidth);
 #ifdef NOISY_BLOCKDIR_ALIGN
         printf("    ");
         nsFrame::ListTag(stdout, pfd->mFrame);
@@ -1538,7 +1539,7 @@ nsLineLayout::PlaceTopBottomFrames(PerSpanData* psd,
           pfd->mBounds.BStart(lineWM) = -aDistanceFromStart + aLineBSize -
             pfd->mMargin.BEnd(frameWM) - pfd->mBounds.BSize(lineWM);
         }
-        pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+        pfd->mFrame->SetRect(lineWM, pfd->mBounds, containerWidth);
 #ifdef NOISY_BLOCKDIR_ALIGN
         printf("    ");
         nsFrame::ListTag(stdout, pfd->mFrame);
@@ -2060,7 +2061,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 #endif
       }
       if (psd != mRootSpan) {
-        frame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+        frame->SetRect(lineWM, pfd->mBounds, ContainerWidthForSpan(psd));
       }
     }
     pfd = pfd->mNext;
@@ -2222,7 +2223,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       while (nullptr != pfd) {
         pfd->mBounds.BStart(lineWM) -= minBCoord; 
                                                   
-        pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+        pfd->mFrame->SetRect(lineWM, pfd->mBounds, ContainerWidthForSpan(psd));
         pfd = pfd->mNext;
       }
       maxBCoord -= minBCoord; 
@@ -2302,10 +2303,11 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
             
             
             
+            nscoord containerWidth = ContainerWidthForSpan(childSpan);
             nsIFrame* f = pfd->mFrame;
-            LogicalRect r(lineWM, f->GetRect(), mContainerWidth);
+            LogicalRect r(lineWM, f->GetRect(), containerWidth);
             r.ISize(lineWM) -= deltaISize;
-            f->SetRect(lineWM, r, mContainerWidth);
+            f->SetRect(lineWM, r, containerWidth);
           }
 
           
@@ -2368,7 +2370,8 @@ nsLineLayout::TrimTrailingWhiteSpaceIn(PerSpanData* psd,
         if (psd != mRootSpan) {
           
           
-          pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+          pfd->mFrame->SetRect(lineWM, pfd->mBounds,
+                               ContainerWidthForSpan(psd));
         }
 
         
@@ -2502,7 +2505,7 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD, FrameJustificationState
       pfd->mBounds.ISize(lineWM) += dw;
 
       deltaICoord += dw;
-      pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+      pfd->mFrame->SetRect(lineWM, pfd->mBounds, ContainerWidthForSpan(aPSD));
     }
   }
   return deltaICoord;
@@ -2569,7 +2572,7 @@ nsLineLayout::TextAlignLine(nsLineBox* aLine,
           
           
           aLine->ExpandBy(ApplyFrameJustification(psd, &state),
-                          mContainerWidth);
+                          ContainerWidthForSpan(psd));
           break;
         }
         
@@ -2616,7 +2619,7 @@ nsLineLayout::TextAlignLine(nsLineBox* aLine,
   } else if (dx) {
     for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
       pfd->mBounds.IStart(lineWM) += dx;
-      pfd->mFrame->SetRect(lineWM, pfd->mBounds, mContainerWidth);
+      pfd->mFrame->SetRect(lineWM, pfd->mBounds, ContainerWidthForSpan(psd));
     }
     aLine->IndentBy(dx, mContainerWidth);
   }

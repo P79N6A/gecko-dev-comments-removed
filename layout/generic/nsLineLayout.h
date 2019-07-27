@@ -477,6 +477,16 @@ protected:
   PerSpanData* mRootSpan;
   PerSpanData* mCurrentSpan;
 
+  
+  
+  
+  
+  nscoord ContainerWidthForSpan(PerSpanData* aPSD) {
+    return (aPSD == mRootSpan)
+      ? mContainerWidth
+      : aPSD->mFrame->mBounds.Width(mRootSpan->mWritingMode);
+  }
+
   gfxBreakPriority mLastOptionalBreakPriority;
   int32_t     mLastOptionalBreakContentOffset;
   int32_t     mForceBreakContentOffset;
