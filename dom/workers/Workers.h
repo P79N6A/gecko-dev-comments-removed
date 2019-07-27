@@ -14,6 +14,10 @@
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsString.h"
+#include "nsTArray.h"
+
+#include "nsIWeakReferenceUtils.h"
+#include "nsIInterfaceRequestor.h"
 
 #define BEGIN_WORKERS_NAMESPACE \
   namespace mozilla { namespace dom { namespace workers {
@@ -24,8 +28,21 @@
 
 #define WORKERS_SHUTDOWN_TOPIC "web-workers-shutdown"
 
+class nsIContentSecurityPolicy;
 class nsIScriptContext;
+class nsILoadContext;
 class nsPIDOMWindow;
+class nsIPrincipal;
+class nsILoadGroup;
+class nsITabChild;
+class nsIChannel;
+class nsIURI;
+
+namespace mozilla {
+namespace ipc {
+class PrincipalInfo;
+}
+}
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -168,6 +185,64 @@ enum WorkerPreference
   WORKERPREF_DOM_FETCH,
   WORKERPREF_DOM_CACHES, 
   WORKERPREF_COUNT
+};
+
+
+
+struct WorkerLoadInfo
+{
+  
+  nsCOMPtr<nsIURI> mBaseURI;
+  nsCOMPtr<nsIURI> mResolvedScriptURI;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIScriptContext> mScriptContext;
+  nsCOMPtr<nsPIDOMWindow> mWindow;
+  nsCOMPtr<nsIContentSecurityPolicy> mCSP;
+  nsCOMPtr<nsIChannel> mChannel;
+  nsCOMPtr<nsILoadGroup> mLoadGroup;
+
+  class InterfaceRequestor MOZ_FINAL : public nsIInterfaceRequestor
+  {
+    NS_DECL_ISUPPORTS
+
+  public:
+    InterfaceRequestor(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);
+    void MaybeAddTabChild(nsILoadGroup* aLoadGroup);
+    NS_IMETHOD GetInterface(const nsIID& aIID, void** aSink) MOZ_OVERRIDE;
+
+  private:
+    ~InterfaceRequestor() { }
+
+    already_AddRefed<nsITabChild> GetAnyLiveTabChild();
+
+    nsCOMPtr<nsILoadContext> mLoadContext;
+
+    
+    
+    nsTArray<nsWeakPtr> mTabChildList;
+  };
+
+  
+  nsRefPtr<InterfaceRequestor> mInterfaceRequestor;
+
+  nsAutoPtr<mozilla::ipc::PrincipalInfo> mPrincipalInfo;
+  nsCString mDomain;
+
+  uint64_t mWindowID;
+
+  bool mFromWindow;
+  bool mEvalAllowed;
+  bool mReportCSPViolations;
+  bool mXHRParamsAllowed;
+  bool mPrincipalIsSystem;
+  bool mIsInPrivilegedApp;
+  bool mIsInCertifiedApp;
+  bool mIndexedDBAllowed;
+
+  WorkerLoadInfo();
+  ~WorkerLoadInfo();
+
+  void StealFrom(WorkerLoadInfo& aOther);
 };
 
 
