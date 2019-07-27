@@ -327,7 +327,6 @@ class RecursiveMakeBackend(CommonBackend):
 
         self._may_skip = {
             'export': set(),
-            'compile': set(),
             'binaries': set(),
             'libs': set(),
             'tools': set(),
@@ -752,13 +751,6 @@ class RecursiveMakeBackend(CommonBackend):
 
         with self._write_file(mozpath.join(ipdl_dir, 'ipdlsrcs.mk')) as ipdls:
             mk.dump(ipdls, removal_guard=False)
-
-        
-        
-        
-        
-        self._may_skip['compile'] -= {'ipc/ipdl'}
-        self._may_skip['compile'] -= {'dom/bindings', 'dom/bindings/test'}
 
         self._fill_root_mk()
 
