@@ -14,6 +14,7 @@
 #include "pratom.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
+#include "nsIStandardURL.h"
 #include "nsIURIWithPrincipal.h"
 #include "nsJSPrincipals.h"
 #include "nsIEffectiveTLDService.h"
@@ -127,6 +128,31 @@ nsPrincipal::GetOriginForURI(nsIURI* aURI, nsACString& aOrigin)
     }
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool isBehaved;
+  if ((NS_SUCCEEDED(origin->SchemeIs("about", &isBehaved)) && isBehaved) ||
+      (NS_SUCCEEDED(origin->SchemeIs("moz-safe-about", &isBehaved)) && isBehaved) ||
+      (NS_SUCCEEDED(origin->SchemeIs("indexeddb", &isBehaved)) && isBehaved)) {
+    rv = origin->GetAsciiSpec(aOrigin);
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    if (NS_WARN_IF(aOrigin.FindChar('^', 0) != -1)) {
+      aOrigin.Truncate();
+      return NS_ERROR_FAILURE;
+    }
+    return NS_OK;
+  }
+
   int32_t port;
   if (NS_SUCCEEDED(rv) && !isChrome) {
     rv = origin->GetPort(&port);
@@ -144,6 +170,14 @@ nsPrincipal::GetOriginForURI(nsIURI* aURI, nsACString& aOrigin)
     aOrigin.Append(hostPort);
   }
   else {
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIStandardURL> standardURL = do_QueryInterface(origin);
+    NS_ENSURE_TRUE(standardURL, NS_ERROR_FAILURE);
     rv = origin->GetAsciiSpec(aOrigin);
     NS_ENSURE_SUCCESS(rv, rv);
   }
