@@ -261,6 +261,18 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "get_query_object_i64v",
+        GLVersion::GL3_3,
+        GLESVersion::NONE,
+        GLContext::ARB_timer_query,
+        {
+            GLContext::ANGLE_timer_query,
+            GLContext::EXT_disjoint_timer_query,
+            GLContext::EXT_timer_query,
+            GLContext::Extensions_End
+        }
+    },
+    {
         "get_query_object_iv",
         GLVersion::GL2,
         GLESVersion::NONE,
@@ -393,11 +405,26 @@ static const FeatureInfo sFeatureInfoArr[] = {
         }
     },
     {
+        "query_counter",
+        GLVersion::GL3_3,
+        GLESVersion::NONE,
+        GLContext::ARB_timer_query,
+        {
+            GLContext::ANGLE_timer_query,
+            GLContext::EXT_disjoint_timer_query,
+            
+            
+            GLContext::Extensions_End
+        }
+    },
+    {
         "query_objects",
         GLVersion::GL2,
         GLESVersion::ES3,
         GLContext::Extension_None,
         {
+            GLContext::ANGLE_timer_query,
+            GLContext::EXT_disjoint_timer_query,
             GLContext::EXT_occlusion_query_boolean,
             GLContext::Extensions_End
         }
@@ -406,6 +433,18 @@ static const FeatureInfo sFeatureInfoArr[] = {
 
 
 
+    },
+    {
+        "query_time_elapsed",
+        GLVersion::GL3_3,
+        GLESVersion::NONE,
+        GLContext::ARB_timer_query,
+        {
+            GLContext::ANGLE_timer_query,
+            GLContext::EXT_disjoint_timer_query,
+            GLContext::EXT_timer_query,
+            GLContext::Extensions_End
+        }
     },
     {
         "read_buffer",
