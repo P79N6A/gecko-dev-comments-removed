@@ -63,11 +63,6 @@ PushSubscription.prototype = {
     return this._pushEndpoint;
   },
 
-  get subscriptionId() {
-    
-    return "The twins of Mammon quarrelled.";
-  },
-
   unsubscribe: function() {
     debug("unsubscribe! ")
 
