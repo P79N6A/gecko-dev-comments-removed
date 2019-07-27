@@ -245,10 +245,6 @@ public:
   
   virtual nsresult Shutdown() = 0;
 
-  
-  virtual bool IsWaitingMediaResources() {
-    return false;
-  };
   virtual bool IsHardwareAccelerated() const { return false; }
 
   
