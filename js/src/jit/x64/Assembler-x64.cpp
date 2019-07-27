@@ -101,11 +101,11 @@ ABIArgGenerator::next(MIRType type)
 }
 
 
-const Register ABIArgGenerator::NonArgReturnReg0 = r10;
-const Register ABIArgGenerator::NonArgReturnReg1 = r12;
-const Register ABIArgGenerator::NonVolatileReg = r13;
-const Register ABIArgGenerator::NonArg_VolatileReg = rax;
-const Register ABIArgGenerator::NonReturn_VolatileReg0 = rcx;
+const Register ABIArgGenerator::NonArgReturnReg0 = jit::r10;
+const Register ABIArgGenerator::NonArgReturnReg1 = jit::r12;
+const Register ABIArgGenerator::NonVolatileReg = jit::r13;
+const Register ABIArgGenerator::NonArg_VolatileReg = jit::rax;
+const Register ABIArgGenerator::NonReturn_VolatileReg0 = jit::rcx;
 
 void
 Assembler::writeRelocation(JmpSrc src, Relocation::Kind reloc)
@@ -216,8 +216,8 @@ Assembler::executableCopy(uint8_t *buffer)
             
             continue;
         }
-        if (X86Assembler::canRelinkJump(src, rp.target)) {
-            X86Assembler::setRel32(src, rp.target);
+        if (X86Encoding::CanRelinkJump(src, rp.target)) {
+            X86Encoding::SetRel32(src, rp.target);
         } else {
             
             
@@ -226,11 +226,11 @@ Assembler::executableCopy(uint8_t *buffer)
 
             
             uint8_t *entry = buffer + extendedJumpTable_ + i * SizeOfJumpTableEntry;
-            X86Assembler::setRel32(src, entry);
+            X86Encoding::SetRel32(src, entry);
 
             
             
-            X86Assembler::setPointer(entry + SizeOfExtendedJump, rp.target);
+            X86Encoding::SetPointer(entry + SizeOfExtendedJump, rp.target);
         }
     }
 }
@@ -268,13 +268,13 @@ class RelocationIterator
 JitCode *
 Assembler::CodeFromJump(JitCode *code, uint8_t *jump)
 {
-    uint8_t *target = (uint8_t *)X86Assembler::getRel32Target(jump);
+    uint8_t *target = (uint8_t *)X86Encoding::GetRel32Target(jump);
     if (target >= code->raw() && target < code->raw() + code->instructionsSize()) {
         
         
         MOZ_ASSERT(target + SizeOfJumpTableEntry <= code->raw() + code->instructionsSize());
 
-        target = (uint8_t *)X86Assembler::getPointer(target + SizeOfExtendedJump);
+        target = (uint8_t *)X86Encoding::GetPointer(target + SizeOfExtendedJump);
     }
 
     return JitCode::FromExecutable(target);

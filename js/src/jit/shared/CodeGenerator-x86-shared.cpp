@@ -1601,7 +1601,7 @@ CodeGeneratorX86Shared::visitFloor(LFloor *lir)
         bailoutFrom(&bailout, lir->snapshot());
 
         
-        masm.vroundsd(X86Assembler::RoundDown, input, scratch, scratch);
+        masm.vroundsd(X86Encoding::RoundDown, input, scratch, scratch);
 
         bailoutCvttsd2si(scratch, output, lir->snapshot());
     } else {
@@ -1658,7 +1658,7 @@ CodeGeneratorX86Shared::visitFloorF(LFloorF *lir)
         bailoutFrom(&bailout, lir->snapshot());
 
         
-        masm.vroundss(X86Assembler::RoundDown, input, scratch, scratch);
+        masm.vroundss(X86Encoding::RoundDown, input, scratch, scratch);
 
         bailoutCvttss2si(scratch, output, lir->snapshot());
     } else {
@@ -1723,7 +1723,7 @@ CodeGeneratorX86Shared::visitCeil(LCeil *lir)
         
         masm.bind(&lessThanMinusOne);
         
-        masm.vroundsd(X86Assembler::RoundUp, input, scratch, scratch);
+        masm.vroundsd(X86Encoding::RoundUp, input, scratch, scratch);
         bailoutCvttsd2si(scratch, output, lir->snapshot());
         return;
     }
@@ -1775,7 +1775,7 @@ CodeGeneratorX86Shared::visitCeilF(LCeilF *lir)
         
         masm.bind(&lessThanMinusOne);
         
-        masm.vroundss(X86Assembler::RoundUp, input, scratch, scratch);
+        masm.vroundss(X86Encoding::RoundUp, input, scratch, scratch);
         bailoutCvttss2si(scratch, output, lir->snapshot());
         return;
     }
@@ -1850,7 +1850,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
         
         
         masm.addDouble(input, temp);
-        masm.vroundsd(X86Assembler::RoundDown, temp, scratch, scratch);
+        masm.vroundsd(X86Encoding::RoundDown, temp, scratch, scratch);
 
         
         bailoutCvttsd2si(scratch, output, lir->snapshot());
@@ -1933,7 +1933,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
         
         
         masm.addFloat32(input, temp);
-        masm.vroundss(X86Assembler::RoundDown, temp, scratch, scratch);
+        masm.vroundss(X86Encoding::RoundDown, temp, scratch, scratch);
 
         
         bailoutCvttss2si(scratch, output, lir->snapshot());
