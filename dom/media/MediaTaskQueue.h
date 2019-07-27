@@ -80,14 +80,10 @@ public:
   {
     RefPtr<nsIRunnable> r(aRunnable);
     MonitorAutoLock mon(mQueueMonitor);
-    nsresult rv = DispatchLocked(r, Forced);
+    nsresult rv = DispatchLocked(r, AbortIfFlushing);
     MOZ_DIAGNOSTIC_ASSERT(aFailureHandling == DontAssertDispatchSuccess || NS_SUCCEEDED(rv));
     unused << rv;
   }
-
-  
-  
-  nsresult ForceDispatch(TemporaryRef<nsIRunnable> aRunnable);
 
   
   
@@ -123,7 +119,7 @@ protected:
   
   void AwaitIdleLocked();
 
-  enum DispatchMode { AbortIfFlushing, IgnoreFlushing, Forced };
+  enum DispatchMode { AbortIfFlushing, IgnoreFlushing };
 
   nsresult DispatchLocked(TemporaryRef<nsIRunnable> aRunnable,
                           DispatchMode aMode);
@@ -133,17 +129,8 @@ protected:
   
   Monitor mQueueMonitor;
 
-  struct TaskQueueEntry {
-    RefPtr<nsIRunnable> mRunnable;
-    bool mForceDispatch;
-
-    explicit TaskQueueEntry(TemporaryRef<nsIRunnable> aRunnable,
-                            bool aForceDispatch = false)
-      : mRunnable(aRunnable), mForceDispatch(aForceDispatch) {}
-  };
-
   
-  std::queue<TaskQueueEntry> mTasks;
+  std::queue<RefPtr<nsIRunnable>> mTasks;
 
   
   
@@ -221,6 +208,8 @@ public:
   explicit FlushableMediaTaskQueue(TemporaryRef<SharedThreadPool> aPool) : MediaTaskQueue(aPool) {}
   nsresult FlushAndDispatch(TemporaryRef<nsIRunnable> aRunnable);
   void Flush();
+
+  bool IsDispatchReliable() override { return false; }
 
 private:
 

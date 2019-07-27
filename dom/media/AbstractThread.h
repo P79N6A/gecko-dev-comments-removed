@@ -44,6 +44,10 @@ public:
                          DispatchFailureHandling aFailureHandling = AssertDispatchSuccess);
 
   
+  
+  virtual bool IsDispatchReliable() { return true; }
+
+  
   static AbstractThread* MainThread();
 
   

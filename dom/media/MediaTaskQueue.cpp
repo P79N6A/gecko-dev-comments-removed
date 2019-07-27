@@ -57,14 +57,6 @@ MediaTaskQueue::TailDispatcher()
 }
 
 nsresult
-MediaTaskQueue::ForceDispatch(TemporaryRef<nsIRunnable> aRunnable)
-{
-  AssertInTailDispatchIfNeeded(); 
-  MonitorAutoLock mon(mQueueMonitor);
-  return DispatchLocked(aRunnable, Forced);
-}
-
-nsresult
 MediaTaskQueue::DispatchLocked(TemporaryRef<nsIRunnable> aRunnable,
                                DispatchMode aMode)
 {
@@ -75,7 +67,7 @@ MediaTaskQueue::DispatchLocked(TemporaryRef<nsIRunnable> aRunnable,
   if (mIsShutdown) {
     return NS_ERROR_FAILURE;
   }
-  mTasks.push(TaskQueueEntry(aRunnable, aMode == Forced));
+  mTasks.push(aRunnable);
   if (mIsRunning) {
     return NS_OK;
   }
@@ -201,11 +193,7 @@ FlushableMediaTaskQueue::FlushLocked()
 
   
   
-  size_t numTasks = mTasks.size();
-  for (size_t i = 0; i < numTasks; ++i) {
-    if (mTasks.front().mForceDispatch) {
-      mTasks.push(mTasks.front());
-    }
+  while (!mTasks.empty()) {
     mTasks.pop();
   }
 }
@@ -238,7 +226,7 @@ MediaTaskQueue::Runner::Run()
       mon.NotifyAll();
       return NS_OK;
     }
-    event = mQueue->mTasks.front().mRunnable;
+    event = mQueue->mTasks.front();
     mQueue->mTasks.pop();
   }
   MOZ_ASSERT(event);
