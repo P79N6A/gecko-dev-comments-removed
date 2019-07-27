@@ -73,7 +73,7 @@ private:
 
 
 
-  RefPtr<StreamSocket> mStreamSocket;
+  StreamSocket* mStreamSocket;
 
   
 
@@ -136,13 +136,13 @@ StreamSocketIO::~StreamSocketIO()
 StreamSocket*
 StreamSocketIO::GetStreamSocket()
 {
-  return mStreamSocket.get();
+  return mStreamSocket;
 }
 
 DataSocket*
 StreamSocketIO::GetDataSocket()
 {
-  return mStreamSocket.get();
+  return GetStreamSocket();
 }
 
 void

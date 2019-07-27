@@ -98,7 +98,7 @@ private:
 
 
 
-  RefPtr<BluetoothSocket> mConsumer;
+  BluetoothSocket* mConsumer;
 
   
 
@@ -183,7 +183,7 @@ BluetoothSocket::BluetoothSocketIO::GetSocketAddr(nsAString& aAddrStr) const
 BluetoothSocket*
 BluetoothSocket::BluetoothSocketIO::GetBluetoothSocket()
 {
-  return mConsumer.get();
+  return mConsumer;
 }
 
 DataSocket*

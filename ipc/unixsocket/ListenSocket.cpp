@@ -71,7 +71,7 @@ private:
 
 
 
-  RefPtr<ListenSocket> mListenSocket;
+  ListenSocket* mListenSocket;
 
   
 
@@ -231,7 +231,7 @@ ListenSocketIO::OnSocketCanAcceptWithoutBlocking()
 SocketBase*
 ListenSocketIO::GetSocketBase()
 {
-  return mListenSocket.get();
+  return mListenSocket;
 }
 
 bool

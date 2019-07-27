@@ -114,7 +114,7 @@ public:
 
   BluetoothSocket* GetBluetoothSocket()
   {
-    return mConsumer.get();
+    return mConsumer;
   }
 
   DataSocket* GetDataSocket()
@@ -127,7 +127,7 @@ public:
 
 
 
-  RefPtr<BluetoothSocket> mConsumer;
+  BluetoothSocket* mConsumer;
 
   
   
