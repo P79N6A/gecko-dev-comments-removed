@@ -34,9 +34,11 @@ public:
 
   
   virtual already_AddRefed<MediaDataDecoder>
-  CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
-                   MediaTaskQueue* aAudioTaskQueue,
-                   MediaDataDecoderCallback* aCallback) MOZ_OVERRIDE;
+  CreateAudioDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
+                     MediaTaskQueue* aAudioTaskQueue,
+                     MediaDataDecoderCallback* aCallback) MOZ_OVERRIDE;
+
+  virtual bool SupportsAudioMimeType(const char* aMimeType) MOZ_OVERRIDE;
 
   static void Init();
 private:
