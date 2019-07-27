@@ -102,8 +102,7 @@ var gSimpleTraversalRoles =
    Roles.COLUMNHEADER,
    Roles.ROWHEADER,
    Roles.STATUSBAR,
-   Roles.SWITCH,
-   Roles.MATHML_MATH];
+   Roles.SWITCH];
 
 var gSimpleMatchFunc = function gSimpleMatchFunc(aAccessible) {
   
