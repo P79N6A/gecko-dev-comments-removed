@@ -225,7 +225,11 @@ ThreadedDriver::Start()
 {
   LIFECYCLE_LOG("Starting thread for a SystemClockDriver  %p\n", mGraphImpl);
   nsCOMPtr<nsIRunnable> event = new MediaStreamGraphInitThreadRunnable(this);
-  NS_NewNamedThread("MediaStreamGrph", getter_AddRefs(mThread), event);
+  
+  nsresult rv = NS_NewNamedThread("MediaStreamGrph", getter_AddRefs(mThread));
+  if (NS_SUCCEEDED(rv)) {
+    mThread->Dispatch(event, NS_DISPATCH_NORMAL);
+  }
 }
 
 void
@@ -237,9 +241,12 @@ ThreadedDriver::Resume()
 void
 ThreadedDriver::Revive()
 {
+  
+  
   STREAM_LOG(PR_LOG_DEBUG, ("AudioCallbackDriver reviving."));
   
   
+  MonitorAutoLock mon(mGraphImpl->GetMonitor());
   if (mNextDriver) {
     mNextDriver->SetGraphTime(this, mIterationStart, mIterationEnd,
                                mStateComputedTime, mNextStateComputedTime);
@@ -667,16 +674,21 @@ AudioCallbackDriver::Stop()
 void
 AudioCallbackDriver::Revive()
 {
+  
+  
   STREAM_LOG(PR_LOG_DEBUG, ("AudioCallbackDriver reviving."));
   
+  MonitorAutoLock mon(mGraphImpl->GetMonitor());
   if (mNextDriver) {
     mNextDriver->SetGraphTime(this, mIterationStart, mIterationEnd,
-                               mStateComputedTime, mNextStateComputedTime);
+                              mStateComputedTime, mNextStateComputedTime);
     mGraphImpl->SetCurrentDriver(mNextDriver);
     mNextDriver->Start();
   } else {
-    Init();
-    Start();
+    STREAM_LOG(PR_LOG_DEBUG, ("Starting audio threads for MediaStreamGraph %p from a new thread.", mGraphImpl));
+    nsRefPtr<AsyncCubebTask> initEvent =
+      new AsyncCubebTask(this, AsyncCubebTask::INIT);
+    initEvent->Dispatch();
   }
 }
 
