@@ -363,6 +363,7 @@ NS_IMETHODIMP
 inDOMUtils::SelectorMatchesElement(nsIDOMElement* aElement,
                                    nsIDOMCSSStyleRule* aRule,
                                    uint32_t aSelectorIndex,
+                                   const nsAString& aPseudo,
                                    bool* aMatches)
 {
   nsCOMPtr<Element> element = do_QueryInterface(aElement);
@@ -379,11 +380,25 @@ inDOMUtils::SelectorMatchesElement(nsIDOMElement* aElement,
 
   
   
-  
-  
-  if (sel->mSelectors->IsPseudoElement()) {
+  if (aPseudo.IsEmpty() == sel->mSelectors->IsPseudoElement()) {
     *aMatches = false;
     return NS_OK;
+  }
+
+  if (!aPseudo.IsEmpty()) {
+    
+    
+    nsCOMPtr<nsIAtom> pseudoElt = do_GetAtom(aPseudo);
+    if (sel->mSelectors->PseudoType() !=
+        nsCSSPseudoElements::GetPseudoType(pseudoElt)) {
+      *aMatches = false;
+      return NS_OK;
+    }
+
+    
+    
+    
+    sel->RemoveRightmostSelector();
   }
 
   element->OwnerDoc()->FlushPendingLinkUpdates();

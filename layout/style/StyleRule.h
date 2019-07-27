@@ -241,6 +241,13 @@ struct nsCSSSelectorList {
   
 
 
+
+
+  void RemoveRightmostSelector();
+
+  
+
+
   void ToString(nsAString& aResult, mozilla::CSSStyleSheet* aSheet);
 
   

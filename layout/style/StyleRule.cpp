@@ -895,6 +895,21 @@ nsCSSSelectorList::AddSelector(char16_t aOperator)
 }
 
 void
+nsCSSSelectorList::RemoveRightmostSelector()
+{
+  nsCSSSelector* current = mSelectors;
+  mSelectors = mSelectors->mNext;
+  MOZ_ASSERT(mSelectors,
+             "Rightmost selector has been removed, but now "
+             "mSelectors is null");
+  mSelectors->SetOperator(char16_t(0));
+
+  
+  current->mNext = nullptr;
+  delete current;
+}
+
+void
 nsCSSSelectorList::ToString(nsAString& aResult, CSSStyleSheet* aSheet)
 {
   aResult.Truncate();
