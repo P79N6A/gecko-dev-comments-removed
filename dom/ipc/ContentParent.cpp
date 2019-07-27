@@ -1716,39 +1716,31 @@ ContentParent::OnBeginSyncTransaction() {
 void
 ContentParent::OnChannelConnected(int32_t pid)
 {
-    ProcessHandle handle;
-    if (!base::OpenPrivilegedProcessHandle(pid, &handle)) {
-        NS_WARNING("Can't open handle to child process.");
-    }
-    else {
-        
-        base::CloseProcessHandle(OtherProcess());
-        SetOtherProcess(handle);
+    SetOtherProcessId(pid);
 
 #if defined(ANDROID) || defined(LINUX)
-        
-        int32_t nice = Preferences::GetInt("dom.ipc.content.nice", 0);
+    
+    int32_t nice = Preferences::GetInt("dom.ipc.content.nice", 0);
 
-        
-        char* relativeNicenessStr = getenv("MOZ_CHILD_PROCESS_RELATIVE_NICENESS");
-        if (relativeNicenessStr) {
-            nice = atoi(relativeNicenessStr);
-        }
-
-        
-        nsCOMPtr<nsIPropertyBag2> infoService = do_GetService(NS_SYSTEMINFO_CONTRACTID);
-        if (infoService) {
-            int32_t cpus;
-            nsresult rv = infoService->GetPropertyAsInt32(NS_LITERAL_STRING("cpucount"), &cpus);
-            if (NS_FAILED(rv)) {
-                cpus = 1;
-            }
-            if (nice != 0 && cpus == 1) {
-                setpriority(PRIO_PROCESS, pid, getpriority(PRIO_PROCESS, pid) + nice);
-            }
-        }
-#endif
+    
+    char* relativeNicenessStr = getenv("MOZ_CHILD_PROCESS_RELATIVE_NICENESS");
+    if (relativeNicenessStr) {
+        nice = atoi(relativeNicenessStr);
     }
+
+    
+    nsCOMPtr<nsIPropertyBag2> infoService = do_GetService(NS_SYSTEMINFO_CONTRACTID);
+    if (infoService) {
+        int32_t cpus;
+        nsresult rv = infoService->GetPropertyAsInt32(NS_LITERAL_STRING("cpucount"), &cpus);
+        if (NS_FAILED(rv)) {
+            cpus = 1;
+        }
+        if (nice != 0 && cpus == 1) {
+            setpriority(PRIO_PROCESS, pid, getpriority(PRIO_PROCESS, pid) + nice);
+        }
+    }
+#endif
 }
 
 void
@@ -2154,7 +2146,8 @@ ContentParent::ContentParent(mozIApplication* aApp,
     }
     mSubprocess->LaunchAndWaitForProcessHandle(extraArgs);
 
-    Open(mSubprocess->GetChannel(), mSubprocess->GetOwnedChildProcessHandle());
+    Open(mSubprocess->GetChannel(),
+         base::GetProcId(mSubprocess->GetChildProcessHandle()));
 
     InitInternal(aInitialPriority,
                  true, 
@@ -2228,7 +2221,7 @@ ContentParent::ContentParent(ContentParent* aTemplate,
     CloneOpenedToplevels(aTemplate, aFds, aPid, &cloneContext);
 
     Open(mSubprocess->GetChannel(),
-         mSubprocess->GetChildProcessHandle());
+         base::GetProcId(mSubprocess->GetChildProcessHandle()));
 
     
     
@@ -2255,9 +2248,6 @@ ContentParent::~ContentParent()
     if (mForceKillTimer) {
         mForceKillTimer->Cancel();
     }
-
-    if (OtherProcess())
-        base::CloseProcessHandle(OtherProcess());
 
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
@@ -3303,19 +3293,26 @@ ContentParent::KillHard(const char* aReason)
         }
     }
 #endif
-    if (!KillProcess(OtherProcess(), 1, false)) {
+    ProcessHandle otherProcessHandle;
+    if (!base::OpenProcessHandle(OtherPid(), &otherProcessHandle)) {
+        NS_ERROR("Failed to open child process when attempting kill.");
+        return;
+    }
+
+    if (!KillProcess(otherProcessHandle, base::PROCESS_END_KILLED_BY_USER,
+                     false)) {
         NS_WARNING("failed to kill subprocess!");
     }
+
     if (mSubprocess) {
         mSubprocess->SetAlreadyDead();
     }
+
+    
     XRE_GetIOMessageLoop()->PostTask(
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
-                            OtherProcess(), true));
-    
-    
-    SetOtherProcess(0);
+                            otherProcessHandle, true));
 }
 
 bool

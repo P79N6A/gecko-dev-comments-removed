@@ -60,9 +60,38 @@ namespace ipc {
 
 #ifdef XP_WIN
 const base::ProcessHandle kInvalidProcessHandle = INVALID_HANDLE_VALUE;
+
+
+
+
+
+
+
+const base::ProcessId kInvalidProcessId = kuint32max;
 #else
 const base::ProcessHandle kInvalidProcessHandle = -1;
+const base::ProcessId kInvalidProcessId = -1;
 #endif
+const base::ProcessId kCurrentProcessId = base::GetCurrentProcId();
+
+
+struct ScopedProcessHandleTraits
+{
+  typedef base::ProcessHandle type;
+
+  static type empty()
+  {
+    return kInvalidProcessHandle;
+  }
+
+  static void release(type aProcessHandle)
+  {
+    if (aProcessHandle && aProcessHandle != kInvalidProcessHandle) {
+      base::CloseProcessHandle(aProcessHandle);
+    }
+  }
+};
+typedef mozilla::Scoped<ScopedProcessHandleTraits> ScopedProcessHandle;
 
 class ProtocolFdMapping;
 class ProtocolCloneContext;
@@ -134,7 +163,7 @@ public:
         AbnormalShutdown
     };
 
-    typedef base::ProcessHandle ProcessHandle;
+    typedef base::ProcessId ProcessId;
 
     virtual int32_t Register(ListenerT*) = 0;
     virtual int32_t RegisterID(ListenerT*, int32_t) = 0;
@@ -150,7 +179,7 @@ public:
     virtual bool DestroySharedMemory(Shmem&) = 0;
 
     
-    virtual ProcessHandle OtherProcess() const = 0;
+    virtual ProcessId OtherPid() const = 0;
     virtual MessageChannel* GetIPCChannel() = 0;
 
     
@@ -266,24 +295,37 @@ ProtocolErrorBreakpoint(const char* aMsg);
 
 MOZ_NEVER_INLINE void
 FatalError(const char* aProtocolName, const char* aMsg,
-           base::ProcessHandle aHandle, bool aIsParent);
+           base::ProcessId aOtherPid, bool aIsParent);
 
 struct PrivateIPDLInterface {};
 
 bool
 Bridge(const PrivateIPDLInterface&,
-       MessageChannel*, base::ProcessHandle, MessageChannel*, base::ProcessHandle,
+       MessageChannel*, base::ProcessId, MessageChannel*, base::ProcessId,
        ProtocolId, ProtocolId);
 
 bool
 Open(const PrivateIPDLInterface&,
-     MessageChannel*, base::ProcessHandle, Transport::Mode,
+     MessageChannel*, base::ProcessId, Transport::Mode,
      ProtocolId, ProtocolId);
 
 bool
 UnpackChannelOpened(const PrivateIPDLInterface&,
                     const IPC::Message&,
                     TransportDescriptor*, base::ProcessId*, ProtocolId*);
+
+#if defined(XP_WIN)
+
+
+
+
+bool
+DuplicateHandle(HANDLE aSourceHandle,
+                DWORD aTargetProcessId,
+                HANDLE* aTargetHandle,
+                DWORD aDesiredAccess,
+                DWORD aOptions);
+#endif
 
 } 
 } 
@@ -320,4 +362,4 @@ struct ParamTraits<mozilla::ipc::ActorHandle>
 } 
 
 
-#endif
+#endif  

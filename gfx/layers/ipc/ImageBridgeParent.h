@@ -67,7 +67,7 @@ public:
 
   virtual base::ProcessId GetChildProcessId() override
   {
-    return mChildProcessId;
+    return OtherPid();
   }
 
   
@@ -150,8 +150,6 @@ private:
 
   MessageLoop* mMessageLoop;
   Transport* mTransport;
-  
-  base::ProcessId mChildProcessId;
   
   
   nsRefPtr<ImageBridgeParent> mSelfRef;

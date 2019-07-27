@@ -215,7 +215,7 @@ public:
   
   IPC::Message*
   ShareTo(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
-          base::ProcessHandle aProcess,
+          base::ProcessId aTargetPid,
           int32_t routingId);
 
   
@@ -224,7 +224,7 @@ public:
   
   IPC::Message*
   UnshareFrom(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
-              base::ProcessHandle aProcess,
+              base::ProcessId aTargetPid,
               int32_t routingId);
 
   

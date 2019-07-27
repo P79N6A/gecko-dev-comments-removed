@@ -22,7 +22,7 @@ namespace mozilla {
 namespace ipc {
 
 bool
-CreateTransport(ProcessHandle , ProcessHandle ,
+CreateTransport(base::ProcessId ,
                 TransportDescriptor* aOne, TransportDescriptor* aTwo)
 {
   

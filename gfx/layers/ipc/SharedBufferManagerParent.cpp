@@ -7,7 +7,6 @@
 #include "mozilla/layers/SharedBufferManagerParent.h"
 #include "base/message_loop.h"          
 #include "base/process.h"               
-#include "base/process_util.h"          
 #include "base/task.h"                  
 #include "base/tracked.h"               
 #include "base/thread.h"
@@ -179,29 +178,26 @@ SharedBufferManagerParent::ActorDestroy(ActorDestroyReason aWhy)
 static void
 ConnectSharedBufferManagerInParentProcess(SharedBufferManagerParent* aManager,
                                           Transport* aTransport,
-                                          base::ProcessHandle aOtherProcess)
+                                          base::ProcessId aOtherPid)
 {
-  aManager->Open(aTransport, aOtherProcess, XRE_GetIOMessageLoop(), ipc::ParentSide);
+  aManager->Open(aTransport, aOtherPid, XRE_GetIOMessageLoop(), ipc::ParentSide);
 }
 
-PSharedBufferManagerParent* SharedBufferManagerParent::Create(Transport* aTransport, ProcessId aOtherProcess)
+PSharedBufferManagerParent* SharedBufferManagerParent::Create(Transport* aTransport,
+                                                              ProcessId aOtherPid)
 {
-  ProcessHandle processHandle;
-  if (!base::OpenProcessHandle(aOtherProcess, &processHandle)) {
-    return nullptr;
-  }
   base::Thread* thread = nullptr;
   char thrname[128];
-  base::snprintf(thrname, 128, "BufMgrParent#%d", aOtherProcess);
+  base::snprintf(thrname, 128, "BufMgrParent#%d", aOtherPid);
   thread = new base::Thread(thrname);
 
-  SharedBufferManagerParent* manager = new SharedBufferManagerParent(aTransport, aOtherProcess, thread);
+  SharedBufferManagerParent* manager = new SharedBufferManagerParent(aTransport, aOtherPid, thread);
   if (!thread->IsRunning()) {
     thread->Start();
   }
   thread->message_loop()->PostTask(FROM_HERE,
                                    NewRunnableFunction(ConnectSharedBufferManagerInParentProcess,
-                                                       manager, aTransport, processHandle));
+                                                       manager, aTransport, aOtherPid));
   return manager;
 }
 

@@ -9,7 +9,6 @@
 #include "CompositableHost.h"           
 #include "base/message_loop.h"          
 #include "base/process.h"               
-#include "base/process_util.h"          
 #include "base/task.h"                  
 #include "base/tracked.h"               
 #include "mozilla/gfx/Point.h"                   
@@ -54,7 +53,6 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
                                      ProcessId aChildProcessId)
   : mMessageLoop(aLoop)
   , mTransport(aTransport)
-  , mChildProcessId(aChildProcessId)
   , mCompositorThreadHolder(GetCompositorThreadHolder())
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -67,6 +65,7 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop,
   
   CompositableMap::Create();
   sImageBridges[aChildProcessId] = this;
+  SetOtherProcessId(aChildProcessId);
 }
 
 ImageBridgeParent::~ImageBridgeParent()
@@ -79,7 +78,7 @@ ImageBridgeParent::~ImageBridgeParent()
                                      new DeleteTask<Transport>(mTransport));
   }
 
-  sImageBridges.erase(mChildProcessId);
+  sImageBridges.erase(OtherPid());
 }
 
 LayersBackend
@@ -155,25 +154,20 @@ ImageBridgeParent::RecvUpdateNoSwap(EditArray&& aEdits)
 static void
 ConnectImageBridgeInParentProcess(ImageBridgeParent* aBridge,
                                   Transport* aTransport,
-                                  base::ProcessHandle aOtherProcess)
+                                  base::ProcessId aOtherPid)
 {
-  aBridge->Open(aTransport, aOtherProcess, XRE_GetIOMessageLoop(), ipc::ParentSide);
+  aBridge->Open(aTransport, aOtherPid, XRE_GetIOMessageLoop(), ipc::ParentSide);
 }
 
  PImageBridgeParent*
 ImageBridgeParent::Create(Transport* aTransport, ProcessId aChildProcessId)
 {
-  base::ProcessHandle processHandle;
-  if (!base::OpenProcessHandle(aChildProcessId, &processHandle)) {
-    return nullptr;
-  }
-
   MessageLoop* loop = CompositorParent::CompositorLoop();
   nsRefPtr<ImageBridgeParent> bridge = new ImageBridgeParent(loop, aTransport, aChildProcessId);
   bridge->mSelfRef = bridge;
   loop->PostTask(FROM_HERE,
                  NewRunnableFunction(ConnectImageBridgeInParentProcess,
-                                     bridge.get(), aTransport, processHandle));
+                                     bridge.get(), aTransport, aChildProcessId));
   return bridge.get();
 }
 
@@ -346,7 +340,7 @@ ImageBridgeParent::CloneToplevel(const InfallibleTArray<ProtocolFdMapping>& aFds
 
 bool ImageBridgeParent::IsSameProcess() const
 {
-  return OtherProcess() == ipc::kInvalidProcessHandle;
+  return OtherPid() == ipc::kCurrentProcessId;
 }
 
 void

@@ -47,8 +47,7 @@ class LayerTransactionParent final : public PLayerTransactionParent,
 public:
   LayerTransactionParent(LayerManagerComposite* aManager,
                          ShadowLayersManager* aLayersManager,
-                         uint64_t aId,
-                         ProcessId aOtherProcess);
+                         uint64_t aId);
 
 protected:
   ~LayerTransactionParent();
@@ -98,7 +97,7 @@ public:
 
   virtual base::ProcessId GetChildProcessId() override
   {
-    return mChildProcessId;
+    return OtherPid();
   }
 
   virtual void ReplyRemoveTexture(const OpReplyRemoveTexture& aReply) override;
@@ -200,9 +199,6 @@ private:
   
   
   
-
-  
-  base::ProcessId mChildProcessId;
 
   bool mDestroyed;
 

@@ -8,7 +8,6 @@
 #include <stddef.h>                     
 #include "ClientLayerManager.h"         
 #include "base/message_loop.h"          
-#include "base/process_util.h"          
 #include "base/task.h"                  
 #include "base/tracked.h"               
 #include "mozilla/layers/LayerTransactionChild.h"
@@ -77,19 +76,13 @@ CompositorChild::LookupCompositorFrameMetrics(const FrameMetrics::ViewID aId,
 }
 
  PCompositorChild*
-CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
+CompositorChild::Create(Transport* aTransport, ProcessId aOtherPid)
 {
   
   MOZ_ASSERT(!sCompositor);
 
   nsRefPtr<CompositorChild> child(new CompositorChild(nullptr));
-  ProcessHandle handle;
-  if (!base::OpenProcessHandle(aOtherProcess, &handle)) {
-    
-    NS_RUNTIMEABORT("Couldn't OpenProcessHandle() to parent process.");
-    return nullptr;
-  }
-  if (!child->Open(aTransport, handle, XRE_GetIOMessageLoop(), ipc::ChildSide)) {
+  if (!child->Open(aTransport, aOtherPid, XRE_GetIOMessageLoop(), ipc::ChildSide)) {
     NS_RUNTIMEABORT("Couldn't Open() Compositor channel.");
     return nullptr;
   }

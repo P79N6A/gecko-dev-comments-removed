@@ -36,7 +36,7 @@ public:
   nsresult Attach(Handle aHandle, uint32_t aSize);
 
   
-  nsresult ShareToProcess(base::ProcessHandle aChildProcess, Handle *aChildHandle);
+  nsresult ShareToProcess(base::ProcessId aTargetPid, Handle *aNewHandle);
 
 protected:
   base::SharedMemory *mShMem;

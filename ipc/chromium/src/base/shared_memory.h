@@ -124,9 +124,9 @@ class SharedMemory {
   
   
   
-  bool ShareToProcess(base::ProcessHandle process,
+  bool ShareToProcess(base::ProcessId target_pid,
                       SharedMemoryHandle* new_handle) {
-    return ShareToProcessCommon(process, new_handle, false);
+    return ShareToProcessCommon(target_pid, new_handle, false);
   }
 
   
@@ -135,9 +135,9 @@ class SharedMemory {
   
   
   
-  bool GiveToProcess(ProcessHandle process,
+  bool GiveToProcess(ProcessId target_pid,
                      SharedMemoryHandle* new_handle) {
-    return ShareToProcessCommon(process, new_handle, true);
+    return ShareToProcessCommon(target_pid, new_handle, true);
   }
 
   
@@ -162,7 +162,7 @@ class SharedMemory {
   void LockOrUnlockCommon(int function);
 
 #endif
-  bool ShareToProcessCommon(ProcessHandle process,
+  bool ShareToProcessCommon(ProcessId target_pid,
                             SharedMemoryHandle* new_handle,
                             bool close_self);
 

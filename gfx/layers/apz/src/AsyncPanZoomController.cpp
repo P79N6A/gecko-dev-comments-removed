@@ -3226,15 +3226,15 @@ void AsyncPanZoomController::ShareCompositorFrameMetrics() {
       }
 
       
-      base::ProcessHandle processHandle = compositor->OtherProcess();
+      base::ProcessId otherPid = compositor->OtherPid();
       ipc::SharedMemoryBasic::Handle mem = ipc::SharedMemoryBasic::NULLHandle();
 
       
-      mSharedFrameMetricsBuffer->ShareToProcess(processHandle, &mem);
+      mSharedFrameMetricsBuffer->ShareToProcess(otherPid, &mem);
 
       
       mSharedLock = new CrossProcessMutex("AsyncPanZoomControlLock");
-      CrossProcessMutexHandle handle = mSharedLock->ShareToProcess(processHandle);
+      CrossProcessMutexHandle handle = mSharedLock->ShareToProcess(otherPid);
 
       
       

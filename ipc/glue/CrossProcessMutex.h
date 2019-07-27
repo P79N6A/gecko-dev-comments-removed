@@ -89,7 +89,7 @@ public:
 
 
 
-  CrossProcessMutexHandle ShareToProcess(base::ProcessHandle aTarget);
+  CrossProcessMutexHandle ShareToProcess(base::ProcessId aTargetPid);
 
 private:
   friend struct IPC::ParamTraits<CrossProcessMutex>;

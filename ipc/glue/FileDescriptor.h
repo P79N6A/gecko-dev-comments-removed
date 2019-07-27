@@ -35,7 +35,7 @@ namespace ipc {
 class FileDescriptor
 {
 public:
-  typedef base::ProcessHandle ProcessHandle;
+  typedef base::ProcessId ProcessId;
 
 #ifdef XP_WIN
   typedef HANDLE PlatformHandleType;
@@ -89,7 +89,7 @@ public:
   
   
   PickleType
-  ShareTo(const IPDLPrivate&, ProcessHandle aOtherProcess) const;
+  ShareTo(const IPDLPrivate&, ProcessId aTargetPid) const;
 
   
   
