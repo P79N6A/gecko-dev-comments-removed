@@ -202,6 +202,20 @@ UTF8CharsToNewTwoByteCharsZ(JSContext *cx, const UTF8Chars utf8, size_t *outlen)
 extern TwoByteCharsZ
 LossyUTF8CharsToNewTwoByteCharsZ(JSContext *cx, const UTF8Chars utf8, size_t *outlen);
 
+
+
+
+
+JS_PUBLIC_API(size_t)
+GetDeflatedUTF8StringLength(JSFlatString *s);
+
+
+
+
+
+JS_PUBLIC_API(void)
+DeflateStringToUTF8Buffer(JSFlatString *src, mozilla::RangedPtr<char> dst);
+
 } 
 
 inline void JS_free(JS::Latin1CharsZ &ptr) { js_free((void*)ptr.get()); }
