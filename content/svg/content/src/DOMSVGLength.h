@@ -69,6 +69,11 @@ class ErrorResult;
 
 
 
+
+
+
+
+
 class DOMSVGLength MOZ_FINAL : public nsIDOMSVGLength,
                                public nsWrapperCache
 {
@@ -109,13 +114,7 @@ public:
 
 
 
-  DOMSVGLength* Copy() {
-    NS_ASSERTION(mList, "unexpected caller");
-    DOMSVGLength *copy = new DOMSVGLength();
-    SVGLength &length = InternalItem();
-    copy->NewValueSpecifiedUnits(length.GetUnit(), length.GetValueInCurrentUnits());
-    return copy;
-  }
+  DOMSVGLength* Copy();
 
   bool IsInList() const {
     return !!mList;
@@ -127,6 +126,16 @@ public:
 
   bool HasOwner() const {
     return !!mList;
+  }
+
+  
+
+
+
+
+
+  bool IsReflectingAttribute() const {
+    return mVal;
   }
 
   

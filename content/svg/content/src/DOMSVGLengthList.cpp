@@ -194,7 +194,7 @@ DOMSVGLengthList::Initialize(DOMSVGLength& newItem,
     error.Throw(NS_ERROR_DOM_SVG_WRONG_TYPE_ERR);
     return nullptr;
   }
-  if (domItem->HasOwner()) {
+  if (domItem->HasOwner() || domItem->IsReflectingAttribute()) {
     domItem = domItem->Copy();
   }
 
@@ -249,7 +249,7 @@ DOMSVGLengthList::InsertItemBefore(DOMSVGLength& newItem,
     error.Throw(NS_ERROR_DOM_SVG_WRONG_TYPE_ERR);
     return nullptr;
   }
-  if (domItem->HasOwner()) {
+  if (domItem->HasOwner() || domItem->IsReflectingAttribute()) {
     domItem = domItem->Copy(); 
   }
 
@@ -296,7 +296,7 @@ DOMSVGLengthList::ReplaceItem(DOMSVGLength& newItem,
     error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return nullptr;
   }
-  if (domItem->HasOwner()) {
+  if (domItem->HasOwner() || domItem->IsReflectingAttribute()) {
     domItem = domItem->Copy(); 
   }
 
