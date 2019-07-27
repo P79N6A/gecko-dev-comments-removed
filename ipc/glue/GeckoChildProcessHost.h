@@ -52,7 +52,10 @@ public:
   
   
   
-  bool AsyncLaunch(StringVector aExtraOpts=StringVector());
+  bool AsyncLaunch(StringVector aExtraOpts=StringVector(),
+                   base::ProcessArchitecture arch=base::GetCurrentProcessArchitecture());
+
+  virtual bool WaitUntilConnected(int32_t aTimeoutMs = 0);
 
   
   
