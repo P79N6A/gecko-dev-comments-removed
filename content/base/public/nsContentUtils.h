@@ -408,12 +408,6 @@ public:
 
 
 
-  static nsPIDOMWindow *GetWindowFromCaller();
-
-  
-
-
-
 
 
 
