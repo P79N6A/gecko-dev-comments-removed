@@ -19,123 +19,6 @@
 using namespace mozilla;
 using namespace JS;
 
-static nsresult
-getNative(nsISupports *idobj,
-          HandleObject obj,
-          const nsIID &iid,
-          void **ppThis,
-          nsISupports **pThisRef,
-          jsval *vp)
-{
-    nsresult rv = idobj->QueryInterface(iid, ppThis);
-    *pThisRef = static_cast<nsISupports*>(*ppThis);
-    if (NS_SUCCEEDED(rv))
-        *vp = OBJECT_TO_JSVAL(obj);
-    return rv;
-}
-
-static inline nsresult
-getNativeFromWrapper(JSContext *cx,
-                     XPCWrappedNative *wrapper,
-                     const nsIID &iid,
-                     void **ppThis,
-                     nsISupports **pThisRef,
-                     jsval *vp)
-{
-    RootedObject obj(cx, wrapper->GetFlatJSObject());
-    return getNative(wrapper->GetIdentityObject(), obj, iid, ppThis, pThisRef,
-                     vp);
-}
-
-
-static nsresult
-getWrapper(JSContext *cx,
-           JSObject *obj,
-           XPCWrappedNative **wrapper,
-           JSObject **cur)
-{
-    
-    
-    
-    
-    
-    
-    
-    if (js::IsWrapper(obj)) {
-        JSObject* inner = js::CheckedUnwrap(obj,  false);
-
-        
-        
-        
-        if (!inner)
-            return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
-        MOZ_ASSERT(!js::IsWrapper(inner));
-
-        obj = inner;
-    }
-
-    
-    *wrapper = nullptr;
-    *cur = nullptr;
-
-    if (dom::IsDOMObject(obj)) {
-        *cur = obj;
-
-        return NS_OK;
-    }
-
-    
-    
-    
-    
-    
-    const js::Class* clasp = js::GetObjectClass(obj);
-    if (clasp == &XPC_WN_Tearoff_JSClass) {
-        obj = js::GetObjectParent(obj);
-        
-        
-    }
-
-    
-    
-    if (IS_WN_CLASS(clasp))
-        *wrapper = XPCWrappedNative::Get(obj);
-
-    return NS_OK;
-}
-
-static nsresult
-castNative(JSContext *cx,
-           XPCWrappedNative *wrapper,
-           JSObject *curArg,
-           const nsIID &iid,
-           void **ppThis,
-           nsISupports **pThisRef,
-           MutableHandleValue vp)
-{
-    RootedObject cur(cx, curArg);
-    if (wrapper) {
-        nsresult rv = getNativeFromWrapper(cx,wrapper, iid, ppThis, pThisRef,
-                                           vp.address());
-
-        if (rv != NS_ERROR_NO_INTERFACE)
-            return rv;
-    } else if (cur) {
-        nsISupports *native;
-        if (!(native = mozilla::dom::UnwrapDOMObjectToISupports(cur))) {
-            *pThisRef = nullptr;
-            return NS_ERROR_ILLEGAL_VALUE;
-        }
-
-        if (NS_SUCCEEDED(getNative(native, cur, iid, ppThis, pThisRef, vp.address()))) {
-            return NS_OK;
-        }
-    }
-
-    *pThisRef = nullptr;
-    return NS_ERROR_XPC_BAD_OP_ON_WN_PROTO;
-}
-
 nsresult
 xpc_qsUnwrapArgImpl(JSContext *cx,
                     HandleValue v,
@@ -147,24 +30,9 @@ xpc_qsUnwrapArgImpl(JSContext *cx,
     MOZ_ASSERT(v.isObject());
     RootedObject src(cx, &v.toObject());
 
-    XPCWrappedNative *wrapper;
-    JSObject *obj2;
-    nsresult rv = getWrapper(cx, src, &wrapper, &obj2);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (wrapper || obj2) {
-        if (NS_FAILED(castNative(cx, wrapper, obj2, iid, ppArg,
-                                 ppArgRef, vp)))
-            return NS_ERROR_XPC_BAD_CONVERT_JS;
-        return NS_OK;
-    }
-    
-    
-
-    
-    nsISupports *iface;
-    if (XPCConvert::GetISupportsFromJSObject(src, &iface)) {
-        if (!iface || NS_FAILED(iface->QueryInterface(iid, ppArg))) {
+    nsISupports *iface = xpc::UnwrapReflectorToISupports(src);
+    if (iface) {
+        if (NS_FAILED(iface->QueryInterface(iid, ppArg))) {
             *ppArgRef = nullptr;
             return NS_ERROR_XPC_BAD_CONVERT_JS;
         }
@@ -181,7 +49,7 @@ xpc_qsUnwrapArgImpl(JSContext *cx,
     }
 
     nsRefPtr<nsXPCWrappedJS> wrappedJS;
-    rv = nsXPCWrappedJS::GetNewOrUsed(src, iid, getter_AddRefs(wrappedJS));
+    nsresult rv = nsXPCWrappedJS::GetNewOrUsed(src, iid, getter_AddRefs(wrappedJS));
     if (NS_FAILED(rv) || !wrappedJS) {
         *ppArgRef = nullptr;
         return rv;
