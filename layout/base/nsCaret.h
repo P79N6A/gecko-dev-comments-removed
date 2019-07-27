@@ -172,8 +172,6 @@ protected:
     void          ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
                                     nsRect* aCaretRect, nsRect* aHookRect);
 
-    nsFrameSelection* GetFrameSelection();
-
     
     
     
