@@ -39,6 +39,11 @@ class PBackgroundChild;
 
 
 
+
+
+
+
+
 class BackgroundChild MOZ_FINAL
 {
   friend class mozilla::dom::ContentChild;
@@ -55,6 +60,10 @@ public:
   
   static bool
   GetOrCreateForCurrentThread(nsIIPCBackgroundChildCreateCallback* aCallback);
+
+  
+  static void
+  CloseForCurrentThread();
 
 private:
   

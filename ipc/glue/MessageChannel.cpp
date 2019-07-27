@@ -1663,9 +1663,10 @@ MessageChannel::Close()
 
         if (ChannelOpening == mChannelState) {
             
+            
             SynchronouslyClose();
             mChannelState = ChannelError;
-            PostErrorNotifyTask();
+            NotifyMaybeChannelError();
             return;
         }
 
