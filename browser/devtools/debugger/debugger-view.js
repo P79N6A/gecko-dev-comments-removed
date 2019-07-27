@@ -601,7 +601,6 @@ let DebuggerView = {
 
 
   _enterVerticalLayout: function() {
-    let normContainer = document.getElementById("debugger-widgets");
     let vertContainer = document.getElementById("vertical-layout-panes-container");
 
     
@@ -620,13 +619,13 @@ let DebuggerView = {
 
   _enterHorizontalLayout: function() {
     let normContainer = document.getElementById("debugger-widgets");
-    let vertContainer = document.getElementById("vertical-layout-panes-container");
+    let editorPane = document.getElementById("editor-and-instruments-pane");
 
     
     
     let splitter = document.getElementById("sources-and-editor-splitter");
     normContainer.insertBefore(this._workersAndSourcesPane, splitter);
-    normContainer.appendChild(this._instrumentsPane);
+    editorPane.appendChild(this._instrumentsPane);
 
     
     
