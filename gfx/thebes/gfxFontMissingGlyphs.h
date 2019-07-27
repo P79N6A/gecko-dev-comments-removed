@@ -6,16 +6,29 @@
 #ifndef GFX_FONTMISSINGGLYPHS_H
 #define GFX_FONTMISSINGGLYPHS_H
 
-#include "gfxTypes.h"
-#include "gfxRect.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/gfx/Rect.h"
 
-class gfxContext;
+namespace mozilla {
+namespace gfx {
+class DrawTarget;
+class Pattern;
+}
+}
 
 
 
 
 
-class gfxFontMissingGlyphs {
+class gfxFontMissingGlyphs MOZ_FINAL
+{
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+    typedef mozilla::gfx::Float Float;
+    typedef mozilla::gfx::Pattern Pattern;
+    typedef mozilla::gfx::Rect Rect;
+
+    gfxFontMissingGlyphs() MOZ_DELETE; 
+
 public:
     
 
@@ -25,16 +38,18 @@ public:
 
 
 
-    static void DrawMissingGlyph(gfxContext    *aContext,
-                                 const gfxRect& aRect,
-                                 uint32_t       aChar,
-                                 uint32_t       aAppUnitsPerDevPixel);
+
+    static void DrawMissingGlyph(uint32_t aChar,
+                                 const Rect& aRect,
+                                 DrawTarget& aDrawTarget,
+                                 const Pattern& aPattern,
+                                 uint32_t aAppUnitsPerDevPixel);
     
 
 
 
-    static gfxFloat GetDesiredMinWidth(uint32_t aChar,
-                                       uint32_t aAppUnitsPerDevUnit);
+    static Float GetDesiredMinWidth(uint32_t aChar,
+                                    uint32_t aAppUnitsPerDevUnit);
 };
 
 #endif
