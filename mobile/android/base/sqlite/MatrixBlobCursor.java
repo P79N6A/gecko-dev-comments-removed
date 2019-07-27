@@ -46,7 +46,7 @@ public class MatrixBlobCursor extends AbstractCursor {
 
     private int rowCount;
 
-     Object[] data;
+    Object[] data;
 
     
 

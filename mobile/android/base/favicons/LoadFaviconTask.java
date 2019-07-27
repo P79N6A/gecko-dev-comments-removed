@@ -61,7 +61,7 @@ public class LoadFaviconTask {
     private final int flags;
 
     private final boolean onlyFromLocal;
-     volatile boolean mCancelled;
+    volatile boolean mCancelled;
 
     
     protected int targetWidth;
@@ -355,7 +355,7 @@ public class LoadFaviconTask {
         return mCancelled;
     }
 
-     Bitmap doInBackground() {
+    Bitmap doInBackground() {
         if (isCancelled()) {
             return null;
         }
@@ -520,7 +520,7 @@ public class LoadFaviconTask {
                image.getHeight() > 0;
     }
 
-     void onPostExecute(Bitmap image) {
+    void onPostExecute(Bitmap image) {
         if (isChaining) {
             return;
         }
@@ -564,7 +564,7 @@ public class LoadFaviconTask {
         Favicons.dispatchResult(pageUrl, faviconURL, scaled, listener);
     }
 
-     void onCancelled() {
+    void onCancelled() {
         Favicons.removeLoadTask(id);
 
         synchronized(loadsInFlight) {

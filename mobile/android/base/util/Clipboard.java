@@ -17,7 +17,7 @@ public final class Clipboard {
     
     
     
-     volatile static Context mContext;
+    volatile static Context mContext;
     private final static String LOGTAG = "GeckoClipboard";
     private final static SynchronousQueue<String> sClipboardQueue = new SynchronousQueue<String>();
 
@@ -116,7 +116,7 @@ public final class Clipboard {
 
 
     @SuppressWarnings("deprecation")
-     static String getClipboardTextImpl() {
+    static String getClipboardTextImpl() {
         if (Versions.feature11Plus) {
             android.content.ClipboardManager cm = (android.content.ClipboardManager) mContext.getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm.hasPrimaryClip()) {

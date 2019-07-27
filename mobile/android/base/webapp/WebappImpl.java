@@ -44,7 +44,7 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     private View mTitlebar;
 
     
-     View mSplashscreen;
+    View mSplashscreen;
 
     private boolean mIsApk = true;
     private ApkResources mApkResources;

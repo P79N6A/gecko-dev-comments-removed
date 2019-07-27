@@ -35,8 +35,8 @@ public class ButtonToast {
     private final TextView mMessageView;
     private final Button mButton;
     private final Handler mHideHandler = new Handler();
-     final View mView;
-     Toast mCurrentToast;
+    final View mView;
+    Toast mCurrentToast;
 
     public enum ReasonHidden {
         CLICKED,

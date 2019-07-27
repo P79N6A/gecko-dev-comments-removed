@@ -52,7 +52,7 @@ public class PropertyAnimator implements Runnable {
     private float mDurationReciprocal;
     private List<ElementHolder> mElementsList;
     private List<PropertyAnimationListener> mListeners;
-     FramePoster mFramePoster;
+    FramePoster mFramePoster;
     private boolean mUseHardwareLayer;
 
     public PropertyAnimator(long duration) {

@@ -144,9 +144,9 @@ public class SuggestedSites {
         }
     }
 
-     final Context context;
-     final Distribution distribution;
-     final File file;
+    final Context context;
+    final Distribution distribution;
+    final File file;
     private Map<String, Site> cachedSites;
     private Set<String> cachedBlacklist;
 
@@ -235,7 +235,7 @@ public class SuggestedSites {
 
 
 
-     static void saveSites(File f, Map<String, Site> sites) {
+    static void saveSites(File f, Map<String, Site> sites) {
         ThreadUtils.assertNotOnUiThread();
 
         if (sites == null || sites.isEmpty()) {
@@ -313,7 +313,7 @@ public class SuggestedSites {
 
 
 
-     static Map<String, Site> loadFromDistribution(Distribution dist) {
+    static Map<String, Site> loadFromDistribution(Distribution dist) {
         for (Locale locale : getAcceptableLocales()) {
             try {
                 final String languageTag = BrowserLocaleManager.getLanguageTag(locale);
@@ -350,7 +350,7 @@ public class SuggestedSites {
         return null;
     }
 
-     Map<String, Site> loadFromResource() {
+    Map<String, Site> loadFromResource() {
         try {
             return loadSites(RawResource.getAsString(context, R.raw.suggestedsites));
         } catch (IOException e) {

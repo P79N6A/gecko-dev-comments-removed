@@ -173,7 +173,7 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-     static final String LOG_TAG = ActivityChooserModel.class.getSimpleName();
+    static final String LOG_TAG = ActivityChooserModel.class.getSimpleName();
 
     
 
@@ -268,12 +268,12 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-     final Context mContext;
+    final Context mContext;
 
     
 
 
-     final String mHistoryFileName;
+    final String mHistoryFileName;
 
     
 
@@ -298,7 +298,7 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
 
-     boolean mCanReadHistoricalData = true;
+    boolean mCanReadHistoricalData = true;
 
     
 
@@ -322,7 +322,7 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-     boolean mReloadActivities;
+    boolean mReloadActivities;
 
     
 
@@ -799,7 +799,7 @@ public class ActivityChooserModel extends DataSetObservable {
 
 
 
-     boolean removeHistoricalRecordsForPackage(final String pkg) {
+    boolean removeHistoricalRecordsForPackage(final String pkg) {
         boolean removed = false;
 
         for (Iterator<HistoricalRecord> i = mHistoricalRecords.iterator(); i.hasNext();) {
@@ -1088,7 +1088,7 @@ public class ActivityChooserModel extends DataSetObservable {
         }
     }
 
-     void readHistoricalDataFromStream(FileInputStream fis) {
+    void readHistoricalDataFromStream(FileInputStream fis) {
         try {
             XmlPullParser parser = Xml.newPullParser();
             parser.setInput(fis, null);
@@ -1228,7 +1228,7 @@ public class ActivityChooserModel extends DataSetObservable {
 
     private static final String LOGTAG = "GeckoActivityChooserModel";
     private final class DataModelPackageMonitor extends BroadcastReceiver {
-         Context mContext;
+        Context mContext;
 
         public DataModelPackageMonitor() { }
 
