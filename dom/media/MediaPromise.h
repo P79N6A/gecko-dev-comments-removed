@@ -169,14 +169,40 @@ protected:
       RejectValueType mRejectValue;
     };
 
-    explicit ThenValueBase(const char* aCallSite) : mCallSite(aCallSite) {}
+    explicit ThenValueBase(AbstractThread* aResponseTarget, const char* aCallSite)
+      : mResponseTarget(aResponseTarget), mCallSite(aCallSite) {}
 
-    virtual void Dispatch(MediaPromise *aPromise) = 0;
+    void Dispatch(MediaPromise *aPromise)
+    {
+      aPromise->mMutex.AssertCurrentThreadOwns();
+      MOZ_ASSERT(!aPromise->IsPending());
+      bool resolved = aPromise->mResolveValue.isSome();
+      nsRefPtr<nsRunnable> runnable =
+        resolved ? static_cast<nsRunnable*>(new (typename ThenValueBase::ResolveRunnable)(this, aPromise->mResolveValue.ref()))
+                 : static_cast<nsRunnable*>(new (typename ThenValueBase::RejectRunnable)(this, aPromise->mRejectValue.ref()));
+      PROMISE_LOG("%s Then() call made from %s [Runnable=%p, Promise=%p, ThenValue=%p]",
+                  resolved ? "Resolving" : "Rejecting", ThenValueBase::mCallSite,
+                  runnable.get(), aPromise, this);
+
+      
+      
+      
+      
+      mResponseTarget->Dispatch(runnable.forget(), AbstractThread::DontAssertDispatchSuccess);
+    }
+
+    virtual void Disconnect() override
+    {
+      MOZ_ASSERT(ThenValueBase::mResponseTarget->IsCurrentThreadIn());
+      MOZ_DIAGNOSTIC_ASSERT(!Consumer::mComplete);
+      Consumer::mDisconnected = true;
+    }
 
   protected:
     virtual void DoResolve(ResolveValueType aResolveValue) = 0;
     virtual void DoReject(RejectValueType aRejectValue) = 0;
 
+    nsRefPtr<AbstractThread> mResponseTarget; 
     const char* mCallSite;
   };
 
@@ -213,45 +239,14 @@ protected:
     ThenValue(AbstractThread* aResponseTarget, ThisType* aThisVal,
               ResolveMethodType aResolveMethod, RejectMethodType aRejectMethod,
               const char* aCallSite)
-      : ThenValueBase(aCallSite)
-      , mResponseTarget(aResponseTarget)
+      : ThenValueBase(aResponseTarget, aCallSite)
       , mThisVal(aThisVal)
       , mResolveMethod(aResolveMethod)
       , mRejectMethod(aRejectMethod) {}
 
-    void Dispatch(MediaPromise *aPromise) override
-    {
-      aPromise->mMutex.AssertCurrentThreadOwns();
-      MOZ_ASSERT(!aPromise->IsPending());
-      bool resolved = aPromise->mResolveValue.isSome();
-      nsRefPtr<nsRunnable> runnable =
-        resolved ? static_cast<nsRunnable*>(new (typename ThenValueBase::ResolveRunnable)(this, aPromise->mResolveValue.ref()))
-                 : static_cast<nsRunnable*>(new (typename ThenValueBase::RejectRunnable)(this, aPromise->mRejectValue.ref()));
-      PROMISE_LOG("%s Then() call made from %s [Runnable=%p, Promise=%p, ThenValue=%p]",
-                  resolved ? "Resolving" : "Rejecting", ThenValueBase::mCallSite,
-                  runnable.get(), aPromise, this);
-
-      
-      
-      
-      
-      mResponseTarget->Dispatch(runnable.forget(), AbstractThread::DontAssertDispatchSuccess);
-    }
-
-#ifdef DEBUG
-  void AssertOnDispatchThread()
-  {
-    MOZ_ASSERT(mResponseTarget->IsCurrentThreadIn());
-  }
-#else
-  void AssertOnDispatchThread() {}
-#endif
-
   virtual void Disconnect() override
   {
-    AssertOnDispatchThread();
-    MOZ_DIAGNOSTIC_ASSERT(!Consumer::mComplete);
-    Consumer::mDisconnected = true;
+    ThenValueBase::Disconnect();
 
     
     
@@ -295,7 +290,6 @@ protected:
     }
 
   private:
-    nsRefPtr<AbstractThread> mResponseTarget; 
     nsRefPtr<ThisType> mThisVal; 
     ResolveMethodType mResolveMethod;
     RejectMethodType mRejectMethod;
