@@ -106,10 +106,10 @@ class Registers {
         (1 << X86Registers::esp) |
         (1 << X86Registers::r11);      
 
+    static const uint32_t AllocatableMask = AllMask & ~NonAllocatableMask;
+
     
     static const uint32_t TempMask = VolatileMask & ~NonAllocatableMask;
-
-    static const uint32_t AllocatableMask = AllMask & ~NonAllocatableMask;
 
     
     static const uint32_t JSCallMask =
@@ -172,7 +172,6 @@ class FloatRegisters {
         (1 << X86Registers::xmm15);    
 
     static const uint32_t AllocatableMask = AllMask & ~NonAllocatableMask;
-
 };
 
 template <typename T>
@@ -221,7 +220,6 @@ struct FloatRegister {
     uint32_t numAliased() const {
         return 1;
     }
-
     
     
     void aliased(uint32_t aliasIdx, FloatRegister *ret) {
@@ -239,7 +237,7 @@ struct FloatRegister {
     uint32_t size() const {
         return sizeof(double);
     }
-    uint32_t numAlignedAliased() {
+    uint32_t numAlignedAliased() const {
         return 1;
     }
     void alignedAliased(uint32_t aliasIdx, FloatRegister *ret) {
@@ -250,7 +248,6 @@ struct FloatRegister {
     static uint32_t GetSizeInBytes(const TypedRegisterSet<FloatRegister> &s);
     static uint32_t GetPushSizeInBytes(const TypedRegisterSet<FloatRegister> &s);
     uint32_t getRegisterDumpOffsetInBytes();
-
 };
 
 
