@@ -406,10 +406,6 @@ nsTHashtable<EntryType>::nsTHashtable(nsTHashtable<EntryType>&& aOther)
   
   
   MOZ_MAKE_MEM_UNDEFINED(&aOther.mTable, sizeof(aOther.mTable));
-
-  
-  
-  aOther.mTable.SetOps(nullptr);
 }
 
 template<class EntryType>
