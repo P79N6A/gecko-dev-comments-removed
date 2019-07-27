@@ -588,7 +588,7 @@ mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
     if (aReuseLoaderGlobal) {
         
         
-        obj = JS_NewObject(aCx, &kFakeBackstagePassJSClass, NullPtr(), NullPtr());
+        obj = JS_NewObject(aCx, &kFakeBackstagePassJSClass);
         NS_ENSURE_TRUE(obj, nullptr);
     }
 
