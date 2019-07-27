@@ -154,6 +154,12 @@ public:
   
   bool AddFloat(nsIFrame* aFloat, nscoord aAvailableISize)
   {
+    
+    
+    
+    
+    NS_ABORT_IF_FALSE(mBlockRS, "Should not call this method "
+                      "if there is no block reflow state available");
     return mBlockRS->AddFloat(this, aFloat, aAvailableISize);
   }
 
@@ -348,6 +354,10 @@ protected:
 
   nsBlockReflowState* mBlockRS;
 
+  
+  
+  
+  
   nsLineList::iterator mLineBox;
 
   
