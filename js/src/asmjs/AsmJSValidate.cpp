@@ -3462,19 +3462,6 @@ CheckArrayAccess(FunctionCompiler &f, ParseNode *elem, Scalar::Type *viewType,
         if (pointerNode->isKind(PNK_BITAND))
             FoldMaskedArrayIndex(f, &pointerNode, &mask, needsBoundsCheck);
 
-        
-        
-        
-        uint32_t byteOffset;
-        if (IsLiteralOrConstInt(f, pointerNode, &byteOffset) && byteOffset <= uint32_t(INT32_MAX)) {
-            
-            byteOffset &= mask;
-            if (byteOffset < f.m().minHeapLength())
-                *needsBoundsCheck = NO_BOUNDS_CHECK;
-            *def = f.constant(Int32Value(byteOffset), Type::Int);
-            return true;
-        }
-
         Type pointerType;
         if (!CheckExpr(f, pointerNode, &pointerDef, &pointerType))
             return false;
