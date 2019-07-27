@@ -632,18 +632,6 @@ namespace JS {
 
 
 
-class DynamicTraceable
-{
-  public:
-    static js::ThingRootKind rootKind() { return js::THING_ROOT_DYNAMIC_TRACEABLE; }
-
-    virtual ~DynamicTraceable() {}
-    virtual void trace(JSTracer* trc) = 0;
-};
-
-
-
-
 
 class StaticTraceable
 {
@@ -700,10 +688,6 @@ namespace JS {
 template <typename T>
 class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 {
-    static_assert(!mozilla::IsConvertible<T, StaticTraceable*>::value &&
-                  !mozilla::IsConvertible<T, DynamicTraceable*>::value,
-                  "Rooted takes pointer or Traceable types but not Traceable* type");
-
     
     template <typename CX>
     void init(CX* cx) {
@@ -722,7 +706,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(js::ContextFriendFields::get(cx));
     }
 
-    Rooted(JSContext* cx, const T& initial
+    Rooted(JSContext* cx, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -738,7 +722,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(cx);
     }
 
-    Rooted(js::ContextFriendFields* cx, const T& initial
+    Rooted(js::ContextFriendFields* cx, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -754,7 +738,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(pt);
     }
 
-    Rooted(js::PerThreadDataFriendFields* pt, const T& initial
+    Rooted(js::PerThreadDataFriendFields* pt, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
@@ -770,7 +754,7 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(js::PerThreadDataFriendFields::getMainThread(rt));
     }
 
-    Rooted(JSRuntime* rt, const T& initial
+    Rooted(JSRuntime* rt, T initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial)
     {
