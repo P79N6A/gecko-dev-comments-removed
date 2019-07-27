@@ -395,7 +395,7 @@ AbstractCanvasGraph.prototype = {
 
   getMappedSelection: function(unpack = e => e.delta) {
     if (!this.hasData() || !this.hasSelection()) {
-      return { start: null, end: null };
+      return { min: null, max: null };
     }
     let selection = this.getSelection();
     let totalTicks = this._data.length;
@@ -404,8 +404,9 @@ AbstractCanvasGraph.prototype = {
 
     
     
-    let min = Math.min(selection.start, selection.end);
-    let max = Math.max(selection.start, selection.end);
+    
+    let min = Math.max(Math.min(selection.start, selection.end), 0);
+    let max = Math.min(Math.max(selection.start, selection.end), this._width);
     min = map(min, 0, this._width, firstTick, lastTick);
     max = map(max, 0, this._width, firstTick, lastTick);
 
