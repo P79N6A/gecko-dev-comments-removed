@@ -1,0 +1,11 @@
+
+
+
+
+
+
+
+
+navigator.mozLoop = {
+  getLoopCharPref: function() {}
+};
