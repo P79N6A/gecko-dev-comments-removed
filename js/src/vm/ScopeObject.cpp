@@ -1832,15 +1832,8 @@ js::IsDebugScopeSlow(ProxyObject* proxy)
  MOZ_ALWAYS_INLINE void
 DebugScopes::liveScopesPostWriteBarrier(JSRuntime* rt, LiveScopeMap* map, ScopeObject* key)
 {
-    
-    
-    typedef HashMap<ScopeObject*,
-                    MissingScopeKey,
-                    DefaultHasher<ScopeObject*>,
-                    RuntimeAllocPolicy> UnbarrieredLiveScopeMap;
-    typedef gc::HashKeyRef<UnbarrieredLiveScopeMap, ScopeObject*> Ref;
     if (key && IsInsideNursery(key))
-        rt->gc.storeBuffer.putGeneric(Ref(reinterpret_cast<UnbarrieredLiveScopeMap*>(map), key));
+        rt->gc.storeBuffer.putGeneric(gc::HashKeyRef<LiveScopeMap, ScopeObject*>(map, key));
 }
 
 DebugScopes::DebugScopes(JSContext* cx)
