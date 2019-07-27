@@ -446,7 +446,24 @@ function downloadIcon(aIconURI) {
     });
 #endif
 
-    let channel = NetUtil.newChannel(aIconURI);
+    
+    
+    
+    
+    let principal =
+      aIconURI.schemeIs("chrome") ? Services.scriptSecurityManager
+                                            .getSystemPrincipal()
+                                  : Services.scriptSecurityManager
+                                            .getNoAppCodebasePrincipal(aIconURI);
+
+    let channel = NetUtil.newChannel2(aIconURI,
+                                      null,
+                                      null,
+                                      null,      
+                                      principal,
+                                      null,      
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_IMAGE);
     let { BadCertHandler } = Cu.import("resource://gre/modules/CertUtils.jsm", {});
     
     channel.notificationCallbacks = new BadCertHandler(true);
