@@ -78,8 +78,6 @@ const kSysMsgListenerReadyObserverTopic  = "system-message-listener-ready";
 const kSysClockChangeObserverTopic       = "system-clock-change";
 const kScreenStateChangedTopic           = "screen-state-changed";
 
-const kSettingsCellBroadcastDisabled = "ril.cellbroadcast.disabled";
-const kSettingsCellBroadcastSearchList = "ril.cellbroadcast.searchlist";
 const kSettingsClockAutoUpdateEnabled = "time.clock.automatic-update.enabled";
 const kSettingsClockAutoUpdateAvailable = "time.clock.automatic-update.available";
 const kSettingsTimezoneAutoUpdateEnabled = "time.timezone.automatic-update.enabled";
@@ -1823,32 +1821,6 @@ function RadioInterface(aClientId, aWorkerMessenger) {
   
   this.setTimezoneAutoUpdateAvailable(false);
 
-  
-
-
-
-
-
-
-
-  lock.get(kSettingsCellBroadcastDisabled, this);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  lock.get(kSettingsCellBroadcastSearchList, this);
-
   Services.obs.addObserver(this, kMozSettingsChangedObserverTopic, false);
   Services.obs.addObserver(this, kSysClockChangeObserverTopic, false);
   Services.obs.addObserver(this, kScreenStateChangedTopic, false);
@@ -2239,36 +2211,6 @@ RadioInterface.prototype = {
       clientId: this.clientId,
       data: message
     });
-  },
-
-  setCellBroadcastSearchList: function(settings) {
-    let newSearchList =
-      Array.isArray(settings) ? settings[this.clientId] : settings;
-    let oldSearchList =
-      Array.isArray(this._cellBroadcastSearchList) ?
-        this._cellBroadcastSearchList[this.clientId] :
-        this._cellBroadcastSearchList;
-
-    if ((newSearchList == oldSearchList) ||
-          (newSearchList && oldSearchList &&
-            newSearchList.gsm == oldSearchList.gsm &&
-            newSearchList.cdma == oldSearchList.cdma)) {
-      return;
-    }
-
-    this.workerMessenger.send("setCellBroadcastSearchList",
-                              { searchList: newSearchList },
-                              (function callback(response) {
-      if (!response.success) {
-        let lock = gSettingsService.createLock();
-        lock.set(kSettingsCellBroadcastSearchList,
-                 this._cellBroadcastSearchList, null);
-      } else {
-        this._cellBroadcastSearchList = settings;
-      }
-
-      return false;
-    }).bind(this));
   },
 
   setDataRegistration: function(attach) {
@@ -3104,25 +3046,6 @@ RadioInterface.prototype = {
             this.setTimezoneByNitz(this._lastNitzMessage);
           }
         }
-        break;
-      case kSettingsCellBroadcastSearchList:
-        if (DEBUG) {
-          this.debug("'" + kSettingsCellBroadcastSearchList +
-            "' is now " + JSON.stringify(aResult));
-        }
-
-        this.setCellBroadcastSearchList(aResult);
-        break;
-      case kSettingsCellBroadcastDisabled:
-        if (DEBUG) {
-          this.debug("'" + kSettingsCellBroadcastDisabled +
-            "' is now " + JSON.stringify(aResult));
-        }
-
-        let setCbsDisabled =
-          Array.isArray(aResult) ? aResult[this.clientId] : aResult;
-        this.workerMessenger.send("setCellBroadcastDisabled",
-                                  { disabled: setCbsDisabled });
         break;
     }
   },

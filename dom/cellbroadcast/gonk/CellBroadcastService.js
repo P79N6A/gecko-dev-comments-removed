@@ -16,9 +16,21 @@ XPCOMUtils.defineLazyGetter(this, "RIL", function () {
   return obj;
 });
 
+const kMozSettingsChangedObserverTopic   = "mozsettings-changed";
+const kSettingsCellBroadcastDisabled = "ril.cellbroadcast.disabled";
+const kSettingsCellBroadcastSearchList = "ril.cellbroadcast.searchlist";
+
 XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
                                    "@mozilla.org/system-message-internal;1",
                                    "nsISystemMessagesInternal");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
+                                   "@mozilla.org/settingsService;1",
+                                   "nsISettingsService");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gRadioInterfaceLayer",
+                                   "@mozilla.org/ril;1",
+                                   "nsIRadioInterfaceLayer");
 
 const GONK_CELLBROADCAST_SERVICE_CONTRACTID =
   "@mozilla.org/cellbroadcast/gonkservice;1";
@@ -41,7 +53,36 @@ function CellBroadcastService() {
 
   this._updateDebugFlag();
 
+  let lock = gSettingsService.createLock();
+
+  
+
+
+
+
+
+
+
+  lock.get(kSettingsCellBroadcastDisabled, this);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  lock.get(kSettingsCellBroadcastSearchList, this);
+
   Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+  Services.obs.addObserver(this, kMozSettingsChangedObserverTopic, false);
 }
 CellBroadcastService.prototype = {
   classID: GONK_CELLBROADCAST_SERVICE_CID,
@@ -55,10 +96,14 @@ CellBroadcastService.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsICellBroadcastService,
                                          Ci.nsIGonkCellBroadcastService,
+                                         Ci.nsISettingsServiceCallback,
                                          Ci.nsIObserver]),
 
   
   _listeners: null,
+
+  
+  _cellBroadcastSearchList: null,
 
   _updateDebugFlag: function() {
     try {
@@ -83,6 +128,74 @@ CellBroadcastService.prototype = {
     return (aWarningType >= Ci.nsICellBroadcastService.GSM_ETWS_WARNING_INVALID)
       ? null
       : RIL.CB_ETWS_WARNING_TYPE_NAMES[aWarningType];
+  },
+
+  _retrieveSettingValueByClient: function(aClientId, aSettings) {
+    return Array.isArray(aSettings) ? aSettings[aClientId] : aSettings;
+  },
+
+  
+
+
+  setCellBroadcastDisabled: function(aSettings) {
+    let numOfRilClients = gRadioInterfaceLayer.numRadioInterfaces;
+    let responses = [];
+    for (let clientId = 0; clientId < numOfRilClients; clientId++) {
+      gRadioInterfaceLayer
+        .getRadioInterface(clientId)
+        .sendWorkerMessage("setCellBroadcastDisabled",
+                           { disabled: this._retrieveSettingValueByClient(clientId, aSettings) });
+    }
+  },
+
+  
+
+
+  setCellBroadcastSearchList: function(aSettings) {
+    let numOfRilClients = gRadioInterfaceLayer.numRadioInterfaces;
+    let responses = [];
+    for (let clientId = 0; clientId < numOfRilClients; clientId++) {
+      let newSearchList = this._retrieveSettingValueByClient(clientId, aSettings);
+      let oldSearchList = this._retrieveSettingValueByClient(clientId,
+                                                          this._cellBroadcastSearchList);
+
+      if ((newSearchList == oldSearchList) ||
+          (newSearchList && oldSearchList &&
+           newSearchList.gsm == oldSearchList.gsm &&
+           newSearchList.cdma == oldSearchList.cdma)) {
+        return;
+      }
+
+      gRadioInterfaceLayer
+        .getRadioInterface(clientId).sendWorkerMessage("setCellBroadcastSearchList",
+                                                       { searchList: newSearchList },
+                                                       (function callback(aResponse) {
+        if (DEBUG && !aResponse.success) {
+          debug("Failed to set new search list: " + newSearchList +
+                " to client id: " + clientId);
+        }
+
+        responses.push(aResponse);
+        if (responses.length == numOfRilClients) {
+          let successCount = 0;
+          for (let i = 0; i < responses.length; i++) {
+            if (responses[i].success) {
+              successCount++;
+            }
+          }
+          if (successCount == numOfRilClients) {
+            this._cellBroadcastSearchList = aSettings;
+          } else {
+            
+            let lock = gSettingsService.createLock();
+            lock.set(kSettingsCellBroadcastSearchList,
+                     this._cellBroadcastSearchList, null);
+          }
+        }
+
+        return false;
+      }).bind(this));
+    }
   },
 
   
@@ -181,10 +294,41 @@ CellBroadcastService.prototype = {
   
 
 
+  handle: function(aName, aResult) {
+    switch (aName) {
+      case kSettingsCellBroadcastSearchList:
+        if (DEBUG) {
+          debug("'" + kSettingsCellBroadcastSearchList +
+                "' is now " + JSON.stringify(aResult));
+        }
+
+        this.setCellBroadcastSearchList(aResult);
+        break;
+      case kSettingsCellBroadcastDisabled:
+        if (DEBUG) {
+          debug("'" + kSettingsCellBroadcastDisabled +
+                "' is now " + JSON.stringify(aResult));
+        }
+
+        this.setCellBroadcastDisabled(aResult);
+        break;
+    }
+  },
+
+  
+
+
   observe: function(aSubject, aTopic, aData) {
     switch (aTopic) {
+      case kMozSettingsChangedObserverTopic:
+        if ("wrappedJSObject" in aSubject) {
+          aSubject = aSubject.wrappedJSObject;
+        }
+        this.handle(aSubject.key, aSubject.value);
+        break;
       case NS_XPCOM_SHUTDOWN_OBSERVER_ID:
         Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
+        Services.obs.removeObserver(this, kMozSettingsChangedObserverTopic);
 
         
         this._listeners = [];
