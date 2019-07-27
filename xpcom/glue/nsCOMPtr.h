@@ -112,6 +112,9 @@ namespace mozilla {
 
 struct unused_t;
 
+namespace dom {
+template<class T> class OwningNonNull;
+} 
 } 
 
 template<class T>
@@ -532,6 +535,10 @@ public:
     NSCAP_ASSERT_NO_QUERY_NEEDED();
   }
 
+  
+  template<class U>
+  MOZ_IMPLICIT nsCOMPtr(const mozilla::dom::OwningNonNull<U>& aOther);
+
 
   
 
@@ -622,6 +629,10 @@ public:
     NSCAP_ASSERT_NO_QUERY_NEEDED();
     return *this;
   }
+
+  
+  template<class U>
+  nsCOMPtr<T>& operator=(const mozilla::dom::OwningNonNull<U>& aOther);
 
   
   void swap(nsCOMPtr<T>& aRhs)
