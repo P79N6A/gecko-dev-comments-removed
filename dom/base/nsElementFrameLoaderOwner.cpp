@@ -101,8 +101,7 @@ void
 nsElementFrameLoaderOwner::EnsureFrameLoader()
 {
   Element* thisElement = ThisFrameElement();
-  if (!thisElement->GetParent() ||
-      !thisElement->IsInDoc() ||
+  if (!thisElement->IsInDoc() ||
       mFrameLoader ||
       mFrameLoaderCreationDisallowed) {
     
