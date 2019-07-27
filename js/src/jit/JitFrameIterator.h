@@ -669,7 +669,7 @@ class InlineFrameIterator
         
         if (isFunctionFrame()) {
             unsigned nactual = numActualArgs();
-            unsigned nformal = callee()->nargs();
+            unsigned nformal = calleeTemplate()->nargs();
 
             
             
