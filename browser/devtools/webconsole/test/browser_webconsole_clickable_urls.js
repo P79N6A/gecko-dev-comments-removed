@@ -42,23 +42,23 @@ let inputTests = [
 
   
   {
-  	input: "'foo http://example.com bar'",
-  	output: "foo http://example.com bar",
-  	expectedTab: "http://example.com/",
+    input: "'foo http://example.com bar'",
+    output: "foo http://example.com bar",
+    expectedTab: "http://example.com/",
   },
 
   
   {
-  	input: "'foo\\nhttp://example.com\\nbar'",
-  	output: "foo\nhttp://example.com\nbar",
-  	expectedTab: "http://example.com/",
+    input: "'foo\\nhttp://example.com\\nbar'",
+    output: "foo\nhttp://example.com\nbar",
+    expectedTab: "http://example.com/",
   },
 
   
   {
-  	input: "'http://example.com http://example.com'",
-  	output: "http://example.com http://example.com",
-  	expectedTab: "http://example.com/",
+    input: "'http://example.com http://example.com'",
+    output: "http://example.com http://example.com",
+    expectedTab: "http://example.com/",
   },
 
   

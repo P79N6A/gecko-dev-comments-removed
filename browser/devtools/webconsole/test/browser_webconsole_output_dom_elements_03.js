@@ -6,7 +6,10 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-output-dom-elements.html";
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-console-output-dom-elements.html";
 
 function test() {
   Task.spawn(function*() {
@@ -17,7 +20,7 @@ function test() {
     
     
     yield toolbox.loadTool("inspector");
-    let inspector = toolbox.getPanel("inspector");
+    toolbox.getPanel("inspector");
 
     info("Executing 'testNode()' in the web console to output a DOM Node");
     let [result] = yield jsEval("testNode()", hud, {

@@ -7,12 +7,14 @@
 
 
 
+"use strict";
 
 thisTestLeaksUncaughtRejectionsAndShouldBeFixed("null");
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-output-04.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-console-output-04.html";
 
 let inputTests = [
   
@@ -36,7 +38,7 @@ let inputTests = [
   
   {
     input: "testDocumentFragment()",
-    output: 'DocumentFragment [ <div#foo1.bar>, <div#foo3> ]',
+    output: "DocumentFragment [ <div#foo1.bar>, <div#foo3> ]",
     printOutput: "[object DocumentFragment]",
     inspectable: true,
     variablesViewLabel: "DocumentFragment[2]",
@@ -56,7 +58,8 @@ let inputTests = [
   
   {
     input: "testDOMException()",
-    output: 'DOMException [SyntaxError: "An invalid or illegal string was specified"',
+    output: 'DOMException [SyntaxError: "An invalid or illegal string was ' +
+            'specified"',
     printOutput: '"SyntaxError: An invalid or illegal string was specified"',
     inspectable: true,
     variablesViewLabel: "SyntaxError",

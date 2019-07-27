@@ -6,7 +6,10 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-output-dom-elements.html";
+"use strict";
+
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-console-output-dom-elements.html";
 
 const TEST_DATA = [
   {
@@ -22,7 +25,7 @@ const TEST_DATA = [
   },
   {
     input: "testNodeInIframe()",
-    output: '<p>'
+    output: "<p>"
   },
   {
     input: "testDocumentElement()",

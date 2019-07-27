@@ -2,7 +2,10 @@
 
 
 
-const TEST_URI = "data:text/html;charset=utf8,<p>test Scratchpad panel linking</p>";
+"use strict";
+
+const TEST_URI = "data:text/html;charset=utf8,<p>test Scratchpad panel " +
+                 "linking</p>";
 
 let { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 let { Tools } = require("main");

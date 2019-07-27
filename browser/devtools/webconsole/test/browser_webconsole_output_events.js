@@ -6,13 +6,14 @@
 
 
 
-
+"use strict";
 
 thisTestLeaksUncaughtRejectionsAndShouldBeFixed("null");
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-output-events.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/" +
+                 "test/test-console-output-events.html";
 
 let test = asyncTest(function* () {
   yield loadTab(TEST_URI);
