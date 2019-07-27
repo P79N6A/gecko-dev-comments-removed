@@ -918,6 +918,12 @@ js::Execute(JSContext* cx, HandleScript script, JSObject& scopeChainArg, Value* 
 #endif
 
     
+    if (!cx->runtime()->options().varObjFix()) {
+        if (!scopeChain->setQualifiedVarObj(cx))
+            return false;
+    }
+
+    
     JSObject* thisObj = GetThisObject(cx, scopeChain);
     if (!thisObj)
         return false;

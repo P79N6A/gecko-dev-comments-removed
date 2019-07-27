@@ -354,9 +354,15 @@ class BaseShape : public gc::TenuredCell
         IMMUTABLE_PROTOTYPE = 0x1000,
 
         
-        QUALIFIED_VAROBJ    = 0x2000,
-
         
+        
+        
+        
+        
+        
+        
+        QUALIFIED_VAROBJ    = 0x2000,
+        UNQUALIFIED_VAROBJ  = 0x4000,
 
         
         
