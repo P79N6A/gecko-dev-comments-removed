@@ -1226,3 +1226,176 @@ add_task(function test_DirectoryLinksProvider_setDefaultEnhanced() {
   
   Services.prefs.clearUserPref("privacy.donottrackheader.value");
 });
+
+add_task(function test_timeSensetiveSuggestedTiles() {
+  
+  let testStartTime = Date.now();
+  
+  let startDate = new Date(testStartTime + 1000);
+  
+  let endDate = new Date(testStartTime + 3000);
+  let suggestedTile = Object.assign({
+    time_limits: {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+    }
+  }, suggestedTile1);
+
+  
+  let topSites = ["site0.com", "1040.com", "site2.com", "hrblock.com", "site4.com", "freetaxusa.com", "site6.com"];
+  let data = {"suggested": [suggestedTile], "directory": [someOtherSite]};
+  let dataURI = 'data:application/json,' + JSON.stringify(data);
+
+  let testObserver = new TestTimingRun();
+  DirectoryLinksProvider.addObserver(testObserver);
+
+  let origGetFrecentSitesName = DirectoryLinksProvider.getFrecentSitesName;
+  DirectoryLinksProvider.getFrecentSitesName = () => "";
+
+  yield promiseSetupDirectoryLinksProvider({linksURL: dataURI});
+  let links = yield fetchData();
+
+  let origIsTopPlacesSite = NewTabUtils.isTopPlacesSite;
+  NewTabUtils.isTopPlacesSite = function(site) {
+    return topSites.indexOf(site) >= 0;
+  }
+
+  let origGetProviderLinks = NewTabUtils.getProviderLinks;
+  NewTabUtils.getProviderLinks = function(provider) {
+    return links;
+  }
+
+  let origCurrentTopSiteCount = DirectoryLinksProvider._getCurrentTopSiteCount;
+  DirectoryLinksProvider._getCurrentTopSiteCount = () => 8;
+
+  do_check_eq(DirectoryLinksProvider._updateSuggestedTile(), undefined);
+
+  
+  
+  function TestTimingRun() {
+    this.promise = new Promise(resolve => {
+      this.onLinkChanged = (directoryLinksProvider, link, ignoreFlag, deleteFlag) => {
+        
+        if (!deleteFlag) {
+          links.unshift(link);
+        }
+
+        isIdentical([...DirectoryLinksProvider._topSitesWithSuggestedLinks], ["hrblock.com", "1040.com"]);
+        do_check_eq(link.frecency, SUGGESTED_FRECENCY);
+        do_check_eq(link.type, "affiliate");
+        do_check_eq(link.url, suggestedTile.url);
+        let timeDelta = Date.now() - testStartTime;
+        if (!deleteFlag) {
+          
+          
+          do_check_true(timeDelta >= 1000);
+          do_check_eq(link.targetedSite, "hrblock.com");
+          do_check_true(DirectoryLinksProvider._campaignTimeoutID);
+        }
+        else {
+          
+          
+          do_check_true(timeDelta >= 3000);
+          do_check_false(link.targetedSite);
+          do_check_false(DirectoryLinksProvider._campaignTimeoutID);
+          resolve();
+        }
+      };
+    });
+  }
+
+  
+  yield testObserver.promise;
+  DirectoryLinksProvider.removeObserver(testObserver);
+
+  
+  do_check_eq(DirectoryLinksProvider._updateSuggestedTile(), undefined);
+
+  
+  links.shift();
+
+  
+  suggestedTile.time_limits.end = null;
+  data = {"suggested": [suggestedTile], "directory": [someOtherSite]};
+  dataURI = 'data:application/json,' + JSON.stringify(data);
+
+  
+  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, dataURI);
+
+  
+  let deferred = Promise.defer();
+  DirectoryLinksProvider.getLinks(() => {
+    let link = DirectoryLinksProvider._updateSuggestedTile();
+    
+    do_check_eq(link.type, "affiliate");
+    do_check_eq(link.url, suggestedTile.url);
+    do_check_false(DirectoryLinksProvider._campaignTimeoutID);
+    deferred.resolve();
+  });
+  yield deferred.promise;
+
+  
+  suggestedTile.time_limits.start = null;
+  suggestedTile.time_limits.end = (new Date(Date.now() + 3000)).toISOString();
+
+  data = {"suggested": [suggestedTile], "directory": [someOtherSite]};
+  dataURI = 'data:application/json,' + JSON.stringify(data);
+
+  
+  yield promiseDirectoryDownloadOnPrefChange(kSourceUrlPref, dataURI);
+
+  
+  deferred = Promise.defer();
+  DirectoryLinksProvider.getLinks(() => {
+    let link = DirectoryLinksProvider._updateSuggestedTile();
+    
+    do_check_eq(link.type, "affiliate");
+    do_check_eq(link.url, suggestedTile.url);
+    do_check_true(DirectoryLinksProvider._campaignTimeoutID);
+    DirectoryLinksProvider._clearCampaignTimeout();
+    deferred.resolve();
+  });
+  yield deferred.promise;
+
+  
+  yield promiseCleanDirectoryLinksProvider();
+  DirectoryLinksProvider.getFrecentSitesName = origGetFrecentSitesName;
+  NewTabUtils.isTopPlacesSite = origIsTopPlacesSite;
+  NewTabUtils.getProviderLinks = origGetProviderLinks;
+  DirectoryLinksProvider._getCurrentTopSiteCount = origCurrentTopSiteCount;
+});
+
+add_task(function test_setupStartEndTime() {
+  let currentTime = Date.now();
+  let dt = new Date(currentTime);
+  let link = {
+    time_limits: {
+      start: dt.toISOString()
+    }
+  };
+
+  
+  DirectoryLinksProvider._setupStartEndTime(link);
+  do_check_eq(link.startTime, currentTime);
+
+  
+  let shiftedDate = new Date(currentTime - dt.getTimezoneOffset()*60*1000);
+  link.time_limits.start = shiftedDate.toISOString().replace(/Z$/, "");
+
+  DirectoryLinksProvider._setupStartEndTime(link);
+  do_check_eq(link.startTime, currentTime);
+
+  
+  delete link.startTime;
+  link.time_limits.start = "no date"
+  DirectoryLinksProvider._setupStartEndTime(link);
+  do_check_false(link.startTime);
+
+  link.time_limits.start = "2015-99999-01T00:00:00"
+  DirectoryLinksProvider._setupStartEndTime(link);
+  do_check_false(link.startTime);
+
+  link.time_limits.start = "20150501T00:00:00"
+  DirectoryLinksProvider._setupStartEndTime(link);
+  do_check_false(link.startTime);
+});

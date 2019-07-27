@@ -250,6 +250,7 @@ let DirectoryLinksProvider = {
     for (let suggestedSite of link.frecent_sites) {
       let suggestedMap = this._suggestedLinks.get(suggestedSite) || new Map();
       suggestedMap.set(link.url, link);
+      this._setupStartEndTime(link);
       this._suggestedLinks.set(suggestedSite, suggestedMap);
     }
   },
@@ -363,6 +364,97 @@ let DirectoryLinksProvider = {
       Cu.reportError(error);
       return emptyOutput;
     });
+  },
+
+  
+
+
+
+  _setupStartEndTime: function DirectoryLinksProvider_setupStartEndTime(link) {
+    
+    
+    
+    
+    
+    
+    if (!link.time_limits) {
+      return;
+    }
+
+    let parsedTime;
+    if (link.time_limits.start) {
+      parsedTime = Date.parse(link.time_limits.start);
+      if (parsedTime && !isNaN(parsedTime)) {
+        link.startTime = parsedTime;
+      }
+    }
+    if (link.time_limits.end) {
+      parsedTime = Date.parse(link.time_limits.end);
+      if (parsedTime && !isNaN(parsedTime)) {
+        link.endTime = parsedTime;
+      }
+    }
+  },
+
+  
+
+
+  _onCampaignTimeout: function DirectoryLinksProvider_onCampaignTimeout() {
+    
+    this._campaignTimeoutID = null;
+    this._updateSuggestedTile();
+  },
+
+  
+
+
+  _clearCampaignTimeout: function DirectoryLinksProvider_clearCampaignTimeout() {
+    if (this._campaignTimeoutID) {
+      clearTimeout(this._campaignTimeoutID);
+      this._campaignTimeoutID = null;
+    }
+  },
+
+  
+
+
+
+
+  _setupCampaignTimeCheck: function DirectoryLinksProvider_setupCampaignTimeCheck(timeout) {
+    
+    if (!timeout || timeout <= 0) {
+      return;
+    }
+    this._clearCampaignTimeout();
+    
+    this._campaignTimeoutID = setTimeout(this._onCampaignTimeout.bind(this), timeout);
+  },
+
+  
+
+
+
+
+
+
+  _testLinkForCampaignTimeLimits: function DirectoryLinksProvider_testLinkForCampaignTimeLimits(link) {
+    let currentTime = Date.now();
+    
+    if (link.startTime && link.startTime > currentTime) {
+      
+      return {use: false, timeoutDate: link.startTime};
+    }
+    
+    if (link.endTime) {
+      
+      if (link.endTime <= currentTime) {
+        return {use: false};
+      }
+      
+      return {use: true, timeoutDate: link.endTime};
+    }
+    
+    return {use: true};
   },
 
   
@@ -490,6 +582,7 @@ let DirectoryLinksProvider = {
       this._enhancedLinks.clear();
       this._frequencyCaps.clear();
       this._suggestedLinks.clear();
+      this._clearCampaignTimeout();
 
       let validityFilter = function(link) {
         
@@ -705,6 +798,7 @@ let DirectoryLinksProvider = {
     
     
     
+    let nextTimeout;
     let possibleLinks = new Map();
     let targetedSites = new Map();
     this._topSitesWithSuggestedLinks.forEach(topSiteWithSuggestedLink => {
@@ -712,6 +806,18 @@ let DirectoryLinksProvider = {
       suggestedLinksMap.forEach((suggestedLink, url) => {
         
         if (this._frequencyCaps.get(url) <= 0) {
+          return;
+        }
+
+        
+        
+        let {use, timeoutDate} = this._testLinkForCampaignTimeLimits(suggestedLink);
+        
+        if (timeoutDate && (!nextTimeout || nextTimeout > timeoutDate)) {
+          nextTimeout = timeoutDate;
+        }
+        
+        if (!use) {
           return;
         }
 
@@ -725,6 +831,11 @@ let DirectoryLinksProvider = {
         targetedSites.get(url).push(topSiteWithSuggestedLink);
       })
     });
+
+    
+    if (nextTimeout) {
+      this._setupCampaignTimeCheck(nextTimeout - Date.now());
+    }
 
     
     let numLinks = possibleLinks.size;
