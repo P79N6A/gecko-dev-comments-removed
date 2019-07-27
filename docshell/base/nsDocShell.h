@@ -18,8 +18,6 @@
 #include "nsIDOMStorageManager.h"
 #include "nsDocLoader.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/TimeStamp.h"
-#include "GeckoProfiler.h"
 
 
 #include "nsCOMPtr.h"
@@ -81,7 +79,6 @@ class nsIURIFixup;
 class nsIURILoader;
 class nsIWebBrowserFind;
 class nsIWidget;
-class ProfilerMarkerTracing;
 
 
 
@@ -253,19 +250,6 @@ public:
     
     
     void NotifyAsyncPanZoomStopped();
-
-    
-    
-    
-    void AddProfileTimelineMarker(const char* aName,
-                                  TracingMetadata aMetaData);
-    void AddProfileTimelineMarker(const char* aName,
-                                  ProfilerBacktrace* aCause,
-                                  TracingMetadata aMetaData);
-
-    
-    
-    static unsigned long gProfileTimelineRecordingsCount;
 protected:
     
     virtual ~nsDocShell();
@@ -939,30 +923,6 @@ private:
     nsCString         mOriginalUriString;
     nsWeakPtr mOpener;
     nsWeakPtr mOpenedRemote;
-
-    
-    mozilla::TimeStamp mProfileTimelineStartTime;
-    struct InternalProfileTimelineMarker
-    {
-      InternalProfileTimelineMarker(const char* aName,
-                                    ProfilerMarkerTracing* aPayload,
-                                    float aTime)
-        : mName(aName)
-        , mPayload(aPayload)
-        , mTime(aTime)
-      {}
-      const char* mName;
-      ProfilerMarkerTracing* mPayload;
-      float mTime;
-    };
-    nsTArray<nsAutoPtr<InternalProfileTimelineMarker>> mProfileTimelineMarkers;
-
-    
-    
-    float GetProfileTimelineDelta();
-
-    
-    void ClearProfileTimelineMarkers();
 
     
     

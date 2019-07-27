@@ -15,8 +15,6 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/TabChild.h"
-#include "mozilla/dom/ProfileTimelineMarkerBinding.h"
-#include "mozilla/dom/ToJSValue.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -90,8 +88,6 @@
 #include "nsDocShellEnumerator.h"
 #include "nsSHistory.h"
 #include "nsDocShellEditorData.h"
-#include "GeckoProfiler.h"
-#include "ProfilerMarkers.h"
 
 
 #include "nsError.h"
@@ -2791,138 +2787,6 @@ nsDocShell::HistoryTransactionRemoved(int32_t aIndex)
     return NS_OK;
 }
 
-unsigned long nsDocShell::gProfileTimelineRecordingsCount = 0;
-
-NS_IMETHODIMP
-nsDocShell::SetRecordProfileTimelineMarkers(bool aValue)
-{
-  bool currentValue;
-  GetRecordProfileTimelineMarkers(&currentValue);
-  if (currentValue != aValue) {
-    if (aValue) {
-      ++gProfileTimelineRecordingsCount;
-      mProfileTimelineStartTime = TimeStamp::Now();
-    } else {
-      --gProfileTimelineRecordingsCount;
-      mProfileTimelineStartTime = TimeStamp();
-      ClearProfileTimelineMarkers();
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetRecordProfileTimelineMarkers(bool* aValue)
-{
-  *aValue = !mProfileTimelineStartTime.IsNull();
-  return NS_OK;
-}
-
-nsresult
-nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
-                          JS::MutableHandle<JS::Value> aProfileTimelineMarkers)
-{
-  
-  
-  
-  
-  
-  
-  
-
-  nsTArray<mozilla::dom::ProfileTimelineMarker> profileTimelineMarkers;
-
-  for (uint32_t i = 0; i < mProfileTimelineMarkers.Length(); ++i) {
-    ProfilerMarkerTracing* startPayload = static_cast<ProfilerMarkerTracing*>(
-      mProfileTimelineMarkers[i]->mPayload);
-    const char* startMarkerName = mProfileTimelineMarkers[i]->mName;
-
-    bool hasSeenPaintedLayer = false;
-
-    if (startPayload->GetMetaData() == TRACING_INTERVAL_START) {
-      
-      
-      
-      for (uint32_t j = i + 1; j < mProfileTimelineMarkers.Length(); ++j) {
-        ProfilerMarkerTracing* endPayload = static_cast<ProfilerMarkerTracing*>(
-          mProfileTimelineMarkers[j]->mPayload);
-        const char* endMarkerName = mProfileTimelineMarkers[j]->mName;
-
-        
-        if (strcmp(endMarkerName, "Layer") == 0) {
-          hasSeenPaintedLayer = true;
-        }
-
-        bool isSameMarkerType = strcmp(startMarkerName, endMarkerName) == 0;
-        bool isValidType = strcmp(endMarkerName, "Paint") != 0 ||
-                           hasSeenPaintedLayer;
-
-        if (endPayload->GetMetaData() == TRACING_INTERVAL_END &&
-            isSameMarkerType && isValidType) {
-          mozilla::dom::ProfileTimelineMarker marker;
-          marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
-          marker.mStart = mProfileTimelineMarkers[i]->mTime;
-          marker.mEnd = mProfileTimelineMarkers[j]->mTime;
-          profileTimelineMarkers.AppendElement(marker);
-
-          break;
-        }
-      }
-    }
-  }
-
-  ToJSValue(aCx, profileTimelineMarkers, aProfileTimelineMarkers);
-
-  ClearProfileTimelineMarkers();
-
-  return NS_OK;
-}
-
-float
-nsDocShell::GetProfileTimelineDelta()
-{
-  return (TimeStamp::Now() - mProfileTimelineStartTime).ToMilliseconds();
-}
-
-void
-nsDocShell::AddProfileTimelineMarker(const char* aName,
-                                     TracingMetadata aMetaData)
-{
-  if (!mProfileTimelineStartTime.IsNull()) {
-    float delta = GetProfileTimelineDelta();
-    ProfilerMarkerTracing* payload = new ProfilerMarkerTracing("Timeline",
-                                                               aMetaData);
-    mProfileTimelineMarkers.AppendElement(
-      new InternalProfileTimelineMarker(aName, payload, delta));
-  }
-}
-
-void
-nsDocShell::AddProfileTimelineMarker(const char* aName,
-                                     ProfilerBacktrace* aCause,
-                                     TracingMetadata aMetaData)
-{
-  if (!mProfileTimelineStartTime.IsNull()) {
-    float delta = GetProfileTimelineDelta();
-    ProfilerMarkerTracing* payload = new ProfilerMarkerTracing("Timeline",
-                                                               aMetaData,
-                                                               aCause);
-    mProfileTimelineMarkers.AppendElement(
-      new InternalProfileTimelineMarker(aName, payload, delta));
-  }
-}
-
-void
-nsDocShell::ClearProfileTimelineMarkers()
-{
-  for (uint32_t i = 0; i < mProfileTimelineMarkers.Length(); ++i) {
-    delete mProfileTimelineMarkers[i]->mPayload;
-    mProfileTimelineMarkers[i]->mPayload = nullptr;
-  }
-  mProfileTimelineMarkers.Clear();
-}
-
 nsIDOMStorageManager*
 nsDocShell::TopSessionStorageManager()
 {
@@ -5489,9 +5353,6 @@ nsDocShell::Destroy()
     }
     
     mIsBeingDestroyed = true;
-
-    
-    SetRecordProfileTimelineMarkers(false);
 
     
     if (mObserveErrorPages) {
