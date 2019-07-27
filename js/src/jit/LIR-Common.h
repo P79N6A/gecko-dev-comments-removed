@@ -2678,6 +2678,20 @@ class LAbsF : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LClzI : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(ClzI)
+    LClzI(const LAllocation &num) {
+        setOperand(0, num);
+    }
+
+    MClz *mir() const {
+        return mir_->toClz();
+    }
+};
+
+
 class LSqrtD : public LInstructionHelper<1, 1, 0>
 {
   public:
