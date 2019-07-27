@@ -126,11 +126,13 @@ nsDOMStringMap::NamedDeleter(const nsAString& aProp, bool& found)
 {
   
   if (mRemovingProp) {
+    found = false;
     return;
   }
   
   nsAutoString attr;
   if (!DataPropToAttr(aProp, attr)) {
+    found = false;
     return;
   }
 
