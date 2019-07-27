@@ -474,7 +474,7 @@ FileHandleBase::OpenInputStream(bool aWholeFile, uint64_t aStart,
   
   ErrorResult error;
   if (!CheckState(error)) {
-    return error.ErrorCode();
+    return error.StealNSResult();
   }
 
   

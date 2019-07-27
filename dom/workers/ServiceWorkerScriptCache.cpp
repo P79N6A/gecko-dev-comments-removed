@@ -183,12 +183,12 @@ public:
     ErrorResult rv;
     nsRefPtr<CacheStorage> cacheStorage = CreateCacheStorage(aPrincipal, rv);
     if (NS_WARN_IF(rv.Failed())) {
-      return rv.ErrorCode();
+      return rv.StealNSResult();
     }
 
     nsRefPtr<Promise> promise = cacheStorage->Open(aCacheName, rv);
     if (NS_WARN_IF(rv.Failed())) {
-      return rv.ErrorCode();
+      return rv.StealNSResult();
     }
 
     promise->AppendNativeHandler(this);
@@ -617,14 +617,14 @@ PurgeCache(nsIPrincipal* aPrincipal, const nsAString& aCacheName)
   ErrorResult rv;
   nsRefPtr<CacheStorage> cacheStorage = CreateCacheStorage(aPrincipal, rv);
   if (NS_WARN_IF(rv.Failed())) {
-    return rv.ErrorCode();
+    return rv.StealNSResult();
   }
 
   
   nsRefPtr<Promise> promise =
     cacheStorage->Delete(aCacheName, rv);
   if (NS_WARN_IF(rv.Failed())) {
-    return rv.ErrorCode();
+    return rv.StealNSResult();
   }
 
   
