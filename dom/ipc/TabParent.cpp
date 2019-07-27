@@ -240,6 +240,7 @@ TabParent::TabParent(nsIContentParent* aManager, const TabContext& aContext, uin
   , mMarkedDestroying(false)
   , mIsDestroyed(false)
   , mAppPackageFileDescriptorSent(false)
+  , mSendOfflineStatus(true)
   , mChromeFlags(aChromeFlags)
 {
   MOZ_ASSERT(aManager);
@@ -498,6 +499,14 @@ TabParent::LoadURL(nsIURI* aURI)
                                    spec.get()).get());
         return;
     }
+
+    uint32_t appId = OwnOrContainingAppId();
+    if (mSendOfflineStatus && NS_IsAppOffline(appId)) {
+      
+      
+      unused << SendAppOfflineStatus(appId, true);
+    }
+    mSendOfflineStatus = false;
 
     unused << SendLoadURL(spec);
 
