@@ -63,41 +63,6 @@ var gFontsDialog = {
     return undefined;
   },
   
-  readFontSelection: function (aElement)
-  {
-    
-    
-    
-    
-    var preference = document.getElementById(aElement.getAttribute("preference"));
-    if (preference.value) {
-      var fontItems = aElement.getElementsByAttribute("value", preference.value);
-    
-      
-      if (fontItems.length > 0)
-        return undefined;
-    }
-    
-    var defaultValue = aElement.firstChild.firstChild.getAttribute("value");
-    var languagePref = document.getElementById("font.language.group");
-    preference = document.getElementById("font.name-list." + aElement.id + "." + languagePref.value);
-    if (!preference || !preference.hasUserValue)
-      return defaultValue;
-    
-    var fontNames = preference.value.split(",");
-    var stripWhitespace = /^\s*(.*)\s*$/;
-    
-    for (var i = 0; i < fontNames.length; ++i) {
-      var fontName = fontNames[i].replace(stripWhitespace, "$1");
-      fontItems = aElement.getElementsByAttribute("value", fontName);
-      if (fontItems.length)
-        break;
-    }
-    if (fontItems.length)
-      return fontItems[0].getAttribute("value");
-    return defaultValue;
-  },
-  
   readUseDocumentFonts: function ()
   {
     var preference = document.getElementById("browser.display.use_document_fonts");
