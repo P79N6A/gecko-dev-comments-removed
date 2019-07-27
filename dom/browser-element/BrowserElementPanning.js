@@ -90,6 +90,24 @@ const ContentPanning = {
       return;
     }
 
+    
+    
+    
+    
+    
+    
+    
+    let targetWindow = evt.target.ownerDocument.defaultView;
+    let frameElement = targetWindow.frameElement;
+    while (frameElement) {
+      targetWindow = frameElement.ownerDocument.defaultView;
+      frameElement = targetWindow.frameElement;
+    }
+
+    if (content !== targetWindow) {
+      return;
+    }
+
     if (evt.defaultPrevented || evt.multipleActionsPrevented) {
       
       if(evt.type === 'touchend' || evt.type === 'mouseup') {
