@@ -122,7 +122,7 @@ MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
     
     
     
-    cvttsd2si(input, output);
+    vcvttsd2si(input, output);
     branch32(Assembler::Above, output, Imm32(255), &outOfRange);
     {
         
@@ -242,7 +242,7 @@ MacroAssemblerX86Shared::branchNegativeZeroFloat32(FloatRegister reg,
                                                    Register scratch,
                                                    Label *label)
 {
-    movd(reg, scratch);
+    vmovd(reg, scratch);
     cmp32(scratch, Imm32(1));
     j(Overflow, label);
 }

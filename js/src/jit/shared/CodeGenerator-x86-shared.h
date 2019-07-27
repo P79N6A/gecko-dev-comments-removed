@@ -104,13 +104,13 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
         
         
         
-        masm.cvttsd2si(src, dest);
+        masm.vcvttsd2si(src, dest);
         masm.cmp32(dest, Imm32(1));
         bailoutIf(Assembler::Overflow, snapshot);
     }
     void bailoutCvttss2si(FloatRegister src, Register dest, LSnapshot *snapshot) {
         
-        masm.cvttss2si(src, dest);
+        masm.vcvttss2si(src, dest);
         masm.cmp32(dest, Imm32(1));
         bailoutIf(Assembler::Overflow, snapshot);
     }

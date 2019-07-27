@@ -1278,7 +1278,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void loadConstantFloat32x4(const SimdConstant &v, FloatRegister dest);
 
     void branchTruncateDouble(FloatRegister src, Register dest, Label *fail) {
-        cvttsd2sq(src, dest);
+        vcvttsd2sq(src, dest);
 
         
         
@@ -1289,7 +1289,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         movl(dest, dest); 
     }
     void branchTruncateFloat32(FloatRegister src, Register dest, Label *fail) {
-        cvttss2sq(src, dest);
+        vcvttss2sq(src, dest);
 
         
         cmpPtr(dest, Imm32(1));
@@ -1348,11 +1348,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     void convertUInt32ToDouble(Register src, FloatRegister dest) {
-        cvtsq2sd(src, dest);
+        vcvtsq2sd(src, dest, dest);
     }
 
     void convertUInt32ToFloat32(Register src, FloatRegister dest) {
-        cvtsq2ss(src, dest);
+        vcvtsq2ss(src, dest, dest);
     }
 
     void inc64(AbsoluteAddress dest) {
