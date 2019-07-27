@@ -62,6 +62,12 @@ struct ArgumentsData
 
     
     static ptrdiff_t offsetOfArgs() { return offsetof(ArgumentsData, args); }
+
+    
+    HeapValue* begin() { return args; }
+    const HeapValue* begin() const { return args; }
+    HeapValue* end() { return args + numArgs; }
+    const HeapValue* end() const { return args + numArgs; }
 };
 
 

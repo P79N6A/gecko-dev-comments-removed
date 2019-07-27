@@ -23,7 +23,7 @@ MarkLocals(BaselineFrame* frame, JSTracer* trc, unsigned start, unsigned end)
     if (start < end) {
         
         Value* last = frame->valueSlot(end - 1);
-        gc::MarkValueRootRange(trc, end - start, last, "baseline-stack");
+        TraceRootRange(trc, end - start, last, "baseline-stack");
     }
 }
 
@@ -32,12 +32,12 @@ BaselineFrame::trace(JSTracer* trc, JitFrameIterator& frameIterator)
 {
     replaceCalleeToken(MarkCalleeToken(trc, calleeToken()));
 
-    gc::MarkValueRoot(trc, &thisValue(), "baseline-this");
+    TraceRoot(trc, &thisValue(), "baseline-this");
 
     
     if (isNonEvalFunctionFrame()) {
         unsigned numArgs = js::Max(numActualArgs(), numFormalArgs());
-        gc::MarkValueRootRange(trc, numArgs, argv(), "baseline-args");
+        TraceRootRange(trc, numArgs, argv(), "baseline-args");
     }
 
     
@@ -46,7 +46,7 @@ BaselineFrame::trace(JSTracer* trc, JitFrameIterator& frameIterator)
 
     
     if (hasReturnValue())
-        gc::MarkValueRoot(trc, returnValue().address(), "baseline-rval");
+        TraceRoot(trc, returnValue().address(), "baseline-rval");
 
     if (isEvalFrame())
         gc::MarkScriptRoot(trc, &evalScript_, "baseline-evalscript");
