@@ -1594,7 +1594,7 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
       
       
       nsRefPtr<nsRunnableMethod<CacheEntry> > event =
-        NS_NewRunnableMethod(this, &CacheEntry::StoreFrecency);
+        NS_NewRunnableMethodWithArg<double>(this, &CacheEntry::StoreFrecency, mFrecency);
       NS_DispatchToMainThread(event);
     }
 
@@ -1618,14 +1618,12 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
   }
 }
 
-void CacheEntry::StoreFrecency()
+void CacheEntry::StoreFrecency(double aFrecency)
 {
-  
-  
   MOZ_ASSERT(NS_IsMainThread());
 
   if (NS_SUCCEEDED(mFileStatus)) {
-    mFile->SetFrecency(FRECENCY2INT(mFrecency));
+    mFile->SetFrecency(FRECENCY2INT(aFrecency));
   }
 }
 

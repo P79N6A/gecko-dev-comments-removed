@@ -248,7 +248,7 @@ private:
   
   
   void BackgroundOp(uint32_t aOperation, bool aForceAsync = false);
-  void StoreFrecency();
+  void StoreFrecency(double aFrecency);
 
   
   void DoomFile();
