@@ -112,7 +112,7 @@ protected:
   mozilla::ReentrantMonitor mCallbackMonitor; 
   
   nsRefPtr<ICameraControl> mCameraControl;
-  nsCOMPtr<nsIDOMFile> mLastCapture;
+  nsRefPtr<dom::File> mLastCapture;
 
   android::sp<android::GonkCameraSource> mCameraSource;
 

@@ -83,7 +83,7 @@ this.PropertyListUtils = Object.freeze({
 
 
   read: function PLU_read(aFile, aCallback) {
-    if (!(aFile instanceof Ci.nsILocalFile || aFile instanceof Ci.nsIDOMFile))
+    if (!(aFile instanceof Ci.nsILocalFile || aFile instanceof File))
       throw new Error("aFile is not a file object");
     if (typeof(aCallback) != "function")
       throw new Error("Invalid value for aCallback");

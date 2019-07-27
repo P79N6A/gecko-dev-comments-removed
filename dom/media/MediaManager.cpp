@@ -113,6 +113,7 @@ GetMediaManagerLog()
 }
 #define LOG(msg) PR_LOG(GetMediaManagerLog(), PR_LOG_DEBUG, msg)
 
+using dom::File;
 using dom::MediaStreamConstraints;
 using dom::MediaTrackConstraintSet;
 using dom::MediaTrackConstraints;
@@ -260,53 +261,6 @@ private:
   nsCOMPtr<SuccessCallbackType> mOnSuccess;
   nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mOnFailure;
   nsRefPtr<MediaMgrError> mError;
-  uint64_t mWindowID;
-  nsRefPtr<MediaManager> mManager; 
-};
-
-
-
-
-
-
-
-class SuccessCallbackRunnable : public nsRunnable
-{
-public:
-  SuccessCallbackRunnable(
-    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback>& aOnSuccess,
-    nsCOMPtr<nsIDOMGetUserMediaErrorCallback>& aOnFailure,
-    nsIDOMFile* aFile, uint64_t aWindowID)
-    : mFile(aFile)
-    , mWindowID(aWindowID)
-    , mManager(MediaManager::GetInstance())
-  {
-    mOnSuccess.swap(aOnSuccess);
-    mOnFailure.swap(aOnFailure);
-  }
-
-  NS_IMETHOD
-  Run()
-  {
-    
-    NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-
-    nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> onSuccess = mOnSuccess.forget();
-    nsCOMPtr<nsIDOMGetUserMediaErrorCallback> onFailure = mOnFailure.forget();
-
-    if (!(mManager->IsWindowStillActive(mWindowID))) {
-      return NS_OK;
-    }
-    
-    
-    onSuccess->OnSuccess(mFile);
-    return NS_OK;
-  }
-
-private:
-  nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> mOnSuccess;
-  nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mOnFailure;
-  nsCOMPtr<nsIDOMFile> mFile;
   uint64_t mWindowID;
   nsRefPtr<MediaManager> mManager; 
 };
