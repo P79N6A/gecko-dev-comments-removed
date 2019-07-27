@@ -366,6 +366,7 @@ public:
 
 
 
+
   virtual void Prepare(const RenderTargetIntRect& aClipRect) {}
 
   
