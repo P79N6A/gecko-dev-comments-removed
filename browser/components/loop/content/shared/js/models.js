@@ -79,8 +79,8 @@ loop.shared.models = (function(l10n) {
     
 
 
-    incoming: function() {
-      this.trigger("call:incoming");
+    accepted: function() {
+      this.trigger("call:accepted");
     },
 
     

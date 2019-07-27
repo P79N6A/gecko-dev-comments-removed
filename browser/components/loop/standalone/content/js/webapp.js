@@ -15,7 +15,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
   loop.config.serverUrl = loop.config.serverUrl || "http://localhost:5000";
 
   var sharedModels = loop.shared.models,
-      sharedViews = loop.shared.views;
+      sharedViews = loop.shared.views,
+      sharedUtils = loop.shared.utils;
 
   
 
@@ -435,7 +436,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
       client: React.PropTypes.instanceOf(loop.StandaloneClient).isRequired,
       conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
                          .isRequired,
-      helper: React.PropTypes.instanceOf(WebappHelper).isRequired,
+      helper: React.PropTypes.instanceOf(sharedUtils.Helper).isRequired,
       notifications: React.PropTypes.instanceOf(sharedModels.NotificationCollection)
                           .isRequired,
       sdk: React.PropTypes.object.isRequired,
@@ -690,7 +691,7 @@ loop.webapp = (function($, _, OT, mozL10n) {
       client: React.PropTypes.instanceOf(loop.StandaloneClient).isRequired,
       conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
                          .isRequired,
-      helper: React.PropTypes.instanceOf(WebappHelper).isRequired,
+      helper: React.PropTypes.instanceOf(sharedUtils.Helper).isRequired,
       notifications: React.PropTypes.instanceOf(sharedModels.NotificationCollection)
                           .isRequired,
       sdk: React.PropTypes.object.isRequired,
@@ -729,29 +730,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
   
 
 
-  function WebappHelper() {
-    this._iOSRegex = /^(iPad|iPhone|iPod)/;
-  }
-
-  WebappHelper.prototype = {
-    isFirefox: function(platform) {
-      return platform.indexOf("Firefox") !== -1;
-    },
-
-    isIOS: function(platform) {
-      return this._iOSRegex.test(platform);
-    },
-
-    locationHash: function() {
-      return window.location.hash;
-    }
-  };
-
-  
-
-
   function init() {
-    var helper = new WebappHelper();
+    var helper = new sharedUtils.Helper();
     var client = new loop.StandaloneClient({
       baseServerUrl: loop.config.serverUrl
     });
@@ -797,7 +777,6 @@ loop.webapp = (function($, _, OT, mozL10n) {
     UnsupportedDeviceView: UnsupportedDeviceView,
     init: init,
     PromoteFirefoxView: PromoteFirefoxView,
-    WebappHelper: WebappHelper,
     WebappRootView: WebappRootView
   };
 })(jQuery, _, window.OT, navigator.mozL10n);

@@ -17,12 +17,6 @@ loop.panel = (function(_, mozL10n) {
   var ContactsList = loop.contacts.ContactsList;
   var __ = mozL10n.get; 
 
-  
-
-
-
-  var router;
-
   var TabView = React.createClass({displayName: 'TabView',
     getInitialState: function() {
       return {
