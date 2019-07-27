@@ -5,13 +5,6 @@
 
 
 
-
-thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Shader Editor is still waiting for a WebGL context to be created.");
-
-
-
-
-
 function ifWebGLSupported() {
   let { target, panel } = yield initShaderEditor(SIMPLE_CANVAS_URL);
   let { gFront, $, EVENTS, ShadersListView, ShadersEditorsView } = panel.panelWin;
@@ -48,8 +41,7 @@ function ifWebGLSupported() {
   let navigated = once(target, "will-navigate");
   navigate(target, "about:blank");
 
-  yield navigating;
-  yield once(panel.panelWin, EVENTS.UI_RESET);
+  yield promise.all([navigating, once(panel.panelWin, EVENTS.UI_RESET) ]);
 
   is($("#reload-notice").hidden, true,
     "The 'reload this page' notice should be hidden while navigating.");
@@ -64,18 +56,6 @@ function ifWebGLSupported() {
     "The shaders list has no correct item.");
   is(ShadersListView.selectedIndex, -1,
     "The shaders list has a negative index.");
-
-  yield ShadersEditorsView._getEditor("vs").then(() => {
-    ok(false, "The promise for a vertex shader editor should be rejected.");
-  }, () => {
-    ok(true, "The vertex shader editors wasn't initialized.");
-  });
-
-  yield ShadersEditorsView._getEditor("fs").then(() => {
-    ok(false, "The promise for a fragment shader editor should be rejected.");
-  }, () => {
-    ok(true, "The fragment shader editors wasn't initialized.");
-  });
 
   yield navigated;
 
