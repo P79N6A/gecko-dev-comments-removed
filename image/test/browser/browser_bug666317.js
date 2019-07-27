@@ -10,11 +10,19 @@ let prefBranch = Cc["@mozilla.org/preferences-service;1"]
                    .getService(Ci.nsIPrefService)
                    .getBranch('image.mem.');
 
-function ImageDiscardObserver(result) {
+var gWaitingForDiscard = false;
+var gScriptedObserver;
+var gClonedRequest;
+
+function ImageDiscardObserver(callback) {
   this.discard = function onDiscard(request)
   {
-    result.wasDiscarded = true;
+    if (!gWaitingForDiscard) {
+      return;
+    }
+
     this.synchronous = false;
+    callback();
   }
 
   this.synchronous = true;
@@ -70,52 +78,58 @@ function test() {
 
   
   gBrowser.getBrowserForTab(newTab)
-          .addEventListener("pageshow", step2 );
+          .addEventListener("pageshow", step2);
 }
 
 function step2() {
   
-  var result = { wasDiscarded: false };
-
-  
-  var observer = new ImageDiscardObserver(result);
-  var scriptedObserver = Cc["@mozilla.org/image/tools;1"]
-                           .getService(Ci.imgITools)
-                           .createScriptedObserver(observer);
+  var observer = new ImageDiscardObserver(() => runAfterAsyncEvents(step5));
+  gScriptedObserver = Cc["@mozilla.org/image/tools;1"]
+                        .getService(Ci.imgITools)
+                        .createScriptedObserver(observer);
 
   
   var request = currentRequest();
-  var clonedRequest = request.clone(scriptedObserver);
+  gClonedRequest = request.clone(gScriptedObserver);
 
   
   forceDecodeImg();
 
   
   
-  runAfterAsyncEvents(() => step3(result, scriptedObserver, clonedRequest));
+  runAfterAsyncEvents(step3);
 }
 
-function step3(result, scriptedObserver, clonedRequest) {
+function step3() {
   ok(isImgDecoded(), 'Image should initially be decoded.');
 
   
   
   gBrowser.selectedTab = oldTab;
+
+  
+  runAfterAsyncEvents(step4);
+}
+
+function step4() {
+  gWaitingForDiscard = true;
+
   var os = Cc["@mozilla.org/observer-service;1"]
              .getService(Ci.nsIObserverService);
   os.notifyObservers(null, 'memory-pressure', 'heap-minimize');
 
   
   
-  runAfterAsyncEvents(() => step4(result, scriptedObserver, clonedRequest));
 }
 
-function step4(result, scriptedObserver, clonedRequest) {
-  ok(result.wasDiscarded, 'Image should be discarded.');
+function step5() {
+  ok(true, 'Image should be discarded.');
 
   
   gBrowser.removeTab(newTab);
   prefBranch.setBoolPref('discardable', oldDiscardingPref);
-  clonedRequest.cancelAndForgetObserver(0);
+
+  gClonedRequest.cancelAndForgetObserver(0);
+
   finish();
 }
