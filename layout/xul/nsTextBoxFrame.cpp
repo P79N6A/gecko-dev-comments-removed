@@ -23,7 +23,6 @@
 #include "nsITheme.h"
 #include "nsUnicharUtils.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
 #include "nsDisplayList.h"
 #include "nsCSSRendering.h"
 #include "nsIReflowCallback.h"
@@ -192,15 +191,8 @@ nsTextBoxFrame::UpdateAccesskey(nsWeakFrame& aWeakThis)
     NS_ENSURE_TRUE(aWeakThis.IsAlive(), false);
     if (labelElement) {
         
-        
-        
-        
-        
-        nsCxPusher cx;
-        if (cx.Push(mContent)) {
-          labelElement->GetAccessKey(accesskey);
-          NS_ENSURE_TRUE(aWeakThis.IsAlive(), false);
-        }
+        labelElement->GetAccessKey(accesskey);
+        NS_ENSURE_TRUE(aWeakThis.IsAlive(), false);
     }
     else {
         mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, accesskey);
