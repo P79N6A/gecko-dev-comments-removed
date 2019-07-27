@@ -34,34 +34,6 @@ addMessageListener("Browser:HideSessionRestoreButton", function (message) {
   }
 });
 
-addMessageListener("Browser:Reload", function(message) {
-  
-
-
-
-
-
-  let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
-  try {
-    let sh = webNav.sessionHistory;
-    if (sh)
-      webNav = sh.QueryInterface(Ci.nsIWebNavigation);
-  } catch (e) {
-  }
-
-  let reloadFlags = message.data.flags;
-  let handlingUserInput;
-  try {
-    handlingUserInput = content.QueryInterface(Ci.nsIInterfaceRequestor)
-                               .getInterface(Ci.nsIDOMWindowUtils)
-                               .setHandlingUserInput(message.data.handlingUserInput);
-    webNav.reload(reloadFlags);
-  } catch (e) {
-  } finally {
-    handlingUserInput.destruct();
-  }
-});
-
 addEventListener("DOMFormHasPassword", function(event) {
   InsecurePasswordUtils.checkForInsecurePasswords(event.target);
   LoginManagerContent.onFormPassword(event);

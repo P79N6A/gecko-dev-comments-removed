@@ -3,7 +3,6 @@
 
 
 
-
 #include "nsDOMWindowUtils.h"
 
 #include "mozilla/layers/CompositorChild.h"
@@ -3585,74 +3584,6 @@ nsDOMWindowUtils::GetOMTAStyle(nsIDOMElement* aElement,
     aResult.Truncate();
   }
 
-  return NS_OK;
-}
-
-namespace {
-
-class HandlingUserInputHelper MOZ_FINAL : public nsIJSRAIIHelper
-{
-public:
-  HandlingUserInputHelper(bool aHandlingUserInput);
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIJSRAIIHELPER
-
-private:
-  ~HandlingUserInputHelper();
-
-  bool mHandlingUserInput;
-  bool mDestructCalled;
-};
-
-NS_IMPL_ISUPPORTS(HandlingUserInputHelper, nsIJSRAIIHelper)
-
-HandlingUserInputHelper::HandlingUserInputHelper(bool aHandlingUserInput)
-  : mHandlingUserInput(aHandlingUserInput),
-    mDestructCalled(false)
-{
-  if (aHandlingUserInput) {
-    EventStateManager::StartHandlingUserInput();
-  }
-}
-
-HandlingUserInputHelper::~HandlingUserInputHelper()
-{
-  
-  MOZ_ASSERT(mDestructCalled);
-  if (!mDestructCalled) {
-    Destruct();
-  }
-}
-
-NS_IMETHODIMP
-HandlingUserInputHelper::Destruct()
-{
-  if (NS_WARN_IF(mDestructCalled)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  mDestructCalled = true;
-  if (mHandlingUserInput) {
-    EventStateManager::StopHandlingUserInput();
-  }
-
-  return NS_OK;
-}
-
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::SetHandlingUserInput(bool aHandlingUserInput,
-                                       nsIJSRAIIHelper** aHelper)
-{
-  if (!nsContentUtils::IsCallerChrome()) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  nsRefPtr<HandlingUserInputHelper> helper(
-    new HandlingUserInputHelper(aHandlingUserInput));
-  helper.forget(aHelper);
   return NS_OK;
 }
 

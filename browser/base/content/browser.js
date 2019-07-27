@@ -2632,14 +2632,24 @@ function BrowserReloadWithFlags(reloadFlags) {
     return;
   }
 
-  let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                          .getInterface(Ci.nsIDOMWindowUtils);
+  
 
-  gBrowser.selectedBrowser
-          .messageManager
-          .sendAsyncMessage("Browser:Reload",
-                            { flags: reloadFlags,
-                              handlingUserInput: windowUtils.isHandlingUserInput });
+
+
+
+
+  var webNav = gBrowser.webNavigation;
+  try {
+    var sh = webNav.sessionHistory;
+    if (sh)
+      webNav = sh.QueryInterface(nsIWebNavigation);
+  } catch (e) {
+  }
+
+  try {
+    webNav.reload(reloadFlags);
+  } catch (e) {
+  }
 }
 
 var PrintPreviewListener = {
