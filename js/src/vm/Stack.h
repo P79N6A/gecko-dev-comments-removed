@@ -1327,6 +1327,11 @@ class JitActivation : public Activation
     typedef Vector<RInstructionResults, 1> IonRecoveryMap;
     IonRecoveryMap ionRecovery_;
 
+    
+    
+    
+    IonBailoutIterator  *ionBailoutIterator_;
+
     void clearRematerializedFrames();
 
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -1415,6 +1420,15 @@ class JitActivation : public Activation
     void maybeTakeIonFrameRecovery(IonJSFrameLayout *fp, RInstructionResults *results);
 
     void markIonRecovery(JSTracer *trc);
+
+    class RegisterBailoutIterator
+    {
+        JitActivation &activation_;
+
+      public:
+        RegisterBailoutIterator(JitActivation &activation, IonBailoutIterator *iter);
+        ~RegisterBailoutIterator();
+    };
 };
 
 
