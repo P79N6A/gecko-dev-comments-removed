@@ -2987,20 +2987,6 @@ nsDocShell::PopProfileTimelineMarkers(
     
     dom::Sequence<dom::ProfileTimelineLayerRect> layerRectangles;
 
-    
-    
-    
-    if (startPayload->GetMetaData() == TRACING_TIMESTAMP) {
-      mozilla::dom::ProfileTimelineMarker* marker =
-        profileTimelineMarkers.AppendElement();
-
-      marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
-      marker->mStart = startPayload->GetTime();
-      marker->mEnd = startPayload->GetTime();
-      startPayload->AddDetails(*marker);
-      continue;
-    }
-
     if (startPayload->GetMetaData() == TRACING_INTERVAL_START) {
       bool hasSeenEnd = false;
 
@@ -10739,7 +10725,7 @@ nsDocShell::DoURILoad(nsIURI* aURI,
   
   
   if (httpChannel) {
-    nsCOMPtr<nsICachingChannel> cacheChannel(do_QueryInterface(httpChannel));
+    nsCOMPtr<nsICacheInfoChannel> cacheChannel(do_QueryInterface(httpChannel));
     
     nsCOMPtr<nsISupports> cacheKey;
     if (mLSHE) {
@@ -11289,7 +11275,7 @@ nsDocShell::OnNewURI(nsIURI* aURI, nsIChannel* aChannel, nsISupports* aOwner,
                  "We shouldn't be updating session history for forced"
                  " reloads!");
 
-    nsCOMPtr<nsICachingChannel> cacheChannel(do_QueryInterface(aChannel));
+    nsCOMPtr<nsICacheInfoChannel> cacheChannel(do_QueryInterface(aChannel));
     nsCOMPtr<nsISupports> cacheKey;
     
     if (cacheChannel) {
@@ -11843,7 +11829,7 @@ nsDocShell::AddToSessionHistory(nsIURI* aURI, nsIChannel* aChannel,
   nsCOMPtr<nsISupports> owner = aOwner;
   bool expired = false;
   bool discardLayoutState = false;
-  nsCOMPtr<nsICachingChannel> cacheChannel;
+  nsCOMPtr<nsICacheInfoChannel> cacheChannel;
   if (aChannel) {
     cacheChannel = do_QueryInterface(aChannel);
 
