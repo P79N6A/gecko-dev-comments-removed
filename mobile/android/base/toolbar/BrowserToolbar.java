@@ -546,7 +546,11 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
 
     private void updateProgressVisibility() {
         final Tab selectedTab = Tabs.getInstance().getSelectedTab();
-        updateProgressVisibility(selectedTab, selectedTab.getLoadProgress());
+        
+        
+        if (selectedTab != null) {
+            updateProgressVisibility(selectedTab, selectedTab.getLoadProgress());
+        }
     }
 
     private void updateProgressVisibility(Tab selectedTab, int progress) {
