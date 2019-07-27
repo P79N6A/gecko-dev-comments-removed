@@ -139,6 +139,10 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
   if (images.IsEmpty()) {
     
     
+    
+    
+    
+    
     return true;
   }
 

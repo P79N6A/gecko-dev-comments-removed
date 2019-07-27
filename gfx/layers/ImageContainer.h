@@ -340,7 +340,7 @@ public:
 
 
 
-  void ClearCurrentImage();
+  void ClearImagesFromImageBridge();
 
   
 
