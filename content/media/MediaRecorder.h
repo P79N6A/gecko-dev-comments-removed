@@ -113,7 +113,7 @@ protected:
   RecordingState mState;
   
   
-  nsTArray<Session*> mSessions;
+  nsTArray<nsRefPtr<Session> > mSessions;
   
   nsString mMimeType;
 

@@ -79,6 +79,8 @@ NS_IMPL_RELEASE_INHERITED(MediaRecorder, DOMEventTargetHelper)
 
 
 
+
+
 class MediaRecorder::Session: public nsIObserver
 {
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -150,18 +152,11 @@ class MediaRecorder::Session: public nsIObserver
   class ExtractRunnable : public nsRunnable
   {
   public:
-    ExtractRunnable(already_AddRefed<Session>&& aSession)
+    ExtractRunnable(Session* aSession)
       : mSession(aSession) {}
 
     ~ExtractRunnable()
-    {
-      if (mSession) {
-        NS_WARNING("~ExtractRunnable something wrong the mSession should null");
-        nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-        NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
-        NS_ProxyRelease(mainThread, mSession);
-      }
-    }
+    {}
 
     NS_IMETHODIMP Run()
     {
@@ -170,16 +165,15 @@ class MediaRecorder::Session: public nsIObserver
       LOG(PR_LOG_DEBUG, ("Session.ExtractRunnable shutdown = %d", mSession->mEncoder->IsShutdown()));
       if (!mSession->mEncoder->IsShutdown()) {
         mSession->Extract(false);
-        nsRefPtr<nsIRunnable> event = new ExtractRunnable(mSession.forget());
+        nsRefPtr<nsIRunnable> event = new ExtractRunnable(mSession);
         if (NS_FAILED(NS_DispatchToCurrentThread(event))) {
           NS_WARNING("Failed to dispatch ExtractRunnable to encoder thread");
         }
       } else {
         
         mSession->Extract(true);
-        
         if (NS_FAILED(NS_DispatchToMainThread(
-                        new DestroyRunnable(mSession.forget())))) {
+                        new DestroyRunnable(mSession)))) {
           MOZ_ASSERT(false, "NS_DispatchToMainThread DestroyRunnable failed");
         }
       }
@@ -224,7 +218,7 @@ class MediaRecorder::Session: public nsIObserver
   class DestroyRunnable : public nsRunnable
   {
   public:
-    DestroyRunnable(already_AddRefed<Session>&& aSession)
+    DestroyRunnable(Session* aSession)
       : mSession(aSession) {}
 
     NS_IMETHODIMP Run()
@@ -246,8 +240,7 @@ class MediaRecorder::Session: public nsIObserver
         ErrorResult result;
         mSession->mStopIssued = true;
         recorder->Stop(result);
-        if (NS_FAILED(NS_DispatchToMainThread(
-                        new DestroyRunnable(mSession.forget())))) {
+        if (NS_FAILED(NS_DispatchToMainThread(new DestroyRunnable(mSession)))) {
           MOZ_ASSERT(false, "NS_DispatchToMainThread failed");
         }
         return NS_OK;
@@ -257,8 +250,7 @@ class MediaRecorder::Session: public nsIObserver
       mSession->mMimeType = NS_LITERAL_STRING("");
       recorder->SetMimeType(mSession->mMimeType);
       recorder->DispatchSimpleEvent(NS_LITERAL_STRING("stop"));
-      recorder->RemoveSession(mSession);
-      mSession->mRecorder = nullptr;
+      mSession->BreakCycle();
       return NS_OK;
     }
 
@@ -454,8 +446,7 @@ private:
     
     nsContentUtils::RegisterShutdownObserver(this);
 
-    already_AddRefed<Session> session(this); 
-    nsRefPtr<nsIRunnable> event = new ExtractRunnable(Move(session));
+    nsRefPtr<nsIRunnable> event = new ExtractRunnable(this);
     if (NS_FAILED(mReadThread->Dispatch(event, NS_DISPATCH_NORMAL))) {
       NS_WARNING("Failed to dispatch ExtractRunnable at beginning");
     }
@@ -472,9 +463,7 @@ private:
     if (NS_FAILED(NS_DispatchToMainThread(new PushBlobRunnable(this)))) {
       MOZ_ASSERT(false, "NS_DispatchToMainThread PushBlobRunnable failed");
     }
-    
-    already_AddRefed<Session> session(this); 
-    if (NS_FAILED(NS_DispatchToMainThread(new DestroyRunnable(Move(session))))) {
+    if (NS_FAILED(NS_DispatchToMainThread(new DestroyRunnable(this)))) {
       MOZ_ASSERT(false, "NS_DispatchToMainThread DestroyRunnable failed");
     }
   }
@@ -502,14 +491,21 @@ private:
         mReadThread->Shutdown();
         mReadThread = nullptr;
       }
-      if (mRecorder) {
-        mRecorder->RemoveSession(this);
-        mRecorder = nullptr;
-      }
+      BreakCycle();
       Stop();
     }
 
     return NS_OK;
+  }
+
+  
+  void BreakCycle()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (mRecorder) {
+      mRecorder->RemoveSession(this);
+      mRecorder = nullptr;
+    }
   }
 
 private:
@@ -640,16 +636,8 @@ MediaRecorder::Start(const Optional<int32_t>& aTimeSlice, ErrorResult& aResult)
 
   mState = RecordingState::Recording;
   
-  
-  
-  
-  
-  
-  nsRefPtr<Session> session = new Session(this, timeSlice);
-  Session* rawPtr;
-  session.forget(&rawPtr);
   mSessions.AppendElement();
-  mSessions.LastElement() = rawPtr;
+  mSessions.LastElement() = new Session(this, timeSlice);
   mSessions.LastElement()->Start();
 }
 
