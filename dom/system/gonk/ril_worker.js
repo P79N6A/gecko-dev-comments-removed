@@ -225,7 +225,6 @@ function RilObject(aContext) {
   this.telephonyRequestQueue = new TelephonyRequestQueue(this);
   this.currentCalls = {};
   this.currentConferenceState = CALL_STATE_UNKNOWN;
-  this.currentDataCalls = {};
   this._pendingSentSmsMap = {};
   this.pendingNetworkType = {};
   this._receivedSmsCbPagesMap = {};
@@ -254,11 +253,6 @@ RilObject.prototype = {
 
 
   currentConferenceState: null,
-
-  
-
-
-  currentDataCalls: null,
 
   
 
@@ -364,11 +358,6 @@ RilObject.prototype = {
     for each (let currentCall in this.currentCalls) {
       delete this.currentCalls[currentCall.callIndex];
       this._handleDisconnectedCall(currentCall);
-    }
-
-    
-    for each (let datacall in this.currentDataCalls) {
-      this.deactivateDataCall(datacall);
     }
 
     
@@ -2107,11 +2096,6 @@ RilObject.prototype = {
 
 
   deactivateDataCall: function(options) {
-    let datacall = this.currentDataCalls[options.cid];
-    if (!datacall) {
-      return;
-    }
-
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_DEACTIVATE_DATA_CALL, options);
     Buf.writeInt32(2);
@@ -2123,8 +2107,8 @@ RilObject.prototype = {
   
 
 
-  getDataCallList: function() {
-    this.context.Buf.simpleRequest(REQUEST_DATA_CALL_LIST);
+  getDataCallList: function(options) {
+    this.context.Buf.simpleRequest(REQUEST_DATA_CALL_LIST, options);
   },
 
   _attachDataRegistration: false,
@@ -3915,158 +3899,6 @@ RilObject.prototype = {
     this.sendChromeMessage(message);
   },
 
-  _sendDataCallError: function(message, errorCode) {
-    
-    delete message.rilMessageToken;
-    message.rilMessageType = "datacallerror";
-    if (errorCode !== ERROR_GENERIC_FAILURE) {
-      message.errorMsg = RIL_DATACALL_FAILCAUSE_TO_GECKO_DATACALL_ERROR[errorCode];
-    }
-    this.sendChromeMessage(message);
-  },
-
-  
-
-
-
-
-  _compareDataCallLink: function(updatedDataCall, currentDataCall) {
-    
-    if (updatedDataCall.ifname != currentDataCall.ifname) {
-      return "deactivate";
-    }
-
-    
-    for (let i = 0; i < currentDataCall.addresses.length; i++) {
-      let address = currentDataCall.addresses[i];
-      if (updatedDataCall.addresses.indexOf(address) < 0) {
-        return "deactivate";
-      }
-    }
-
-    if (currentDataCall.addresses.length != updatedDataCall.addresses.length) {
-      
-      
-      
-      return "changed";
-    }
-
-    let fields = ["gateways", "dnses"];
-    for (let i = 0; i < fields.length; i++) {
-      
-      let field = fields[i];
-      let lhs = updatedDataCall[field], rhs = currentDataCall[field];
-      if (lhs.length != rhs.length) {
-        return "changed";
-      }
-      for (let i = 0; i < lhs.length; i++) {
-        if (lhs[i] != rhs[i]) {
-          return "changed";
-        }
-      }
-    }
-
-    return "identical";
-  },
-
-  _processDataCallList: function(datacalls, newDataCallOptions) {
-    
-    
-    for each (let newDataCall in datacalls) {
-      if (newDataCall.status != DATACALL_FAIL_NONE) {
-        if (newDataCallOptions) {
-          newDataCallOptions.status = newDataCall.status;
-          newDataCallOptions.suggestedRetryTime = newDataCall.suggestedRetryTime;
-        }
-        this._sendDataCallError(newDataCallOptions || newDataCall,
-                                newDataCall.status);
-      }
-    }
-
-    for each (let currentDataCall in this.currentDataCalls) {
-      let updatedDataCall;
-      if (datacalls) {
-        updatedDataCall = datacalls[currentDataCall.cid];
-        delete datacalls[currentDataCall.cid];
-      }
-
-      if (!updatedDataCall) {
-        
-        
-        if (!newDataCallOptions) {
-          delete this.currentDataCalls[currentDataCall.cid];
-          currentDataCall.state = GECKO_NETWORK_STATE_DISCONNECTED;
-          currentDataCall.rilMessageType = "datacallstatechange";
-          this.sendChromeMessage(currentDataCall);
-        }
-        continue;
-      }
-
-      this._setDataCallGeckoState(updatedDataCall);
-      if (updatedDataCall.state != currentDataCall.state) {
-        if (updatedDataCall.state == GECKO_NETWORK_STATE_DISCONNECTED) {
-          delete this.currentDataCalls[currentDataCall.cid];
-        }
-        currentDataCall.status = updatedDataCall.status;
-        currentDataCall.active = updatedDataCall.active;
-        currentDataCall.state = updatedDataCall.state;
-        currentDataCall.rilMessageType = "datacallstatechange";
-        this.sendChromeMessage(currentDataCall);
-        continue;
-      }
-
-      
-      let result =
-        this._compareDataCallLink(updatedDataCall, currentDataCall);
-      if (result == "identical") {
-        if (DEBUG) this.context.debug("No changes in data call.");
-        continue;
-      }
-      if (result == "deactivate") {
-        if (DEBUG) this.context.debug("Data link changed, cleanup.");
-        this.deactivateDataCall(currentDataCall);
-        continue;
-      }
-      
-      if (DEBUG) {
-        this.context.debug("Data link minor change, just update and notify.");
-      }
-      currentDataCall.addresses = updatedDataCall.addresses.slice();
-      currentDataCall.dnses = updatedDataCall.dnses.slice();
-      currentDataCall.gateways = updatedDataCall.gateways.slice();
-      currentDataCall.rilMessageType = "datacallstatechange";
-      this.sendChromeMessage(currentDataCall);
-    }
-
-    for each (let newDataCall in datacalls) {
-      if (!newDataCall.ifname) {
-        continue;
-      }
-
-      if (!newDataCallOptions) {
-        if (DEBUG) {
-          this.context.debug("Unexpected new data call: " +
-                             JSON.stringify(newDataCall));
-        }
-        continue;
-      }
-
-      this.currentDataCalls[newDataCall.cid] = newDataCall;
-      this._setDataCallGeckoState(newDataCall);
-
-      newDataCall.radioTech = newDataCallOptions.radioTech;
-      newDataCall.apn = newDataCallOptions.apn;
-      newDataCall.user = newDataCallOptions.user;
-      newDataCall.passwd = newDataCallOptions.passwd;
-      newDataCall.chappap = newDataCallOptions.chappap;
-      newDataCall.pdptype = newDataCallOptions.pdptype;
-      newDataCallOptions = null;
-
-      newDataCall.rilMessageType = "datacallstatechange";
-      this.sendChromeMessage(newDataCall);
-    }
-  },
-
   _setDataCallGeckoState: function(datacall) {
     switch (datacall.active) {
       case DATACALL_INACTIVE:
@@ -5455,8 +5287,8 @@ RilObject.prototype.readSetupDataCall_v5 = function readSetupDataCall_v5(options
 
 RilObject.prototype[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options) {
   if (options.rilRequestError) {
-    
-    this._sendDataCallError(options, options.rilRequestError);
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+    this.sendChromeMessage(options);
     return;
   }
 
@@ -5464,17 +5296,21 @@ RilObject.prototype[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(
     
     
     this.readSetupDataCall_v5(options);
-    this.currentDataCalls[options.cid] = options;
-    options.rilMessageType = "datacallstatechange";
     this.sendChromeMessage(options);
     
     
     this.getDataCallList();
     return;
   }
+
+  let Buf = this.context.Buf;
   
+  Buf.readInt32();
   
-  this[REQUEST_DATA_CALL_LIST](length, options);
+  Buf.readInt32();
+
+  this.readDataCall_v6(options);
+  this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
   if (options.rilRequestError) {
@@ -5770,14 +5606,10 @@ RilObject.prototype[REQUEST_ANSWER] = function REQUEST_ANSWER(length, options) {
 };
 RilObject.prototype[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_DATA_CALL(length, options) {
   if (options.rilRequestError) {
-    return;
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
 
-  let datacall = this.currentDataCalls[options.cid];
-  delete this.currentDataCalls[options.cid];
-  datacall.state = GECKO_NETWORK_STATE_DISCONNECTED;
-  datacall.rilMessageType = "datacallstatechange";
-  this.sendChromeMessage(datacall);
+  this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_QUERY_FACILITY_LOCK] = function REQUEST_QUERY_FACILITY_LOCK(length, options) {
   options.success = (options.rilRequestError === 0);
@@ -5978,6 +5810,7 @@ RilObject.prototype.readDataCall_v5 = function(options) {
   options.addresses = addresses ? addresses.split(" ") : [];
   options.dnses = dnses ? dnses.split(" ") : [];
   options.gateways = [];
+  this._setDataCallGeckoState(options);
   return options;
 };
 
@@ -5998,16 +5831,27 @@ RilObject.prototype.readDataCall_v6 = function(options) {
   options.addresses = addresses ? addresses.split(" ") : [];
   options.dnses = dnses ? dnses.split(" ") : [];
   options.gateways = gateways ? gateways.split(" ") : [];
+  this._setDataCallGeckoState(options);
   return options;
 };
 
 RilObject.prototype[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(length, options) {
   if (options.rilRequestError) {
+    if (options.rilMessageType) {
+      options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+      this.sendChromeMessage(options);
+    }
     return;
   }
 
+  if (!options.rilMessageType) {
+    
+    options.rilMessageType = "datacalllistchanged";
+  }
+
   if (!length) {
-    this._processDataCallList(null);
+    options.datacalls = [];
+    this.sendChromeMessage(options);
     return;
   }
 
@@ -6017,7 +5861,7 @@ RilObject.prototype[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(le
     version = Buf.readInt32();
   }
   let num = Buf.readInt32();
-  let datacalls = {};
+  let datacalls = [];
   for (let i = 0; i < num; i++) {
     let datacall;
     if (version < 6) {
@@ -6025,14 +5869,11 @@ RilObject.prototype[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(le
     } else {
       datacall = this.readDataCall_v6();
     }
-    datacalls[datacall.cid] = datacall;
+    datacalls.push(datacall);
   }
 
-  let newDataCallOptions = null;
-  if (options.rilRequestType == REQUEST_SETUP_DATA_CALL) {
-    newDataCallOptions = options;
-  }
-  this._processDataCallList(datacalls, newDataCallOptions);
+  options.datacalls = datacalls;
+  this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_RESET_RADIO] = null;
 RilObject.prototype[REQUEST_OEM_HOOK_RAW] = null;
@@ -6763,6 +6604,8 @@ RilObject.prototype[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNEC
   }
 
   this.initRILState();
+  
+  this.getDataCallList();
   
   this.exitEmergencyCbMode();
   
