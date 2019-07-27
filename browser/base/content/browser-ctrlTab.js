@@ -578,8 +578,8 @@ var allTabs = {
     if (this.canOpen) {
       
       
-      setTimeout(function () {
-        allTabs.toolbarButton.open = true;
+      setTimeout(() => {
+        this.toolbarButton.open = true;
       }, 0);
     }
   }
