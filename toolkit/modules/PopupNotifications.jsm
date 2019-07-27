@@ -272,8 +272,6 @@ PopupNotifications.prototype = {
 
 
 
-
-
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -502,11 +500,11 @@ PopupNotifications.prototype = {
 
         
         
+        
         let contentNode = popupnotification.lastChild;
         while (contentNode) {
           let previousSibling = contentNode.previousSibling;
-          if (contentNode.nodeName == "menuitem" ||
-              contentNode.nodeName == "menuseparator")
+          if (contentNode.nodeName != "popupnotificationcontent")
             popupnotification.removeChild(contentNode);
           contentNode = previousSibling;
         }
@@ -561,16 +559,10 @@ PopupNotifications.prototype = {
 
       if (n.options.popupIconURL)
         popupnotification.setAttribute("icon", n.options.popupIconURL);
-
       if (n.options.learnMoreURL)
         popupnotification.setAttribute("learnmoreurl", n.options.learnMoreURL);
       else
         popupnotification.removeAttribute("learnmoreurl");
-
-      if (n.options.originHost)
-        popupnotification.setAttribute("originhost", n.options.originHost);
-      else
-        popupnotification.removeAttribute("originhost");
 
       popupnotification.notification = n;
 
