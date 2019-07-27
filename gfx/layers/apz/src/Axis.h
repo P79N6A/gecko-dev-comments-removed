@@ -232,6 +232,9 @@ protected:
   
   
   ScreenCoord ApplyResistance(ScreenCoord aOverscroll) const;
+
+  
+  float ToLocalVelocity(float aVelocityInchesPerMs);
 };
 
 class AxisX : public Axis {

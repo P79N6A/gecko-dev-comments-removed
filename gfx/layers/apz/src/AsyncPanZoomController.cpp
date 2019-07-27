@@ -351,7 +351,36 @@ typedef mozilla::gfx::Matrix4x4 Matrix4x4;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 StaticAutoPtr<ComputedTimingFunction> gZoomAnimationFunction;
+
+
+
+
+StaticAutoPtr<ComputedTimingFunction> gVelocityCurveFunction;
 
 
 
@@ -863,6 +892,13 @@ AsyncPanZoomController::InitializeGlobalState()
   gZoomAnimationFunction->Init(
     nsTimingFunction(NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE));
   ClearOnShutdown(&gZoomAnimationFunction);
+  gVelocityCurveFunction = new ComputedTimingFunction();
+  gVelocityCurveFunction->Init(
+    nsTimingFunction(gfxPrefs::APZCurveFunctionX1(),
+                     gfxPrefs::APZCurveFunctionY2(),
+                     gfxPrefs::APZCurveFunctionX2(),
+                     gfxPrefs::APZCurveFunctionY2()));
+  ClearOnShutdown(&gVelocityCurveFunction);
 }
 
 AsyncPanZoomController::AsyncPanZoomController(uint64_t aLayersId,
