@@ -1229,6 +1229,11 @@ public abstract class GeckoApp
             }, 1000 * 5 );
         }
 
+        
+        
+        
+        ThreadUtils.reduceGeckoPriority();
+
         MemoryMonitor.getInstance().init(getApplicationContext());
 
         Tabs.getInstance().attachToContext(this);
@@ -1605,6 +1610,10 @@ public abstract class GeckoApp
         } else if (NotificationHelper.HELPER_BROADCAST_ACTION.equals(action)) {
             NotificationHelper.getInstance(getApplicationContext()).handleNotificationIntent(intent);
         }
+
+        
+        
+        ThreadUtils.resetGeckoPriority();
     }
 
     private String restoreSessionTabs(final boolean isExternalURL) throws SessionRestoreException {

@@ -98,9 +98,6 @@ public class TopSitesPanel extends HomeFragment {
     
     private int mMaxGridEntries;
 
-    
-    private static final long PRIORITY_RESET_TIMEOUT = 10000;
-
     public static TopSitesPanel newInstance() {
         return new TopSitesPanel();
     }
@@ -347,7 +344,7 @@ public class TopSitesPanel extends HomeFragment {
         
         
         
-        ThreadUtils.reduceGeckoPriority(PRIORITY_RESET_TIMEOUT);
+        ThreadUtils.reduceGeckoPriority();
     }
 
     

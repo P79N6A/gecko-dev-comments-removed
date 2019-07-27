@@ -18,6 +18,9 @@ public final class ThreadUtils {
     private static final String LOGTAG = "ThreadUtils";
 
     
+    private static final long PRIORITY_RESET_TIMEOUT = 10000;
+
+    
 
 
 
@@ -210,9 +213,7 @@ public final class ThreadUtils {
 
 
 
-
-
-    public static void reduceGeckoPriority(long timeout) {
+    public static void reduceGeckoPriority() {
         if (Runtime.getRuntime().availableProcessors() > 1) {
             
             
@@ -222,7 +223,7 @@ public final class ThreadUtils {
         if (!sIsGeckoPriorityReduced && sGeckoThread != null) {
             sIsGeckoPriorityReduced = true;
             sGeckoThread.setPriority(Thread.MIN_PRIORITY);
-            getUiHandler().postDelayed(sPriorityResetRunnable, timeout);
+            getUiHandler().postDelayed(sPriorityResetRunnable, PRIORITY_RESET_TIMEOUT);
         }
     }
 
