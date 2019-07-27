@@ -3,9 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from marionette_driver.errors import (JavascriptException,
-                                      MarionetteException,
-                                      ScriptTimeoutException)
+from errors import JavascriptException, MarionetteException, ScriptTimeoutException
 
 class SimpletestSanityTest(MarionetteTestCase):
 

@@ -2,12 +2,11 @@
 
 
 
+from marionette import HTMLElement
 from marionette_test import MarionetteTestCase
-
-from marionette_driver.errors import NoSuchElementException
-from marionette_driver.expected import element_present
-from marionette_driver.marionette import HTMLElement
-from marionette_driver.wait import Wait
+from errors import NoSuchElementException
+from expected import element_present
+from wait import Wait
 
 class TestAnonymousContent(MarionetteTestCase):
     def setUp(self):

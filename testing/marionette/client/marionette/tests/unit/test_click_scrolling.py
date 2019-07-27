@@ -2,8 +2,8 @@
 
 
 
-from marionette_driver.by import By
-from marionette_driver.errors import MoveTargetOutOfBoundsException
+from by import By
+from errors import MoveTargetOutOfBoundsException
 from marionette_test import MarionetteTestCase, skip
 
 

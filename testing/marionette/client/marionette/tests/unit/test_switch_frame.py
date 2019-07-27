@@ -3,8 +3,8 @@
 
 
 from marionette_test import MarionetteTestCase
-from marionette_driver.errors import (JavascriptException,
-                                      NoSuchFrameException)
+from errors import JavascriptException
+from errors import NoSuchFrameException
 
 
 class TestSwitchFrame(MarionetteTestCase):

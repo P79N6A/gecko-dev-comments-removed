@@ -4,7 +4,7 @@
 
 
 
-from marionette_driver.errors import MarionetteException
+from errors import MarionetteException
 from marionette_test import MarionetteTestCase
 from mozrunner.devices.emulator_screen import EmulatorScreen
 

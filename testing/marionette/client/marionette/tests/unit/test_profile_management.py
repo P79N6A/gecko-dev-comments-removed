@@ -3,7 +3,7 @@
 
 
 import os
-from marionette_driver.errors import JavascriptException
+from errors import JavascriptException
 from marionette_test import MarionetteTestCase
 
 class TestLog(MarionetteTestCase):
