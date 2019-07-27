@@ -439,25 +439,17 @@ private:
   int64_t mNextParserPosition;
   int64_t mParsedDataLength;
   nsAutoPtr<MP3FrameParser> mMP3FrameParser;
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
   
   
   
   
   struct ReleaseItem {
-    ReleaseItem(size_t aIndex, const android::sp<android::Fence>& aFence)
+    ReleaseItem(size_t aIndex, const FenceHandle& aFence)
     : mReleaseIndex(aIndex)
     , mReleaseFence(aFence) {}
     size_t mReleaseIndex;
-    android::sp<android::Fence> mReleaseFence;
+    FenceHandle mReleaseFence;
   };
-#else
-  struct ReleaseItem {
-    ReleaseItem(size_t aIndex)
-    : mReleaseIndex(aIndex) {}
-    size_t mReleaseIndex;
-  };
-#endif
   nsTArray<ReleaseItem> mPendingReleaseItems;
 };
 
