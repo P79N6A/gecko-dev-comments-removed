@@ -191,6 +191,9 @@ SharedDecoderManager::DrainComplete()
 void
 SharedDecoderManager::Shutdown()
 {
+  
+  MOZ_ASSERT(!mActiveProxy);
+
   if (mDecoder) {
     mDecoder->Shutdown();
     mDecoder = nullptr;
