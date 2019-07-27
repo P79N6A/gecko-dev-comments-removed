@@ -39,7 +39,6 @@ public:
                                  bool& aOutContainsMP3);
 
   
-  
   static bool IsEnabled();
 
   static bool IsVideoAccelerated(layers::LayersBackend aBackend);

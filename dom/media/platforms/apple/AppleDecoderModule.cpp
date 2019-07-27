@@ -121,23 +121,6 @@ public:
   }
 };
 
-
-nsresult
-AppleDecoderModule::CanDecode()
-{
-  if (!sInitialized) {
-    
-    if (NS_IsMainThread()) {
-      Init();
-    } else {
-      nsCOMPtr<nsIRunnable> task(new InitTask());
-      NS_DispatchToMainThread(task, NS_DISPATCH_SYNC);
-    }
-  }
-
-  return (sIsVDAAvailable || sIsVTAvailable) ? NS_OK : NS_ERROR_NO_INTERFACE;
-}
-
 nsresult
 AppleDecoderModule::Startup()
 {
