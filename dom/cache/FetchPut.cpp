@@ -381,25 +381,19 @@ FetchPut::MatchInPutList(const PCacheRequest& aRequest,
           continue;
         }
 
-        
-        
-        
         ErrorResult headerRv;
-
         nsAutoCString value;
-        requestHeaders->Get(header, value, rv);
-        if (NS_WARN_IF(rv.Failed())) {
-          varyHeadersMatch = false;
-          bailOut = true;
-          break;
+        requestHeaders->Get(header, value, headerRv);
+        if (NS_WARN_IF(headerRv.Failed())) {
+          headerRv.ClearMessage();
+          MOZ_ASSERT(value.IsEmpty());
         }
 
         nsAutoCString cachedValue;
-        cachedRequestHeaders->Get(header, value, rv);
-        if (NS_WARN_IF(rv.Failed())) {
-          varyHeadersMatch = false;
-          bailOut = true;
-          break;
+        cachedRequestHeaders->Get(header, value, headerRv);
+        if (NS_WARN_IF(headerRv.Failed())) {
+          headerRv.ClearMessage();
+          MOZ_ASSERT(cachedValue.IsEmpty());
         }
 
         if (value != cachedValue) {
