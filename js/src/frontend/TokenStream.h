@@ -11,6 +11,7 @@
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/UniquePtr.h"
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -642,7 +643,7 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     jschar *displayURL() {
-        return displayURL_;
+        return displayURL_.get();
     }
 
     bool hasSourceMapURL() const {
@@ -650,7 +651,7 @@ class MOZ_STACK_CLASS TokenStream
     }
 
     jschar *sourceMapURL() {
-        return sourceMapURL_;
+        return sourceMapURL_.get();
     }
 
     
@@ -856,7 +857,8 @@ class MOZ_STACK_CLASS TokenStream
     bool getDirectives(bool isMultiline, bool shouldWarnDeprecated);
     bool getDirective(bool isMultiline, bool shouldWarnDeprecated,
                       const char *directive, int directiveLength,
-                      const char *errorMsgPragma, jschar **destination);
+                      const char *errorMsgPragma,
+                      mozilla::UniquePtr<jschar[], JS::FreePolicy> *destination);
     bool getDisplayURL(bool isMultiline, bool shouldWarnDeprecated);
     bool getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated);
 
@@ -898,8 +900,8 @@ class MOZ_STACK_CLASS TokenStream
     const jschar        *prevLinebase;      
     TokenBuf            userbuf;            
     const char          *filename;          
-    jschar              *displayURL_;       
-    jschar              *sourceMapURL_;     
+    mozilla::UniquePtr<jschar[], JS::FreePolicy> displayURL_; 
+    mozilla::UniquePtr<jschar[], JS::FreePolicy> sourceMapURL_; 
     CharBuffer          tokenbuf;           
     bool                maybeEOL[256];      
     bool                maybeStrSpecial[256];   

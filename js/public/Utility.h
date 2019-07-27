@@ -406,6 +406,25 @@ SCOPED_TEMPLATE(ScopedReleasePtr, ScopedReleasePtrTraits)
 
 } 
 
+namespace JS {
+
+template<typename T>
+struct DeletePolicy
+{
+    void operator()(T* ptr) {
+        js_delete(ptr);
+    }
+};
+
+struct FreePolicy
+{
+    void operator()(void* ptr) {
+        js_free(ptr);
+    }
+};
+
+} 
+
 namespace js {
 
 
