@@ -27,7 +27,6 @@ import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserContract.ReadingListItems;
 import org.mozilla.gecko.db.BrowserContract.SearchHistory;
 import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.db.DBUtils;
 import org.mozilla.gecko.db.SuggestedSites;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.favicons.Favicons;
@@ -79,7 +78,6 @@ import org.mozilla.gecko.widget.GeckoActionProvider;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
-import android.app.KeyguardManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -183,7 +181,7 @@ public class BrowserApp extends GeckoApp
     }
 
     
-    public static enum GuestModeDialog {
+    private static enum GuestModeDialog {
         ENTERING,
         LEAVING
     }
@@ -498,17 +496,11 @@ public class BrowserApp extends GeckoApp
         mAboutHomeStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_ABOUTHOME");
 
         final Intent intent = getIntent();
-        final String args = intent.getStringExtra("args");
 
-        if (GuestSession.shouldUse(this, args)) {
-            GuestSession.configureWindow(getWindow());
+        String args = intent.getStringExtra("args");
+        if (args != null && args.contains(GUEST_BROWSING_ARG)) {
             mProfile = GeckoProfile.createGuestProfile(this);
         } else {
-            
-            final KeyguardManager manager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-            if (Versions.feature16Plus && !manager.isKeyguardSecure()) {
-                GuestSession.configureWindow(getWindow());
-            }
             GeckoProfile.maybeCleanupGuestProfile(this);
         }
 
@@ -526,15 +518,11 @@ public class BrowserApp extends GeckoApp
         mBrowserToolbar = (BrowserToolbar) findViewById(R.id.browser_toolbar);
         mProgressView = (ToolbarProgressView) findViewById(R.id.progress);
         mBrowserToolbar.setProgressBar(mProgressView);
-
-        final String action = intent.getAction();
-        if (Intent.ACTION_VIEW.equals(action)) {
+        if (Intent.ACTION_VIEW.equals(intent.getAction())) {
             
             mBrowserToolbar.setTitle(intent.getDataString());
 
             Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.INTENT);
-        } else if (GuestSession.NOTIFICATION_INTENT.equals(action)) {
-            showGuestModeDialog(BrowserApp.GuestModeDialog.LEAVING);
         }
 
         ((GeckoApp.MainLayout) mMainLayout).setTouchEventInterceptor(new HideOnTouchListener());
@@ -650,13 +638,6 @@ public class BrowserApp extends GeckoApp
                 Log.e(LOGTAG, "Error initializing media manager", ex);
             }
         }
-
-        if (getProfile().inGuestMode()) {
-            GuestSession.showNotification(this);
-        } else {
-            
-            GuestSession.hideNotification(this);
-        }
     }
 
     private void registerOnboardingReceiver(Context context) {
@@ -714,18 +695,6 @@ public class BrowserApp extends GeckoApp
     @Override
     public void onResume() {
         super.onResume();
-
-        final String args = getIntent().getStringExtra("args");
-        
-        
-        final boolean enableGuestSession = GuestSession.shouldUse(this, args);
-        final boolean inGuestSession = GeckoProfile.get(this).inGuestMode();
-        if (enableGuestSession != inGuestSession) {
-            doRestart(getIntent());
-            GeckoAppShell.systemExit();
-            return;
-        }
-
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Prompt:ShowTop");
         if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
@@ -1022,8 +991,6 @@ public class BrowserApp extends GeckoApp
             mBrowserHealthReporter.uninit();
             mBrowserHealthReporter = null;
         }
-
-        GuestSession.onDestroy(this);
 
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Menu:Update",
@@ -2663,11 +2630,10 @@ public class BrowserApp extends GeckoApp
 
         charEncoding.setVisible(GeckoPreferences.getCharEncodingState());
 
-        if (mProfile.inGuestMode()) {
+        if (mProfile.inGuestMode())
             exitGuestMode.setVisible(true);
-        } else {
+        else
             enterGuestMode.setVisible(true);
-        }
 
         return true;
     }
@@ -2819,7 +2785,7 @@ public class BrowserApp extends GeckoApp
         return super.onOptionsItemSelected(item);
     }
 
-    public void showGuestModeDialog(final GuestModeDialog type) {
+    private void showGuestModeDialog(final GuestModeDialog type) {
         final Prompt ps = new Prompt(this, new Prompt.PromptCallback() {
             @Override
             public void onPromptFinished(String result) {
@@ -2832,14 +2798,7 @@ public class BrowserApp extends GeckoApp
                         } else {
                             GeckoProfile.leaveGuestSession(BrowserApp.this);
                         }
-
-                        if (!GuestSession.isSecureKeyguardLocked(BrowserApp.this)) {
-                            doRestart(args);
-                        } else {
-                            
-                            
-                            GeckoProfile.maybeCleanupGuestProfile(BrowserApp.this);
-                        }
+                        doRestart(args);
                         GeckoAppShell.systemExit();
                     }
                 } catch(JSONException ex) {
@@ -2916,9 +2875,7 @@ public class BrowserApp extends GeckoApp
         }
 
         
-        if (GuestSession.NOTIFICATION_INTENT.equals(action)) {
-            showGuestModeDialog(BrowserApp.GuestModeDialog.LEAVING);
-        } else if (!Intent.ACTION_MAIN.equals(action)) {
+        if (!Intent.ACTION_MAIN.equals(action)) {
             return;
         }
 
