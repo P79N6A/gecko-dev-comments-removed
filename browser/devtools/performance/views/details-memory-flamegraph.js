@@ -33,11 +33,13 @@ let MemoryFlameGraphView = Heritage.extend(DetailsSubview, {
   
 
 
-  destroy: function () {
+  destroy: Task.async(function* () {
     DetailsSubview.destroy.call(this);
 
     this.graph.off("selecting", this._onRangeChangeInGraph);
-  },
+
+    yield this.graph.destroy();
+  }),
 
   
 
