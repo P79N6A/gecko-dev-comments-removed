@@ -1360,6 +1360,7 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
                                         eRestyle_SVGAttrAnimations |
                                         eRestyle_StyleAttribute |
                                         eRestyle_ChangeAnimationPhase |
+                                        eRestyle_ChangeAnimationPhaseDescendants |
                                         eRestyle_Force |
                                         eRestyle_ForceDescendants)),
                     
@@ -1369,11 +1370,27 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
 
   
   
-  if (aReplacements & eRestyle_ChangeAnimationPhase) {
-    aReplacements |= eRestyle_CSSTransitions |
-                     eRestyle_CSSAnimations |
-                     eRestyle_SVGAttrAnimations |
-                     eRestyle_StyleAttribute;
+  if (aReplacements & (eRestyle_ChangeAnimationPhase |
+                       eRestyle_ChangeAnimationPhaseDescendants)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    if (aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement) {
+      aReplacements |= eRestyle_CSSTransitions |
+                       eRestyle_CSSAnimations |
+                       eRestyle_SVGAttrAnimations |
+                       eRestyle_StyleAttribute;
+    } else if (aPseudoType == nsCSSPseudoElements::ePseudo_before ||
+               aPseudoType == nsCSSPseudoElements::ePseudo_after) {
+      aReplacements |= eRestyle_CSSTransitions |
+                       eRestyle_CSSAnimations |
+                       eRestyle_SVGAttrAnimations;
+    }
   }
 
   
@@ -1435,7 +1452,8 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
           break;
         }
         case eRestyle_SVGAttrAnimations: {
-          MOZ_ASSERT(aReplacements & eRestyle_ChangeAnimationPhase,
+          MOZ_ASSERT(aReplacements & (eRestyle_ChangeAnimationPhase |
+                                      eRestyle_ChangeAnimationPhaseDescendants),
                      "don't know how to do this level without phase change");
 
           SVGAttrAnimationRuleProcessor* ruleProcessor =
@@ -1448,7 +1466,8 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
           break;
         }
         case eRestyle_StyleAttribute: {
-          MOZ_ASSERT(aReplacements & eRestyle_ChangeAnimationPhase,
+          MOZ_ASSERT(aReplacements & (eRestyle_ChangeAnimationPhase |
+                                      eRestyle_ChangeAnimationPhaseDescendants),
                      "don't know how to do this level without phase change");
 
           if (!level->mIsImportant) {

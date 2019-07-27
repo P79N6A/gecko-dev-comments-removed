@@ -348,14 +348,18 @@ enum nsRestyleHint {
 
   
   
-  eRestyle_Force = (1<<8),
+  eRestyle_ChangeAnimationPhaseDescendants = (1 << 8),
+
+  
+  
+  eRestyle_Force = (1<<9),
 
   
   
   
   
   
-  eRestyle_ForceDescendants = (1<<9),
+  eRestyle_ForceDescendants = (1<<10),
 };
 
 
