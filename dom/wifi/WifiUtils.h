@@ -15,6 +15,7 @@
 #include "mozilla/dom/WifiOptionsBinding.h"
 #include "mozilla/dom/network/NetUtils.h"
 #include "WifiHotspotUtils.h"
+#include "nsCxPusher.h"
 
 
 struct CommandOptions
