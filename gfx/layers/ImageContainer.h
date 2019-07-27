@@ -458,6 +458,19 @@ public:
 
 
 
+
+
+  uint32_t GetDroppedImageCount()
+  {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    return mDroppedImageCount;
+  }
+
+  
+
+
+
+
   void NotifyPaintedImage(Image* aPainted) {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
@@ -485,7 +498,7 @@ private:
   
   B2G_ACL_EXPORT ~ImageContainer();
 
-  void SetCurrentImageInternal(Image* aImage);
+  void SetCurrentImageInternal(Image* aImage, const TimeStamp& aTimeStamp);
 
   
   
@@ -509,6 +522,8 @@ private:
   ReentrantMonitor mReentrantMonitor;
 
   nsRefPtr<Image> mActiveImage;
+  TimeStamp mCurrentImageTimeStamp;
+
   
   uint32_t mGenerationCounter;
 
@@ -525,7 +540,12 @@ private:
   TimeDuration mPaintDelay;
 
   
+  uint32_t mDroppedImageCount;
+
+  
   bool mPreviousImagePainted;
+
+  bool mCurrentImageComposited;
 
   
   
@@ -544,6 +564,8 @@ private:
   
   
   ImageClient* mImageClient;
+
+  nsTArray<FrameID> mFrameIDsNotYetComposited;
 
   
   
