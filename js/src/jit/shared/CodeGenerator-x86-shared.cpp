@@ -839,6 +839,14 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
     masm.udiv(rhs);
 
     
+    if (ins->mir()->isDiv() && !ins->mir()->toDiv()->canTruncateRemainder()) {
+        Register remainder = ToRegister(ins->remainder());
+        masm.testl(remainder, remainder);
+        if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
+            return false;
+    }
+
+    
     
     if (!ins->mir()->isTruncated()) {
         masm.testl(output, output);
