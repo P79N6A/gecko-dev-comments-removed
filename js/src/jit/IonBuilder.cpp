@@ -10069,8 +10069,7 @@ IonBuilder::jsop_setprop(PropertyName *name)
     
     
     if (info().executionModeIsAnalysis()) {
-        
-        bool strict = IsStrictSetPC(pc) || script()->strict();
+        bool strict = IsStrictSetPC(pc);
         MInstruction *ins = MCallSetProperty::New(alloc(), obj, value, name, strict);
         current->add(ins);
         current->push(value);
@@ -10452,8 +10451,7 @@ IonBuilder::setPropTryCache(bool *emitted, MDefinition *obj,
 {
     MOZ_ASSERT(*emitted == false);
 
-    
-    bool strict = IsStrictSetPC(pc) || script()->strict();
+    bool strict = IsStrictSetPC(pc);
     
     MSetPropertyCache *ins = MSetPropertyCache::New(alloc(), obj, value, name, strict, barrier);
 
