@@ -438,19 +438,19 @@ let MozLoopServiceInternal = {
 
 
 
-  hawkRequestInternal: function(sessionType, path, method, payloadObj) {
+
+  hawkRequestInternal: function(sessionType, path, method, payloadObj, retryOn401 = true) {
     if (!gHawkClient) {
       gHawkClient = new HawkClient(this.loopServerUri);
     }
 
-    let sessionToken;
+    let sessionToken, credentials;
     try {
       sessionToken = Services.prefs.getCharPref(this.getSessionTokenPrefName(sessionType));
     } catch (x) {
       
     }
 
-    let credentials;
     if (sessionToken) {
       
       credentials = deriveHawkCredentials(sessionToken, "sessionToken",
@@ -471,27 +471,40 @@ let MozLoopServiceInternal = {
       payloadObj = newPayloadObj;
     }
 
-    return gHawkClient.request(path, method, credentials, payloadObj).then((result) => {
-      this.clearError("network");
-      return result;
-    }, (error) => {
-      if (error.code == 401) {
+    let handle401Error = (error) => {
+      if (sessionType === LOOP_SESSION_TYPE.FXA) {
+        MozLoopService.logOutFromFxA().then(() => {
+          
+          this.setError("login", error);
+        });
+      } else if (this.urlExpiryTimeIsInFuture()) {
+        
+        
+        this.setError("registration", error);
+      }
+    };
+
+    return gHawkClient.request(path, method, credentials, payloadObj).then(
+      (result) => {
+        this.clearError("network");
+        return result;
+      },
+      (error) => {
+      if (error.code && error.code == 401) {
         this.clearSessionToken(sessionType);
-
-        if (sessionType == LOOP_SESSION_TYPE.FXA) {
-          MozLoopService.logOutFromFxA().then(() => {
-            
-            this.setError("login", error);
-          });
-        } else {
-          if (!this.urlExpiryTimeIsInFuture()) {
-            
-            
-            throw error;
-          }
-
-          this.setError("registration", error);
+        if (retryOn401 && sessionType === LOOP_SESSION_TYPE.GUEST) {
+          log.info("401 and INVALID_AUTH_TOKEN - retry registration");
+          return this.registerWithLoopServer(sessionType, false).then(
+            () => {
+              return this.hawkRequestInternal(sessionType, path, method, payloadObj, false);
+            },
+            () => {
+              handle401Error(error); 
+              throw error;
+            }
+          );
         }
+        handle401Error(error);
       }
       throw error;
     });
@@ -625,7 +638,7 @@ let MozLoopServiceInternal = {
           rooms: roomsPushURL,
         },
     };
-    return this.hawkRequestInternal(sessionType, "/registration", "POST", msg)
+    return this.hawkRequestInternal(sessionType, "/registration", "POST", msg, false)
       .then((response) => {
         
         if (!this.storeSessionToken(sessionType, response.headers)) {
