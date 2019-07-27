@@ -188,6 +188,7 @@
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsAutoPtr.h"
+#include "nsITimer.h"
 #include "MediaResource.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/gfx/Rect.h"
@@ -366,6 +367,8 @@ public:
   
   
   virtual void NotifyOwnerActivityChanged();
+
+  void UpdateDormantState(bool aDormantTimeout, bool aActivity);
 
   
   virtual void Pause();
@@ -1022,6 +1025,14 @@ protected:
   virtual ~MediaDecoder();
   void SetStateMachineParameters();
 
+  static void DormantTimerExpired(nsITimer *aTimer, void *aClosure);
+
+  
+  void StartDormantTimer();
+
+  
+  void CancelDormantTimer();
+
   
 
 
@@ -1219,6 +1230,18 @@ protected:
 
   
   bool mIsDormant;
+
+  
+  const bool mIsHeuristicDormantSupported;
+
+  
+  const int mHeuristicDormantTimeout;
+
+  
+  bool mIsHeuristicDormant;
+
+  
+  nsCOMPtr<nsITimer> mDormantTimer;
 };
 
 } 
