@@ -44,15 +44,15 @@ class GeckoTouchDispatcher
 
 public:
   GeckoTouchDispatcher();
-  void NotifyTouch(MultiTouchInput& aTouch, uint64_t aEventTime);
+  void NotifyTouch(MultiTouchInput& aTouch, TimeStamp aEventTime);
   void DispatchTouchEvent(MultiTouchInput& aMultiTouch);
-  void DispatchTouchMoveEvents(uint64_t aVsyncTime);
-  static bool NotifyVsync(uint64_t aVsyncTimestamp);
+  void DispatchTouchMoveEvents(TimeStamp aVsyncTime);
+  static bool NotifyVsync(TimeStamp aVsyncTimestamp);
 
 private:
-  int32_t InterpolateTouch(MultiTouchInput& aOutTouch, uint64_t aSampleTime);
-  int32_t ExtrapolateTouch(MultiTouchInput& aOutTouch, uint64_t aSampleTime);
-  void ResampleTouchMoves(MultiTouchInput& aOutTouch, uint64_t vsyncTime);
+  int32_t InterpolateTouch(MultiTouchInput& aOutTouch, TimeStamp aSampleTime);
+  int32_t ExtrapolateTouch(MultiTouchInput& aOutTouch, TimeStamp aSampleTime);
+  void ResampleTouchMoves(MultiTouchInput& aOutTouch, TimeStamp vsyncTime);
   void SendTouchEvent(MultiTouchInput& aData);
   void DispatchMouseEvent(MultiTouchInput& aMultiTouch,
                           bool aForwardToChildren);
@@ -68,21 +68,21 @@ private:
   bool mEnabledUniformityInfo;
 
   
-  int32_t mVsyncAdjust;     
-  int32_t mMaxPredict;      
+  TimeDuration mVsyncAdjust;     
+  TimeDuration mMaxPredict;      
 
   
   
-  int32_t mMinResampleTime;
+  TimeDuration mMinResampleTime;
 
   
-  int64_t mTouchTimeDiff;
+  TimeDuration mTouchTimeDiff;
 
   
-  uint64_t mLastTouchTime;
+  TimeStamp mLastTouchTime;
 
   
-  uint64_t mDelayedVsyncThreshold;
+  TimeDuration mDelayedVsyncThreshold;
 };
 
 } 

@@ -12,8 +12,6 @@
 #include "nsTArray.h"
 #include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 
-typedef int64_t nsecs_t; 
-
 class MessageLoop;
 
 namespace mozilla {
@@ -46,7 +44,7 @@ class VsyncDispatcher
 public:
   static VsyncDispatcher* GetInstance();
   
-  void NotifyVsync(TimeStamp aVsyncTimestamp, nsecs_t aAndroidVsyncTime);
+  void NotifyVsync(TimeStamp aVsyncTimestamp);
 
   
   void AddCompositorVsyncObserver(VsyncObserver* aVsyncObserver);
@@ -55,7 +53,7 @@ public:
 private:
   VsyncDispatcher();
   virtual ~VsyncDispatcher();
-  void DispatchTouchEvents(bool aNotifiedCompositors, nsecs_t aAndroidVSyncTime);
+  void DispatchTouchEvents(bool aNotifiedCompositors, TimeStamp aVsyncTime);
 
   
   bool NotifyVsyncObservers(TimeStamp aVsyncTimestamp, nsTArray<nsRefPtr<VsyncObserver>>& aObservers);
