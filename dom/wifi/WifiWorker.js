@@ -97,6 +97,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
                                    "@mozilla.org/settingsService;1",
                                    "nsISettingsService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gTetheringService",
+                                   "@mozilla.org/tethering/service;1",
+                                   "nsITetheringService");
+
 
 
 
@@ -1136,8 +1140,8 @@ var WifiManager = (function() {
         function doStartWifiTethering() {
           cancelWaitForDriverReadyTimer();
           WifiNetworkInterface.name = libcutils.property_get("wifi.tethering.interface", manager.ifname);
-          gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface,
-                                           configuration, function(result) {
+          gTetheringService.setWifiTethering(enabled, WifiNetworkInterface,
+                                             configuration, function(result) {
             if (result) {
               manager.tetheringState = "UNINITIALIZED";
             } else {
@@ -1164,8 +1168,8 @@ var WifiManager = (function() {
       });
     } else {
       cancelWifiHotspotStatusTimer();
-      gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface,
-                                       configuration, function(result) {
+      gTetheringService.setWifiTethering(enabled, WifiNetworkInterface,
+                                         configuration, function(result) {
         
         debug("Disable Wifi tethering result: " + (result ? result : "successfully"));
         
