@@ -579,6 +579,7 @@ ConnectionData.prototype = Object.freeze({
     let userCancelled = false;
     let errors = [];
     let rows = [];
+    let handledRow = false;
 
     
     
@@ -603,6 +604,8 @@ ConnectionData.prototype = Object.freeze({
             rows.push(row);
             continue;
           }
+
+          handledRow = true;
 
           try {
             onRow(row);
@@ -630,7 +633,8 @@ ConnectionData.prototype = Object.freeze({
         switch (reason) {
           case Ci.mozIStorageStatementCallback.REASON_FINISHED:
             
-            let result = onRow ? null : rows;
+            
+            let result = onRow ? handledRow : rows;
             deferred.resolve(result);
             break;
 
@@ -638,7 +642,7 @@ ConnectionData.prototype = Object.freeze({
             
             
             if (userCancelled) {
-              let result = onRow ? null : rows;
+              let result = onRow ? handledRow : rows;
               deferred.resolve(result);
             } else {
               deferred.reject(new Error("Statement was cancelled."));
