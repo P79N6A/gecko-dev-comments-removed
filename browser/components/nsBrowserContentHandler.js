@@ -1,14 +1,17 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http:
+
+
+
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "WindowsUIUtils",
+                                   "@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils");
 
 const nsISupports            = Components.interfaces.nsISupports;
 
@@ -452,31 +455,35 @@ nsBrowserContentHandler.prototype = {
       cmdLine.preventDefault = true;
     }
 
-#ifdef XP_WIN
-    
-    for (var i = cmdLine.length - 1; i >= 0; --i) {
-      var param = cmdLine.getArgument(i);
-      if (param.match(/^\? /)) {
-        cmdLine.removeArguments(i, i);
-        cmdLine.preventDefault = true;
+    if (AppConstants.platform  == "win") {
+      
+      for (var i = cmdLine.length - 1; i >= 0; --i) {
+        var param = cmdLine.getArgument(i);
+        if (param.match(/^\? /)) {
+          cmdLine.removeArguments(i, i);
+          cmdLine.preventDefault = true;
 
-        searchParam = param.substr(2);
-        doSearch(searchParam, cmdLine);
+          searchParam = param.substr(2);
+          doSearch(searchParam, cmdLine);
+        }
       }
     }
-#endif
   },
 
-  helpInfo : "  --browser          Open a browser window.\n" +
-             "  --new-window <url> Open <url> in a new window.\n" +
-             "  --new-tab <url>    Open <url> in a new tab.\n" +
-             "  --private-window <url> Open <url> in a new private window.\n" +
-#ifdef XP_WIN
-             "  --preferences      Open Options dialog.\n" +
-#else
-             "  --preferences      Open Preferences dialog.\n" +
-#endif
-             "  --search <term>    Search <term> with your default search engine.\n",
+  get helpInfo() {
+    let info =
+              "  --browser          Open a browser window.\n" +
+              "  --new-window <url> Open <url> in a new window.\n" +
+              "  --new-tab <url>    Open <url> in a new tab.\n" +
+              "  --private-window <url> Open <url> in a new private window.\n";
+    if (AppConstants.platform == "win") {
+      info += "  --preferences      Open Options dialog.\n";
+    } else {
+      info += "  --preferences      Open Preferences dialog.\n";
+    }
+    info += "  --search <term>    Search <term> with your default search engine.\n";
+    return info;
+  },
 
   
 
@@ -687,35 +694,33 @@ nsDefaultCommandLineHandler.prototype = {
     return this;
   },
 
-#ifdef XP_WIN
   _haveProfile: false,
-#endif
 
   
   handle : function dch_handle(cmdLine) {
     var urilist = [];
 
-#ifdef XP_WIN
-    
-    
-    
-    
-    
-    
-    if (!this._haveProfile) {
-      try {
-        
-        var fl = Components.classes["@mozilla.org/file/directory_service;1"]
-                           .getService(Components.interfaces.nsIProperties);
-        var dir = fl.get("ProfD", Components.interfaces.nsILocalFile);
-        this._haveProfile = true;
-      }
-      catch (e) {
-        while ((ar = cmdLine.handleFlagWithParam("url", false))) { }
-        cmdLine.preventDefault = true;
+    if (AppConstants.platform == "win") {
+      
+      
+      
+      
+      
+      
+      if (!this._haveProfile) {
+        try {
+          
+          var fl = Components.classes["@mozilla.org/file/directory_service;1"]
+                             .getService(Components.interfaces.nsIProperties);
+          var dir = fl.get("ProfD", Components.interfaces.nsILocalFile);
+          this._haveProfile = true;
+        }
+        catch (e) {
+          while ((ar = cmdLine.handleFlagWithParam("url", false))) { }
+          cmdLine.preventDefault = true;
+        }
       }
     }
-#endif
 
     try {
       var ar;
@@ -767,6 +772,16 @@ nsDefaultCommandLineHandler.prototype = {
 
     }
     else if (!cmdLine.preventDefault) {
+      if (AppConstants.isPlatformAndVersionAtLeast("win", "10") &&
+          cmdLine.state != nsICommandLine.STATE_INITIAL_LAUNCH &&
+          WindowsUIUtils.inTabletMode) {
+        
+        let win = RecentWindow.getMostRecentBrowserWindow();
+        if (win) {
+          win.focus();
+          return;
+        }
+      }
       
       openWindow(null, gBrowserContentHandler.chromeURL, "_blank",
                  "chrome,dialog=no,all" + gBrowserContentHandler.getFeatures(cmdLine),
