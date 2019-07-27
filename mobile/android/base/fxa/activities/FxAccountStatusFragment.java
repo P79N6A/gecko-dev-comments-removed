@@ -48,7 +48,6 @@ import android.preference.PreferenceScreen;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
-import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
@@ -92,15 +91,6 @@ public class FxAccountStatusFragment
   
   
   private static boolean ALWAYS_SHOW_SYNC_SERVER = false;
-
-  
-  
-  
-  
-  private final int NUMBER_OF_CLICKS_TO_TOGGLE_DEBUG =
-      
-      (!AppConstants.MOZILLA_OFFICIAL || AppConstants.NIGHTLY_BUILD || AppConstants.DEBUG_BUILD) ? 5 : -1 ;
-  private int debugClickCount = 0;
 
   protected PreferenceCategory accountCategory;
   protected Preference profilePreference;
@@ -245,18 +235,6 @@ public class FxAccountStatusFragment
 
   @Override
   public boolean onPreferenceClick(Preference preference) {
-    final Preference personalInformationPreference = AppConstants.MOZ_ANDROID_FIREFOX_ACCOUNT_PROFILES ? profilePreference : emailPreference;
-    if (preference == personalInformationPreference) {
-      debugClickCount += 1;
-      if (NUMBER_OF_CLICKS_TO_TOGGLE_DEBUG > 0 && debugClickCount >= NUMBER_OF_CLICKS_TO_TOGGLE_DEBUG) {
-        debugClickCount = 0;
-        FxAccountUtils.LOG_PERSONAL_INFORMATION = !FxAccountUtils.LOG_PERSONAL_INFORMATION;
-        Toast.makeText(getActivity(), "Toggled logging Firefox Account personal information!", Toast.LENGTH_LONG).show();
-        hardRefresh(); 
-      }
-      return true;
-    }
-
     if (preference == needsPasswordPreference) {
       Intent intent = new Intent(getActivity(), FxAccountUpdateCredentialsActivity.class);
       final Bundle extras = getExtrasForAccount();
