@@ -331,7 +331,9 @@ let gFxAccounts = {
       fxaMigrator.createFxAccount(window);
       break;
     case "migrate-verify":
-      fxaMigrator.resendVerificationMail();
+      
+      
+      this.openPreferences();
       break;
     default:
       this.openAccountsPage(null, { entryPoint: "menupanel" });
