@@ -561,7 +561,12 @@ public:
 
 
 
-template <class Writer>
+
+
+
+
+template <class StringTable,
+          class Writer>
 class LocationService
 {
   
@@ -581,24 +586,6 @@ class LocationService
   
   
   
-
-  struct StringHasher
-  {
-      typedef const char* Lookup;
-
-      static uint32_t hash(const char* const& aS)
-      {
-          return HashString(aS);
-      }
-
-      static bool match(const char* const& aA, const char* const& aB)
-      {
-          return strcmp(aA, aB) == 0;
-      }
-  };
-
-  typedef js::HashSet<const char*, StringHasher, InfallibleAllocPolicy>
-          StringTable;
 
   StringTable mLibraryStrings;
 
@@ -674,7 +661,6 @@ public:
   LocationService()
     : mEntries(), mNumCacheHits(0), mNumCacheMisses(0)
   {
-    (void)mLibraryStrings.init(64);
   }
 
   void WriteLocation(const Writer& aWriter, const void* aPc)
@@ -699,16 +685,7 @@ public:
         (void)NS_DescribeCodeAddress(const_cast<void*>(aPc), &details);
       }
 
-      
-      const char* library = nullptr;
-      typename StringTable::AddPtr p = mLibraryStrings.lookupForAdd(details.library);
-      if (!p) {
-        library = InfallibleAllocPolicy::strdup_(details.library);
-        (void)mLibraryStrings.add(p, library);
-      } else {
-        library = *p;
-      }
-
+      const char* library = mLibraryStrings.Intern(details.library);
       entry.Replace(aPc, details.function, library, details.loffset, details.filename, details.lineno);
 
     } else {
@@ -746,12 +723,7 @@ public:
       n += mEntries[i].SizeOfExcludingThis(aMallocSizeOf);
     }
 
-    n += mLibraryStrings.sizeOfExcludingThis(aMallocSizeOf);
-    for (typename StringTable::Range r = mLibraryStrings.all();
-         !r.empty();
-         r.popFront()) {
-      n += aMallocSizeOf(r.front());
-    }
+    n += mLibraryStrings.SizeOfExcludingThis(aMallocSizeOf);
 
     return n;
   }
@@ -773,7 +745,62 @@ public:
   size_t NumCacheMisses() const { return mNumCacheMisses; }
 };
 
-typedef LocationService<Writer> DMDLocationService;
+class StringTable
+{
+public:
+  StringTable()
+  {
+    (void)mSet.init(64);
+  }
+
+  const char*
+  Intern(const char* aString)
+  {
+    StringHashSet::AddPtr p = mSet.lookupForAdd(aString);
+    if (p) {
+      return *p;
+    }
+
+    const char* newString = InfallibleAllocPolicy::strdup_(aString);
+    (void)mSet.add(p, newString);
+    return newString;
+  }
+
+  size_t
+  SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+  {
+    size_t n = 0;
+    n += mSet.sizeOfExcludingThis(aMallocSizeOf);
+    for (StringHashSet::Range r = mSet.all();
+         !r.empty();
+         r.popFront()) {
+      n += aMallocSizeOf(r.front());
+    }
+    return n;
+  }
+
+private:
+  struct StringHasher
+  {
+      typedef const char* Lookup;
+
+      static uint32_t hash(const char* const& aS)
+      {
+          return HashString(aS);
+      }
+
+      static bool match(const char* const& aA, const char* const& aB)
+      {
+          return strcmp(aA, aB) == 0;
+      }
+  };
+
+  typedef js::HashSet<const char*, StringHasher, InfallibleAllocPolicy> StringHashSet;
+
+  StringHashSet mSet;
+};
+
+typedef LocationService<StringTable, Writer> DMDLocationService;
 
 
 
