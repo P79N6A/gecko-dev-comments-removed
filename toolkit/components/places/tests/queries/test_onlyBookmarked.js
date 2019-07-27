@@ -70,9 +70,9 @@ add_task(function test_onlyBookmarked()
   
   
   
-  do_print("begin first test");
+  LOG("begin first test");
   compareArrayToResult(testData, root);
-  do_print("end first test");
+  LOG("end first test");
 
   
 
@@ -101,9 +101,9 @@ add_task(function test_onlyBookmarked()
   testData.push(liveUpdateTestData[1]);
 
   
-  do_print("begin live-update test");
+  LOG("begin live-update test");
   compareArrayToResult(testData, root);
-  do_print("end live-update test");
+  LOG("end live-update test");
 
 
 
