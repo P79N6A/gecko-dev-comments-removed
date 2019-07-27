@@ -1775,7 +1775,7 @@ CASE(JSOP_RETRVAL)
     if (activation.entryFrame() != REGS.fp()) {
         
         
-        TraceLogStopEvent(logger);
+        TraceLogStopEvent(logger, TraceLogger::Engine);
         TraceLogStopEvent(logger, TraceLogger::Scripts);
 
         interpReturnOK = Debugger::onLeaveFrame(cx, REGS.fp(), interpReturnOK);
@@ -3525,7 +3525,7 @@ DEFAULT()
 
     gc::MaybeVerifyBarriers(cx, true);
 
-    TraceLogStopEvent(logger);
+    TraceLogStopEvent(logger, TraceLogger::Engine);
     TraceLogStopEvent(logger, scriptLogId);
 
     
