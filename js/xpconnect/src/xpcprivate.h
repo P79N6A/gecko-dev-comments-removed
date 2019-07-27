@@ -1993,12 +1993,6 @@ private:
 
 
 
-
-
-
-
-#define XPC_WRAPPED_NATIVE_TEAROFFS_PER_CHUNK 1
-
 class XPCWrappedNativeTearOffChunk
 {
 friend class XPCWrappedNative;
@@ -2007,7 +2001,7 @@ private:
     ~XPCWrappedNativeTearOffChunk() {delete mNextChunk;}
 
 private:
-    XPCWrappedNativeTearOff mTearOffs[XPC_WRAPPED_NATIVE_TEAROFFS_PER_CHUNK];
+    XPCWrappedNativeTearOff mTearOff;
     XPCWrappedNativeTearOffChunk* mNextChunk;
 };
 
