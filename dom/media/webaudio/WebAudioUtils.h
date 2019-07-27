@@ -181,7 +181,7 @@ namespace WebAudioUtils {
     static_assert(mozilla::IsFloatingPoint<FloatType>::value == true,
                   "FloatType must be a floating point type");
 
-    if (f != f) {
+    if (mozilla::IsNaN(f)) {
       
       
       NS_RUNTIMEABORT("We should never see a NaN here");
