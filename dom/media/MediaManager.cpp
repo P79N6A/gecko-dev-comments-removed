@@ -2242,7 +2242,7 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     
 
     MediaManager::GetMessageLoop()->PostTask(FROM_HERE, new ShutdownTask(
-        media::CallbackRunnable::New([this]() mutable {
+        media::NewRunnableFrom([this]() mutable {
       
       MutexAutoLock lock(mMutex);
       GetActiveWindows()->Clear();
