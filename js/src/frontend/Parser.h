@@ -353,6 +353,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     
     bool sawDeprecatedForEach:1;
     bool sawDeprecatedDestructuringForIn:1;
+    bool sawDeprecatedLegacyGenerator:1;
 
     typedef typename ParseHandler::Node Node;
     typedef typename ParseHandler::DefinitionNode DefinitionNode;
