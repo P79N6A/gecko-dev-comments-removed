@@ -396,8 +396,10 @@ OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
     NS_ENSURE_TRUE(aWidth == size.width, NS_ERROR_INVALID_ARG);
     NS_ENSURE_TRUE(aHeight == size.height, NS_ERROR_INVALID_ARG);
     if (format == ImageFormat::PLANAR_YCBCR) {
-      NS_ENSURE_TRUE(static_cast<PlanarYCbCrImage*>(img)->IsValid(),
-                     NS_ERROR_INVALID_ARG);
+      
+      
+      const PlanarYCbCrData* yuv = static_cast<PlanarYCbCrImage*>(img)->GetData();
+      NS_ENSURE_TRUE(yuv->mYChannel, NS_ERROR_INVALID_ARG);
     } else if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
       
       int halFormat = static_cast<GrallocImage*>(img)->GetGraphicBuffer()->getPixelFormat();
