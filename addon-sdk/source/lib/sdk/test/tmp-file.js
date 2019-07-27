@@ -3,7 +3,7 @@
 
 "use strict";
 
-const { Cc, Ci } = require("chrome");
+const { Cc, Ci, Cu } = require("chrome");
 
 const system = require("sdk/system");
 const file = require("sdk/io/file");
@@ -11,6 +11,8 @@ const unload = require("sdk/system/unload");
 
 
 const tmpDir = require("sdk/system").pathFor("TmpD");
+
+const { Services } = Cu.import("resource://gre/modules/Services.jsm");
 
 
 let files = [];
@@ -33,7 +35,14 @@ unload.when(function () {
 
 function readBinaryURI(uri) {
   let ioservice = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  let channel = ioservice.newChannel(uri, "UTF-8", null);
+  let channel = ioservice.newChannel2(uri,
+                                      "UTF-8",
+                                      null,
+                                      null,      
+                                      Services.scriptSecurityManager.getSystemPrincipal(),
+                                      null,      
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
   let stream = Cc["@mozilla.org/binaryinputstream;1"].
                createInstance(Ci.nsIBinaryInputStream);
   stream.setInputStream(channel.open());
