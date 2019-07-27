@@ -172,6 +172,11 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
+    addEventListener('click',
+                     this._ClickHandler.bind(this),
+                      false,
+                      false);
+
     
     
     
@@ -577,6 +582,18 @@ BrowserElementChild.prototype = {
       state: e.state,
     };
     sendAsyncMsg('scrollviewchange', detail);
+  },
+
+  _ClickHandler: function(e) {
+    let elem = e.target;
+    if (elem instanceof Ci.nsIDOMHTMLAnchorElement && elem.href) {
+      
+      if ((Services.appinfo.OS == 'Darwin' && e.metaKey) ||
+          (Services.appinfo.OS != 'Darwin' && e.ctrlKey) ||
+           e.button == 1) {
+        sendAsyncMsg('opentab', {url: elem.href});
+      }
+    }
   },
 
   _selectionStateChangedHandler: function(e) {
@@ -1085,7 +1102,7 @@ BrowserElementChild.prototype = {
 
   _updateVisibility: function() {
     var visible = this._forcedVisible && this._ownerVisible;
-    if (docShell.isActive !== visible) {
+    if (docShell && docShell.isActive !== visible) {
       docShell.isActive = visible;
       sendAsyncMsg('visibilitychange', {visible: visible});
     }
