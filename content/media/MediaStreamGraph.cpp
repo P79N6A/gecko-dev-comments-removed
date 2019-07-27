@@ -334,15 +334,9 @@ MediaStreamGraphImpl::StreamTimeToGraphTime(MediaStream* aStream,
 GraphTime
 MediaStreamGraphImpl::GetAudioPosition(MediaStream* aStream)
 {
-  if (!mMixedAudioStream) {
-    return IterationEnd();
-  }
-  int64_t positionInFrames = mMixedAudioStream->GetPositionInFrames();
-  if (positionInFrames < 0) {
-    return IterationEnd();
-  }
-  return aStream->mAudioOutputStreams[0].mAudioPlaybackStartTime +
-    RateConvertTicksRoundDown(GraphRate(), mSampleRate, positionInFrames);
+  
+
+  return IterationEnd();
 }
 
 GraphTime
