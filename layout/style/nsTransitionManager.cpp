@@ -85,15 +85,17 @@ nsTransitionManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
 
   nsRefPtr<nsStyleContext> newStyle;
 
-  ElementAnimationCollection* et;
+  ElementAnimationCollection* collection;
   if (element &&
-      (et = GetElementTransitions(element,
-                                  nsCSSPseudoElements::ePseudo_NotPseudoElement,
-                                  false))) {
+      (collection =
+        GetElementTransitions(element,
+                              nsCSSPseudoElements::ePseudo_NotPseudoElement,
+                              false))) {
     
     newStyle = UpdateThrottledStyle(element, aParentStyle, aChangeList);
     
-    et->mFlushGeneration = mPresContext->RefreshDriver()->MostRecentRefresh();
+    collection->mFlushGeneration =
+      mPresContext->RefreshDriver()->MostRecentRefresh();
   } else {
     newStyle = ReparentContent(aContent, aParentStyle);
   }
@@ -196,9 +198,9 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     aElement = aElement->GetParent()->AsElement();
   }
 
-  ElementAnimationCollection* et =
+  ElementAnimationCollection* collection =
     GetElementTransitions(aElement, pseudoType, false);
-  if (!et &&
+  if (!collection &&
       disp->mTransitionPropertyCount == 1 &&
       disp->mTransitions[0].GetDelay() == 0.0f &&
       disp->mTransitions[0].GetDuration() == 0.0f) {
@@ -246,18 +248,18 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
         for (nsCSSProperty p = nsCSSProperty(0);
              p < eCSSProperty_COUNT_no_shorthands;
              p = nsCSSProperty(p + 1)) {
-          ConsiderStartingTransition(p, t, aElement, et,
+          ConsiderStartingTransition(p, t, aElement, collection,
                                      aOldStyleContext, aNewStyleContext,
                                      &startedAny, &whichStarted);
         }
       } else if (nsCSSProps::IsShorthand(property)) {
         CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(subprop, property) {
-          ConsiderStartingTransition(*subprop, t, aElement, et,
+          ConsiderStartingTransition(*subprop, t, aElement, collection,
                                      aOldStyleContext, aNewStyleContext,
                                      &startedAny, &whichStarted);
         }
       } else {
-        ConsiderStartingTransition(property, t, aElement, et,
+        ConsiderStartingTransition(property, t, aElement, collection,
                                    aOldStyleContext, aNewStyleContext,
                                    &startedAny, &whichStarted);
       }
@@ -269,7 +271,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   
   
-  if (et) {
+  if (collection) {
     bool checkProperties =
       disp->mTransitions[0].GetProperty() != eCSSPropertyExtra_all_properties;
     nsCSSPropertySet allTransitionProperties;
@@ -299,7 +301,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
       }
     }
 
-    ElementAnimationPtrArray& animations = et->mAnimations;
+    ElementAnimationPtrArray& animations = collection->mAnimations;
     uint32_t i = animations.Length();
     NS_ABORT_IF_FALSE(i != 0, "empty transitions list?");
     StyleAnimationValue currentValue;
@@ -322,13 +324,13 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
           currentValue != segment.mToValue) {
         
         animations.RemoveElementAt(i);
-        et->UpdateAnimationGeneration(mPresContext);
+        collection->UpdateAnimationGeneration(mPresContext);
       }
     } while (i != 0);
 
     if (animations.IsEmpty()) {
-      et->Destroy();
-      et = nullptr;
+      collection->Destroy();
+      collection = nullptr;
     }
   }
 
@@ -336,8 +338,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     return nullptr;
   }
 
-  NS_ABORT_IF_FALSE(et, "must have element transitions if we started "
-                        "any transitions");
+  NS_ABORT_IF_FALSE(collection, "must have element transitions if we started "
+                                "any transitions");
 
   
   
@@ -356,7 +358,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
 
   nsRefPtr<css::AnimValuesStyleRule> coverRule = new css::AnimValuesStyleRule;
 
-  ElementAnimationPtrArray& animations = et->mAnimations;
+  ElementAnimationPtrArray& animations = collection->mAnimations;
   for (uint32_t i = 0, i_end = animations.Length(); i < i_end; ++i) {
     ElementAnimation* animation = animations[i];
     MOZ_ASSERT(animation->mProperties.Length() == 1,
@@ -370,7 +372,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     }
   }
 
-  et->mStyleRule = nullptr;
+  collection->mStyleRule = nullptr;
 
   return coverRule.forget();
 }
@@ -590,9 +592,10 @@ nsTransitionManager::ConsiderStartingTransition(
 }
 
 ElementAnimationCollection*
-nsTransitionManager::GetElementTransitions(dom::Element *aElement,
-                                           nsCSSPseudoElements::Type aPseudoType,
-                                           bool aCreateIfNeeded)
+nsTransitionManager::GetElementTransitions(
+  dom::Element *aElement,
+  nsCSSPseudoElements::Type aPseudoType,
+  bool aCreateIfNeeded)
 {
   if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementData)) {
     
@@ -612,28 +615,28 @@ nsTransitionManager::GetElementTransitions(dom::Element *aElement,
                  "other than :before or :after");
     return nullptr;
   }
-  ElementAnimationCollection* et =
+  ElementAnimationCollection* collection =
     static_cast<ElementAnimationCollection*>(aElement->GetProperty(propName));
-  if (!et && aCreateIfNeeded) {
+  if (!collection && aCreateIfNeeded) {
     
-    et = new ElementAnimationCollection(aElement, propName, this,
+    collection = new ElementAnimationCollection(aElement, propName, this,
       mPresContext->RefreshDriver()->MostRecentRefresh());
     nsresult rv =
-      aElement->SetProperty(propName, et,
+      aElement->SetProperty(propName, collection,
                             &ElementAnimationCollection::PropertyDtor, false);
     if (NS_FAILED(rv)) {
       NS_WARNING("SetProperty failed");
-      delete et;
+      delete collection;
       return nullptr;
     }
     if (propName == nsGkAtoms::transitionsProperty) {
       aElement->SetMayHaveAnimations();
     }
 
-    AddElementData(et);
+    AddElementData(collection);
   }
 
-  return et;
+  return collection;
 }
 
 
@@ -641,12 +644,13 @@ nsTransitionManager::GetElementTransitions(dom::Element *aElement,
 
 
 void
-nsTransitionManager::WalkTransitionRule(ElementDependentRuleProcessorData* aData,
-                                        nsCSSPseudoElements::Type aPseudoType)
+nsTransitionManager::WalkTransitionRule(
+  ElementDependentRuleProcessorData* aData,
+  nsCSSPseudoElements::Type aPseudoType)
 {
-  ElementAnimationCollection* et =
+  ElementAnimationCollection* collection =
     GetElementTransitions(aData->mElement, aPseudoType, false);
-  if (!et) {
+  if (!collection) {
     return;
   }
 
@@ -664,17 +668,17 @@ nsTransitionManager::WalkTransitionRule(ElementDependentRuleProcessorData* aData
 
     
     
-    et->PostRestyleForAnimation(mPresContext);
+    collection->PostRestyleForAnimation(mPresContext);
     return;
   }
 
-  et->mNeedsRefreshes = true;
-  et->EnsureStyleRuleFor(
+  collection->mNeedsRefreshes = true;
+  collection->EnsureStyleRuleFor(
     aData->mPresContext->RefreshDriver()->MostRecentRefresh(),
     EnsureStyleRule_IsNotThrottled);
 
-  if (et->mStyleRule) {
-    aData->mRuleWalker->Forward(et->mStyleRule);
+  if (collection->mStyleRule) {
+    aData->mRuleWalker->Forward(collection->mStyleRule);
   }
 }
 
@@ -783,26 +787,26 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
   {
     PRCList *next = PR_LIST_HEAD(&mElementData);
     while (next != &mElementData) {
-      ElementAnimationCollection* et =
+      ElementAnimationCollection* collection =
         static_cast<ElementAnimationCollection*>(next);
       next = PR_NEXT_LINK(next);
 
       bool canThrottleTick = aFlags == Can_Throttle &&
-        et->CanPerformOnCompositorThread(
+        collection->CanPerformOnCompositorThread(
           ElementAnimationCollection::CanAnimateFlags(0)) &&
-        et->CanThrottleAnimation(now);
+        collection->CanThrottleAnimation(now);
 
-      NS_ABORT_IF_FALSE(et->mElement->GetCrossShadowCurrentDoc() ==
+      NS_ABORT_IF_FALSE(collection->mElement->GetCrossShadowCurrentDoc() ==
                           mPresContext->Document(),
                         "Element::UnbindFromTree should have "
                         "destroyed the element transitions object");
 
-      uint32_t i = et->mAnimations.Length();
+      uint32_t i = collection->mAnimations.Length();
       NS_ABORT_IF_FALSE(i != 0, "empty transitions list?");
       bool transitionStartedOrEnded = false;
       do {
         --i;
-        ElementAnimation* anim = et->mAnimations[i];
+        ElementAnimation* anim = collection->mAnimations[i];
         if (anim->IsFinishedTransition()) {
           
           
@@ -810,7 +814,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
           
           
           if (aFlags == Can_Throttle) {
-            et->mAnimations.RemoveElementAt(i);
+            collection->mAnimations.RemoveElementAt(i);
           }
         } else {
           TimeDuration localTime = anim->GetLocalTimeAt(now);
@@ -825,9 +829,9 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
               prop = nsCSSProps::OtherNameFor(prop);
             }
             events.AppendElement(
-              TransitionEventInfo(et->mElement, prop,
+              TransitionEventInfo(collection->mElement, prop,
                                   anim->mTiming.mIterationDuration,
-                                  et->PseudoElement()));
+                                  collection->PseudoElement()));
 
             
             
@@ -837,7 +841,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
             
             
             anim->SetFinishedTransition();
-            et->UpdateAnimationGeneration(mPresContext);
+            collection->UpdateAnimationGeneration(mPresContext);
             transitionStartedOrEnded = true;
           } else if ((computedTiming.mPhase ==
                       ComputedTiming::AnimationPhase_Active) &&
@@ -845,7 +849,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
                     !anim->mIsRunningOnCompositor) {
             
             
-            et->UpdateAnimationGeneration(mPresContext);
+            collection->UpdateAnimationGeneration(mPresContext);
             transitionStartedOrEnded = true;
           }
         }
@@ -853,20 +857,22 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
 
       
       
-      NS_ASSERTION(et->mElementProperty == nsGkAtoms::transitionsProperty ||
-                   et->mElementProperty == nsGkAtoms::transitionsOfBeforeProperty ||
-                   et->mElementProperty == nsGkAtoms::transitionsOfAfterProperty,
-                   "Unexpected element property; might restyle too much");
+      MOZ_ASSERT(
+        collection->mElementProperty == nsGkAtoms::transitionsProperty ||
+        collection->mElementProperty ==
+          nsGkAtoms::transitionsOfBeforeProperty ||
+        collection->mElementProperty == nsGkAtoms::transitionsOfAfterProperty,
+        "Unexpected element property; might restyle too much");
       if (!canThrottleTick || transitionStartedOrEnded) {
-        et->PostRestyleForAnimation(mPresContext);
+        collection->PostRestyleForAnimation(mPresContext);
       } else {
         didThrottle = true;
       }
 
-      if (et->mAnimations.IsEmpty()) {
-        et->Destroy();
+      if (collection->mAnimations.IsEmpty()) {
+        collection->Destroy();
         
-        et = nullptr;
+        collection = nullptr;
       }
     }
   }

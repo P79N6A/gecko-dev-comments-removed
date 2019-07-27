@@ -119,11 +119,11 @@ class_::UpdateAllThrottledStylesInternal()                                     \
      its descendants*/                                                         \
   PRCList *next = PR_LIST_HEAD(&mElementData);                                 \
   while (next != &mElementData) {                                              \
-    ElementAnimationCollection* ea =                                           \
+    ElementAnimationCollection* collection =                                   \
       static_cast<ElementAnimationCollection*>(next);                          \
     next = PR_NEXT_LINK(next);                                                 \
                                                                                \
-    if (ea->mFlushGeneration == now) {                                         \
+    if (collection->mFlushGeneration == now) {                                 \
                                      \
       continue;                                                                \
     }                                                                          \
@@ -131,7 +131,7 @@ class_::UpdateAllThrottledStylesInternal()                                     \
     
 
                          \
-    dom::Element* element = ea->mElement;                                      \
+    dom::Element* element = collection->mElement;                              \
                                                  \
     nsTArray<dom::Element*> ancestors;                                         \
     do {                                                                       \
