@@ -5171,9 +5171,11 @@ IonBuilder::createThisScriptedSingleton(JSFunction *target, MDefinition *callee)
 
     
     
+    MConstant *templateConst = MConstant::NewConstraintlessObject(alloc(), templateObject);
     MCreateThisWithTemplate *createThis =
-        MCreateThisWithTemplate::New(alloc(), constraints(), templateObject,
+        MCreateThisWithTemplate::New(alloc(), constraints(), templateConst,
                                      templateObject->type()->initialHeap(constraints()));
+    current->add(templateConst);
     current->add(createThis);
 
     return createThis;
