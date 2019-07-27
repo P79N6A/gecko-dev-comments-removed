@@ -165,6 +165,16 @@ public:
 
   static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult = nullptr);
 
+  
+
+
+
+
+
+
+  static bool GetDisplayPortForVisibilityTesting(nsIContent* aContent,
+                                                 nsRect* aResult = nullptr);
+
   enum class RepaintMode : uint8_t {
     Repaint,
     DoNotRepaint
