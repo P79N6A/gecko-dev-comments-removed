@@ -43,13 +43,6 @@
 #    define MOZ_HAVE_CXX11_ATOMICS
 #  endif
 #elif defined(_MSC_VER)
-#  if defined(DEBUG)
-     
-
-
-
-#    define _INVALID_MEMORY_ORDER MOZ_CRASH("Invalid memory order")
-#  endif
 #  define MOZ_HAVE_CXX11_ATOMICS
 #endif
 
