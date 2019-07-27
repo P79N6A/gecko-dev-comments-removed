@@ -181,6 +181,7 @@ function synthesizeDragStart(element, expectedDragData, aWindow, x, y)
 
 
 
+
 function synthesizeDrop(srcElement, destElement, dragData, dropEffect, aWindow, aDestWindow, aDragEvent={})
 {
   if (!aWindow)
@@ -194,15 +195,19 @@ function synthesizeDrop(srcElement, destElement, dragData, dropEffect, aWindow, 
   var dataTransfer;
   var trapDrag = function(event) {
     dataTransfer = event.dataTransfer;
-    for (var i = 0; i < dragData.length; i++) {
-      var item = dragData[i];
-      for (var j = 0; j < item.length; j++) {
-        dataTransfer.mozSetDataAt(item[j].type, item[j].data, i);
+    if (dragData) {
+      for (var i = 0; i < dragData.length; i++) {
+        var item = dragData[i];
+        for (var j = 0; j < item.length; j++) {
+          dataTransfer.mozSetDataAt(item[j].type, item[j].data, i);
+        }
       }
     }
     dataTransfer.dropEffect = dropEffect || "move";
     event.preventDefault();
-    event.stopPropagation();
+    if (dragData) {
+      event.stopPropagation();
+    }
   }
 
   ds.startDragSession();
