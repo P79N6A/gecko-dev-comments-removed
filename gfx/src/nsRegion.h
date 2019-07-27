@@ -17,6 +17,7 @@
 #include "nsMargin.h"                   
 #include "nsStringGlue.h"               
 #include "xpcom-config.h"               
+#include "mozilla/TypedEnum.h"          
 
 class nsIntRegion;
 class gfx3DMatrix;
@@ -36,6 +37,13 @@ class gfx3DMatrix;
 
 
 
+
+MOZ_BEGIN_ENUM_CLASS(VisitSide)
+	TOP,
+	BOTTOM,
+	LEFT,
+	RIGHT
+MOZ_END_ENUM_CLASS(VisitSide)
 
 class nsRegionRectIterator;
 
@@ -263,6 +271,21 @@ public:
 
 
   void SimplifyInward (uint32_t aMaxRects);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  typedef void (*visitFn)(void *closure, VisitSide side, int x1, int y1, int x2, int y2);
+  void VisitEdges(visitFn, void *closure);
 
   nsCString ToString() const;
 private:
@@ -589,6 +612,12 @@ public:
   void SimplifyInward (uint32_t aMaxRects)
   {
     mImpl.SimplifyInward (aMaxRects);
+  }
+
+  typedef void (*visitFn)(void *closure, VisitSide side, int x1, int y1, int x2, int y2);
+  void VisitEdges (visitFn visit, void *closure)
+  {
+    mImpl.VisitEdges (visit, closure);
   }
 
   nsCString ToString() const { return mImpl.ToString(); }

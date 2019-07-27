@@ -5,6 +5,7 @@
 
 #include "mozilla/layers/TiledContentClient.h"
 #include <math.h>                       
+#include <algorithm>
 #include "ClientTiledThebesLayer.h"     
 #include "GeckoProfiler.h"              
 #include "ClientLayerManager.h"         
@@ -16,6 +17,7 @@
 #include "mozilla/MathAlgorithms.h"     
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Rect.h"           
+#include "mozilla/gfx/Tools.h"          
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/ShadowLayers.h"  
 #include "TextureClientPool.h"
@@ -813,6 +815,68 @@ ClientTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
   mSinglePaintDrawTarget = nullptr;
 }
 
+void PadDrawTargetOutFromRegion(RefPtr<DrawTarget> drawTarget, nsIntRegion &region)
+{
+  struct LockedBits {
+    uint8_t *data;
+    IntSize size;
+    int32_t stride;
+    SurfaceFormat format;
+    static int clamp(int x, int min, int max)
+    {
+      if (x < min)
+	x = min;
+      if (x > max)
+	x = max;
+      return x;
+    }
+
+    static void visitor(void *closure, VisitSide side, int x1, int y1, int x2, int y2) {
+      LockedBits *lb = static_cast<LockedBits*>(closure);
+      uint8_t *bitmap = lb->data;
+      const int bpp = gfx::BytesPerPixel(lb->format);
+      const int stride = lb->stride;
+      const int width = lb->size.width;
+      const int height = lb->size.height;
+
+      if (side == VisitSide::TOP) {
+	if (y1 > 0) {
+	  x1 = clamp(x1, 0, width - 1);
+	  x2 = clamp(x2, 0, width - 1);
+	  memcpy(&bitmap[x1*bpp + (y1-1) * stride], &bitmap[x1*bpp + y1 * stride], (x2 - x1) * bpp);
+	}
+      } else if (side == VisitSide::BOTTOM) {
+	if (y1 < height) {
+	  x1 = clamp(x1, 0, width - 1);
+	  x2 = clamp(x2, 0, width - 1);
+	  memcpy(&bitmap[x1*bpp + y1 * stride], &bitmap[x1*bpp + (y1-1) * stride], (x2 - x1) * bpp);
+	}
+      } else if (side == VisitSide::LEFT) {
+	if (x1 > 0) {
+	  while (y1 != y2) {
+	    memcpy(&bitmap[(x1-1)*bpp + y1 * stride], &bitmap[x1*bpp + y1*stride], bpp);
+	    y1++;
+	  }
+	}
+      } else if (side == VisitSide::RIGHT) {
+	if (x1 < width) {
+	  while (y1 != y2) {
+	    memcpy(&bitmap[x1*bpp + y1 * stride], &bitmap[(x1-1)*bpp + y1*stride], bpp);
+	    y1++;
+	  }
+	}
+      }
+
+    }
+  } lb;
+
+  if (drawTarget->LockBits(&lb.data, &lb.size, &lb.stride, &lb.format)) {
+    
+    region.VisitEdges(lb.visitor, &lb);
+    drawTarget->ReleaseBits(lb.data);
+  }
+}
+
 TileClient
 ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
                                     const nsIntPoint& aTileOrigin,
@@ -888,6 +952,26 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
       
       aTile.mInvalidFront.Or(aTile.mInvalidFront, nsIntRect(copyTarget.x, copyTarget.y, copyRect.width, copyRect.height));
+    }
+
+    
+    
+    
+    if (mResolution == 1) {
+      nsIntRect unscaledTile = nsIntRect(aTileOrigin.x,
+					 aTileOrigin.y,
+					 GetTileSize().width,
+					 GetTileSize().height);
+
+      nsIntRegion tileValidRegion = GetValidRegion();
+      tileValidRegion.Or(tileValidRegion, aDirtyRegion);
+      
+      if (!tileValidRegion.Contains(unscaledTile)) {
+	tileValidRegion = tileValidRegion.Intersect(unscaledTile);
+	
+	tileValidRegion.MoveBy(-nsIntPoint(unscaledTile.x, unscaledTile.y));
+	PadDrawTargetOutFromRegion(drawTarget, tileValidRegion);
+      }
     }
 
     
