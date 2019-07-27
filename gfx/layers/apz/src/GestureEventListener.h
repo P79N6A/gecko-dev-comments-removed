@@ -57,12 +57,6 @@ public:
 
 
 
-  void CancelSingleTouchDown();
-
-  
-
-
-
 
   int32_t GetLastTouchIdentifier() const;
 

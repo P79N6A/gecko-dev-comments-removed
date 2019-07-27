@@ -87,7 +87,12 @@ public:
   
 
 
-  void SetSingleTapOccurred();
+  void DisallowSingleTap();
+  
+
+
+
+  bool SetSingleTapOccurred();
   
 
 
@@ -135,6 +140,7 @@ private:
   bool mPreventDefault;
   bool mContentResponded;
   bool mContentResponseTimerExpired;
+  bool mSingleTapDisallowed;
   bool mSingleTapOccurred;
   nsTArray<MultiTouchInput> mEvents;
 };

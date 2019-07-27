@@ -836,13 +836,26 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
   if (aEvent.AsMultiTouchInput().mType == MultiTouchInput::MULTITOUCH_START) {
     block = StartNewTouchBlock(false);
     APZC_LOG("%p started new touch block %p\n", this, block);
+
+    
+    
+    
+    
+    
+    
+    if (block == CurrentTouchBlock()) {
+      if (GetVelocityVector().Length() > gfxPrefs::APZFlingStopOnTapThreshold()) {
+        
+        
+        block->DisallowSingleTap();
+      }
+      CancelAnimationForHandoffChain();
+    }
+
     if (mFrameMetrics.mMayHaveTouchListeners || mFrameMetrics.mMayHaveTouchCaret) {
       
       
       ScheduleContentResponseTimeout();
-      
-      
-      CancelAnimationForHandoffChain();
     } else {
       
       
@@ -967,17 +980,6 @@ nsEventStatus AsyncPanZoomController::OnTouchStart(const MultiTouchInput& aEvent
 
   switch (mState) {
     case FLING:
-      if (GetVelocityVector().Length() > gfxPrefs::APZFlingStopOnTapThreshold()) {
-        
-        
-        
-        
-        nsRefPtr<GestureEventListener> listener = GetGestureEventListener();
-        if (listener) {
-          listener->CancelSingleTouchDown();
-        }
-      }
-      
     case ANIMATING_ZOOM:
       CancelAnimationForHandoffChain();
       
@@ -1422,7 +1424,9 @@ nsEventStatus AsyncPanZoomController::GenerateSingleTap(const ScreenIntPoint& aP
   if (controller) {
     CSSPoint geckoScreenPoint;
     if (ConvertToGecko(aPoint, &geckoScreenPoint)) {
-      int32_t modifiers = WidgetModifiersToDOMModifiers(aModifiers);
+      if (!CurrentTouchBlock()->SetSingleTapOccurred()) {
+        return nsEventStatus_eIgnore;
+      }
       
       
       
@@ -1430,9 +1434,9 @@ nsEventStatus AsyncPanZoomController::GenerateSingleTap(const ScreenIntPoint& aP
       
       controller->PostDelayedTask(
         NewRunnableMethod(controller.get(), &GeckoContentController::HandleSingleTap,
-                          geckoScreenPoint, modifiers, GetGuid()),
+                          geckoScreenPoint, WidgetModifiersToDOMModifiers(aModifiers),
+                          GetGuid()),
         0);
-      CurrentTouchBlock()->SetSingleTapOccurred();
       return nsEventStatus_eConsumeNoDefault;
     }
   }
@@ -1795,6 +1799,10 @@ void AsyncPanZoomController::CancelAnimation() {
   APZC_LOG("%p running CancelAnimation in state %d\n", this, mState);
   SetState(NOTHING);
   mAnimation = nullptr;
+  
+  
+  mX.SetVelocity(0);
+  mY.SetVelocity(0);
   
   
   

@@ -380,6 +380,16 @@ ApzcPanAndCheckStatus(AsyncPanZoomController* aApzc,
 }
 
 static void
+ApzcPanNoFling(AsyncPanZoomController* aApzc,
+               int& aTime,
+               int aTouchStartY,
+               int aTouchEndY)
+{
+  ApzcPan(aApzc, aTime, aTouchStartY, aTouchEndY);
+  aApzc->CancelAnimation();
+}
+
+static void
 ApzcPinchWithPinchInput(AsyncPanZoomController* aApzc,
                         int aFocusX, int aFocusY, float aScale,
                         nsEventStatus (*aOutEventStatuses)[3] = nullptr)
@@ -807,6 +817,10 @@ protected:
       EXPECT_EQ(ScreenPoint(), pointOut);
       EXPECT_EQ(ViewTransform(), viewTransformOut);
     }
+
+    
+    
+    apzc->CancelAnimation();
 
     
     ApzcPanAndCheckStatus(apzc, time, touchEnd, touchStart, !aShouldTriggerScroll, false, &allowedTouchBehaviors);
@@ -1660,7 +1674,7 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   
   manager->BuildOverscrollHandoffChain(apzcroot);
-  ApzcPan(apzcroot, time, 100, 50);
+  ApzcPanNoFling(apzcroot, time, 100, 50);
   manager->ClearOverscrollHandoffChain();
 
   
@@ -1688,7 +1702,7 @@ TEST_F(APZCTreeManagerTester, HitTesting2) {
   
   
   manager->BuildOverscrollHandoffChain(apzcroot);
-  ApzcPan(apzcroot, time, 100, 50);
+  ApzcPanNoFling(apzcroot, time, 100, 50);
   manager->ClearOverscrollHandoffChain();
 
   
