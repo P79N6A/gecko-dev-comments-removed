@@ -374,11 +374,11 @@ InternalPrompt.prototype = {
   },
 
   nsIAuthPrompt_promptUsernameAndPassword : function (aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass) {
-    return nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass);
+    return this.nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, aUser, aPass);
   },
 
   nsIAuthPrompt_promptPassword : function (aTitle, aText, aPasswordRealm, aSavePassword, aPass) {
-    return nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, null, aPass);
+    return this.nsIAuthPrompt_loginPrompt(aTitle, aText, aPasswordRealm, aSavePassword, null, aPass);
   },
 
   nsIAuthPrompt_loginPrompt: function(aTitle, aPasswordRealm, aSavePassword, aUser, aPass) {
@@ -803,7 +803,7 @@ let PromptUtils = {
 
     
     
-    port = uri.port;
+    let port = uri.port;
     if (port != -1) {
       let handler = Services.io.getProtocolHandler(scheme);
       if (port != handler.defaultPort)

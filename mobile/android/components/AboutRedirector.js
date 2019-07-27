@@ -22,7 +22,9 @@ let modules = {
     privileged: true,
     hide: true
   },
-  get firefox() this.fennec,
+  get firefox() {
+    return this.fennec
+  },
 
   
   empty: {
