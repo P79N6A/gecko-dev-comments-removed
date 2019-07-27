@@ -20,6 +20,7 @@ loop.shared.models = (function(l10n) {
       loopToken:    undefined,     
       sessionId:    undefined,     
       sessionToken: undefined,     
+      sessionType:  undefined,     
       apiKey:       undefined,     
       callId:       undefined,     
       progressURL:  undefined,     
@@ -138,6 +139,7 @@ loop.shared.models = (function(l10n) {
       this.set({
         sessionId:      sessionData.sessionId,
         sessionToken:   sessionData.sessionToken,
+        sessionType:    sessionData.sessionType,
         apiKey:         sessionData.apiKey,
         callId:         sessionData.callId,
         progressURL:    sessionData.progressURL,

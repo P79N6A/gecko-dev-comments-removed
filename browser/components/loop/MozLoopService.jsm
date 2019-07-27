@@ -396,10 +396,19 @@ let MozLoopServiceInternal = {
                                           2 * 32, true);
     }
 
-    return gHawkClient.request(path, method, credentials, payloadObj).catch(error => {
-      console.error("Loop hawkRequest error:", error);
-      throw error;
-    });
+    return gHawkClient.request(path, method, credentials, payloadObj);
+  },
+
+  
+
+
+
+
+
+
+  _hawkRequestError: function(error) {
+    console.error("Loop hawkRequest error:", error);
+    throw error;
   },
 
   getSessionTokenPrefName: function(sessionType) {
@@ -576,30 +585,66 @@ let MozLoopServiceInternal = {
     Services.prefs.setCharPref("loop.seenToS", "seen");
 
     
-    this.hawkRequest(LOOP_SESSION_TYPE.GUEST,
-      "/calls?version=" + version, "GET").then(response => {
-      try {
-        let respData = JSON.parse(response.body);
-        if (respData.calls && Array.isArray(respData.calls)) {
-          respData.calls.forEach((callData) => {
-            if (!this.callsData.inUse) {
-              this.callsData.inUse = true;
-              this.callsData.data = callData;
-              this.openChatWindow(
-                null,
-                this.localizedStrings["incoming_call_title2"].textContent,
-                "about:loopconversation#incoming/" + callData.callId);
-            } else {
-              this._returnBusy(callData);
-            }
-          });
-        } else {
-          console.warn("Error: missing calls[] in response");
-        }
-      } catch (err) {
-        console.warn("Error parsing calls info", err);
+    
+    
+    
+
+    this._getCalls(LOOP_SESSION_TYPE.FXA, version).catch(() => {});
+    this._getCalls(LOOP_SESSION_TYPE.GUEST, version).catch(
+      error => {this._hawkRequestError(error);});
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _getCalls: function(sessionType, version) {
+    return this.hawkRequest(sessionType, "/calls?version=" + version, "GET").then(
+      response => {this._processCalls(response, sessionType);}
+    );
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _processCalls: function(response, sessionType) {
+    try {
+      let respData = JSON.parse(response.body);
+      if (respData.calls && Array.isArray(respData.calls)) {
+        respData.calls.forEach((callData) => {
+          if (!this.callsData.inUse) {
+            this.callsData.inUse = true;
+            callData.sessionType = sessionType;
+            this.callsData.data = callData;
+            this.openChatWindow(
+              null,
+              this.localizedStrings["incoming_call_title2"].textContent,
+              "about:loopconversation#incoming/" + callData.callId);
+          } else {
+            this._returnBusy(callData);
+          }
+        });
+      } else {
+        console.warn("Error: missing calls[] in response");
       }
-    });
+    } catch (err) {
+      console.warn("Error parsing calls info", err);
+    }
   },
 
    
@@ -797,7 +842,8 @@ let MozLoopServiceInternal = {
       }
 
       return JSON.parse(response.body);
-    });
+    },
+    error => {this._hawkRequestError(error);});
   },
 
   
@@ -875,7 +921,8 @@ let MozLoopServiceInternal = {
     };
     return this.hawkRequest(LOOP_SESSION_TYPE.FXA, "/fxa-oauth/token", "POST", payload).then(response => {
       return JSON.parse(response.body);
-    });
+    },
+    error => {this._hawkRequestError(error);});
   },
 
   
@@ -1319,6 +1366,7 @@ this.MozLoopService = {
 
 
   hawkRequest: function(sessionType, path, method, payloadObj) {
-    return MozLoopServiceInternal.hawkRequest(sessionType, path, method, payloadObj);
+    return MozLoopServiceInternal.hawkRequest(sessionType, path, method, payloadObj).catch(
+      error => {this._hawkRequestError(error);});
   },
 };
