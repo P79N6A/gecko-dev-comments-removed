@@ -470,7 +470,7 @@ private:
     };
 
     
-    static inline bool IsXMMReversedOperands(TwoByteOpcodeID opcode) {
+    static bool IsXMMReversedOperands(TwoByteOpcodeID opcode) {
         switch (opcode) {
           case OP2_MOVSD_WsdVsd: 
           case OP2_MOVAPS_WsdVsd:
@@ -5294,19 +5294,19 @@ private:
         static const RegisterID hasSib2 = X86Registers::r12;
 
         
-        inline bool regRequiresRex(int reg)
+        bool regRequiresRex(int reg)
         {
             return (reg >= X86Registers::r8);
         }
 
         
-        inline void emitRex(bool w, int r, int x, int b)
+        void emitRex(bool w, int r, int x, int b)
         {
             m_buffer.putByteUnchecked(PRE_REX | ((int)w << 3) | ((r>>3)<<2) | ((x>>3)<<1) | (b>>3));
         }
 
         
-        inline void emitRexW(int r, int x, int b)
+        void emitRexW(int r, int x, int b)
         {
             emitRex(true, r, x, b);
         }
@@ -5318,7 +5318,7 @@ private:
         
         
         
-        inline void emitRexIf(bool condition, int r, int x, int b)
+        void emitRexIf(bool condition, int r, int x, int b)
         {
             if (condition || regRequiresRex(r) || regRequiresRex(x) || regRequiresRex(b))
                 emitRex(false, r, x, b);
@@ -5326,18 +5326,18 @@ private:
 
         
         
-        inline void emitRexIfNeeded(int r, int x, int b)
+        void emitRexIfNeeded(int r, int x, int b)
         {
             emitRexIf(regRequiresRex(r) || regRequiresRex(x) || regRequiresRex(b), r, x, b);
         }
 #else
         
-        inline bool regRequiresRex(int) { return false; }
-        inline void emitRexIf(bool condition, int, int, int)
+        bool regRequiresRex(int) { return false; }
+        void emitRexIf(bool condition, int, int, int)
         {
             MOZ_ASSERT(!condition, "32-bit x86 should never use a REX prefix");
         }
-        inline void emitRexIfNeeded(int, int, int) {}
+        void emitRexIfNeeded(int, int, int) {}
 #endif
 
         enum ModRmMode {
