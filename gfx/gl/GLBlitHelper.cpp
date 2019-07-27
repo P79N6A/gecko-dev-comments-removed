@@ -812,6 +812,7 @@ GLBlitHelper::BlitTextureToFramebuffer(GLuint srcTex, GLuint destFB,
     }
 
     ScopedGLDrawState autoStates(mGL);
+    mGL->BindDrawFB(destFB);
 
     
     bool good = UseTexQuadProgram(type, srcSize);
