@@ -1157,11 +1157,11 @@ GCMarker::processMarkStackTop(SliceBudget& budget)
 
       case SavedValueArrayTag: {
         MOZ_ASSERT(!(addr & CellMask));
-        NativeObject* obj = reinterpret_cast<NativeObject*>(addr);
+        JSObject* obj = reinterpret_cast<JSObject*>(addr);
         HeapValue* vp;
         HeapValue* end;
         if (restoreValueArray(obj, (void**)&vp, (void**)&end))
-            pushValueArray(obj, vp, end);
+            pushValueArray(&obj->as<NativeObject>(), vp, end);
         else
             repush(obj);
         return;
@@ -1385,10 +1385,14 @@ GCMarker::saveValueRanges()
 }
 
 bool
-GCMarker::restoreValueArray(NativeObject* obj, void** vpp, void** endp)
+GCMarker::restoreValueArray(JSObject* objArg, void** vpp, void** endp)
 {
     uintptr_t start = stack.pop();
     HeapSlot::Kind kind = (HeapSlot::Kind) stack.pop();
+
+    if (!objArg->isNative())
+        return false;
+    NativeObject* obj = &objArg->as<NativeObject>();
 
     if (kind == HeapSlot::Element) {
         if (!obj->is<ArrayObject>())
@@ -1812,10 +1816,21 @@ StoreBuffer::WholeCellEdges::mark(TenuringTracer& mover) const
     JSGCTraceKind kind = GetGCThingTraceKind(edge);
     if (kind <= JSTRACE_OBJECT) {
         JSObject* object = static_cast<JSObject*>(edge);
-        if (object->is<ArgumentsObject>())
-            ArgumentsObject::trace(&mover, object);
+
         
         object->traceChildren(&mover);
+
+        
+        
+        
+        
+        
+        
+        if (object->is<UnboxedPlainObject>()) {
+            if (UnboxedExpandoObject* expando = object->as<UnboxedPlainObject>().maybeExpando())
+                expando->traceChildren(&mover);
+        }
+
         return;
     }
     MOZ_ASSERT(kind == JSTRACE_JITCODE);
