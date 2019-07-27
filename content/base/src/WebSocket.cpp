@@ -679,8 +679,6 @@ WebSocket::Init(JSContext* aCx,
   nsIScriptContext* sc = GetContextForEventHandlers(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDocument> originDoc = nsContentUtils::GetDocumentFromScriptContext(sc);
-
   
   if (!mSecure &&
       !Preferences::GetBool("network.websocket.allowInsecureFromHTTPS",
@@ -688,8 +686,21 @@ WebSocket::Init(JSContext* aCx,
     
     
     
-    if (originDoc && originDoc->GetSecurityInfo()) {
-      return NS_ERROR_DOM_SECURITY_ERR;
+    nsCOMPtr<nsIGlobalObject> globalObject(BrokenGetEntryGlobal());
+    if (globalObject) {
+      nsCOMPtr<nsIPrincipal> principal(globalObject->PrincipalOrNull());
+      if (principal) {
+        nsCOMPtr<nsIURI> uri;
+        principal->GetURI(getter_AddRefs(uri));
+        if (uri) {
+          bool originIsHttps = false;
+          rv = uri->SchemeIs("https", &originIsHttps);
+          NS_ENSURE_SUCCESS(rv,rv);
+          if (originIsHttps) {
+            return NS_ERROR_DOM_SECURITY_ERR;
+          }
+        }
+      }
     }
   }
 
@@ -710,6 +721,7 @@ WebSocket::Init(JSContext* aCx,
 
   
   int16_t shouldLoad = nsIContentPolicy::ACCEPT;
+  nsCOMPtr<nsIDocument> originDoc = nsContentUtils::GetDocumentFromScriptContext(sc);
   rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_WEBSOCKET,
                                  mURI,
                                  mPrincipal,
