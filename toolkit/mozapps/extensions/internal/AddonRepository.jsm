@@ -498,9 +498,6 @@ this.AddonRepository = {
   _addons: null,
 
   
-  _pendingCallbacks: null,
-
-  
   _searching: false,
 
   
@@ -527,7 +524,7 @@ this.AddonRepository = {
 
   
   _maxResults: null,
-  
+
   
 
 
@@ -537,7 +534,6 @@ this.AddonRepository = {
     this.cancelSearch();
 
     this._addons = null;
-    this._pendingCallbacks = null;
     return AddonDatabase.shutdown(false);
   },
 
@@ -580,40 +576,19 @@ this.AddonRepository = {
       return;
     }
 
-    let self = this;
     function getAddon(aAddons) {
-      aCallback((aId in aAddons) ? aAddons[aId] : null);
+      aCallback(aAddons.get(aId) || null);
     }
 
     if (this._addons == null) {
-      if (this._pendingCallbacks == null) {
-        
-        this._pendingCallbacks = [];
-        this._pendingCallbacks.push(getAddon);
+      AddonDatabase.retrieveStoredData().then(aAddons => {
+        this._addons = aAddons;
+        getAddon(aAddons);
+      });
 
-        let addons = yield AddonDatabase.retrieveStoredData();
-        let pendingCallbacks = self._pendingCallbacks;
-
-        
-        if (pendingCallbacks == null)
-          return;
-
-        
-        
-        self._pendingCallbacks = null;
-        self._addons = addons;
-
-        pendingCallbacks.forEach(function(aCallback) aCallback(addons));
-
-        return;
-      }
-
-      
-      this._pendingCallbacks.push(getAddon);
       return;
     }
 
-    
     getAddon(this._addons);
   }),
 
@@ -638,7 +613,6 @@ this.AddonRepository = {
 
   _clearCache: function () {
     this._addons = null;
-    this._pendingCallbacks = null;
     return AddonDatabase.delete().then(() =>
       new Promise((resolve, reject) =>
         AddonManagerPrivate.updateAddonRepositoryData(resolve))
@@ -674,8 +648,10 @@ this.AddonRepository = {
     yield new Promise((resolve, reject) =>
       self._beginGetAddons(addonsToCache, {
         searchSucceeded: function repopulateCacheInternal_searchSucceeded(aAddons) {
-          self._addons = {};
-          aAddons.forEach(function(aAddon) { self._addons[aAddon.id] = aAddon; });
+          self._addons = new Map();
+          for (let addon of aAddons) {
+            self._addons.set(addon.id, addon);
+          }
           AddonDatabase.repopulate(aAddons, resolve);
         },
         searchFailed: function repopulateCacheInternal_searchFailed() {
@@ -718,7 +694,9 @@ this.AddonRepository = {
 
       self.getAddonsByIDs(aAddons, {
         searchSucceeded: function cacheAddons_searchSucceeded(aAddons) {
-          aAddons.forEach(function(aAddon) { self._addons[aAddon.id] = aAddon; });
+          for (let addon of aAddons) {
+            self._addons.set(addon.id, addon);
+          }
           AddonDatabase.insertAddons(aAddons, aCallback);
         },
         searchFailed: function cacheAddons_searchFailed() {
@@ -1751,18 +1729,9 @@ var AddonDatabase = {
 
 
 
-
-
-  retrieveStoredData: Task.async(function* (){
-    let db = yield this.openConnection();
-    let result = {};
-
-    for (let [key, value] of db.addons) {
-      result[key] = value;
-    }
-
-    return result;
-  }),
+  retrieveStoredData: function (){
+    return this.openConnection().then(db => db.addons);
+  },
 
   
 
