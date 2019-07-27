@@ -12,6 +12,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
 
 (function() {
+  const kNSXUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+  const kBrowserSharingNotificationId = "loop-sharing-notification";
+  const kPrefBrowserSharingInfoBar = "browserSharing.showInfoBar";
+
   LoopUI = {
     
 
@@ -362,6 +366,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       }
 
       this._tabChangeListeners.add(listener);
+      this._maybeShowBrowserSharingInfoBar();
 
       
       listener(null, gBrowser.selectedTab.linkedBrowser.outerWindowID);
@@ -382,9 +387,96 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
       }
 
       if (!this._tabChangeListeners.size) {
+        this._hideBrowserSharingInfoBar();
         gBrowser.removeEventListener("select", this);
         delete this._tabChangeListeners;
       }
+    },
+
+    
+
+
+
+
+
+
+    _getString: function(key) {
+      let str = MozLoopService.getStrings(key);
+      if (str) {
+        str = JSON.parse(str).textContent;
+      }
+      return str;
+    },
+
+    
+
+
+
+
+    _maybeShowBrowserSharingInfoBar: function() {
+      this._hideBrowserSharingInfoBar();
+
+      
+      if (!MozLoopService.getLoopPref(kPrefBrowserSharingInfoBar)) {
+        return;
+      }
+
+      
+      
+      let menuPopup = document.createElementNS(kNSXUL, "menupopup");
+      let menuItem = menuPopup.appendChild(document.createElementNS(kNSXUL, "menuitem"));
+      menuItem.setAttribute("label", this._getString("infobar_menuitem_dontshowagain_label"));
+      menuItem.setAttribute("accesskey", this._getString("infobar_menuitem_dontshowagain_accesskey"));
+      menuItem.addEventListener("command", () => {
+        
+        this._hideBrowserSharingInfoBar(true);
+      });
+
+      let box = gBrowser.getNotificationBox();
+      let bar = box.appendNotification(
+        this._getString("infobar_screenshare_browser_message"),
+        kBrowserSharingNotificationId,
+        
+        null,
+        box.PRIORITY_WARNING_LOW,
+        [{
+          label: this._getString("infobar_button_gotit_label"),
+          accessKey: this._getString("infobar_button_gotit_accesskey"),
+          type: "menu-button",
+          popup: menuPopup,
+          anchor: "dropmarker",
+          callback: () => {
+            this._hideBrowserSharingInfoBar();
+          }
+        }]
+      );
+
+      
+      bar.persistence = -1;
+    },
+
+    
+
+
+
+
+
+
+    _hideBrowserSharingInfoBar: function(permanently = false, browser) {
+      browser = browser || gBrowser.selectedTab.linkedBrowser;
+      let box = gBrowser.getNotificationBox(browser);
+      let notification = box.getNotificationWithValue(kBrowserSharingNotificationId);
+      let removed = false;
+      if (notification) {
+        box.removeNotification(notification);
+        removed = true;
+      }
+
+      if (permanently) {
+        MozLoopService.setLoopPref(kPrefBrowserSharingInfoBar, false);
+      }
+
+      return removed;
     },
 
     
@@ -396,10 +488,26 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
         return;
       }
 
+      let wasVisible = false;
+      
+      if (event.fromTab) {
+        wasVisible = this._hideBrowserSharingInfoBar(false, event.fromTab.linkedBrowser);
+      }
+
       
       for (let listener of this._tabChangeListeners) {
-        listener(null, gBrowser.selectedTab.linkedBrowser.outerWindowID);
+        try {
+          listener(null, gBrowser.selectedTab.linkedBrowser.outerWindowID);
+        } catch (ex) {
+          Cu.reportError("Tab switch caused an error: " + ex.message);
+        }
       };
+
+      if (wasVisible) {
+        
+        
+        this._maybeShowBrowserSharingInfoBar();
+      }
     },
   };
 })();

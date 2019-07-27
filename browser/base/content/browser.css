@@ -900,6 +900,11 @@ notification[value="translation"] {
 }
 
 
+notification[value="loop-sharing-notification"] .close-icon {
+  display: none;
+}
+
+
 
 chatbox {
   -moz-binding: url("chrome://browser/content/socialchat.xml#chatbox");
