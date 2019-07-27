@@ -12,7 +12,6 @@
 #include "StreamNotifyChild.h"
 #include "PluginProcessChild.h"
 #include "gfxASurface.h"
-#include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfx2DGlue.h"
 #include "nsNPAPIPluginInstance.h"
@@ -2787,12 +2786,6 @@ PluginInstanceChild::DoAsyncSetWindow(const gfxSurfaceType& aSurfaceType,
     }
 }
 
-static inline gfxRect
-GfxFromNsRect(const nsIntRect& aRect)
-{
-    return gfxRect(aRect.x, aRect.y, aRect.width, aRect.height);
-}
-
 bool
 PluginInstanceChild::CreateOptSurface(void)
 {
@@ -3454,12 +3447,14 @@ PluginInstanceChild::ShowPluginFrame()
         PLUGIN_LOG_DEBUG(("  (on background)"));
         
         {
-            nsRefPtr<gfxContext> ctx =
-                new gfxContext(mHelperSurface ? mHelperSurface : mCurrentSurface);
-            ctx->SetSource(mBackground);
-            ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-            ctx->Rectangle(gfxRect(rect.x, rect.y, rect.width, rect.height));
-            ctx->Fill();
+            nsRefPtr<gfxASurface> surface =
+                mHelperSurface ? mHelperSurface : mCurrentSurface;
+            RefPtr<DrawTarget> dt = CreateDrawTargetForSurface(surface);
+            RefPtr<SourceSurface> backgroundSurface =
+                gfxPlatform::GetSourceSurfaceForSurface(dt, mBackground);
+            dt->CopySurface(backgroundSurface,
+                            ToIntRect(rect),
+                            ToIntPoint(rect.TopLeft()));
         }
         
         
@@ -3583,18 +3578,17 @@ PluginInstanceChild::ReadbackDifferenceRect(const nsIntRect& rect)
          mSurfaceDifferenceRect.width, mSurfaceDifferenceRect.height));
 
     
-    nsRefPtr<gfxContext> ctx = new gfxContext(mCurrentSurface);
-    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    ctx->SetSource(mBackSurface);
+    RefPtr<DrawTarget> dt = CreateDrawTargetForSurface(mCurrentSurface);
+    RefPtr<SourceSurface> source =
+        gfxPlatform::GetSourceSurfaceForSurface(dt, mBackSurface);
     
     nsIntRegion result;
     result.Sub(mSurfaceDifferenceRect, nsIntRegion(rect));
     nsIntRegionRectIterator iter(result);
     const nsIntRect* r;
     while ((r = iter.Next()) != nullptr) {
-        ctx->Rectangle(GfxFromNsRect(*r));
+        dt->CopySurface(source, ToIntRect(*r), ToIntPoint(r->TopLeft()));
     }
-    ctx->Fill();
 
     return true;
 }
