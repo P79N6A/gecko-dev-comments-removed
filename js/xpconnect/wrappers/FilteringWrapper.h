@@ -51,6 +51,17 @@ class FilteringWrapper : public Base {
     static const FilteringWrapper singleton;
 };
 
+
+
+
+
+
+class CrossOriginXrayWrapper : public SecurityXrayDOM {
+  public:
+    CrossOriginXrayWrapper(unsigned flags);
+    virtual ~CrossOriginXrayWrapper();
+};
+
 }
 
 #endif 
