@@ -139,7 +139,7 @@ class JitFrameIterator
     inline uint8_t *returnAddress() const;
 
     IonJSFrameLayout *jsFrame() const {
-        JS_ASSERT(isScripted());
+        MOZ_ASSERT(isScripted());
         return (IonJSFrameLayout *) fp();
     }
 
@@ -201,7 +201,7 @@ class JitFrameIterator
     
     
     size_t frameSize() const {
-        JS_ASSERT(type_ != JitFrame_Exit);
+        MOZ_ASSERT(type_ != JitFrame_Exit);
         return frameSize_;
     }
 
@@ -232,7 +232,7 @@ class JitFrameIterator
 
     template <class Op>
     void unaliasedForEachActual(Op op, ReadFrameArgsBehavior behavior) const {
-        JS_ASSERT(isBaselineJS());
+        MOZ_ASSERT(isBaselineJS());
 
         unsigned nactual = numActualArgs();
         unsigned start, end;
@@ -593,7 +593,7 @@ class InlineFrameIterator
         return frame_ && framesRead_ < frameCount_;
     }
     JSFunction *callee() const {
-        JS_ASSERT(callee_);
+        MOZ_ASSERT(callee_);
         return callee_;
     }
     JSFunction *maybeCallee() const {
@@ -657,7 +657,7 @@ class InlineFrameIterator
                     
                     
                     
-                    JS_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj);
+                    MOZ_ASSERT(parent_s.numAllocations() >= nactual + 3 + argsObjAdj);
                     unsigned skip = parent_s.numAllocations() - nactual - 3 - argsObjAdj;
                     for (unsigned j = 0; j < skip; j++)
                         parent_s.skip();

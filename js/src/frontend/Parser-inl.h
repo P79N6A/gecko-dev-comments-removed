@@ -29,7 +29,7 @@ ParseContext<ParseHandler>::~ParseContext()
 {
     
     
-    JS_ASSERT(*parserPC == this);
+    MOZ_ASSERT(*parserPC == this);
     *parserPC = this->oldpc;
 }
 

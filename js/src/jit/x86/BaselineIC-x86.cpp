@@ -100,7 +100,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.bind(&notZero);
 
         
-        JS_ASSERT(R1.typeReg() == eax);
+        MOZ_ASSERT(R1.typeReg() == eax);
         masm.movl(R0.payloadReg(), eax);
         
         masm.movl(R0.payloadReg(), scratchReg);
@@ -123,7 +123,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         masm.branchTest32(Assembler::Zero, R0.payloadReg(), Imm32(0x7fffffff), &failure);
 
         
-        JS_ASSERT(R1.typeReg() == eax);
+        MOZ_ASSERT(R1.typeReg() == eax);
         masm.movl(R0.payloadReg(), eax);
         
         masm.movl(R0.payloadReg(), scratchReg);
@@ -139,8 +139,8 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
 
         masm.bind(&done);
         
-        JS_ASSERT(R0.payloadReg() == edx);
-        JS_ASSERT(R0.typeReg() == ecx);
+        MOZ_ASSERT(R0.payloadReg() == edx);
+        MOZ_ASSERT(R0.typeReg() == ecx);
         break;
       }
       case JSOP_BITOR:
@@ -156,7 +156,7 @@ ICBinaryArith_Int32::Compiler::generateStubCode(MacroAssembler &masm)
         break;
       case JSOP_LSH:
         
-        JS_ASSERT(R0.typeReg() == ecx);
+        MOZ_ASSERT(R0.typeReg() == ecx);
         masm.movl(R1.payloadReg(), ecx);
         masm.shll_cl(R0.payloadReg());
         

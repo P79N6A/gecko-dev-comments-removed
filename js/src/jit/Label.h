@@ -34,7 +34,7 @@ struct LabelBase
         return bound_;
     }
     int32_t offset() const {
-        JS_ASSERT(bound() || used());
+        MOZ_ASSERT(bound() || used());
         return offset_;
     }
     
@@ -43,10 +43,10 @@ struct LabelBase
     }
     
     void bind(int32_t offset) {
-        JS_ASSERT(!bound());
+        MOZ_ASSERT(!bound());
         offset_ = offset;
         bound_ = true;
-        JS_ASSERT(offset_ == offset);
+        MOZ_ASSERT(offset_ == offset);
     }
     
     void reset() {
@@ -56,11 +56,11 @@ struct LabelBase
     
     
     int32_t use(int32_t offset) {
-        JS_ASSERT(!bound());
+        MOZ_ASSERT(!bound());
 
         int32_t old = offset_;
         offset_ = offset;
-        JS_ASSERT(offset_ == offset);
+        MOZ_ASSERT(offset_ == offset);
 
         return old;
     }

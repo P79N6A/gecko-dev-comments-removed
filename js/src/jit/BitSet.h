@@ -60,8 +60,8 @@ class BitSet : private TempObject
 
     
     bool contains(unsigned int value) const {
-        JS_ASSERT(bits_);
-        JS_ASSERT(value < numBits_);
+        MOZ_ASSERT(bits_);
+        MOZ_ASSERT(value < numBits_);
 
         return !!(bits_[wordForValue(value)] & bitForValue(value));
     }
@@ -71,8 +71,8 @@ class BitSet : private TempObject
 
     
     void insert(unsigned int value) {
-        JS_ASSERT(bits_);
-        JS_ASSERT(value < numBits_);
+        MOZ_ASSERT(bits_);
+        MOZ_ASSERT(value < numBits_);
 
         bits_[wordForValue(value)] |= bitForValue(value);
     }
@@ -82,8 +82,8 @@ class BitSet : private TempObject
 
     
     void remove(unsigned int value) {
-        JS_ASSERT(bits_);
-        JS_ASSERT(value < numBits_);
+        MOZ_ASSERT(bits_);
+        MOZ_ASSERT(value < numBits_);
 
         bits_[wordForValue(value)] &= ~bitForValue(value);
     }
@@ -161,8 +161,8 @@ class BitSet::Iterator
     }
 
     inline Iterator& operator++(int dummy) {
-        JS_ASSERT(more());
-        JS_ASSERT(index_ < set_.numBits_);
+        MOZ_ASSERT(more());
+        MOZ_ASSERT(index_ < set_.numBits_);
 
         index_++;
         value_ >>= 1;
@@ -172,7 +172,7 @@ class BitSet::Iterator
     }
 
     unsigned int operator *() {
-        JS_ASSERT(index_ < set_.numBits_);
+        MOZ_ASSERT(index_ < set_.numBits_);
         return index_;
     }
 };

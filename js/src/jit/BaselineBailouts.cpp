@@ -46,7 +46,7 @@ class BufferPointer
             return (T*)(header->incomingStack + offset_);
 
         uint8_t *p = header->copyStackTop - offset_;
-        JS_ASSERT(p >= header->copyStackBottom && p < header->copyStackTop);
+        MOZ_ASSERT(p >= header->copyStackBottom && p < header->copyStackTop);
         return (T*)p;
     }
 
@@ -98,7 +98,7 @@ struct BaselineStackBuilder
         header_(nullptr),
         framePushed_(0)
     {
-        JS_ASSERT(bufferTotal_ >= HeaderSize());
+        MOZ_ASSERT(bufferTotal_ >= HeaderSize());
     }
 
     ~BaselineStackBuilder() {
@@ -106,8 +106,8 @@ struct BaselineStackBuilder
     }
 
     bool init() {
-        JS_ASSERT(!buffer_);
-        JS_ASSERT(bufferUsed_ == 0);
+        MOZ_ASSERT(!buffer_);
+        MOZ_ASSERT(bufferUsed_ == 0);
         buffer_ = reinterpret_cast<uint8_t *>(js_calloc(bufferTotal_));
         if (!buffer_)
             return false;
@@ -130,7 +130,7 @@ struct BaselineStackBuilder
     }
 
     bool enlarge() {
-        JS_ASSERT(buffer_ != nullptr);
+        MOZ_ASSERT(buffer_ != nullptr);
         if (bufferTotal_ & mozilla::tl::MulOverflowMask<2>::value)
             return false;
         size_t newSize = bufferTotal_ * 2;
@@ -151,12 +151,12 @@ struct BaselineStackBuilder
     }
 
     BaselineBailoutInfo *info() {
-        JS_ASSERT(header_ == reinterpret_cast<BaselineBailoutInfo *>(buffer_));
+        MOZ_ASSERT(header_ == reinterpret_cast<BaselineBailoutInfo *>(buffer_));
         return header_;
     }
 
     BaselineBailoutInfo *takeBuffer() {
-        JS_ASSERT(header_ == reinterpret_cast<BaselineBailoutInfo *>(buffer_));
+        MOZ_ASSERT(header_ == reinterpret_cast<BaselineBailoutInfo *>(buffer_));
         buffer_ = nullptr;
         return header_;
     }
@@ -238,8 +238,8 @@ struct BaselineStackBuilder
     }
 
     Value popValue() {
-        JS_ASSERT(bufferUsed_ >= sizeof(Value));
-        JS_ASSERT(framePushed_ >= sizeof(Value));
+        MOZ_ASSERT(bufferUsed_ >= sizeof(Value));
+        MOZ_ASSERT(framePushed_ >= sizeof(Value));
         bufferAvail_ += sizeof(Value);
         bufferUsed_ -= sizeof(Value);
         framePushed_ -= sizeof(Value);
@@ -249,7 +249,7 @@ struct BaselineStackBuilder
     }
 
     void popValueInto(PCMappingSlotInfo::SlotLocation loc) {
-        JS_ASSERT(PCMappingSlotInfo::ValidSlotLocation(loc));
+        MOZ_ASSERT(PCMappingSlotInfo::ValidSlotLocation(loc));
         switch(loc) {
           case PCMappingSlotInfo::SlotInR0:
             header_->setR0 = 1;
@@ -260,7 +260,7 @@ struct BaselineStackBuilder
             header_->valueR1 = popValue();
             break;
           default:
-            JS_ASSERT(loc == PCMappingSlotInfo::SlotIgnore);
+            MOZ_ASSERT(loc == PCMappingSlotInfo::SlotIgnore);
             popValue();
             break;
         }
@@ -339,7 +339,7 @@ struct BaselineStackBuilder
             return virtualPointerAtStackOffset(offset);
         }
 
-        JS_ASSERT(type == JitFrame_Rectifier);
+        MOZ_ASSERT(type == JitFrame_Rectifier);
         
         
         
@@ -347,7 +347,7 @@ struct BaselineStackBuilder
         size_t priorOffset = IonJSFrameLayout::Size() + topFrame->prevFrameLocalSize();
 #if defined(JS_CODEGEN_X86)
         
-        JS_ASSERT(BaselineFrameReg == FramePointer);
+        MOZ_ASSERT(BaselineFrameReg == FramePointer);
         priorOffset -= sizeof(void *);
         return virtualPointerAtStackOffset(priorOffset);
 #elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS)
@@ -356,7 +356,7 @@ struct BaselineStackBuilder
         BufferPointer<IonRectifierFrameLayout> priorFrame =
             pointerAtStackOffset<IonRectifierFrameLayout>(priorOffset);
         FrameType priorType = priorFrame->prevType();
-        JS_ASSERT(priorType == JitFrame_IonJS || priorType == JitFrame_BaselineStub);
+        MOZ_ASSERT(priorType == JitFrame_IonJS || priorType == JitFrame_BaselineStub);
 
         
         
@@ -421,7 +421,7 @@ GetStubReturnAddress(JSContext *cx, jsbytecode *pc)
     if (IsSetPropPC(pc))
         return cx->compartment()->jitCompartment()->baselineSetPropReturnAddr();
     
-    JS_ASSERT(IsCallPC(pc));
+    MOZ_ASSERT(IsCallPC(pc));
     return cx->compartment()->jitCompartment()->baselineCallReturnAddr();
 }
 
@@ -622,7 +622,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             if (fun && fun->isHeavyweight())
                 flags |= BaselineFrame::HAS_CALL_OBJ;
         } else {
-            JS_ASSERT(v.isUndefined() || v.isMagic(JS_OPTIMIZED_OUT));
+            MOZ_ASSERT(v.isUndefined() || v.isMagic(JS_OPTIMIZED_OUT));
 
             
             if (fun) {
@@ -637,8 +637,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 
-                JS_ASSERT(!script->isForEval());
-                JS_ASSERT(script->compileAndGo());
+                MOZ_ASSERT(!script->isForEval());
+                MOZ_ASSERT(script->compileAndGo());
                 scopeChain = &(script->global());
             }
         }
@@ -651,7 +651,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         
         if (script->argumentsHasVarBinding()) {
             v = iter.read();
-            JS_ASSERT(v.isObject() || v.isUndefined() || v.isMagic(JS_OPTIMIZED_OUT));
+            MOZ_ASSERT(v.isObject() || v.isUndefined() || v.isMagic(JS_OPTIMIZED_OUT));
             if (v.isObject())
                 argsObj = &v.toObject().as<ArgumentsObject>();
         }
@@ -678,7 +678,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         size_t thisvOffset = builder.framePushed() + IonJSFrameLayout::offsetOfThis();
         *builder.valuePointerAtStackOffset(thisvOffset) = thisv;
 
-        JS_ASSERT(iter.numAllocations() >= CountArgSlots(script, fun));
+        MOZ_ASSERT(iter.numAllocations() >= CountArgSlots(script, fun));
         JitSpew(JitSpew_BaselineBailouts, "      frame slots %u, nargs %u, nfixed %u",
                 iter.numAllocations(), fun->nargs(), script->nfixed());
 
@@ -688,7 +688,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             
-            JS_ASSERT(startFrameFormals.empty());
+            MOZ_ASSERT(startFrameFormals.empty());
             if (!startFrameFormals.resize(fun->nargs()))
                 return false;
         }
@@ -734,7 +734,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         else
             inlined_args = 2 + IsSetPropPC(pc);
 
-        JS_ASSERT(exprStackSlots >= inlined_args);
+        MOZ_ASSERT(exprStackSlots >= inlined_args);
         pushedSlots = exprStackSlots - inlined_args;
 
         JitSpew(JitSpew_BaselineBailouts,
@@ -814,7 +814,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             
-            JS_ASSERT(invalidate);
+            MOZ_ASSERT(invalidate);
             iter.skip();
             JitSpew(JitSpew_BaselineBailouts, "      [Return Override]");
             v = cx->runtime()->jitRuntime()->takeIonReturnOverride();
@@ -874,7 +874,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 
-                JS_ASSERT(expectedDepth - exprStackSlots <= 1);
+                MOZ_ASSERT(expectedDepth - exprStackSlots <= 1);
             } else if (iter.moreFrames() && (IsGetPropPC(pc) || IsSetPropPC(pc))) {
                 
                 
@@ -884,13 +884,13 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 
-                JS_ASSERT(exprStackSlots - expectedDepth == 1);
+                MOZ_ASSERT(exprStackSlots - expectedDepth == 1);
             } else {
                 
                 
                 
                 
-                JS_ASSERT(exprStackSlots == expectedDepth);
+                MOZ_ASSERT(exprStackSlots == expectedDepth);
             }
         }
     }
@@ -932,7 +932,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         if (enterMonitorChain) {
             ICEntry &icEntry = baselineScript->icEntryFromPCOffset(pcOff);
             ICFallbackStub *fallbackStub = icEntry.firstStub()->getChainFallback();
-            JS_ASSERT(fallbackStub->isMonitoredFallback());
+            MOZ_ASSERT(fallbackStub->isMonitoredFallback());
             JitSpew(JitSpew_BaselineBailouts, "      [TYPE-MONITOR CHAIN]");
             ICMonitoredFallbackStub *monFallbackStub = fallbackStub->toMonitoredFallbackStub();
             ICStub *firstMonStub = monFallbackStub->fallbackMonitorStub()->firstMonitorStub();
@@ -977,7 +977,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             PCMappingSlotInfo slotInfo;
             uint8_t *nativeCodeForPC = baselineScript->nativeCodeForPC(script, pc, &slotInfo);
             unsigned numUnsynced = slotInfo.numUnsynced();
-            JS_ASSERT(numUnsynced <= 2);
+            MOZ_ASSERT(numUnsynced <= 2);
             PCMappingSlotInfo::SlotLocation loc1, loc2;
             if (numUnsynced > 0) {
                 loc1 = slotInfo.topSlotLocation();
@@ -1006,8 +1006,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             if (scopeChain == nullptr) {
                 
                 
-                JS_ASSERT(fun);
-                JS_ASSERT(numUnsynced == 0);
+                MOZ_ASSERT(fun);
+                MOZ_ASSERT(numUnsynced == 0);
                 opReturnAddr = baselineScript->prologueEntryAddr();
                 JitSpew(JitSpew_BaselineBailouts, "      Resuming into prologue.");
 
@@ -1086,7 +1086,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     ICEntry &icEntry = baselineScript->icEntryFromPCOffset(pcOff);
-    JS_ASSERT(IsInlinableFallback(icEntry.firstStub()->getChainFallback()));
+    MOZ_ASSERT(IsInlinableFallback(icEntry.firstStub()->getChainFallback()));
     if (!builder.writePtr(baselineScript->returnAddressForIC(icEntry), "ReturnAddr"))
         return false;
 
@@ -1118,7 +1118,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     size_t startOfBaselineStubFrame = builder.framePushed();
 
     
-    JS_ASSERT(IsInlinableFallback(icEntry.fallbackStub()));
+    MOZ_ASSERT(IsInlinableFallback(icEntry.fallbackStub()));
     if (!builder.writePtr(icEntry.fallbackStub(), "StubPtr"))
         return false;
 
@@ -1129,7 +1129,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     
-    JS_ASSERT(IsIonInlinablePC(pc));
+    MOZ_ASSERT(IsIonInlinablePC(pc));
     unsigned actualArgc;
     if (needToSaveArgs) {
         
@@ -1139,8 +1139,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         else
             actualArgc = IsSetPropPC(pc);
 
-        JS_ASSERT(actualArgc + 2 <= exprStackSlots);
-        JS_ASSERT(savedCallerArgs.length() == actualArgc + 2);
+        MOZ_ASSERT(actualArgc + 2 <= exprStackSlots);
+        MOZ_ASSERT(savedCallerArgs.length() == actualArgc + 2);
         for (unsigned i = 0; i < actualArgc + 1; i++) {
             size_t arg = savedCallerArgs.length() - (i + 1);
             if (!builder.writeValue(savedCallerArgs[arg], "ArgVal"))
@@ -1149,11 +1149,11 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     } else {
         actualArgc = GET_ARGC(pc);
         if (op == JSOP_FUNCALL) {
-            JS_ASSERT(actualArgc > 0);
+            MOZ_ASSERT(actualArgc > 0);
             actualArgc--;
         }
 
-        JS_ASSERT(actualArgc + 2 <= exprStackSlots);
+        MOZ_ASSERT(actualArgc + 2 <= exprStackSlots);
         for (unsigned i = 0; i < actualArgc + 1; i++) {
             size_t argSlot = (script->nfixed() + exprStackSlots) - (i + 1);
             if (!builder.writeValue(*blFrame->valueSlot(argSlot), "ArgVal"))
@@ -1188,7 +1188,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         JitSpew(JitSpew_BaselineBailouts, "      CalleeStackSlot=%d", (int) calleeStackSlot);
     }
     JitSpew(JitSpew_BaselineBailouts, "      Callee = %016llx", *((uint64_t *) &callee));
-    JS_ASSERT(callee.isObject() && callee.toObject().is<JSFunction>());
+    MOZ_ASSERT(callee.isObject() && callee.toObject().is<JSFunction>());
     JSFunction *calleeFun = &callee.toObject().as<JSFunction>();
     if (!builder.writePtr(CalleeToToken(calleeFun, JSOp(*pc) == JSOP_NEW), "CalleeToken"))
         return false;
@@ -1200,7 +1200,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     void *baselineCallReturnAddr = GetStubReturnAddress(cx, pc);
-    JS_ASSERT(baselineCallReturnAddr);
+    MOZ_ASSERT(baselineCallReturnAddr);
     if (!builder.writePtr(baselineCallReturnAddr, "ReturnAddr"))
         return false;
 
@@ -1279,7 +1279,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     
     
     void *rectReturnAddr = cx->runtime()->jitRuntime()->getArgumentsRectifierReturnAddr();
-    JS_ASSERT(rectReturnAddr);
+    MOZ_ASSERT(rectReturnAddr);
     if (!builder.writePtr(rectReturnAddr, "ReturnAddr"))
         return false;
 
@@ -1293,10 +1293,10 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
 {
     
     
-    JS_ASSERT(cx->mainThread().suppressGC);
+    MOZ_ASSERT(cx->mainThread().suppressGC);
 
-    JS_ASSERT(bailoutInfo != nullptr);
-    JS_ASSERT(*bailoutInfo == nullptr);
+    MOZ_ASSERT(bailoutInfo != nullptr);
+    MOZ_ASSERT(*bailoutInfo == nullptr);
 
     TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogStopEvent(logger, TraceLogger::IonMonkey);
@@ -1307,12 +1307,12 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     
     
     
-    JS_ASSERT(iter.isIonJS());
+    MOZ_ASSERT(iter.isIonJS());
     FrameType prevFrameType = iter.prevType();
-    JS_ASSERT(prevFrameType == JitFrame_IonJS ||
-              prevFrameType == JitFrame_BaselineStub ||
-              prevFrameType == JitFrame_Entry ||
-              prevFrameType == JitFrame_Rectifier);
+    MOZ_ASSERT(prevFrameType == JitFrame_IonJS ||
+               prevFrameType == JitFrame_BaselineStub ||
+               prevFrameType == JitFrame_Entry ||
+               prevFrameType == JitFrame_Rectifier);
 
     
     
@@ -1433,15 +1433,15 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
         }
 
         if (!snapIter.moreFrames()) {
-            JS_ASSERT(!callPC);
+            MOZ_ASSERT(!callPC);
             break;
         }
 
         if (handleException)
             break;
 
-        JS_ASSERT(nextCallee);
-        JS_ASSERT(callPC);
+        MOZ_ASSERT(nextCallee);
+        MOZ_ASSERT(callPC);
         caller = scr;
         callerPC = callPC;
         fun = nextCallee;
@@ -1449,7 +1449,7 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
 
         
         if (!topCaller) {
-            JS_ASSERT(frameNo == 0);
+            MOZ_ASSERT(frameNo == 0);
             topCaller = caller;
             topCallerPC = callerPC;
         }
@@ -1503,7 +1503,7 @@ HandleBoundsCheckFailure(JSContext *cx, HandleScript outerScript, HandleScript i
             innerScript->filename(), innerScript->lineno(),
             outerScript->filename(), outerScript->lineno());
 
-    JS_ASSERT(!outerScript->ionScript()->invalidated());
+    MOZ_ASSERT(!outerScript->ionScript()->invalidated());
 
     
     
@@ -1521,7 +1521,7 @@ HandleShapeGuardFailure(JSContext *cx, HandleScript outerScript, HandleScript in
             innerScript->filename(), innerScript->lineno(),
             outerScript->filename(), outerScript->lineno());
 
-    JS_ASSERT(!outerScript->ionScript()->invalidated());
+    MOZ_ASSERT(!outerScript->ionScript()->invalidated());
 
     
     
@@ -1538,7 +1538,7 @@ HandleBaselineInfoBailout(JSContext *cx, JSScript *outerScript, JSScript *innerS
             innerScript->filename(), innerScript->lineno(),
             outerScript->filename(), outerScript->lineno());
 
-    JS_ASSERT(!outerScript->ionScript()->invalidated());
+    MOZ_ASSERT(!outerScript->ionScript()->invalidated());
 
     JitSpew(JitSpew_BaselineBailouts, "Invalidating due to invalid baseline info");
     return Invalidate(cx, outerScript);
@@ -1595,7 +1595,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 #endif
 
     uint32_t numFrames = bailoutInfo->numFrames;
-    JS_ASSERT(numFrames > 0);
+    MOZ_ASSERT(numFrames > 0);
     BailoutKind bailoutKind = bailoutInfo->bailoutKind;
 
     
@@ -1614,13 +1614,13 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
     RootedScript innerScript(cx, nullptr);
     RootedScript outerScript(cx, nullptr);
 
-    JS_ASSERT(cx->currentlyRunningInJit());
+    MOZ_ASSERT(cx->currentlyRunningInJit());
     JitFrameIterator iter(cx);
     uint8_t *outerFp = nullptr;
 
     uint32_t frameno = 0;
     while (frameno < numFrames) {
-        JS_ASSERT(!iter.isIonJS());
+        MOZ_ASSERT(!iter.isIonJS());
 
         if (iter.isBaselineJS()) {
             BaselineFrame *frame = iter.baselineFrame();

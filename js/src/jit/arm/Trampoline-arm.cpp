@@ -110,7 +110,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     const Address slot_token(sp, offsetof(EnterJITStack, token));
     const Address slot_vp(sp, offsetof(EnterJITStack, vp));
 
-    JS_ASSERT(OsrFrameReg == r3);
+    MOZ_ASSERT(OsrFrameReg == r3);
 
     MacroAssembler masm(cx);
     Assembler *aasm = &masm;
@@ -279,7 +279,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.pop(jitcode);
         masm.pop(framePtr);
 
-        JS_ASSERT(jitcode != ReturnReg);
+        MOZ_ASSERT(jitcode != ReturnReg);
 
         Label error;
         masm.addPtr(Imm32(IonExitFrameLayout::SizeWithFooter()), sp);
@@ -298,7 +298,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         masm.bind(&notOsr);
         
-        JS_ASSERT(R1.scratchReg() != r0);
+        MOZ_ASSERT(R1.scratchReg() != r0);
         masm.loadPtr(Address(r11, offsetof(EnterJITStack, scopeChain)), R1.scratchReg());
     }
 
@@ -421,7 +421,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     MacroAssembler masm(cx);
     
     
-    JS_ASSERT(ArgumentsRectifierReg == r8);
+    MOZ_ASSERT(ArgumentsRectifierReg == r8);
 
     
     masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonRectifierFrameLayout::offsetOfNumActualArgs())), r0);
@@ -724,8 +724,8 @@ JitRuntime::generateBailoutHandler(JSContext *cx, ExecutionMode mode)
 JitCode *
 JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
 {
-    JS_ASSERT(functionWrappers_);
-    JS_ASSERT(functionWrappers_->initialized());
+    MOZ_ASSERT(functionWrappers_);
+    MOZ_ASSERT(functionWrappers_->initialized());
     VMWrapperMap::AddPtr p = functionWrappers_->lookupForAdd(&f);
     if (p)
         return p->value();
@@ -791,7 +791,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
         break;
 
       default:
-        JS_ASSERT(f.outParam == Type_Void);
+        MOZ_ASSERT(f.outParam == Type_Void);
         break;
     }
 
@@ -811,7 +811,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
           case VMFunction::DoubleByValue:
             
             
-            JS_ASSERT(f.argPassedInFloatReg(explicitArg));
+            MOZ_ASSERT(f.argPassedInFloatReg(explicitArg));
             masm.passABIArg(MoveOperand(argsBase, argDisp), MoveOp::DOUBLE);
             argDisp += sizeof(double);
             break;
@@ -875,7 +875,7 @@ JitRuntime::generateVMWrapper(JSContext *cx, const VMFunction &f)
         break;
 
       default:
-        JS_ASSERT(f.outParam == Type_Void);
+        MOZ_ASSERT(f.outParam == Type_Void);
         break;
     }
     masm.leaveExitFrame();
@@ -916,7 +916,7 @@ JitRuntime::generatePreBarrier(JSContext *cx, MIRType type)
     }
     masm.PushRegsInMask(save);
 
-    JS_ASSERT(PreBarrierReg == r1);
+    MOZ_ASSERT(PreBarrierReg == r1);
     masm.movePtr(ImmPtr(cx->runtime()), r0);
 
     masm.setupUnalignedABICall(2, r2);

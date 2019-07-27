@@ -81,7 +81,7 @@ class ParallelSafetyVisitor : public MDefinitionVisitor
     
     
     bool markUnsafe() {
-        JS_ASSERT(!unsafe_);
+        MOZ_ASSERT(!unsafe_);
         unsafe_ = true;
         return true;
     }
@@ -450,8 +450,8 @@ ParallelSafetyVisitor::convertToBailout(MInstructionIterator &iter)
     
     MInstruction *ins = *iter;
     MBasicBlock *block = ins->block();
-    JS_ASSERT(unsafe()); 
-    JS_ASSERT(block->isMarked()); 
+    MOZ_ASSERT(unsafe()); 
+    MOZ_ASSERT(block->isMarked()); 
 
     clearUnsafe();
 
@@ -610,7 +610,7 @@ ParallelSafetyVisitor::replace(MInstruction *oldInstruction,
     {
         replacementInstruction->trySpecializeFloat32(alloc());
     }
-    JS_ASSERT(oldInstruction->type() == replacementInstruction->type());
+    MOZ_ASSERT(oldInstruction->type() == replacementInstruction->type());
 
     return true;
 }
@@ -779,7 +779,7 @@ bool
 ParallelSafetyVisitor::visitThrow(MThrow *thr)
 {
     MBasicBlock *block = thr->block();
-    JS_ASSERT(block->lastIns() == thr);
+    MOZ_ASSERT(block->lastIns() == thr);
     MBail *bail = MBail::New(alloc(), Bailout_ParallelUnsafe);
     TransplantResumePoint(thr, bail);
     block->discardLastIns();

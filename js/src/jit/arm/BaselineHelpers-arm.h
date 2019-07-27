@@ -42,7 +42,7 @@ EmitCallIC(CodeOffsetLabel *patchOffset, MacroAssembler &masm)
 
     
     
-    JS_ASSERT(R2 == ValueOperand(r1, r0));
+    MOZ_ASSERT(R2 == ValueOperand(r1, r0));
     masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
 
     
@@ -59,7 +59,7 @@ EmitEnterTypeMonitorIC(MacroAssembler &masm,
 
     
     
-    JS_ASSERT(R2 == ValueOperand(r1, r0));
+    MOZ_ASSERT(R2 == ValueOperand(r1, r0));
     masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
 
     
@@ -83,7 +83,7 @@ EmitTailCallVM(JitCode *target, MacroAssembler &masm, uint32_t argSize)
 {
     
     
-    JS_ASSERT(R2 == ValueOperand(r1, r0));
+    MOZ_ASSERT(R2 == ValueOperand(r1, r0));
 
     
     masm.movePtr(BaselineFrameReg, r0);
@@ -98,7 +98,7 @@ EmitTailCallVM(JitCode *target, MacroAssembler &masm, uint32_t argSize)
     
     
     
-    JS_ASSERT(BaselineTailCallReg == lr);
+    MOZ_ASSERT(BaselineTailCallReg == lr);
     masm.makeFrameDescriptor(r0, JitFrame_BaselineJS);
     masm.push(r0);
     masm.push(lr);
@@ -132,7 +132,7 @@ static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = sizeof(void *);
 inline void
 EmitEnterStubFrame(MacroAssembler &masm, Register scratch)
 {
-    JS_ASSERT(scratch != BaselineTailCallReg);
+    MOZ_ASSERT(scratch != BaselineTailCallReg);
 
     
     masm.mov(BaselineFrameReg, scratch);
@@ -186,7 +186,7 @@ EmitLeaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false)
 inline void
 EmitStowICValues(MacroAssembler &masm, int values)
 {
-    JS_ASSERT(values >= 0 && values <= 2);
+    MOZ_ASSERT(values >= 0 && values <= 2);
     switch(values) {
       case 1:
         
@@ -203,7 +203,7 @@ EmitStowICValues(MacroAssembler &masm, int values)
 inline void
 EmitUnstowICValues(MacroAssembler &masm, int values, bool discard = false)
 {
-    JS_ASSERT(values >= 0 && values <= 2);
+    MOZ_ASSERT(values >= 0 && values <= 2);
     switch(values) {
       case 1:
         
@@ -227,7 +227,7 @@ EmitUnstowICValues(MacroAssembler &masm, int values, bool discard = false)
 inline void
 EmitCallTypeUpdateIC(MacroAssembler &masm, JitCode *code, uint32_t objectOffset)
 {
-    JS_ASSERT(R2 == ValueOperand(r1, r0));
+    MOZ_ASSERT(R2 == ValueOperand(r1, r0));
 
     
     
@@ -294,7 +294,7 @@ EmitPreBarrier(MacroAssembler &masm, const AddrType &addr, MIRType type)
 inline void
 EmitStubGuardFailure(MacroAssembler &masm)
 {
-    JS_ASSERT(R2 == ValueOperand(r1, r0));
+    MOZ_ASSERT(R2 == ValueOperand(r1, r0));
 
     
     
@@ -308,7 +308,7 @@ EmitStubGuardFailure(MacroAssembler &masm)
     masm.loadPtr(Address(BaselineStubReg, ICStub::offsetOfStubCode()), r0);
 
     
-    JS_ASSERT(BaselineTailCallReg == lr);
+    MOZ_ASSERT(BaselineTailCallReg == lr);
     masm.branch(r0);
 }
 

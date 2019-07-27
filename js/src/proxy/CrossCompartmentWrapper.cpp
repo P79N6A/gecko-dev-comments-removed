@@ -293,8 +293,8 @@ CrossCompartmentWrapper::nativeCall(JSContext *cx, IsAcceptableThis test, Native
                                     CallArgs srcArgs) const
 {
     RootedObject wrapper(cx, &srcArgs.thisv().toObject());
-    JS_ASSERT(srcArgs.thisv().isMagic(JS_IS_CONSTRUCTING) ||
-              !UncheckedUnwrap(wrapper)->is<CrossCompartmentWrapperObject>());
+    MOZ_ASSERT(srcArgs.thisv().isMagic(JS_IS_CONSTRUCTING) ||
+               !UncheckedUnwrap(wrapper)->is<CrossCompartmentWrapperObject>());
 
     RootedObject wrapped(cx, wrappedObject(wrapper));
     {
@@ -323,7 +323,7 @@ CrossCompartmentWrapper::nativeCall(JSContext *cx, IsAcceptableThis test, Native
                 if (thisObj->is<WrapperObject>() &&
                     Wrapper::wrapperHandler(thisObj)->hasSecurityPolicy())
                 {
-                    JS_ASSERT(!thisObj->is<CrossCompartmentWrapperObject>());
+                    MOZ_ASSERT(!thisObj->is<CrossCompartmentWrapperObject>());
                     *dst = ObjectValue(*Wrapper::wrappedObject(thisObj));
                 }
             }
@@ -442,13 +442,13 @@ js::IsCrossCompartmentWrapper(JSObject *obj)
 void
 js::NukeCrossCompartmentWrapper(JSContext *cx, JSObject *wrapper)
 {
-    JS_ASSERT(wrapper->is<CrossCompartmentWrapperObject>());
+    MOZ_ASSERT(wrapper->is<CrossCompartmentWrapperObject>());
 
     NotifyGCNukeWrapper(wrapper);
 
     wrapper->as<ProxyObject>().nuke(&DeadObjectProxy::singleton);
 
-    JS_ASSERT(IsDeadProxyObject(wrapper));
+    MOZ_ASSERT(IsDeadProxyObject(wrapper));
 }
 
 
@@ -509,10 +509,10 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
 {
     RootedObject wobj(cx, wobjArg);
     RootedObject newTarget(cx, newTargetArg);
-    JS_ASSERT(wobj->is<CrossCompartmentWrapperObject>());
-    JS_ASSERT(!newTarget->is<CrossCompartmentWrapperObject>());
+    MOZ_ASSERT(wobj->is<CrossCompartmentWrapperObject>());
+    MOZ_ASSERT(!newTarget->is<CrossCompartmentWrapperObject>());
     JSObject *origTarget = Wrapper::wrappedObject(wobj);
-    JS_ASSERT(origTarget);
+    MOZ_ASSERT(origTarget);
     Value origv = ObjectValue(*origTarget);
     JSCompartment *wcompartment = wobj->compartment();
 
@@ -527,7 +527,7 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
     
     
     WrapperMap::Ptr p = wcompartment->lookupWrapper(origv);
-    JS_ASSERT(&p->value().unsafeGet()->toObject() == wobj);
+    MOZ_ASSERT(&p->value().unsafeGet()->toObject() == wobj);
     wcompartment->removeWrapper(p);
 
     
@@ -556,11 +556,11 @@ js::RemapWrapper(JSContext *cx, JSObject *wobjArg, JSObject *newTargetArg)
 
     
     
-    JS_ASSERT(Wrapper::wrappedObject(wobj) == newTarget);
+    MOZ_ASSERT(Wrapper::wrappedObject(wobj) == newTarget);
 
     
     
-    JS_ASSERT(wobj->is<WrapperObject>());
+    MOZ_ASSERT(wobj->is<WrapperObject>());
     wcompartment->putWrapper(cx, CrossCompartmentKey(newTarget), ObjectValue(*wobj));
     return true;
 }

@@ -98,7 +98,7 @@ ValidatePropertyDescriptor(JSContext *cx, bool extensible, Handle<PropDesc> desc
 
     
     if (IsDataDescriptor(current)) {
-        JS_ASSERT(desc.isDataDescriptor()); 
+        MOZ_ASSERT(desc.isDataDescriptor()); 
         if (current.isPermanent() && current.isReadonly()) {
             if (desc.hasWritable() && desc.writable()) {
                 *bp = false;
@@ -121,8 +121,8 @@ ValidatePropertyDescriptor(JSContext *cx, bool extensible, Handle<PropDesc> desc
     }
 
     
-    JS_ASSERT(IsAccessorDescriptor(current)); 
-    JS_ASSERT(desc.isAccessorDescriptor()); 
+    MOZ_ASSERT(IsAccessorDescriptor(current)); 
+    MOZ_ASSERT(desc.isAccessorDescriptor()); 
     *bp = (!current.isPermanent() ||
            ((!desc.hasSet() || desc.setter() == current.setter()) &&
             (!desc.hasGet() || desc.getter() == current.getter())));
@@ -157,7 +157,7 @@ HasOwn(JSContext *cx, HandleObject obj, HandleId id, bool *bp)
 static JSObject *
 GetDirectProxyHandlerObject(JSObject *proxy)
 {
-    JS_ASSERT(proxy->as<ProxyObject>().handler() == &ScriptedDirectProxyHandler::singleton);
+    MOZ_ASSERT(proxy->as<ProxyObject>().handler() == &ScriptedDirectProxyHandler::singleton);
     return proxy->as<ProxyObject>().extra(ScriptedDirectProxyHandler::HANDLER_EXTRA).toObjectOrNull();
 }
 
@@ -177,7 +177,7 @@ static bool
 ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleValue v,
                 AutoIdVector &props, unsigned flags, JSAtom *trapName_)
 {
-    JS_ASSERT(v.isObject());
+    MOZ_ASSERT(v.isObject());
     RootedObject array(cx, &v.toObject());
     RootedAtom trapName(cx, trapName_);
 
@@ -343,7 +343,7 @@ ScriptedDirectProxyHandler::getPropertyDescriptor(JSContext *cx, HandleObject pr
     if (!JSObject::getProto(cx, proxy, &proto))
         return false;
     if (!proto) {
-        JS_ASSERT(!desc.object());
+        MOZ_ASSERT(!desc.object());
         return true;
     }
     return JS_GetPropertyDescriptorById(cx, proto, id, desc);

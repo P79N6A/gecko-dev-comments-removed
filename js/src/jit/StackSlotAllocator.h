@@ -26,12 +26,12 @@ class StackSlotAllocator
         doubleSlots.append(index);
     }
     void freeQuadSlot(uint32_t index) {
-        JS_ASSERT(SupportsSimd);
+        MOZ_ASSERT(SupportsSimd);
         quadSlots.append(index);
     }
 
     uint32_t allocateQuadSlot() {
-        JS_ASSERT(SupportsSimd);
+        MOZ_ASSERT(SupportsSimd);
         
         
         if (!quadSlots.empty())

@@ -93,10 +93,10 @@ ObjectElements::ConvertElementsToDoubles(JSContext *cx, uintptr_t elementsPtr)
 
 
     HeapSlot *elementsHeapPtr = (HeapSlot *) elementsPtr;
-    JS_ASSERT(elementsHeapPtr != emptyObjectElements);
+    MOZ_ASSERT(elementsHeapPtr != emptyObjectElements);
 
     ObjectElements *header = ObjectElements::fromElements(elementsHeapPtr);
-    JS_ASSERT(!header->shouldConvertDoubleElements());
+    MOZ_ASSERT(!header->shouldConvertDoubleElements());
 
     
     
@@ -123,7 +123,7 @@ ObjectElements::MakeElementsCopyOnWrite(ExclusiveContext *cx, JSObject *obj)
 
     
     
-    JS_ASSERT(!header->isCopyOnWrite());
+    MOZ_ASSERT(!header->isCopyOnWrite());
     header->flags |= COPY_ON_WRITE;
 
     header->ownerObject().init(obj);

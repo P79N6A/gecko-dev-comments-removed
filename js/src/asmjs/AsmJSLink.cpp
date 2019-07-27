@@ -129,7 +129,7 @@ static bool
 ValidateGlobalVariable(JSContext *cx, const AsmJSModule &module, AsmJSModule::Global &global,
                        HandleValue importVal)
 {
-    JS_ASSERT(global.which() == AsmJSModule::Global::Variable);
+    MOZ_ASSERT(global.which() == AsmJSModule::Global::Variable);
 
     void *datum = module.globalVarToGlobalDatum(global);
 
@@ -435,7 +435,7 @@ LinkModuleToHeap(JSContext *cx, AsmJSModule &module, Handle<ArrayBufferObjectMay
 
     
     
-    JS_ASSERT((module.minHeapLength() - 1) <= INT32_MAX);
+    MOZ_ASSERT((module.minHeapLength() - 1) <= INT32_MAX);
     if (heapLength < module.minHeapLength()) {
         ScopedJSFreePtr<char> msg(
             JS_smprintf("ArrayBuffer byteLength of 0x%x is less than 0x%x (which is the "
@@ -777,7 +777,7 @@ SendFunctionsToVTune(JSContext *cx, AsmJSModule &module)
 
         uint8_t *start = base + func.pod.startCodeOffset;
         uint8_t *end   = base + func.pod.endCodeOffset;
-        JS_ASSERT(end >= start);
+        MOZ_ASSERT(end >= start);
 
         unsigned method_id = iJIT_GetNewMethodID();
         if (method_id == 0)
@@ -820,7 +820,7 @@ SendFunctionsToPerf(JSContext *cx, AsmJSModule &module)
         const AsmJSModule::ProfiledFunction &func = module.profiledFunction(i);
         uintptr_t start = base + (unsigned long) func.pod.startCodeOffset;
         uintptr_t end   = base + (unsigned long) func.pod.endCodeOffset;
-        JS_ASSERT(end >= start);
+        MOZ_ASSERT(end >= start);
         size_t size = end - start;
 
         JSAutoByteString bytes;
@@ -908,7 +908,7 @@ CreateExportObject(JSContext *cx, Handle<AsmJSModuleObject*> moduleObj)
         if (!fun)
             return nullptr;
 
-        JS_ASSERT(func.maybeFieldName() != nullptr);
+        MOZ_ASSERT(func.maybeFieldName() != nullptr);
         RootedId id(cx, NameToId(func.maybeFieldName()));
         RootedValue val(cx, ObjectValue(*fun));
         if (!DefineNativeProperty(cx, obj, id, val, nullptr, nullptr, JSPROP_ENUMERATE))
@@ -1174,7 +1174,7 @@ js::AsmJSFunctionToString(JSContext *cx, HandleFunction fun)
 
     
     
-    JS_ASSERT(!(begin == 0 && end == source->length() && source->argumentsNotIncluded()));
+    MOZ_ASSERT(!(begin == 0 && end == source->length() && source->argumentsNotIncluded()));
 
     if (!out.append("function "))
         return nullptr;
@@ -1185,7 +1185,7 @@ js::AsmJSFunctionToString(JSContext *cx, HandleFunction fun)
         
 
         
-        JS_ASSERT(fun->atom());
+        MOZ_ASSERT(fun->atom());
         if (!out.append(fun->atom()))
             return nullptr;
 

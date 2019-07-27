@@ -73,7 +73,7 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
         
         
         
-        JS_ASSERT(graph->argumentSlotCount() == 0);
+        MOZ_ASSERT(graph->argumentSlotCount() == 0);
         frameDepth_ += gen->maxAsmJSStackArgBytes();
 
         if (gen->usesSimd()) {
@@ -140,7 +140,7 @@ CodeGeneratorShared::generateOutOfLineCode()
 bool
 CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code, const MInstruction *mir)
 {
-    JS_ASSERT(mir);
+    MOZ_ASSERT(mir);
     return addOutOfLineCode(code, mir->trackedSite());
 }
 
@@ -160,8 +160,8 @@ CodeGeneratorShared::addNativeToBytecodeEntry(const BytecodeSite &site)
     if (!isNativeToBytecodeMapEnabled())
         return true;
 
-    JS_ASSERT(site.tree());
-    JS_ASSERT(site.pc());
+    MOZ_ASSERT(site.tree());
+    MOZ_ASSERT(site.pc());
 
     InlineScriptTree *tree = site.tree();
     jsbytecode *pc = site.pc();
@@ -173,7 +173,7 @@ CodeGeneratorShared::addNativeToBytecodeEntry(const BytecodeSite &site)
         size_t lastIdx = nativeToBytecodeList_.length() - 1;
         NativeToBytecode &lastEntry = nativeToBytecodeList_[lastIdx];
 
-        JS_ASSERT(nativeOffset >= lastEntry.nativeOffset.offset());
+        MOZ_ASSERT(nativeOffset >= lastEntry.nativeOffset.offset());
 
         
         
@@ -271,10 +271,10 @@ static inline int32_t
 ToStackIndex(LAllocation *a)
 {
     if (a->isStackSlot()) {
-        JS_ASSERT(a->toStackSlot()->slot() >= 1);
+        MOZ_ASSERT(a->toStackSlot()->slot() >= 1);
         return a->toStackSlot()->slot();
     }
-    JS_ASSERT(-int32_t(sizeof(IonJSFrameLayout)) <= a->toArgument()->index());
+    MOZ_ASSERT(-int32_t(sizeof(IonJSFrameLayout)) <= a->toArgument()->index());
     return -int32_t(sizeof(IonJSFrameLayout) + a->toArgument()->index());
 }
 
@@ -365,7 +365,7 @@ CodeGeneratorShared::encodeAllocation(LSnapshot *snapshot, MDefinition *mir,
       }
       default:
       {
-        JS_ASSERT(mir->type() == MIRType_Value);
+        MOZ_ASSERT(mir->type() == MIRType_Value);
         LAllocation *payload = snapshot->payloadOfSlot(*allocIndex);
 #ifdef JS_NUNBOX32
         LAllocation *type = snapshot->typeOfSlot(*allocIndex);
@@ -406,7 +406,7 @@ CodeGeneratorShared::encode(LRecoverInfo *recover)
             (void *)recover, recover->mir()->frameCount(), numInstructions);
 
     MResumePoint::Mode mode = recover->mir()->mode();
-    JS_ASSERT(mode != MResumePoint::Outer);
+    MOZ_ASSERT(mode != MResumePoint::Outer);
     bool resumeAfter = (mode == MResumePoint::ResumeAfter);
 
     RecoverOffset offset = recovers_.startRecover(numInstructions, resumeAfter);
@@ -476,7 +476,7 @@ CodeGeneratorShared::encode(LSnapshot *snapshot)
 bool
 CodeGeneratorShared::assignBailoutId(LSnapshot *snapshot)
 {
-    JS_ASSERT(snapshot->snapshotOffset() != INVALID_SNAPSHOT_OFFSET);
+    MOZ_ASSERT(snapshot->snapshotOffset() != INVALID_SNAPSHOT_OFFSET);
 
     
     if (!deoptTable_)
@@ -489,7 +489,7 @@ CodeGeneratorShared::assignBailoutId(LSnapshot *snapshot)
       default: MOZ_CRASH("No such execution mode");
     }
 
-    JS_ASSERT(frameClass_ != FrameSizeClass::None());
+    MOZ_ASSERT(frameClass_ != FrameSizeClass::None());
 
     if (snapshot->bailoutId() != INVALID_BAILOUT_ID)
         return true;
@@ -561,7 +561,7 @@ CodeGeneratorShared::createNativeToBytecodeScriptList(JSContext *cx)
         }
 
         
-        JS_ASSERT(tree->isOutermostCaller());
+        MOZ_ASSERT(tree->isOutermostCaller());
         break;
     }
 
@@ -582,12 +582,12 @@ CodeGeneratorShared::createNativeToBytecodeScriptList(JSContext *cx)
 bool
 CodeGeneratorShared::generateCompactNativeToBytecodeMap(JSContext *cx, JitCode *code)
 {
-    JS_ASSERT(nativeToBytecodeScriptListLength_ == 0);
-    JS_ASSERT(nativeToBytecodeScriptList_ == nullptr);
-    JS_ASSERT(nativeToBytecodeMap_ == nullptr);
-    JS_ASSERT(nativeToBytecodeMapSize_ == 0);
-    JS_ASSERT(nativeToBytecodeTableOffset_ == 0);
-    JS_ASSERT(nativeToBytecodeNumRegions_ == 0);
+    MOZ_ASSERT(nativeToBytecodeScriptListLength_ == 0);
+    MOZ_ASSERT(nativeToBytecodeScriptList_ == nullptr);
+    MOZ_ASSERT(nativeToBytecodeMap_ == nullptr);
+    MOZ_ASSERT(nativeToBytecodeMapSize_ == 0);
+    MOZ_ASSERT(nativeToBytecodeTableOffset_ == 0);
+    MOZ_ASSERT(nativeToBytecodeNumRegions_ == 0);
 
     
     for (unsigned i = 0; i < nativeToBytecodeList_.length(); i++) {
@@ -600,8 +600,8 @@ CodeGeneratorShared::generateCompactNativeToBytecodeMap(JSContext *cx, JitCode *
     if (!createNativeToBytecodeScriptList(cx))
         return false;
 
-    JS_ASSERT(nativeToBytecodeScriptListLength_ > 0);
-    JS_ASSERT(nativeToBytecodeScriptList_ != nullptr);
+    MOZ_ASSERT(nativeToBytecodeScriptListLength_ > 0);
+    MOZ_ASSERT(nativeToBytecodeScriptList_ != nullptr);
 
     CompactBufferWriter writer;
     uint32_t tableOffset = 0;
@@ -616,8 +616,8 @@ CodeGeneratorShared::generateCompactNativeToBytecodeMap(JSContext *cx, JitCode *
         return false;
     }
 
-    JS_ASSERT(tableOffset > 0);
-    JS_ASSERT(numRegions > 0);
+    MOZ_ASSERT(tableOffset > 0);
+    MOZ_ASSERT(numRegions > 0);
 
     
     uint8_t *data = cx->runtime()->pod_malloc<uint8_t>(writer.length());
@@ -642,31 +642,31 @@ void
 CodeGeneratorShared::verifyCompactNativeToBytecodeMap(JitCode *code)
 {
 #ifdef DEBUG
-    JS_ASSERT(nativeToBytecodeScriptListLength_ > 0);
-    JS_ASSERT(nativeToBytecodeScriptList_ != nullptr);
-    JS_ASSERT(nativeToBytecodeMap_ != nullptr);
-    JS_ASSERT(nativeToBytecodeMapSize_ > 0);
-    JS_ASSERT(nativeToBytecodeTableOffset_ > 0);
-    JS_ASSERT(nativeToBytecodeNumRegions_ > 0);
+    MOZ_ASSERT(nativeToBytecodeScriptListLength_ > 0);
+    MOZ_ASSERT(nativeToBytecodeScriptList_ != nullptr);
+    MOZ_ASSERT(nativeToBytecodeMap_ != nullptr);
+    MOZ_ASSERT(nativeToBytecodeMapSize_ > 0);
+    MOZ_ASSERT(nativeToBytecodeTableOffset_ > 0);
+    MOZ_ASSERT(nativeToBytecodeNumRegions_ > 0);
 
     
     const uint8_t *tablePtr = nativeToBytecodeMap_ + nativeToBytecodeTableOffset_;
-    JS_ASSERT(uintptr_t(tablePtr) % sizeof(uint32_t) == 0);
+    MOZ_ASSERT(uintptr_t(tablePtr) % sizeof(uint32_t) == 0);
 
     
     const JitcodeIonTable *ionTable = reinterpret_cast<const JitcodeIonTable *>(tablePtr);
-    JS_ASSERT(ionTable->numRegions() == nativeToBytecodeNumRegions_);
+    MOZ_ASSERT(ionTable->numRegions() == nativeToBytecodeNumRegions_);
 
     
     
     
     
-    JS_ASSERT(ionTable->regionOffset(0) == nativeToBytecodeTableOffset_);
+    MOZ_ASSERT(ionTable->regionOffset(0) == nativeToBytecodeTableOffset_);
 
     
     for (uint32_t i = 0; i < ionTable->numRegions(); i++) {
         
-        JS_ASSERT(ionTable->regionOffset(i) <= nativeToBytecodeTableOffset_);
+        MOZ_ASSERT(ionTable->regionOffset(i) <= nativeToBytecodeTableOffset_);
 
         
         
@@ -675,7 +675,7 @@ CodeGeneratorShared::verifyCompactNativeToBytecodeMap(JitCode *code)
         JitcodeRegionEntry entry = ionTable->regionEntry(i);
 
         
-        JS_ASSERT(entry.nativeOffset() <= code->instructionsSize());
+        MOZ_ASSERT(entry.nativeOffset() <= code->instructionsSize());
 
         
         JitcodeRegionEntry::ScriptPcIterator scriptPcIter = entry.scriptPcIterator();
@@ -684,11 +684,11 @@ CodeGeneratorShared::verifyCompactNativeToBytecodeMap(JitCode *code)
             scriptPcIter.readNext(&scriptIdx, &pcOffset);
 
             
-            JS_ASSERT(scriptIdx < nativeToBytecodeScriptListLength_);
+            MOZ_ASSERT(scriptIdx < nativeToBytecodeScriptListLength_);
             JSScript *script = nativeToBytecodeScriptList_[scriptIdx];
 
             
-            JS_ASSERT(pcOffset < script->length());
+            MOZ_ASSERT(pcOffset < script->length());
         }
 
         
@@ -713,10 +713,10 @@ CodeGeneratorShared::verifyCompactNativeToBytecodeMap(JitCode *code)
             curPcOffset = uint32_t(int32_t(curPcOffset) + pcDelta);
 
             
-            JS_ASSERT(curNativeOffset <= code->instructionsSize());
+            MOZ_ASSERT(curNativeOffset <= code->instructionsSize());
 
             
-            JS_ASSERT(curPcOffset < script->length());
+            MOZ_ASSERT(curPcOffset < script->length());
         }
     }
 #endif 
@@ -760,7 +760,7 @@ CodeGeneratorShared::ensureOsiSpace()
         for (int32_t i = 0; i < paddingSize; ++i)
             masm.nop();
     }
-    JS_ASSERT(masm.currentOffset() - lastOsiPointOffset_ >= Assembler::PatchWrite_NearCallSize());
+    MOZ_ASSERT(masm.currentOffset() - lastOsiPointOffset_ >= Assembler::PatchWrite_NearCallSize());
     lastOsiPointOffset_ = masm.currentOffset();
 }
 
@@ -992,7 +992,7 @@ bool
 CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Register *dynStack)
 {
     
-    JS_ASSERT(fun.executionMode == gen->info().executionMode());
+    MOZ_ASSERT(fun.executionMode == gen->info().executionMode());
 
     
     
@@ -1000,7 +1000,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
 
 #ifdef DEBUG
     if (ins->mirRaw()) {
-        JS_ASSERT(ins->mirRaw()->isInstruction());
+        MOZ_ASSERT(ins->mirRaw()->isInstruction());
         MInstruction *mir = ins->mirRaw()->toInstruction();
         JS_ASSERT_IF(mir->needsResumePoint(), mir->resumePoint());
     }
@@ -1015,7 +1015,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
     
     
 #ifdef DEBUG
-    JS_ASSERT(pushedArgs_ == fun.explicitArgs);
+    MOZ_ASSERT(pushedArgs_ == fun.explicitArgs);
     pushedArgs_ = 0;
 #endif
 
@@ -1174,7 +1174,7 @@ CodeGeneratorShared::emitAsmJSCall(LAsmJSCall *ins)
     if (mir->spIncrement())
         masm.freeStack(mir->spIncrement());
 
-    JS_ASSERT((sizeof(AsmJSFrame) + masm.framePushed()) % AsmJSStackAlignment == 0);
+    MOZ_ASSERT((sizeof(AsmJSFrame) + masm.framePushed()) % AsmJSStackAlignment == 0);
 
 #ifdef DEBUG
     static_assert(AsmJSStackAlignment >= ABIStackAlignment &&
@@ -1254,7 +1254,7 @@ CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock *mir)
             } else {
                 
                 
-                JS_ASSERT(iter->isInterruptCheck() || iter->isInterruptCheckPar());
+                MOZ_ASSERT(iter->isInterruptCheck() || iter->isInterruptCheckPar());
                 return nullptr;
             }
         }
@@ -1320,7 +1320,7 @@ CodeGeneratorShared::addCacheLocations(const CacheLocationList &locs, size_t *nu
         new (&runtimeData_[curIndex]) CacheLocation(iter->pc, iter->script);
         numLocations++;
     }
-    JS_ASSERT(numLocations != 0);
+    MOZ_ASSERT(numLocations != 0);
     *numLocs = numLocations;
     return firstIndex;
 }
@@ -1328,7 +1328,7 @@ CodeGeneratorShared::addCacheLocations(const CacheLocationList &locs, size_t *nu
 ReciprocalMulConstants
 CodeGeneratorShared::computeDivisionConstants(int d) {
     
-    JS_ASSERT(d > 0 && (d & (d - 1)) != 0);
+    MOZ_ASSERT(d > 0 && (d & (d - 1)) != 0);
 
     
     

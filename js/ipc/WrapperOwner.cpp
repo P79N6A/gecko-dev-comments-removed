@@ -897,7 +897,7 @@ bool
 WrapperOwner::toObjectVariant(JSContext *cx, JSObject *objArg, ObjectVariant *objVarp)
 {
     RootedObject obj(cx, objArg);
-    JS_ASSERT(obj);
+    MOZ_ASSERT(obj);
 
     
     

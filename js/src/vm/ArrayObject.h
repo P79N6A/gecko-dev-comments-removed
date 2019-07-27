@@ -33,8 +33,8 @@ class ArrayObject : public JSObject
 
     
     void setLengthInt32(uint32_t length) {
-        JS_ASSERT(lengthIsWritable());
-        JS_ASSERT(length <= INT32_MAX);
+        MOZ_ASSERT(lengthIsWritable());
+        MOZ_ASSERT(length <= INT32_MAX);
         getElementsHeader()->length = length;
     }
 };

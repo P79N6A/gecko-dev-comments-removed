@@ -210,7 +210,7 @@ RangeAnalysis::addBetaNodes()
 
         
         
-        JS_ASSERT(val);
+        MOZ_ASSERT(val);
 
         Range comp;
         switch (jsop) {
@@ -641,8 +641,8 @@ Range::sub(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 Range *
 Range::and_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 {
-    JS_ASSERT(lhs->isInt32());
-    JS_ASSERT(rhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(rhs->isInt32());
 
     
     if (lhs->lower() < 0 && rhs->lower() < 0)
@@ -668,8 +668,8 @@ Range::and_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 Range *
 Range::or_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 {
-    JS_ASSERT(lhs->isInt32());
-    JS_ASSERT(rhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(rhs->isInt32());
     
     
     
@@ -725,8 +725,8 @@ Range::or_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 Range *
 Range::xor_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 {
-    JS_ASSERT(lhs->isInt32());
-    JS_ASSERT(rhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(rhs->isInt32());
     int32_t lhsLower = lhs->lower();
     int32_t lhsUpper = lhs->upper();
     int32_t rhsLower = rhs->lower();
@@ -789,7 +789,7 @@ Range::xor_(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 Range *
 Range::not_(TempAllocator &alloc, const Range *op)
 {
-    JS_ASSERT(op->isInt32());
+    MOZ_ASSERT(op->isInt32());
     return Range::NewInt32Range(alloc, ~op->upper(), ~op->lower());
 }
 
@@ -831,7 +831,7 @@ Range::mul(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 Range *
 Range::lsh(TempAllocator &alloc, const Range *lhs, int32_t c)
 {
-    JS_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
     int32_t shift = c & 0x1f;
 
     
@@ -850,7 +850,7 @@ Range::lsh(TempAllocator &alloc, const Range *lhs, int32_t c)
 Range *
 Range::rsh(TempAllocator &alloc, const Range *lhs, int32_t c)
 {
-    JS_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
     int32_t shift = c & 0x1f;
     return Range::NewInt32Range(alloc,
         lhs->lower() >> shift,
@@ -863,7 +863,7 @@ Range::ursh(TempAllocator &alloc, const Range *lhs, int32_t c)
     
     
     
-    JS_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
 
     int32_t shift = c & 0x1f;
 
@@ -882,16 +882,16 @@ Range::ursh(TempAllocator &alloc, const Range *lhs, int32_t c)
 Range *
 Range::lsh(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 {
-    JS_ASSERT(lhs->isInt32());
-    JS_ASSERT(rhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(rhs->isInt32());
     return Range::NewInt32Range(alloc, INT32_MIN, INT32_MAX);
 }
 
 Range *
 Range::rsh(TempAllocator &alloc, const Range *lhs, const Range *rhs)
 {
-    JS_ASSERT(lhs->isInt32());
-    JS_ASSERT(rhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(rhs->isInt32());
     return Range::NewInt32Range(alloc, Min(lhs->lower(), 0), Max(lhs->upper(), 0));
 }
 
@@ -901,8 +901,8 @@ Range::ursh(TempAllocator &alloc, const Range *lhs, const Range *rhs)
     
     
     
-    JS_ASSERT(lhs->isInt32());
-    JS_ASSERT(rhs->isInt32());
+    MOZ_ASSERT(lhs->isInt32());
+    MOZ_ASSERT(rhs->isInt32());
     return Range::NewUInt32Range(alloc, 0, lhs->isFiniteNonNegative() ? lhs->upper() : UINT32_MAX);
 }
 
@@ -1199,7 +1199,7 @@ MUrsh::computeRange(TempAllocator &alloc)
         setRange(Range::ursh(alloc, &left, c));
     }
 
-    JS_ASSERT(range()->lower() >= 0);
+    MOZ_ASSERT(range()->lower() >= 0);
 }
 
 void
@@ -1332,7 +1332,7 @@ MMod::computeRange(TempAllocator &alloc)
 
         
         
-        JS_ASSERT(!lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart());
+        MOZ_ASSERT(!lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart());
         --rhsBound;
 
         
@@ -1392,7 +1392,7 @@ MDiv::computeRange(TempAllocator &alloc)
     } else if (unsigned_ && rhs.lower() >= 1) {
         
         
-        JS_ASSERT(!lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart());
+        MOZ_ASSERT(!lhs.canHaveFractionalPart() && !rhs.canHaveFractionalPart());
         
         setRange(Range::NewUInt32Range(alloc, 0, UINT32_MAX));
     }
@@ -1490,7 +1490,7 @@ MLoadTypedArrayElementStatic::computeRange(TempAllocator &alloc)
 {
     
     
-    JS_ASSERT(AnyTypedArrayType(someTypedArray_) != Scalar::Uint32);
+    MOZ_ASSERT(AnyTypedArrayType(someTypedArray_) != Scalar::Uint32);
 
     setRange(GetTypedArrayRange(alloc, AnyTypedArrayType(someTypedArray_)));
 }
@@ -1590,7 +1590,7 @@ MRandom::computeRange(TempAllocator &alloc)
 bool
 RangeAnalysis::analyzeLoop(MBasicBlock *header)
 {
-    JS_ASSERT(header->hasUniqueBackedge());
+    MOZ_ASSERT(header->hasUniqueBackedge());
 
     
     
@@ -1823,7 +1823,7 @@ RangeAnalysis::analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound
     
     
 
-    JS_ASSERT(phi->numOperands() == 2);
+    MOZ_ASSERT(phi->numOperands() == 2);
 
     MDefinition *initial = phi->getLoopPredecessorOperand();
     if (initial->block()->isMarked())
@@ -1923,7 +1923,7 @@ RangeAnalysis::tryHoistBoundsCheck(MBasicBlock *header, MBoundsCheck *ins)
         return false;
 
     MBasicBlock *preLoop = header->loopPredecessor();
-    JS_ASSERT(!preLoop->isMarked());
+    MOZ_ASSERT(!preLoop->isMarked());
 
     MDefinition *lowerTerm = ConvertLinearSum(alloc(), preLoop, lower->sum);
     if (!lowerTerm)
@@ -1979,7 +1979,7 @@ RangeAnalysis::analyze()
 
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
         MBasicBlock *block = *iter;
-        JS_ASSERT(!block->unreachable());
+        MOZ_ASSERT(!block->unreachable());
 
         
         
@@ -2283,7 +2283,7 @@ MMod::truncate(TruncateKind kind)
 bool
 MToDouble::truncate(TruncateKind kind)
 {
-    JS_ASSERT(type() == MIRType_Double);
+    MOZ_ASSERT(type() == MIRType_Double);
 
     setTruncateKind(kind);
 
@@ -2479,7 +2479,7 @@ TruncateTest(TempAllocator &alloc, MTest *test)
             inner = MToInt32::New(alloc, inner);
             block->insertBefore(block->lastIns(), inner->toInstruction());
         }
-        JS_ASSERT(inner->type() == MIRType_Int32);
+        MOZ_ASSERT(inner->type() == MIRType_Int32);
         phi->replaceOperand(i, inner);
     }
 
@@ -2552,8 +2552,8 @@ RemoveTruncatesOnOutput(MDefinition *truncated)
     if (truncated->isCompare())
         return;
 
-    JS_ASSERT(truncated->type() == MIRType_Int32);
-    JS_ASSERT(Range(truncated).isInt32());
+    MOZ_ASSERT(truncated->type() == MIRType_Int32);
+    MOZ_ASSERT(Range(truncated).isInt32());
 
     for (MUseDefIterator use(truncated); use; use++) {
         MDefinition *def = use.def();
@@ -2578,7 +2578,7 @@ AdjustTruncatedInputs(TempAllocator &alloc, MDefinition *truncated)
             continue;
 
         if (input->isToDouble() && input->getOperand(0)->type() == MIRType_Int32) {
-            JS_ASSERT(input->range()->isInt32());
+            MOZ_ASSERT(input->range()->isInt32());
             truncated->replaceOperand(i, input->getOperand(0));
         } else {
             MInstruction *op;
@@ -2879,7 +2879,7 @@ RangeAnalysis::prepareForUCE(bool *shouldRemoveDeadCode)
         if (block == test->ifTrue()) {
             constant = MConstant::New(alloc(), BooleanValue(false));
         } else {
-            JS_ASSERT(block == test->ifFalse());
+            MOZ_ASSERT(block == test->ifFalse());
             constant = MConstant::New(alloc(), BooleanValue(true));
         }
         test->block()->insertBefore(test, constant);

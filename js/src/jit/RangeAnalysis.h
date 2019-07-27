@@ -202,7 +202,7 @@ class Range : public TempObject {
     
     void assertInvariants() const {
         
-        JS_ASSERT(lower_ <= upper_);
+        MOZ_ASSERT(lower_ <= upper_);
 
         
         
@@ -211,9 +211,9 @@ class Range : public TempObject {
         JS_ASSERT_IF(!hasInt32UpperBound_, upper_ == JSVAL_INT_MAX);
 
         
-        JS_ASSERT(max_exponent_ <= MaxFiniteExponent ||
-                  max_exponent_ == IncludesInfinity ||
-                  max_exponent_ == IncludesInfinityAndNaN);
+        MOZ_ASSERT(max_exponent_ <= MaxFiniteExponent ||
+                   max_exponent_ == IncludesInfinity ||
+                   max_exponent_ == IncludesInfinityAndNaN);
 
         
         
@@ -225,17 +225,17 @@ class Range : public TempObject {
         
         JS_ASSERT_IF(!hasInt32LowerBound_ || !hasInt32UpperBound_,
                      max_exponent_ + canHaveFractionalPart_ >= MaxInt32Exponent);
-        JS_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
-                  mozilla::FloorLog2(mozilla::Abs(upper_)));
-        JS_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
-                  mozilla::FloorLog2(mozilla::Abs(lower_)));
+        MOZ_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
+                   mozilla::FloorLog2(mozilla::Abs(upper_)));
+        MOZ_ASSERT(max_exponent_ + canHaveFractionalPart_ >=
+                   mozilla::FloorLog2(mozilla::Abs(lower_)));
 
         
         
-        JS_ASSERT(mozilla::FloorLog2(JSVAL_INT_MIN) == MaxInt32Exponent);
-        JS_ASSERT(mozilla::FloorLog2(JSVAL_INT_MAX) == 30);
-        JS_ASSERT(mozilla::FloorLog2(UINT32_MAX) == MaxUInt32Exponent);
-        JS_ASSERT(mozilla::FloorLog2(0) == 0);
+        MOZ_ASSERT(mozilla::FloorLog2(JSVAL_INT_MIN) == MaxInt32Exponent);
+        MOZ_ASSERT(mozilla::FloorLog2(JSVAL_INT_MAX) == 30);
+        MOZ_ASSERT(mozilla::FloorLog2(UINT32_MAX) == MaxUInt32Exponent);
+        MOZ_ASSERT(mozilla::FloorLog2(0) == 0);
     }
 
     
@@ -275,7 +275,7 @@ class Range : public TempObject {
          
          uint32_t max = Max(mozilla::Abs(lower()), mozilla::Abs(upper()));
          uint16_t result = mozilla::FloorLog2(max);
-         JS_ASSERT(result == (max == 0 ? 0 : mozilla::ExponentComponent(double(max))));
+         MOZ_ASSERT(result == (max == 0 ? 0 : mozilla::ExponentComponent(double(max))));
          return result;
     }
 
@@ -494,7 +494,7 @@ class Range : public TempObject {
     }
 
     uint16_t exponent() const {
-        JS_ASSERT(!canBeInfiniteOrNaN());
+        MOZ_ASSERT(!canBeInfiniteOrNaN());
         return max_exponent_;
     }
 
@@ -504,13 +504,13 @@ class Range : public TempObject {
 
     
     int32_t lower() const {
-        JS_ASSERT(hasInt32LowerBound());
+        MOZ_ASSERT(hasInt32LowerBound());
         return lower_;
     }
 
     
     int32_t upper() const {
-        JS_ASSERT(hasInt32UpperBound());
+        MOZ_ASSERT(hasInt32UpperBound());
         return upper_;
     }
 
@@ -566,7 +566,7 @@ class Range : public TempObject {
 
     void setUnknown() {
         set(NoInt32LowerBound, NoInt32UpperBound, true, IncludesInfinityAndNaN);
-        JS_ASSERT(isUnknown());
+        MOZ_ASSERT(isUnknown());
     }
 
     void set(int64_t l, int64_t h, bool f, uint16_t e) {
