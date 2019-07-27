@@ -978,6 +978,7 @@ TabActor.prototype = {
     });
 
     this._extraActors = null;
+    this._styleSheetActors.clear();
 
     this._exited = true;
   },
@@ -1324,10 +1325,6 @@ TabActor.prototype = {
     this._popContext();
 
     
-    for (let sheetActor of this._styleSheetActors.values()) {
-      this._tabPool.removeActor(sheetActor);
-    }
-    this._styleSheetActors.clear();
     this.conn.removeActorPool(this._tabPool);
     this._tabPool = null;
     if (this._tabActorPool) {
@@ -1644,6 +1641,12 @@ TabActor.prototype = {
       
       threadActor.global = window;
     }
+
+    for (let sheetActor of this._styleSheetActors.values()) {
+      this._tabPool.removeActor(sheetActor);
+    }
+    this._styleSheetActors.clear();
+
 
     
     

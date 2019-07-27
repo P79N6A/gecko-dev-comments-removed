@@ -496,21 +496,6 @@ function waitForWindow() {
 
 
 
-let waitForTab = Task.async(function*() {
-  info("Waiting for a tab to open");
-  yield once(gBrowser.tabContainer, "TabOpen");
-  let tab = gBrowser.selectedTab;
-  let browser = tab.linkedBrowser;
-  yield once(browser, "load", true);
-  info("The tab load completed");
-  return tab;
-});
-
-
-
-
-
-
 
 
 
