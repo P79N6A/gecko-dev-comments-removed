@@ -27,225 +27,129 @@
 #ifndef WEBGL_VALIDATE_STRINGS_H_
 #define WEBGL_VALIDATE_STRINGS_H_
 
-#include "WebGLContext.h"
+#include "nsString.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 
+class WebGLContext;
 
 
 
 
 
-    bool WebGLContext::ValidateGLSLCharacter(char16_t c)
+
+
+
+
+class StripComments {
+public:
+    explicit StripComments(const nsAString& str)
+        : m_parseState(BeginningOfLine)
+        , m_end(str.EndReading())
+        , m_current(str.BeginReading())
+        , m_position(0)
     {
-        
-        if (c >= 32 && c <= 126 &&
-            c != '"' && c != '$' && c != '`' && c != '@' && c != '\\' && c != '\'')
-        {
-             return true;
-        }
-
-        
-        
-        if (c >= 9 && c <= 13) {
-             return true;
-        }
-
-        return false;
+        m_result.SetLength(str.Length());
+        parse();
     }
 
-    
-    
-    
-    class StripComments {
-    public:
-        explicit StripComments(const nsAString& str)
-            : m_parseState(BeginningOfLine)
-            , m_end(str.EndReading())
-            , m_current(str.BeginReading())
-            , m_position(0)
-        {
-            m_result.SetLength(str.Length());
-            parse();
+    const nsTArray<char16_t>& result()
+    {
+        return m_result;
+    }
+
+    size_t length()
+    {
+        return m_position;
+    }
+
+private:
+    bool hasMoreCharacters()
+    {
+        return (m_current < m_end);
+    }
+
+    void parse()
+    {
+        while (hasMoreCharacters()) {
+            process(current());
+            
+            if (hasMoreCharacters())
+                advance();
         }
+    }
 
-        const nsTArray<char16_t>& result()
-        {
-            return m_result;
-        }
+    void process(char16_t);
 
-        size_t length()
-        {
-            return m_position;
-        }
+    bool peek(char16_t& character)
+    {
+        if (m_current + 1 >= m_end)
+            return false;
+        character = *(m_current + 1);
+        return true;
+    }
 
-    private:
-        bool hasMoreCharacters()
-        {
-            return (m_current < m_end);
-        }
+    char16_t current()
+    {
+        
+        return *m_current;
+    }
 
-        void parse()
-        {
-            while (hasMoreCharacters()) {
-                process(current());
-                
-                if (hasMoreCharacters())
-                    advance();
-            }
-        }
+    void advance()
+    {
+        ++m_current;
+    }
 
-        void process(char16_t);
+    bool isNewline(char16_t character)
+    {
+        
+        return (character == '\n' || character == '\r');
+    }
 
-        bool peek(char16_t& character)
-        {
-            if (m_current + 1 >= m_end)
-                return false;
-            character = *(m_current + 1);
-            return true;
-        }
+    void emit(char16_t character)
+    {
+        m_result[m_position++] = character;
+    }
 
-        char16_t current()
-        {
-            
-            return *m_current;
-        }
+    enum ParseState {
+        
+        
+        
+        BeginningOfLine,
 
-        void advance()
-        {
-            ++m_current;
-        }
+        
+        
+        MiddleOfLine,
 
-        bool isNewline(char16_t character)
-        {
-            
-            return (character == '\n' || character == '\r');
-        }
+        
+        
+        
+        InPreprocessorDirective,
 
-        void emit(char16_t character)
-        {
-            m_result[m_position++] = character;
-        }
+        
+        
+        InSingleLineComment,
 
-        enum ParseState {
-            
-            
-            
-            BeginningOfLine,
-
-            
-            
-            MiddleOfLine,
-
-            
-            
-            
-            InPreprocessorDirective,
-
-            
-            
-            InSingleLineComment,
-
-            
-            
-            InMultiLineComment
-        };
-
-        ParseState m_parseState;
-        const char16_t* m_end;
-        const char16_t* m_current;
-        size_t m_position;
-        nsTArray<char16_t> m_result;
+        
+        
+        InMultiLineComment
     };
 
-    void StripComments::process(char16_t c)
-    {
-        if (isNewline(c)) {
-            
-            
-            emit(c);
-
-            if (m_parseState != InMultiLineComment)
-                m_parseState = BeginningOfLine;
-
-            return;
-        }
-
-        char16_t temp = 0;
-        switch (m_parseState) {
-        case BeginningOfLine:
-            
-            if (c <= ' ' && (c == ' ' || (c <= 0xD && c >= 0x9))) {
-                emit(c);
-                break;
-            }
-
-            if (c == '#') {
-                m_parseState = InPreprocessorDirective;
-                emit(c);
-                break;
-            }
-
-            
-            m_parseState = MiddleOfLine;
-            process(c);
-            break;
-
-        case MiddleOfLine:
-            if (c == '/' && peek(temp)) {
-                if (temp == '/') {
-                    m_parseState = InSingleLineComment;
-                    emit(' ');
-                    advance();
-                    break;
-                }
-
-                if (temp == '*') {
-                    m_parseState = InMultiLineComment;
-                    
-                    
-                    
-                    emit('/');
-                    emit('*');
-                    advance();
-                    break;
-                }
-            }
-
-            emit(c);
-            break;
-
-        case InPreprocessorDirective:
-            
-            
-            
-            
-            emit(c);
-            break;
-
-        case InSingleLineComment:
-            
-            
-            
-            break;
-
-        case InMultiLineComment:
-            if (c == '*' && peek(temp) && temp == '/') {
-                emit('*');
-                emit('/');
-                m_parseState = MiddleOfLine;
-                advance();
-                break;
-            }
-
-            
-            
-            
-            break;
-        }
-    }
+    ParseState m_parseState;
+    const char16_t* m_end;
+    const char16_t* m_current;
+    size_t m_position;
+    nsTArray<char16_t> m_result;
+};
 
 
+
+bool ValidateGLSLString(const nsAString& string, WebGLContext* webgl,
+                        const char* funcName);
+
+bool ValidateGLSLVariableName(const nsAString& name, WebGLContext* webgl,
+                              const char* funcName);
 
 } 
 
