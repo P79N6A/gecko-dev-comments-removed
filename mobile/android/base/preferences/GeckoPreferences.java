@@ -115,6 +115,7 @@ OnSharedPreferenceChangeListener
     private static final String PREFS_DEVTOOLS_REMOTE_ENABLED = "devtools.debugger.remote-enabled";
     private static final String PREFS_DISPLAY_REFLOW_ON_ZOOM = "browser.zoom.reflowOnZoom";
     private static final String PREFS_SYNC = NON_PREF_PREFIX + "sync";
+    private static final String PREFS_STUMBLER_ENABLED = AppConstants.ANDROID_PACKAGE_NAME + ".STUMBLER_PREF";
 
     
     private static final String PREFS_BROWSER_LOCALE = "locale";
@@ -853,6 +854,34 @@ OnSharedPreferenceChangeListener
 
 
 
+    public static void broadcastStumblerPref(final Context context, final boolean value) {
+       Intent intent = new Intent(PREFS_STUMBLER_ENABLED)
+                .putExtra("pref", PREFS_GEO_REPORTING)
+                .putExtra("branch", GeckoSharedPrefs.APP_PREFS_NAME)
+                .putExtra("enabled", value)
+                .putExtra("moz_mozilla_api_key", AppConstants.MOZ_STUMBLER_API_KEY);
+       if (GeckoAppShell.getGeckoInterface() != null) {
+           intent.putExtra("user_agent", GeckoAppShell.getGeckoInterface().getDefaultUAString());
+       }
+       if (!AppConstants.MOZILLA_OFFICIAL) {
+           intent.putExtra("is_debug", true);
+       }
+       broadcastAction(context, intent);
+    }
+
+    
+
+
+
+    public static void broadcastStumblerPref(final Context context) {
+        final boolean value = getBooleanPref(context, PREFS_GEO_REPORTING, true);
+        broadcastStumblerPref(context, value);
+    }
+
+    
+
+
+
 
 
 
@@ -1009,6 +1038,7 @@ OnSharedPreferenceChangeListener
             
             broadcastHealthReportUploadPref(this, ((Boolean) newValue).booleanValue());
         } else if (PREFS_GEO_REPORTING.equals(prefName)) {
+            broadcastStumblerPref(this, ((Boolean) newValue).booleanValue());
             
             newValue = ((Boolean) newValue) ? 1 : 0;
         } else if (handlers.containsKey(prefName)) {

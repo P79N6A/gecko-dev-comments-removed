@@ -669,6 +669,10 @@ public class BrowserApp extends GeckoApp
         super.onResume();
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Prompt:ShowTop");
+        if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
+            
+            GeckoPreferences.broadcastStumblerPref(this);
+        }
     }
 
     @Override
@@ -1418,6 +1422,11 @@ public class BrowserApp extends GeckoApp
                     }
                 });
 
+                if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
+                    
+                    
+                    GeckoPreferences.broadcastStumblerPref(this);
+                }
                 super.handleMessage(event, message);
             } else if (event.equals("Gecko:Ready")) {
                 
