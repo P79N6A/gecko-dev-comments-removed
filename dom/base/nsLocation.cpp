@@ -298,36 +298,28 @@ nsLocation::GetHash(nsAString& aHash)
   nsAutoString unicodeRef;
 
   rv = uri->GetRef(ref);
+  if (NS_SUCCEEDED(rv)) {
+    nsCOMPtr<nsITextToSubURI> textToSubURI(
+        do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv));
 
-  if (!nsContentUtils::ShouldEncodeURLHash()) {
     if (NS_SUCCEEDED(rv)) {
-      nsCOMPtr<nsITextToSubURI> textToSubURI(
-          do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv));
-
-      if (NS_SUCCEEDED(rv)) {
-        nsAutoCString charset;
-        uri->GetOriginCharset(charset);
-
-        rv = textToSubURI->UnEscapeURIForUI(charset, ref, unicodeRef);
-      }
-
-      if (NS_FAILED(rv)) {
+      nsAutoCString charset;
+      uri->GetOriginCharset(charset);
         
-        NS_UnescapeURL(ref);
-        CopyASCIItoUTF16(ref, unicodeRef);
-        rv = NS_OK;
-      }
+      rv = textToSubURI->UnEscapeURIForUI(charset, ref, unicodeRef);
     }
+      
+    if (NS_FAILED(rv)) {
+      
+      NS_UnescapeURL(ref);
+      CopyASCIItoUTF16(ref, unicodeRef);
+      rv = NS_OK;
+    }
+  }
 
-    if (NS_SUCCEEDED(rv) && !unicodeRef.IsEmpty()) {
-      aHash.Assign(char16_t('#'));
-      aHash.Append(unicodeRef);
-    }
-  } else { 
-    if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
-      aHash.Assign(char16_t('#'));
-      AppendASCIItoUTF16(ref, aHash);
-    }
+  if (NS_SUCCEEDED(rv) && !unicodeRef.IsEmpty()) {
+    aHash.Assign(char16_t('#'));
+    aHash.Append(unicodeRef);
   }
 
   if (aHash == mCachedHash) {
