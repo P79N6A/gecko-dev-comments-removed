@@ -1830,42 +1830,65 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 #endif
 
     if (verticalAlignEnum != nsIFrame::eInvalidVerticalAlign) {
+      if (lineWM.IsVertical()) {
+        if (verticalAlignEnum == NS_STYLE_VERTICAL_ALIGN_MIDDLE) {
+          
+          
+          
+          
+          if (!lineWM.IsSideways()) {
+            verticalAlignEnum = NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE;
+          }
+        } else if (lineWM.IsLineInverted()) {
+          
+          
+          switch (verticalAlignEnum) {
+            case NS_STYLE_VERTICAL_ALIGN_TOP:
+              verticalAlignEnum = NS_STYLE_VERTICAL_ALIGN_BOTTOM;
+              break;
+            case NS_STYLE_VERTICAL_ALIGN_BOTTOM:
+              verticalAlignEnum = NS_STYLE_VERTICAL_ALIGN_TOP;
+              break;
+            case NS_STYLE_VERTICAL_ALIGN_TEXT_TOP:
+              verticalAlignEnum = NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM;
+              break;
+            case NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM:
+              verticalAlignEnum = NS_STYLE_VERTICAL_ALIGN_TEXT_TOP;
+              break;
+          }
+        }
+      }
+
+      
+      nscoord revisedBaselineBCoord = baselineBCoord;
+
+      
+      
+      if (verticalAlignEnum == NS_STYLE_VERTICAL_ALIGN_SUB ||
+          verticalAlignEnum == NS_STYLE_VERTICAL_ALIGN_SUPER) {
+        revisedBaselineBCoord += lineWM.FlowRelativeToLineRelativeFactor() *
+          (verticalAlignEnum == NS_STYLE_VERTICAL_ALIGN_SUB
+            ? fm->SubscriptOffset() : -fm->SuperscriptOffset());
+        verticalAlignEnum = NS_STYLE_VERTICAL_ALIGN_BASELINE;
+      }
+
       switch (verticalAlignEnum) {
         default:
         case NS_STYLE_VERTICAL_ALIGN_BASELINE:
-        {
-          
-          
-          pfd->mBounds.BStart(lineWM) = baselineBCoord - pfd->mAscent;
+          if (lineWM.IsVertical() && !lineWM.IsSideways()) {
+            if (frameSpan) {
+              pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord -
+                                            pfd->mBounds.BSize(lineWM)/2;
+            } else {
+              pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord -
+                                            logicalBSize/2 +
+                                            pfd->mMargin.BStart(lineWM);
+            }
+          } else {
+            pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
+          }
           pfd->mBlockDirAlign = VALIGN_OTHER;
           break;
-        }
-
-        case NS_STYLE_VERTICAL_ALIGN_SUB:
-        {
-          
-          
-          
-          
-          nscoord parentSubscript = fm->SubscriptOffset();
-          nscoord revisedBaselineBCoord = baselineBCoord + parentSubscript;
-          pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
-          pfd->mBlockDirAlign = VALIGN_OTHER;
-          break;
-        }
-
-        case NS_STYLE_VERTICAL_ALIGN_SUPER:
-        {
-          
-          
-          
-          
-          nscoord parentSuperscript = fm->SuperscriptOffset();
-          nscoord revisedBaselineBCoord = baselineBCoord - parentSuperscript;
-          pfd->mBounds.BStart(lineWM) = revisedBaselineBCoord - pfd->mAscent;
-          pfd->mBlockDirAlign = VALIGN_OTHER;
-          break;
-        }
 
         case NS_STYLE_VERTICAL_ALIGN_TOP:
         {
@@ -1901,7 +1924,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         {
           
           
-          nscoord parentXHeight = fm->XHeight();
+          nscoord parentXHeight =
+            lineWM.FlowRelativeToLineRelativeFactor() * fm->XHeight();
           if (frameSpan) {
             pfd->mBounds.BStart(lineWM) = baselineBCoord -
               (parentXHeight + pfd->mBounds.BSize(lineWM))/2;
@@ -1921,7 +1945,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           
           
-          nscoord parentAscent = fm->MaxAscent();
+          nscoord parentAscent =
+            lineWM.IsLineInverted() ? fm->MaxDescent() : fm->MaxAscent();
           if (frameSpan) {
             pfd->mBounds.BStart(lineWM) = baselineBCoord - parentAscent -
               pfd->mBorderPadding.BStart(lineWM) + frameSpan->mBStartLeading;
@@ -1938,7 +1963,8 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         {
           
           
-          nscoord parentDescent = fm->MaxDescent();
+          nscoord parentDescent =
+            lineWM.IsLineInverted() ? fm->MaxAscent() : fm->MaxDescent();
           if (frameSpan) {
             pfd->mBounds.BStart(lineWM) = baselineBCoord + parentDescent -
                                           pfd->mBounds.BSize(lineWM) +
