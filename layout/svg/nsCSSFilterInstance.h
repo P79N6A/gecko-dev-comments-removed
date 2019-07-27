@@ -9,7 +9,11 @@
 #include "FilterSupport.h"
 #include "gfxMatrix.h"
 #include "gfxRect.h"
+#include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/Types.h"
+#include "nsColor.h"
 
+class nsIFrame;
 struct nsStyleFilter;
 template<class T> class nsTArray;
 
@@ -20,8 +24,11 @@ template<class T> class nsTArray;
 
 class nsCSSFilterInstance
 {
+  typedef mozilla::gfx::Color Color;
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
+  typedef mozilla::gfx::IntPoint IntPoint;
   typedef mozilla::gfx::PrimitiveType PrimitiveType;
+  typedef mozilla::gfx::Size Size;
 
 public:
   
@@ -34,6 +41,7 @@ public:
 
 
   nsCSSFilterInstance(const nsStyleFilter& aFilter,
+                      nsIFrame *aTargetFrame,
                       const nsIntRect& mTargetBBoxInFilterSpace,
                       const gfxMatrix& aFrameSpaceInCSSPxToFilterSpaceTransform);
 
@@ -55,6 +63,7 @@ private:
 
 
   nsresult SetAttributesForBlur(FilterPrimitiveDescription& aDescr);
+  nsresult SetAttributesForDropShadow(FilterPrimitiveDescription& aDescr);
 
   
 
@@ -74,7 +83,30 @@ private:
   
 
 
+
+  Color ToAttributeColor(nscolor aColor);
+
+  
+
+
+  Size BlurRadiusToFilterSpace(nscoord aRadiusInFrameSpace);
+
+  
+
+
+
+  IntPoint OffsetToFilterSpace(nscoord aXOffsetInFrameSpace,
+                               nscoord aYOffsetInFrameSpace);
+
+  
+
+
   const nsStyleFilter& mFilter;
+
+  
+
+
+  nsIFrame*               mTargetFrame;
 
   
 
