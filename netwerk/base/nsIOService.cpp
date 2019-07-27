@@ -158,7 +158,8 @@ NS_IMPL_ISUPPORTS(nsAppOfflineInfo, nsIAppOfflineInfo)
 nsIOService::nsIOService()
     : mOffline(true)
     , mOfflineForProfileChange(false)
-    , mManageOfflineStatus(false)
+    , mManageLinkStatus(false)
+    , mConnectivity(true)
     , mSettingOffline(false)
     , mSetOfflineValue(false)
     , mShutdown(false)
@@ -284,17 +285,10 @@ nsIOService::InitializeNetworkLinkService()
     if (mNetworkLinkService) {
         mNetworkLinkServiceInitialized = true;
     }
-    else {
-        
-        
-        mManageOfflineStatus = false;
-    }
 
-    if (mManageOfflineStatus)
-        OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN);
-    else
-        SetOffline(false);
     
+    OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN);
+
     return rv;
 }
 
@@ -323,6 +317,7 @@ NS_IMPL_ISUPPORTS(nsIOService,
                   nsINetUtil,
                   nsISpeculativeConnect,
                   nsIObserver,
+                  nsIIOServiceInternal,
                   nsISupportsWeakReference)
 
 
@@ -922,7 +917,8 @@ nsIOService::SetOffline(bool offline)
                 mProxyService->ReloadPAC();
 
             
-            if (observerService)
+            
+            if (observerService && mConnectivity)
                 observerService->NotifyObservers(subject,
                                                  NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
                                                  NS_LITERAL_STRING(NS_IOSERVICE_ONLINE).get());
@@ -948,6 +944,72 @@ nsIOService::SetOffline(bool offline)
     return NS_OK;
 }
 
+NS_IMETHODIMP
+nsIOService::GetConnectivity(bool *aConnectivity)
+{
+    *aConnectivity = mConnectivity;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsIOService::SetConnectivity(bool aConnectivity)
+{
+    
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+    return SetConnectivityInternal(aConnectivity);
+}
+
+
+nsresult
+nsIOService::SetConnectivityInternal(bool aConnectivity)
+{
+    if (mConnectivity == aConnectivity) {
+        
+        return NS_OK;
+    }
+    mConnectivity = aConnectivity;
+
+    nsCOMPtr<nsIObserverService> observerService =
+        mozilla::services::GetObserverService();
+    if (!observerService) {
+        return NS_OK;
+    }
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+        observerService->NotifyObservers(nullptr,
+            NS_IPC_IOSERVICE_SET_CONNECTIVITY_TOPIC, aConnectivity ?
+            MOZ_UTF16("true") :
+            MOZ_UTF16("false"));
+    }
+
+    if (mOffline) {
+      
+      return NS_OK;
+    }
+
+    if (aConnectivity) {
+        
+        
+        observerService->NotifyObservers(
+            static_cast<nsIIOService *>(this),
+            NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
+            NS_LITERAL_STRING(NS_IOSERVICE_ONLINE).get());
+    } else {
+        
+        
+        const nsLiteralString offlineString(MOZ_UTF16(NS_IOSERVICE_OFFLINE));
+        observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                                         NS_IOSERVICE_GOING_OFFLINE_TOPIC,
+                                         offlineString.get());
+        observerService->NotifyObservers(static_cast<nsIIOService *>(this),
+                                         NS_IOSERVICE_OFFLINE_STATUS_TOPIC,
+                                         offlineString.get());
+    }
+    return NS_OK;
+}
 
 NS_IMETHODIMP
 nsIOService::AllowPort(int32_t inPort, const char *scheme, bool *_retval)
@@ -1176,11 +1238,8 @@ nsIOService::Observe(nsISupports *subject,
     } else if (!strcmp(topic, kProfileChangeNetRestoreTopic)) {
         if (mOfflineForProfileChange) {
             mOfflineForProfileChange = false;
-            if (!mManageOfflineStatus ||
-                NS_FAILED(OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN))) {
-                SetOffline(false);
-            }
-        } 
+            SetOffline(false);
+        }
     } else if (!strcmp(topic, kProfileDoChange)) { 
         if (data && NS_LITERAL_STRING("startup").Equals(data)) {
             
@@ -1188,6 +1247,10 @@ nsIOService::Observe(nsISupports *subject,
             
             
             mNetworkLinkServiceInitialized = true;
+
+            
+            SetOffline(false);
+
             
             nsCOMPtr<nsIPrefBranch> prefBranch;
             GetPrefBranch(getter_AddRefs(prefBranch));
@@ -1204,9 +1267,7 @@ nsIOService::Observe(nsISupports *subject,
         
         mProxyService = nullptr;
     } else if (!strcmp(topic, NS_NETWORK_LINK_TOPIC)) {
-        if (!mOfflineForProfileChange && mManageOfflineStatus) {
-            OnNetworkLinkEvent(NS_ConvertUTF16toUTF8(data).get());
-        }
+        OnNetworkLinkEvent(NS_ConvertUTF16toUTF8(data).get());
     } else if (!strcmp(topic, NS_WIDGET_WAKE_OBSERVER_TOPIC)) {
         
         nsCOMPtr<nsIObserverService> observerService =
@@ -1350,32 +1411,26 @@ nsIOService::NewSimpleNestedURI(nsIURI* aURI, nsIURI** aResult)
 NS_IMETHODIMP
 nsIOService::SetManageOfflineStatus(bool aManage)
 {
-    nsresult rv = NS_OK;
+    mManageLinkStatus = aManage;
 
     
-    
-    
-    
-    
-    
-    
-    
-    bool wasManaged = mManageOfflineStatus;
-    mManageOfflineStatus = aManage;
+    if (!mManageLinkStatus) {
+        SetConnectivityInternal(true);
+        return NS_OK;
+    }
 
     InitializeNetworkLinkService();
-
-    if (mManageOfflineStatus && !wasManaged) {
-        rv = OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN);
-        if (NS_FAILED(rv))
-            mManageOfflineStatus = false;
-    }
-    return rv;
+    
+    
+    
+    OnNetworkLinkEvent(NS_NETWORK_LINK_DATA_UNKNOWN);
+    return NS_OK;
 }
 
 NS_IMETHODIMP
-nsIOService::GetManageOfflineStatus(bool* aManage) {
-    *aManage = mManageOfflineStatus;
+nsIOService::GetManageOfflineStatus(bool* aManage)
+{
+    *aManage = mManageLinkStatus;
     return NS_OK;
 }
 
@@ -1389,7 +1444,7 @@ nsIOService::OnNetworkLinkEvent(const char *data)
     if (mShutdown)
         return NS_ERROR_NOT_AVAILABLE;
 
-    if (!mManageOfflineStatus) {
+    if (!mManageLinkStatus) {
       return NS_OK;
     }
 
@@ -1402,21 +1457,19 @@ nsIOService::OnNetworkLinkEvent(const char *data)
             
             
             if (autodialEnabled) {
+                bool isUp = true;
 #if defined(XP_WIN)
                 
                 
                 
-                if (nsNativeConnectionHelper::IsAutodialEnabled()) {
-                    return SetOffline(false);
-                }
-#else
-                return SetOffline(false);
+                isUp = nsNativeConnectionHelper::IsAutodialEnabled();
 #endif
+                return SetConnectivityInternal(isUp);
             }
         }
     }
 
-    bool isUp;
+    bool isUp = true;
     if (!strcmp(data, NS_NETWORK_LINK_DATA_CHANGED)) {
         
         return NS_OK;
@@ -1432,7 +1485,7 @@ nsIOService::OnNetworkLinkEvent(const char *data)
         return NS_OK;
     }
 
-    return SetOffline(!isUp);
+    return SetConnectivityInternal(isUp);
 }
 
 NS_IMETHODIMP
