@@ -30,7 +30,6 @@ namespace dom {
 class EventTarget;
 class ErrorEvent;
 class ProgressEvent;
-class WantsPopupControlCheck;
 
 
 
@@ -114,8 +113,7 @@ public:
   
   bool Init(EventTarget* aGlobal);
 
-  static PopupControlState GetEventPopupControlState(WidgetEvent* aEvent,
-                                                     nsIDOMEvent* aDOMEvent = nullptr);
+  static PopupControlState GetEventPopupControlState(WidgetEvent* aEvent);
 
   static void PopupAllowedEventsChanged();
 
@@ -237,17 +235,6 @@ protected:
   void SetEventType(const nsAString& aEventTypeArg);
   already_AddRefed<nsIContent> GetTargetFromFrame();
 
-  friend class WantsPopupControlCheck;
-  void SetWantsPopupControlCheck(bool aCheck)
-  {
-    mWantsPopupControlCheck = aCheck;
-  }
-
-  bool GetWantsPopupControlCheck()
-  {
-    return IsTrusted() && mWantsPopupControlCheck;
-  }
-
   
 
 
@@ -261,28 +248,6 @@ protected:
   bool                        mEventIsInternal;
   bool                        mPrivateDataDuplicated;
   bool                        mIsMainThreadEvent;
-  
-  
-  bool                        mWantsPopupControlCheck;
-};
-
-class MOZ_STACK_CLASS WantsPopupControlCheck
-{
-public:
-  WantsPopupControlCheck(nsIDOMEvent* aEvent) : mEvent(aEvent->InternalDOMEvent())
-  {
-    mOriginalWantsPopupControlCheck = mEvent->GetWantsPopupControlCheck();
-    mEvent->SetWantsPopupControlCheck(mEvent->IsTrusted());
-  }
-
-  ~WantsPopupControlCheck()
-  {
-    mEvent->SetWantsPopupControlCheck(mOriginalWantsPopupControlCheck);
-  }
-
-private:
-  Event* mEvent;
-  bool mOriginalWantsPopupControlCheck;
 };
 
 } 
