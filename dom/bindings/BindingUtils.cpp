@@ -2646,7 +2646,7 @@ ConvertExceptionToPromise(JSContext* cx,
   if (rv.Failed()) {
     
     
-    ThrowMethodFailedWithDetails(cx, rv, "", "");
+    ThrowMethodFailed(cx, rv);
     JS_SetPendingException(cx, exn);
     return false;
   }

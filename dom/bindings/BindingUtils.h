@@ -90,9 +90,7 @@ ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
                  prototypes::ID aProtoId);
 
 inline bool
-ThrowMethodFailedWithDetails(JSContext* cx, ErrorResult& rv,
-                             const char* ifaceName,
-                             const char* memberName)
+ThrowMethodFailed(JSContext* cx, ErrorResult& rv)
 {
   if (rv.IsUncatchableException()) {
     
