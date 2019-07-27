@@ -252,6 +252,8 @@ GetAccService()
 inline bool
 IPCAccessibilityActive()
 {
+	
+	return false;
 #ifdef MOZ_B2G
   return false;
 #else
