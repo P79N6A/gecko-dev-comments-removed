@@ -3394,13 +3394,23 @@ public class BrowserApp extends GeckoApp
 
         
         if(AppConstants.NIGHTLY_BUILD  && AppConstants.MOZ_ANDROID_TAB_QUEUE && mInitialized && isTabQueueAction) {
-            int queuedTabCount = TabQueueHelper.getTabQueueLength(this);
-            TabQueueHelper.openQueuedUrls(this, mProfile, TabQueueHelper.FILE_NAME, false);
+            ThreadUtils.postToBackgroundThread(new Runnable() {
+                @Override
+                public void run() {
+                    int queuedTabCount = TabQueueHelper.getTabQueueLength(BrowserApp.this);
+                    TabQueueHelper.openQueuedUrls(BrowserApp.this, mProfile, TabQueueHelper.FILE_NAME, false);
 
-            
-            if (queuedTabCount > 1) {
-                showNormalTabs();
-            }
+                    
+                    if (queuedTabCount > 1) {
+                        ThreadUtils.postToUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                showNormalTabs();
+                            }
+                        });
+                    }
+                }
+            });
         }
 
         if (!mInitialized || !Intent.ACTION_MAIN.equals(action)) {
