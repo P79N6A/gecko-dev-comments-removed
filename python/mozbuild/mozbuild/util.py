@@ -894,6 +894,9 @@ def group_unified_files(files, unified_prefix, unified_suffix,
     file."""
 
     
+    files = sorted(files)
+
+    
     
     
     dummy_fill_value = ("dummy",)
