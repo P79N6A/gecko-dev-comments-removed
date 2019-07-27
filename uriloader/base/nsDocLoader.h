@@ -302,6 +302,8 @@ protected:
     bool mIsFlushingLayout;
 
 private:
+    static const PLDHashTableOps sRequestInfoHashOps;
+
     
     
     
