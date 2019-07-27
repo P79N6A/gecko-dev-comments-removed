@@ -191,7 +191,8 @@ public:
   
   void* AcquireContentWindow();
 
-  mozilla::gl::SharedTextureHandle CreateSharedHandle();
+  EGLImage AsEGLImage();
+  nsSurfaceTexture* AsSurfaceTexture();
 
   
   class VideoInfo {
