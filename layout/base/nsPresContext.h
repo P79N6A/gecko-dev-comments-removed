@@ -821,6 +821,20 @@ public:
                                 nsIFrame * aFrame);
 #endif
 
+  void ConstructedFrame() {
+    ++mFramesConstructed;
+  }
+  void ReflowedFrame() {
+    ++mFramesReflowed;
+  }
+
+  uint64_t FramesConstructedCount() {
+    return mFramesConstructed;
+  }
+  uint64_t FramesReflowedCount() {
+    return mFramesReflowed;
+  }
+
   
 
 
@@ -1288,6 +1302,11 @@ protected:
   nscoord               mBorderWidthTable[3];
 
   uint32_t              mInterruptChecksToSkip;
+
+  
+  
+  uint64_t              mFramesConstructed;
+  uint64_t              mFramesReflowed;
 
   mozilla::TimeStamp    mReflowStartTime;
 
