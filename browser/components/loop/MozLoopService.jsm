@@ -433,8 +433,8 @@ let MozLoopServiceInternal = {
 
 
 
-  hawkRequest: function(sessionType, path, method, payloadObj) {
-    log.debug("hawkRequest: " + path, sessionType);
+
+  hawkRequestInternal: function(sessionType, path, method, payloadObj) {
     if (!gHawkClient) {
       gHawkClient = new HawkClient(this.loopServerUri);
     }
@@ -476,6 +476,32 @@ let MozLoopServiceInternal = {
         }
       }
       throw error;
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  hawkRequest: function(sessionType, path, method, payloadObj) {
+    log.debug("hawkRequest: " + path, sessionType);
+    return new Promise((resolve, reject) => {
+      MozLoopService.promiseRegisteredWithServers(sessionType).then(() => {
+        this.hawkRequestInternal(sessionType, path, method, payloadObj).then(resolve, reject);
+      }, err => {
+        reject(err);
+      }).catch(reject);
     });
   },
 
@@ -581,7 +607,7 @@ let MozLoopServiceInternal = {
           rooms: roomsPushURL,
         },
     };
-    return this.hawkRequest(sessionType, "/registration", "POST", msg)
+    return this.hawkRequestInternal(sessionType, "/registration", "POST", msg)
       .then((response) => {
         
         if (!this.storeSessionToken(sessionType, response.headers)) {
@@ -637,7 +663,7 @@ let MozLoopServiceInternal = {
     }
 
     let unregisterURL = "/registration?simplePushURL=" + encodeURIComponent(pushURL);
-    return this.hawkRequest(sessionType, unregisterURL, "DELETE")
+    return this.hawkRequestInternal(sessionType, unregisterURL, "DELETE")
       .then(() => {
         log.debug("Successfully unregistered from server for sessionType", sessionType);
       },
@@ -826,7 +852,7 @@ let MozLoopServiceInternal = {
 
   promiseFxAOAuthParameters: function() {
     const SESSION_TYPE = LOOP_SESSION_TYPE.FXA;
-    return this.hawkRequest(SESSION_TYPE, "/fxa-oauth/params", "POST").then(response => {
+    return this.hawkRequestInternal(SESSION_TYPE, "/fxa-oauth/params", "POST").then(response => {
       if (!this.storeSessionToken(SESSION_TYPE, response.headers)) {
         throw new Error("Invalid FxA hawk token returned");
       }
@@ -1026,6 +1052,7 @@ this.MozLoopService = {
     
     
     if (!MozLoopServiceInternal.urlExpiryTimeIsInFuture() &&
+        !LoopRooms.getGuestCreatedRoom() &&
         !MozLoopServiceInternal.fxAOAuthTokenData) {
       return Promise.resolve("registration not needed");
     }
@@ -1059,7 +1086,8 @@ this.MozLoopService = {
     });
 
     try {
-      if (MozLoopServiceInternal.urlExpiryTimeIsInFuture()) {
+      if (MozLoopServiceInternal.urlExpiryTimeIsInFuture() ||
+          LoopRooms.getGuestCreatedRoom()) {
         yield this.promiseRegisteredWithServers(LOOP_SESSION_TYPE.GUEST);
       } else {
         log.debug("delayedInitialize: URL expiry time isn't in the future so not registering as a guest");

@@ -379,32 +379,6 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    ensureRegistered: {
-      enumerable: true,
-      writable: true,
-      value: function(sessionType, callback) {
-        
-        
-        MozLoopService.promiseRegisteredWithServers(sessionType).then(() => {
-          callback(null);
-        }, err => {
-          callback(cloneValueInto(err, targetWindow));
-        }).catch(Cu.reportError);
-      }
-    },
-
-    
-
-
-
-
-
-
-
-
-
-
-
     noteCallUrlExpiry: {
       enumerable: true,
       writable: true,
