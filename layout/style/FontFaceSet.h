@@ -114,6 +114,12 @@ public:
 
   
 
+
+
+  FontFace* FindFontFaceForEntry(gfxUserFontEntry* aUserFontEntry);
+
+  
+
   IMPL_EVENT_HANDLER(loading)
   IMPL_EVENT_HANDLER(loadingdone)
   IMPL_EVENT_HANDLER(loadingerror)
@@ -156,6 +162,9 @@ private:
 
   
   nsCSSFontFaceRule* FindRuleForUserFontEntry(gfxUserFontEntry* aUserFontEntry);
+
+  
+  gfxUserFontEntry* FindUserFontEntryForRule(nsCSSFontFaceRule* aRule);
 
   nsresult StartLoad(gfxUserFontEntry* aUserFontEntry,
                      const gfxFontFaceSrc* aFontFaceSrc);

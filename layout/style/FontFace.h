@@ -11,6 +11,7 @@
 #include "nsWrapperCache.h"
 
 class nsCSSFontFaceRule;
+class nsPresContext;
 
 namespace mozilla {
 namespace dom {
@@ -26,6 +27,8 @@ namespace dom {
 class FontFace MOZ_FINAL : public nsISupports,
                            public nsWrapperCache
 {
+  friend class Entry;
+
 public:
   class Entry MOZ_FINAL : public gfxUserFontEntry {
   public:
@@ -40,6 +43,13 @@ public:
       : gfxUserFontEntry(aFontSet, aFontFaceSrcList, aWeight, aStretch,
                          aItalicStyle, aFeatureSettings, aLanguageOverride,
                          aUnicodeRanges) {}
+
+    virtual void SetLoadState(UserFontLoadState aLoadState) MOZ_OVERRIDE;
+
+  protected:
+    
+    
+    FontFace* GetFontFace();
   };
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -48,8 +58,11 @@ public:
   nsISupports* GetParentObject() const { return mParent; }
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
-  static already_AddRefed<FontFace> CreateForRule(nsISupports* aGlobal,
-                                                  nsCSSFontFaceRule* aRule);
+  static already_AddRefed<FontFace> CreateForRule(
+                                              nsISupports* aGlobal,
+                                              nsPresContext* aPresContext,
+                                              nsCSSFontFaceRule* aRule,
+                                              gfxUserFontEntry* aUserFontEntry);
 
   
   static already_AddRefed<FontFace>
@@ -79,19 +92,31 @@ public:
   mozilla::dom::Promise* Loaded();
 
 private:
-  FontFace(nsISupports* aParent);
+  FontFace(nsISupports* aParent, nsPresContext* aPresContext);
   ~FontFace();
 
+  
+
+
+  void SetStatus(mozilla::dom::FontFaceLoadStatus aStatus);
+
   nsCOMPtr<nsISupports> mParent;
+  nsPresContext* mPresContext;
 
   nsRefPtr<mozilla::dom::Promise> mLoaded;
 
   
   
   nsRefPtr<nsCSSFontFaceRule> mRule;
+
+  
+  
+  
+  
+  mozilla::dom::FontFaceLoadStatus mStatus;
 };
 
 } 
 } 
 
-#endif
+#endif 

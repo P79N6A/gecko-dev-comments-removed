@@ -543,7 +543,7 @@ protected:
     void LoadNextSrc();
 
     
-    void SetLoadState(UserFontLoadState aLoadState);
+    virtual void SetLoadState(UserFontLoadState aLoadState);
 
     
     
