@@ -622,27 +622,58 @@ ReorderComparison(JSOp op, MDefinition **lhsp, MDefinition **rhsp)
     return op;
 }
 
+static bool
+ShouldReorderCommutative(MDefinition *lhs, MDefinition *rhs, MInstruction *ins)
+{
+    
+    JS_ASSERT(lhs->hasDefUses());
+    JS_ASSERT(rhs->hasDefUses());
+
+    
+    if (rhs->isConstant())
+        return false;
+    if (lhs->isConstant())
+        return true;
+
+    
+    
+    
+    
+    bool rhsSingleUse = rhs->hasOneDefUse();
+    bool lhsSingleUse = lhs->hasOneDefUse();
+    if (rhsSingleUse) {
+        if (!lhsSingleUse)
+            return true;
+    } else {
+        if (lhsSingleUse)
+            return false;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    if (rhsSingleUse &&
+        rhs->isPhi() &&
+        rhs->block()->isLoopHeader() &&
+        ins == rhs->toPhi()->getLoopBackedgeOperand())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 static void
-ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp)
+ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp, MInstruction *ins)
 {
     MDefinition *lhs = *lhsp;
     MDefinition *rhs = *rhsp;
 
-    
-    
-    
-
-    if (rhs->isConstant())
-        return;
-
-    
-    
-    
-    
-    
-    JS_ASSERT(lhs->hasDefUses());
-    JS_ASSERT(rhs->hasDefUses());
-    if (lhs->isConstant() || (rhs->hasOneDefUse() && !lhs->hasOneDefUse())) {
+    if (ShouldReorderCommutative(lhs, rhs, ins)) {
         *rhsp = lhs;
         *lhsp = rhs;
     }
@@ -828,7 +859,7 @@ LIRGenerator::visitTest(MTest *test)
         MDefinition *lhs = opd->getOperand(0);
         MDefinition *rhs = opd->getOperand(1);
         if (lhs->type() == MIRType_Int32 && rhs->type() == MIRType_Int32) {
-            ReorderCommutative(&lhs, &rhs);
+            ReorderCommutative(&lhs, &rhs, test);
             return lowerForBitAndAndBranch(new(alloc()) LBitAndAndBranch(ifTrue, ifFalse), test, lhs, rhs);
         }
     }
@@ -1011,7 +1042,7 @@ LIRGenerator::lowerBitOp(JSOp op, MInstruction *ins)
     MDefinition *rhs = ins->getOperand(1);
 
     if (lhs->type() == MIRType_Int32 && rhs->type() == MIRType_Int32) {
-        ReorderCommutative(&lhs, &rhs);
+        ReorderCommutative(&lhs, &rhs, ins);
         return lowerForALU(new(alloc()) LBitOpI(op), ins, lhs, rhs);
     }
 
@@ -1228,7 +1259,7 @@ LIRGenerator::visitMinMax(MMinMax *ins)
     MDefinition *first = ins->getOperand(0);
     MDefinition *second = ins->getOperand(1);
 
-    ReorderCommutative(&first, &second);
+    ReorderCommutative(&first, &second, ins);
 
     if (ins->specialization() == MIRType_Int32) {
         LMinMaxI *lir = new(alloc()) LMinMaxI(useRegisterAtStart(first), useRegisterOrConstant(second));
@@ -1390,7 +1421,7 @@ LIRGenerator::visitAdd(MAdd *ins)
 
     if (ins->specialization() == MIRType_Int32) {
         JS_ASSERT(lhs->type() == MIRType_Int32);
-        ReorderCommutative(&lhs, &rhs);
+        ReorderCommutative(&lhs, &rhs, ins);
         LAddI *lir = new(alloc()) LAddI;
 
         if (ins->fallible() && !assignSnapshot(lir, Bailout_OverflowInvalidate))
@@ -1405,13 +1436,13 @@ LIRGenerator::visitAdd(MAdd *ins)
 
     if (ins->specialization() == MIRType_Double) {
         JS_ASSERT(lhs->type() == MIRType_Double);
-        ReorderCommutative(&lhs, &rhs);
+        ReorderCommutative(&lhs, &rhs, ins);
         return lowerForFPU(new(alloc()) LMathD(JSOP_ADD), ins, lhs, rhs);
     }
 
     if (ins->specialization() == MIRType_Float32) {
         JS_ASSERT(lhs->type() == MIRType_Float32);
-        ReorderCommutative(&lhs, &rhs);
+        ReorderCommutative(&lhs, &rhs, ins);
         return lowerForFPU(new(alloc()) LMathF(JSOP_ADD), ins, lhs, rhs);
     }
 
@@ -1460,7 +1491,7 @@ LIRGenerator::visitMul(MMul *ins)
 
     if (ins->specialization() == MIRType_Int32) {
         JS_ASSERT(lhs->type() == MIRType_Int32);
-        ReorderCommutative(&lhs, &rhs);
+        ReorderCommutative(&lhs, &rhs, ins);
 
         
         
@@ -1471,7 +1502,7 @@ LIRGenerator::visitMul(MMul *ins)
     }
     if (ins->specialization() == MIRType_Double) {
         JS_ASSERT(lhs->type() == MIRType_Double);
-        ReorderCommutative(&lhs, &rhs);
+        ReorderCommutative(&lhs, &rhs, ins);
 
         
         if (rhs->isConstant() && rhs->toConstant()->value() == DoubleValue(-1.0))
@@ -1481,7 +1512,7 @@ LIRGenerator::visitMul(MMul *ins)
     }
     if (ins->specialization() == MIRType_Float32) {
         JS_ASSERT(lhs->type() == MIRType_Float32);
-        ReorderCommutative(&lhs, &rhs);
+        ReorderCommutative(&lhs, &rhs, ins);
 
         
         if (rhs->isConstant() && rhs->toConstant()->value() == Float32Value(-1.0f))

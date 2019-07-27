@@ -5026,6 +5026,28 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineListNode<MPhi>
     }
     bool specializeType();
 
+#ifdef DEBUG
+    
+    
+    void assertLoopPhi() const;
+#else
+    void assertLoopPhi() const {}
+#endif
+
+    
+    
+    MDefinition *getLoopPredecessorOperand() const {
+        assertLoopPhi();
+        return getOperand(0);
+    }
+
+    
+    
+    MDefinition *getLoopBackedgeOperand() const {
+        assertLoopPhi();
+        return getOperand(1);
+    }
+
     
     bool typeIncludes(MDefinition *def);
 
