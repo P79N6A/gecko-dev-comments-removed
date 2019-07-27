@@ -75,9 +75,9 @@ struct NativeFont {
 
 struct DrawOptions {
   
-  DrawOptions(Float aAlpha = 1.0f,
-              CompositionOp aCompositionOp = CompositionOp::OP_OVER,
-              AntialiasMode aAntialiasMode = AntialiasMode::DEFAULT)
+  explicit DrawOptions(Float aAlpha = 1.0f,
+                       CompositionOp aCompositionOp = CompositionOp::OP_OVER,
+                       AntialiasMode aAntialiasMode = AntialiasMode::DEFAULT)
     : mAlpha(aAlpha)
     , mCompositionOp(aCompositionOp)
     , mAntialiasMode(aAntialiasMode)
@@ -97,13 +97,13 @@ struct DrawOptions {
 
 struct StrokeOptions {
   
-  StrokeOptions(Float aLineWidth = 1.0f,
-                JoinStyle aLineJoin = JoinStyle::MITER_OR_BEVEL,
-                CapStyle aLineCap = CapStyle::BUTT,
-                Float aMiterLimit = 10.0f,
-                size_t aDashLength = 0,
-                const Float* aDashPattern = 0,
-                Float aDashOffset = 0.f)
+  explicit StrokeOptions(Float aLineWidth = 1.0f,
+                         JoinStyle aLineJoin = JoinStyle::MITER_OR_BEVEL,
+                         CapStyle aLineCap = CapStyle::BUTT,
+                         Float aMiterLimit = 10.0f,
+                         size_t aDashLength = 0,
+                         const Float* aDashPattern = 0,
+                         Float aDashOffset = 0.f)
     : mLineWidth(aLineWidth)
     , mMiterLimit(aMiterLimit)
     , mDashPattern(aDashLength > 0 ? aDashPattern : 0)
@@ -133,8 +133,8 @@ struct StrokeOptions {
 
 struct DrawSurfaceOptions {
   
-  DrawSurfaceOptions(Filter aFilter = Filter::LINEAR,
-                     SamplingBounds aSamplingBounds = SamplingBounds::UNBOUNDED)
+  explicit DrawSurfaceOptions(Filter aFilter = Filter::LINEAR,
+                              SamplingBounds aSamplingBounds = SamplingBounds::UNBOUNDED)
     : mFilter(aFilter)
     , mSamplingBounds(aSamplingBounds)
   { }
@@ -185,7 +185,7 @@ protected:
 class ColorPattern : public Pattern
 {
 public:
-  ColorPattern(const Color &aColor)
+  explicit ColorPattern(const Color &aColor)
     : mColor(aColor)
   {}
 
