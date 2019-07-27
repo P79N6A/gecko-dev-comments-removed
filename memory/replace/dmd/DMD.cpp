@@ -1845,7 +1845,7 @@ void Foo(int aSeven)
 {
   char* a[6];
   for (int i = 0; i < aSeven - 1; i++) {
-    a[i] = (char*) malloc(128 - 16*i);
+    a[i] = (char*) replace_malloc(128 - 16*i);
   }
 
   for (int i = 0; i < aSeven - 5; i++) {
@@ -1903,34 +1903,33 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
   int i;
   char* a = nullptr;
   for (i = 0; i < seven + 3; i++) {
-      a = (char*) malloc(100);
+      a = (char*) replace_malloc(100);
       UseItOrLoseIt(a, seven);
   }
-  free(a);
+  replace_free(a);
 
   
   
   
   
-  char* a2 = (char*) malloc(8);
+  char* a2 = (char*) replace_malloc(8);
   Report(a2);
 
   
   
-  
-  char* b = new char[10];
+  char* b = (char*) replace_malloc(10);
   ReportOnAlloc(b);
 
   
   
   
-  char* b2 = new char;
+  char* b2 = (char*) replace_malloc(1);
   ReportOnAlloc(b2);
-  free(b2);
+  replace_free(b2);
 
   
   
-  char* c = (char*) calloc(10, 3);
+  char* c = (char*) replace_calloc(10, 3);
   Report(c);
   for (int i = 0; i < seven - 4; i++) {
     Report(c);
@@ -1943,30 +1942,30 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
   
   
   
-  char* e = (char*) malloc(4096);
-  e = (char*) realloc(e, 4097);
+  char* e = (char*) replace_malloc(4096);
+  e = (char*) replace_realloc(e, 4097);
   Report(e);
 
   
   
   
-  char* e2 = (char*) realloc(nullptr, 1024);
-  e2 = (char*) realloc(e2, 512);
+  char* e2 = (char*) replace_realloc(nullptr, 1024);
+  e2 = (char*) replace_realloc(e2, 512);
   Report(e2);
 
   
   
   
   
-  char* e3 = (char*) realloc(nullptr, 1023);
+  char* e3 = (char*) replace_realloc(nullptr, 1023);
 
   MOZ_ASSERT(e3);
   Report(e3);
 
   
   
-  char* f = (char*) malloc(64);
-  free(f);
+  char* f = (char*) replace_malloc(64);
+  replace_free(f);
 
   
   
@@ -1979,19 +1978,19 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
 
   
   
-  char* g1 = (char*) malloc(77);
+  char* g1 = (char*) replace_malloc(77);
   ReportOnAlloc(g1);
   ReportOnAlloc(g1);
 
   
   
-  char* g2 = (char*) malloc(78);
+  char* g2 = (char*) replace_malloc(78);
   Report(g2);
   ReportOnAlloc(g2);
 
   
   
-  char* g3 = (char*) malloc(79);
+  char* g3 = (char*) replace_malloc(79);
   ReportOnAlloc(g3);
   Report(g3);
 
@@ -2018,10 +2017,10 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
 
   Report(a2);
   Report(a2);
-  free(c);
-  free(e);
+  replace_free(c);
+  replace_free(e);
   Report(e2);
-  free(e3);
+  replace_free(e3);
 
 
 
@@ -2041,40 +2040,40 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
 
   
   
-  s = (char*) malloc(128);
+  s = (char*) replace_malloc(128);
   UseItOrLoseIt(s, seven);
 
   
-  s = (char*) malloc(144);
+  s = (char*) replace_malloc(144);
   UseItOrLoseIt(s, seven);
 
   
   for (int i = 0; i < seven + 9; i++) {
-    s = (char*) malloc(8);
+    s = (char*) replace_malloc(8);
     UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
 
   
   for (int i = 0; i < seven + 8; i++) {
-    s = (char*) malloc(8);
+    s = (char*) replace_malloc(8);
     UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
 
   
-  s = (char*) malloc(256);
+  s = (char*) replace_malloc(256);
   UseItOrLoseIt(s, seven);
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 120);
 
   
-  s = (char*) malloc(96);
+  s = (char*) replace_malloc(96);
   UseItOrLoseIt(s, seven);
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 88);
 
   
   for (int i = 0; i < seven - 2; i++) {
-    s = (char*) malloc(8);
+    s = (char*) replace_malloc(8);
     UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 0);
@@ -2083,7 +2082,7 @@ RunTestMode(UniquePtr<FpWriteFunc> aF1, UniquePtr<FpWriteFunc> aF2,
   
   
   for (int i = 1; i <= seven + 1; i++) {
-    s = (char*) malloc(i * 16);
+    s = (char*) replace_malloc(i * 16);
     UseItOrLoseIt(s, seven);
   }
   MOZ_ASSERT(gSmallBlockActualSizeCounter == 64);
