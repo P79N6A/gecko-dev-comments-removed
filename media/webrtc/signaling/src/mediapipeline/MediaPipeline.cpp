@@ -891,19 +891,19 @@ NewData(MediaStreamGraph* graph, TrackID tid,
     return;
   }
 
-  if (track_id_ != TRACK_INVALID) {
-    if (tid != track_id_) {
-      return;
-    }
-  } else if (conduit_->type() !=
-             (media.GetType() == MediaSegment::AUDIO ? MediaSessionConduit::AUDIO :
-                                                       MediaSessionConduit::VIDEO)) {
+  if (conduit_->type() !=
+      (media.GetType() == MediaSegment::AUDIO ? MediaSessionConduit::AUDIO :
+                                                MediaSessionConduit::VIDEO)) {
     
     return;
-  } else {
+  }
+
+  if (track_id_ == TRACK_INVALID) {
     
     MutexAutoLock lock(mMutex);
     track_id_ = track_id_external_ = tid;
+  } else if (tid != track_id_) {
+    return;
   }
 
   
