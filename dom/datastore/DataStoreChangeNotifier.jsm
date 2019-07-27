@@ -23,32 +23,11 @@ XPCOMUtils.defineLazyServiceGetter(this, "dataStoreService",
                                    "@mozilla.org/datastore-service;1",
                                    "nsIDataStoreService");
 
-XPCOMUtils.defineLazyServiceGetter(this, "systemMessenger",
-                                   "@mozilla.org/system-message-internal;1",
-                                   "nsISystemMessagesInternal");
-
-var kSysMsgOnChangeShortTimeoutSec =
-    Services.prefs.getIntPref("dom.datastore.sysMsgOnChangeShortTimeoutSec");
-var kSysMsgOnChangeLongTimeoutSec =
-    Services.prefs.getIntPref("dom.datastore.sysMsgOnChangeLongTimeoutSec");
-
 this.DataStoreChangeNotifier = {
   children: [],
   messages: [ "DataStore:Changed", "DataStore:RegisterForMessages",
               "DataStore:UnregisterForMessages",
               "child-process-shutdown" ],
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  sysMsgOnChangeShortTimers: {},
-  sysMsgOnChangeLongTimers: {},
 
   init: function() {
     debug("init");
@@ -80,8 +59,7 @@ this.DataStoreChangeNotifier = {
   },
 
   broadcastMessage: function broadcastMessage(aData) {
-    debug("broadcast");
-
+    debug("Broadast");
     this.children.forEach(function(obj) {
       if (obj.store == aData.store && obj.owner == aData.owner) {
         obj.mm.sendAsyncMessage("DataStore:Changed:Return:OK", aData);
@@ -89,69 +67,6 @@ this.DataStoreChangeNotifier = {
     });
   },
 
-  broadcastSystemMessage: function(aStore, aOwner) {
-    debug("broadcastSystemMessage");
-
-    
-    var storeKey = aStore + "|" + aOwner;
-    var shortTimer = this.sysMsgOnChangeShortTimers[storeKey];
-    if (shortTimer) {
-      shortTimer.cancel();
-      delete this.sysMsgOnChangeShortTimers[storeKey];
-    }
-    var longTimer = this.sysMsgOnChangeLongTimers[storeKey];
-    if (longTimer) {
-      longTimer.cancel();
-      delete this.sysMsgOnChangeLongTimers[storeKey];
-    }
-
-    
-    var manifestURLs = dataStoreService.getAppManifestURLsForDataStore(aStore);
-    var enumerate = manifestURLs.enumerate();
-    while (enumerate.hasMoreElements()) {
-      var manifestURL = enumerate.getNext().QueryInterface(Ci.nsISupportsString);
-      debug("Notify app " + manifestURL + " of datastore updates");
-      
-      
-      
-      systemMessenger.sendMessage("datastore-update-" + aStore,
-                                  { owner: aOwner },
-                                  null,
-                                  Services.io.newURI(manifestURL, null, null));
-    }
-  },
-
-  
-  
-  
-  
-  
-  setSystemMessageTimeout: function(aStore, aOwner) {
-    debug("setSystemMessageTimeout");
-
-    var storeKey = aStore + "|" + aOwner;
-    
-    
-    var shortTimer = this.sysMsgOnChangeShortTimers[storeKey];
-    if (!shortTimer) {
-      shortTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this.sysMsgOnChangeShortTimers[storeKey] = shortTimer;
-    } else {
-      shortTimer.cancel();
-    }
-    shortTimer.initWithCallback({ notify: this.broadcastSystemMessage.bind(this, aStore, aOwner) },
-                                kSysMsgOnChangeShortTimeoutSec * 1000,
-                                Ci.nsITimer.TYPE_ONE_SHOT);
-
-    
-    if (!this.sysMsgOnChangeLongTimers[storeKey]) {
-      var longTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this.sysMsgOnChangeLongTimers[storeKey] = longTimer;
-      longTimer.initWithCallback({ notify: this.broadcastSystemMessage.bind(this, aStore, aOwner) },
-                                 kSysMsgOnChangeLongTimeoutSec * 1000,
-                                 Ci.nsITimer.TYPE_ONE_SHOT);
-    }
-  },
 
   receiveMessage: function(aMessage) {
     debug("receiveMessage ");
@@ -174,7 +89,6 @@ this.DataStoreChangeNotifier = {
     switch (aMessage.name) {
       case "DataStore:Changed":
         this.broadcastMessage(aMessage.data);
-        this.setSystemMessageTimeout(aMessage.data.store, aMessage.data.owner);
         break;
 
       case "DataStore:RegisterForMessages":
