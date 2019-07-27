@@ -185,7 +185,7 @@ public class BrowserApp extends GeckoApp
     }
 
     
-    private static enum GuestModeDialog {
+    public static enum GuestModeDialog {
         ENTERING,
         LEAVING
     }
@@ -536,11 +536,15 @@ public class BrowserApp extends GeckoApp
         mBrowserToolbar = (BrowserToolbar) findViewById(R.id.browser_toolbar);
         mProgressView = (ToolbarProgressView) findViewById(R.id.progress);
         mBrowserToolbar.setProgressBar(mProgressView);
-        if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+
+        final String action = intent.getAction();
+        if (Intent.ACTION_VIEW.equals(action)) {
             
             mBrowserToolbar.setTitle(intent.getDataString());
 
             Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.INTENT);
+        } else if (GuestSession.NOTIFICATION_INTENT.equals(action)) {
+            GuestSession.handleIntent(this, intent);
         }
 
         if (NewTabletUI.isEnabled(this)) {
@@ -659,6 +663,13 @@ public class BrowserApp extends GeckoApp
             } catch(Exception ex) {
                 Log.e(LOGTAG, "Error initializing media manager", ex);
             }
+        }
+
+        if (getProfile().inGuestMode()) {
+            GuestSession.showNotification(this);
+        } else {
+            
+            GuestSession.hideNotification(this);
         }
     }
 
@@ -1032,6 +1043,8 @@ public class BrowserApp extends GeckoApp
             mBrowserHealthReporter.uninit();
             mBrowserHealthReporter = null;
         }
+
+        GuestSession.onDestroy(this);
 
         EventDispatcher.getInstance().unregisterGeckoThreadListener((GeckoEventListener)this,
             "Menu:Update",
@@ -2831,7 +2844,7 @@ public class BrowserApp extends GeckoApp
         return super.onOptionsItemSelected(item);
     }
 
-    private void showGuestModeDialog(final GuestModeDialog type) {
+    public void showGuestModeDialog(final GuestModeDialog type) {
         final Prompt ps = new Prompt(this, new Prompt.PromptCallback() {
             @Override
             public void onPromptFinished(String result) {
@@ -2923,6 +2936,8 @@ public class BrowserApp extends GeckoApp
         
         if (!Intent.ACTION_MAIN.equals(action)) {
             return;
+        } else if (GuestSession.NOTIFICATION_INTENT.equals(action)) {
+            GuestSession.handleIntent(this, intent);
         }
 
         
