@@ -129,7 +129,7 @@ add_task(function purge_domain() {
 add_task(function respect_privacy_level() {
   let tab = gBrowser.addTab(URL + "&secure");
   yield promiseBrowserLoaded(tab.linkedBrowser);
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 
   let [{state: {storage}}] = JSON.parse(ss.getClosedTabData(window));
   is(storage["http://mochi.test:8888"].test, OUTER_VALUE,
@@ -142,7 +142,7 @@ add_task(function respect_privacy_level() {
 
   tab = gBrowser.addTab(URL + "&secure");
   yield promiseBrowserLoaded(tab.linkedBrowser);
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 
   [{state: {storage}}] = JSON.parse(ss.getClosedTabData(window));
   is(storage["http://mochi.test:8888"].test, OUTER_VALUE,
@@ -158,7 +158,7 @@ add_task(function respect_privacy_level() {
   yield promiseBrowserLoaded(tab.linkedBrowser);
   let tab2 = gBrowser.duplicateTab(tab);
   yield promiseTabRestored(tab2);
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 
   
   [{state: {storage}}] = JSON.parse(ss.getClosedTabData(window));
@@ -166,7 +166,7 @@ add_task(function respect_privacy_level() {
 
   
   Services.prefs.clearUserPref("browser.sessionstore.privacy_level");
-  gBrowser.removeTab(tab2);
+  yield promiseRemoveTab(tab2);
 
   
   [{state: {storage}}] = JSON.parse(ss.getClosedTabData(window));

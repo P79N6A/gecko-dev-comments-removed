@@ -1,4 +1,6 @@
-function test() {
+"use strict";
+
+add_task(function* () {
   
 
   function test(aLambda) {
@@ -8,8 +10,6 @@ function test() {
     catch (ex) { }
     return false;
   }
-
-  waitForExplicitFinish();
 
   
   
@@ -56,7 +56,7 @@ function test() {
   ok(test(function() ss.deleteTabValue(tab, key)), "delete non-existent tab value");
 
   
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 
   
   
@@ -71,29 +71,26 @@ function test() {
   
   let testURL = "about:";
   tab = gBrowser.addTab(testURL);
-  promiseBrowserLoaded(tab.linkedBrowser).then(() => {
-    
-    gPrefService.setIntPref("browser.sessionstore.max_tabs_undo", max_tabs_undo + 1);
+  yield promiseBrowserLoaded(tab.linkedBrowser);
 
-    
-    gBrowser.removeTab(tab);
+  
+  gPrefService.setIntPref("browser.sessionstore.max_tabs_undo", max_tabs_undo + 1);
+  registerCleanupFunction(() => gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo"));
 
-    
-    var newcount = ss.getClosedTabCount(window);
-    ok(newcount > count, "after closing a tab, getClosedTabCount has been incremented");
+  
+  yield promiseRemoveTab(tab);
 
-    
-    tab = test(function() ss.undoCloseTab(window, 0));
-    ok(tab, "undoCloseTab doesn't throw")
+  
+  let newcount = ss.getClosedTabCount(window);
+  ok(newcount > count, "after closing a tab, getClosedTabCount has been incremented");
 
-    promiseTabRestored(tab).then(() => {
-      is(tab.linkedBrowser.currentURI.spec, testURL, "correct tab was reopened");
+  
+  tab = test(function() ss.undoCloseTab(window, 0));
+  ok(tab, "undoCloseTab doesn't throw")
 
-      
-      if (gPrefService.prefHasUserValue("browser.sessionstore.max_tabs_undo"))
-        gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo");
-      gBrowser.removeTab(tab);
-      finish();
-    });
-  });
-}
+  yield promiseTabRestored(tab);
+  is(tab.linkedBrowser.currentURI.spec, testURL, "correct tab was reopened");
+
+  
+  gBrowser.removeTab(tab);
+});

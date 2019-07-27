@@ -2,36 +2,40 @@
 
 
 
-function test() {
-  
+"use strict";
 
-  waitForExplicitFinish();
-
+add_task(function* () {
   
   let max_tabs_undo = gPrefService.getIntPref("browser.sessionstore.max_tabs_undo");
   gPrefService.setIntPref("browser.sessionstore.max_tabs_undo", max_tabs_undo + 1);
-  let closedTabCount = ss.getClosedTabCount(window);
+  registerCleanupFunction(() => gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo"));
+
+  
+  while (ss.getClosedTabCount(window)) {
+    ss.forgetClosedTab(window, 0);
+  }
 
   
   let tab = gBrowser.addTab("about:");
-  promiseBrowserLoaded(tab.linkedBrowser).then(() => {
-    let history = tab.linkedBrowser.webNavigation.sessionHistory;
-    ok(history.count >= 1, "the new tab does have at least one history entry");
+  yield promiseBrowserLoaded(tab.linkedBrowser);
 
-    promiseTabState(tab, {entries: []}).then(() => {
-      
-      
-      history = tab.linkedBrowser.webNavigation.sessionHistory;
-      ok(history.count == 0, "the tab was restored without any history whatsoever");
+  let count = yield promiseSHistoryCount(tab.linkedBrowser);
+  ok(count >= 1, "the new tab does have at least one history entry");
 
-      gBrowser.removeTab(tab);
-      ok(ss.getClosedTabCount(window) == closedTabCount,
-         "The closed blank tab wasn't added to Recently Closed Tabs");
+  yield promiseTabState(tab, {entries: []});
 
-      
-      if (gPrefService.prefHasUserValue("browser.sessionstore.max_tabs_undo"))
-        gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo");
-      finish();
-    });
+  
+  
+  count = yield promiseSHistoryCount(tab.linkedBrowser);
+  is(count, 0, "the tab was restored without any history whatsoever");
+
+  yield promiseRemoveTab(tab);
+  is(ss.getClosedTabCount(window), 0,
+     "The closed blank tab wasn't added to Recently Closed Tabs");
+});
+
+function promiseSHistoryCount(browser) {
+  return ContentTask.spawn(browser, null, function* () {
+    return docShell.QueryInterface(Ci.nsIWebNavigation).sessionHistory.count;
   });
 }

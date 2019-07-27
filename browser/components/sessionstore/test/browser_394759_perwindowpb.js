@@ -2,19 +2,15 @@
 
 
 
-
-
-let closedWindowCount = 0;
-
-let now = Date.now();
+"use strict";
 
 const TESTS = [
   { url: "about:config",
     key: "bug 394759 Non-PB",
-    value: "uniq" + (++now) },
+    value: "uniq" + r() },
   { url: "about:mozilla",
     key: "bug 394759 PB",
-    value: "uniq" + (++now) },
+    value: "uniq" + r() },
 ];
 
 function promiseTestOpenCloseWindow(aIsPrivate, aTest) {
@@ -33,53 +29,11 @@ function promiseTestOpenCloseWindow(aIsPrivate, aTest) {
 function promiseTestOnWindow(aIsPrivate, aValue) {
   return Task.spawn(function*() {
     let win = yield promiseNewWindowLoaded({ "private": aIsPrivate });
-    yield promiseCheckClosedWindows(aIsPrivate, aValue);
-    registerCleanupFunction(() => promiseWindowClosed(win));
-  });
-}
-
-function promiseCheckClosedWindows(aIsPrivate, aValue) {
-  return Task.spawn(function*() {
     let data = JSON.parse(ss.getClosedWindowData())[0];
     is(ss.getClosedWindowCount(), 1, "Check that the closed window count hasn't changed");
     ok(JSON.stringify(data).indexOf(aValue) > -1,
        "Check the closed window data was stored correctly");
-  });
-}
-
-function promiseBlankState() {
-  return Task.spawn(function*() {
-    
-    
-    Services.prefs.setIntPref("browser.sessionstore.interval", 100000);
-    registerCleanupFunction(() =>  Services.prefs.clearUserPref("browser.sessionstore.interval"));
-
-    
-    
-    let blankState = JSON.stringify({
-      windows: [{
-        tabs: [{ entries: [{ url: "about:blank" }] }],
-        _closedTabs: []
-      }],
-      _closedWindows: []
-    });
-
-    ss.setBrowserState(blankState);
-
-    
-    
-    
-
-    yield forceSaveState();
-    closedWindowCount = ss.getClosedWindowCount();
-    is(closedWindowCount, 0, "Correctly set window count");
-
-    
-    yield SessionFile.wipe();
-
-    
-    
-    yield forceSaveState();
+    registerCleanupFunction(() => promiseWindowClosed(win));
   });
 }
 

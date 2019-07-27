@@ -20,7 +20,7 @@ add_task(function* test() {
   let tab = win.gBrowser.addTab("about:mozilla");
   yield promiseBrowserLoaded(tab.linkedBrowser);
   TabState.flush(tab.linkedBrowser);
-  win.gBrowser.removeTab(win.gBrowser.tabs[0]);
+  yield promiseRemoveTab(win.gBrowser.tabs[0]);
 
   
   
