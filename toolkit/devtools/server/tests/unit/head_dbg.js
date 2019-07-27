@@ -15,6 +15,9 @@ const { promiseInvoke } = devtools.require("devtools/async-utils");
 
 const Services = devtools.require("Services");
 
+
+Services.prefs.setBoolPref("devtools.debugger.log", true);
+
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 
 const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
