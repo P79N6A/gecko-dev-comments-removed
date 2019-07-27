@@ -4,8 +4,8 @@
 
 
 
-#ifndef imgFrame_h
-#define imgFrame_h
+#ifndef mozilla_image_src_imgFrame_h
+#define mozilla_image_src_imgFrame_h
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Monitor.h"
@@ -44,7 +44,6 @@ enum class Opacity : uint8_t {
   OPAQUE,
   SOME_TRANSPARENCY
 };
-
 
 
 
@@ -189,7 +188,7 @@ public:
   bool Draw(gfxContext* aContext, const ImageRegion& aRegion,
             GraphicsFilter aFilter, uint32_t aImageFlags);
 
-  nsresult ImageUpdated(const nsIntRect &aUpdateRect);
+  nsresult ImageUpdated(const nsIntRect& aUpdateRect);
 
   
 
@@ -241,11 +240,11 @@ public:
   nsIntRect GetRect() const;
   IntSize GetSize() const { return mSize; }
   bool NeedsPadding() const { return mOffset != nsIntPoint(0, 0); }
-  void GetImageData(uint8_t **aData, uint32_t *length) const;
+  void GetImageData(uint8_t** aData, uint32_t* length) const;
   uint8_t* GetImageData() const;
 
   bool GetIsPaletted() const;
-  void GetPaletteData(uint32_t **aPalette, uint32_t *length) const;
+  void GetPaletteData(uint32_t** aPalette, uint32_t* length) const;
   uint32_t* GetPaletteData() const;
   uint8_t GetPaletteDepth() const { return mPaletteDepth; }
 
@@ -286,7 +285,7 @@ private:
 
   bool IsImageCompleteInternal() const;
   nsresult ImageUpdatedInternal(const nsIntRect& aUpdateRect);
-  void GetImageDataInternal(uint8_t **aData, uint32_t *length) const;
+  void GetImageDataInternal(uint8_t** aData, uint32_t* length) const;
   uint32_t GetImageBytesPerRow() const;
   uint32_t GetImageDataLength() const;
   int32_t GetStride() const;
@@ -301,9 +300,10 @@ private:
   struct SurfaceWithFormat {
     nsRefPtr<gfxDrawable> mDrawable;
     SurfaceFormat mFormat;
-    SurfaceWithFormat() {}
+    SurfaceWithFormat() { }
     SurfaceWithFormat(gfxDrawable* aDrawable, SurfaceFormat aFormat)
-     : mDrawable(aDrawable), mFormat(aFormat) {}
+      : mDrawable(aDrawable), mFormat(aFormat)
+    { }
     bool IsValid() { return !!mDrawable; }
   };
 
