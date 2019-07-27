@@ -264,6 +264,34 @@ MP4Reader::Init(MediaDecoderReader* aCloneDonor)
   return NS_OK;
 }
 
+#ifdef MOZ_EME
+class DispatchKeyNeededEvent : public nsRunnable {
+public:
+  DispatchKeyNeededEvent(AbstractMediaDecoder* aDecoder,
+                         nsTArray<uint8_t>& aInitData,
+                         const nsString& aInitDataType)
+    : mDecoder(aDecoder)
+    , mInitData(aInitData)
+    , mInitDataType(aInitDataType)
+  {
+  }
+  NS_IMETHOD Run() {
+    
+    
+    MediaDecoderOwner* owner = mDecoder->GetOwner();
+    if (owner) {
+      owner->DispatchEncrypted(mInitData, mInitDataType);
+    }
+    mDecoder = nullptr;
+    return NS_OK;
+  }
+private:
+  nsRefPtr<AbstractMediaDecoder> mDecoder;
+  nsTArray<uint8_t> mInitData;
+  nsString mInitDataType;
+};
+#endif 
+
 void MP4Reader::RequestCodecResource() {
   if (mVideo.mDecoder) {
     mVideo.mDecoder->AllocateMediaResources();
@@ -368,7 +396,7 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     {
       MonitorAutoUnlock unlock(mDemuxerMonitor);
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      mInfo.mCrypto.mIsEncrypted = mIsEncrypted = mCrypto.valid;
+      mIsEncrypted = mCrypto.valid;
     }
 
     
@@ -400,15 +428,21 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     }
   }
 
-  if (mIsEncrypted) {
+  if (mCrypto.valid) {
     nsTArray<uint8_t> initData;
     ExtractCryptoInitData(initData);
     if (initData.Length() == 0) {
       return NS_ERROR_FAILURE;
     }
 
-    mInfo.mCrypto.mInitData = initData;
-    mInfo.mCrypto.mType = NS_LITERAL_STRING("cenc");
+#ifdef MOZ_EME
+    
+    NS_DispatchToMainThread(
+      new DispatchKeyNeededEvent(mDecoder, initData, NS_LITERAL_STRING("cenc")));
+#endif 
+    
+    
+    mInfo.mCrypto.AddInitData(NS_LITERAL_STRING("cenc"), Move(initData));
   }
 
   

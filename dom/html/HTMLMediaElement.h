@@ -561,7 +561,6 @@ public:
   void DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
                          const nsAString& aInitDataType) override;
 
-
   bool IsEventAttributeName(nsIAtom* aName) override;
 
   
@@ -1321,6 +1320,11 @@ protected:
 
   
   bool mIsEncrypted;
+
+#ifdef MOZ_EME
+  
+  EncryptionInfo mPendingEncryptedInitData;
+#endif 
 
   
   bool mDownloadSuspendedByCache;

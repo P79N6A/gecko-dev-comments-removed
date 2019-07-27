@@ -140,7 +140,7 @@ public:
   
   virtual void DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
                                  const nsAString& aInitDataType) = 0;
-#endif
+#endif 
 };
 
 }
