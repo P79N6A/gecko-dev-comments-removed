@@ -220,7 +220,6 @@ public class FaviconView extends ImageView {
         
         
         
-        
         final Bitmap defaultFaviconBitmap = BitmapFactory.decodeResource(getResources(),
                 R.drawable.favicon_globe);
         updateAndScaleImage(defaultFaviconBitmap, DEFAULT_FAVICON_KEY);
