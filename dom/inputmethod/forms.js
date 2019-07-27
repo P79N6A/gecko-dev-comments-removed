@@ -1277,14 +1277,7 @@ let CompositionManager =  {
     if (!this._isStarted) {
       return;
     }
-    
-    let compositionString = domWindowUtils.createCompositionStringSynthesizer();
-    compositionString.setString(text);
-    
-    
-    compositionString.setCaret(text.length, 0);
-    compositionString.dispatchEvent();
-    domWindowUtils.sendCompositionEvent('compositionend', text, '');
+    domWindowUtils.sendCompositionEvent('compositioncommit', text, '');
     this._isStarted = false;
   },
 
