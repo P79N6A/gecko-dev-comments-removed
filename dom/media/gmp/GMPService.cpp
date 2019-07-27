@@ -602,6 +602,14 @@ GeckoMediaPluginService::GetGMPDecryptor(nsTArray<nsCString>* aTags,
   nsRefPtr<GMPParent> gmp = SelectPluginForAPI(aNodeId,
                                                NS_LITERAL_CSTRING(GMP_API_DECRYPTOR),
                                                *aTags);
+
+  if (!gmp) {
+    
+    gmp = SelectPluginForAPI(aNodeId,
+                             NS_LITERAL_CSTRING(GMP_API_DECRYPTOR_COMPAT),
+                             *aTags);
+  }
+
   if (!gmp) {
     return NS_ERROR_FAILURE;
   }
