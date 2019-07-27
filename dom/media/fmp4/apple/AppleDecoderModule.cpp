@@ -72,7 +72,11 @@ AppleDecoderModule::AppleDecoderModule()
 AppleDecoderModule::~AppleDecoderModule()
 {
   nsCOMPtr<nsIRunnable> task(new UnlinkTask());
-  NS_DispatchToMainThread(task);
+  if (!NS_IsMainThread()) {
+    NS_DispatchToMainThread(task);
+  } else {
+    task->Run();
+  }
 }
 
 
@@ -124,6 +128,7 @@ nsresult
 AppleDecoderModule::CanDecode()
 {
   if (!sInitialized) {
+    
     if (NS_IsMainThread()) {
       Init();
     } else {
@@ -142,8 +147,13 @@ AppleDecoderModule::Startup()
     return NS_ERROR_FAILURE;
   }
 
+  
   nsCOMPtr<nsIRunnable> task(new LinkTask());
-  NS_DispatchToMainThread(task, NS_DISPATCH_SYNC);
+  if (!NS_IsMainThread()) {
+    NS_DispatchToMainThread(task, NS_DISPATCH_SYNC);
+  } else {
+    task->Run();
+  }
 
   return NS_OK;
 }
