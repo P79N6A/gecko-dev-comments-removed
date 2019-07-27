@@ -52,7 +52,7 @@ function run_test()
 {
   
   
-  MozLoopService._startInitializeTimer = function() {
+  MozLoopService.initializeTimerFunc = function() {
     startTimerCalled = true;
   };
 
