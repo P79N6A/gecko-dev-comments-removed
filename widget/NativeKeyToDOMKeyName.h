@@ -735,7 +735,7 @@ KEY_MAP_QT      (MediaPlayPause, Qt::Key_MediaTogglePlayPause)
 KEY_MAP_ANDROID (MediaPlayPause, AKEYCODE_MEDIA_PLAY_PAUSE)
 
 
-KEY_MAP_WIN     (SelectMedia, VK_LAUNCH_MEDIA_SELECT)
+KEY_MAP_WIN     (MediaSelect, VK_LAUNCH_MEDIA_SELECT)
 
 
 KEY_MAP_WIN     (MediaStop, VK_MEDIA_STOP)
@@ -744,16 +744,16 @@ KEY_MAP_QT      (MediaStop, Qt::Key_MediaStop)
 KEY_MAP_ANDROID (MediaStop, AKEYCODE_MEDIA_STOP)
 
 
-KEY_MAP_WIN     (MediaNextTrack, VK_MEDIA_NEXT_TRACK)
-KEY_MAP_GTK     (MediaNextTrack, GDK_AudioNext)
-KEY_MAP_QT      (MediaNextTrack, Qt::Key_MediaNext)
-KEY_MAP_ANDROID (MediaNextTrack, AKEYCODE_MEDIA_NEXT)
+KEY_MAP_WIN     (MediaTrackNext, VK_MEDIA_NEXT_TRACK)
+KEY_MAP_GTK     (MediaTrackNext, GDK_AudioNext)
+KEY_MAP_QT      (MediaTrackNext, Qt::Key_MediaNext)
+KEY_MAP_ANDROID (MediaTrackNext, AKEYCODE_MEDIA_NEXT)
 
 
-KEY_MAP_WIN     (MediaPreviousTrack, VK_MEDIA_PREV_TRACK)
-KEY_MAP_GTK     (MediaPreviousTrack, GDK_AudioPrev)
-KEY_MAP_QT      (MediaPreviousTrack, Qt::Key_MediaPrevious)
-KEY_MAP_ANDROID (MediaPreviousTrack, AKEYCODE_MEDIA_PREVIOUS)
+KEY_MAP_WIN     (MediaTrackPrevious, VK_MEDIA_PREV_TRACK)
+KEY_MAP_GTK     (MediaTrackPrevious, GDK_AudioPrev)
+KEY_MAP_QT      (MediaTrackPrevious, Qt::Key_MediaPrevious)
+KEY_MAP_ANDROID (MediaTrackPrevious, AKEYCODE_MEDIA_PREVIOUS)
 
 
 KEY_MAP_WIN     (VolumeDown, VK_VOLUME_DOWN)
