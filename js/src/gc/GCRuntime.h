@@ -262,6 +262,11 @@ class GCRuntime
     bool isHeapMajorCollecting() { return heapState == js::MajorCollecting; }
     bool isHeapMinorCollecting() { return heapState == js::MinorCollecting; }
     bool isHeapCollecting() { return isHeapMajorCollecting() || isHeapMinorCollecting(); }
+#ifdef JSGC_COMPACTING
+    bool isHeapCompacting() { return isHeapMajorCollecting() && state() == COMPACT; }
+#else
+    bool isHeapCompacting() { return false; }
+#endif
 
     
     

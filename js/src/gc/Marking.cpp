@@ -164,6 +164,10 @@ CheckMarkedThing(JSTracer *trc, T **thingp)
     T *thing = *thingp;
     JS_ASSERT(*thingp);
 
+#ifdef JSGC_COMPACTING
+    thing = MaybeForwarded(thing);
+#endif
+
 # ifdef JSGC_FJGENERATIONAL
     
 
@@ -442,6 +446,10 @@ IsMarked(T **thingp)
     Zone *zone = (*thingp)->tenuredZone();
     if (!zone->isCollecting() || zone->isGCFinished())
         return true;
+#ifdef JSGC_COMPACTING
+    if (zone->isGCCompacting() && IsForwarded(*thingp))
+        *thingp = Forwarded(*thingp);
+#endif
     return (*thingp)->isMarked();
 }
 
@@ -480,19 +488,27 @@ IsAboutToBeFinalized(T **thingp)
     }
 #endif  
 
-    if (!thing->tenuredZone()->isGCSweeping())
+    Zone *zone = thing->tenuredZone();
+    if (zone->isGCSweeping()) {
+        
+
+
+
+
+
+
+        JS_ASSERT_IF(!rt->isHeapMinorCollecting(), !thing->arenaHeader()->allocatedDuringIncremental);
+
+        return !thing->isMarked();
+    }
+#ifdef JSGC_COMPACTING
+    else if (zone->isGCCompacting() && IsForwarded(thing)) {
+        *thingp = Forwarded(thing);
         return false;
+    }
+#endif
 
-    
-
-
-
-
-
-
-    JS_ASSERT_IF(!rt->isHeapMinorCollecting(), !thing->arenaHeader()->allocatedDuringIncremental);
-
-    return !thing->isMarked();
+    return false;
 }
 
 template <typename T>
@@ -500,21 +516,32 @@ T *
 UpdateIfRelocated(JSRuntime *rt, T **thingp)
 {
     JS_ASSERT(thingp);
+    if (!*thingp)
+        return nullptr;
+
 #ifdef JSGC_GENERATIONAL
+
 #ifdef JSGC_FJGENERATIONAL
-    if (*thingp && rt->isFJMinorCollecting()) {
+    if (rt->isFJMinorCollecting()) {
         ForkJoinContext *ctx = ForkJoinContext::current();
         ForkJoinNursery &nursery = ctx->nursery();
         if (nursery.isInsideFromspace(*thingp))
             nursery.getForwardedPointer(thingp);
+        return *thingp;
     }
-    else
 #endif
-    {
-        if (*thingp && rt->isHeapMinorCollecting() && IsInsideNursery(*thingp))
-            rt->gc.nursery.getForwardedPointer(thingp);
+
+    if (rt->isHeapMinorCollecting() && IsInsideNursery(*thingp)) {
+        rt->gc.nursery.getForwardedPointer(thingp);
+        return *thingp;
     }
 #endif  
+
+#ifdef JSGC_COMPACTING
+    Zone *zone = (*thingp)->tenuredZone();
+    if (zone->isGCCompacting() && IsForwarded(*thingp))
+        *thingp = Forwarded(*thingp);
+#endif
     return *thingp;
 }
 
