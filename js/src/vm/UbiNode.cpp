@@ -117,9 +117,9 @@ class SimpleEdgeVectorTracer : public JS::CallbackTracer {
 
         
         
-        if (kind == JS::TraceKind::String && static_cast<JSString*>(*thingp)->isPermanentAtom())
+        if (thing.isString() && thing.toString()->isPermanentAtom())
             return;
-        if (kind == JS::TraceKind::Symbol && static_cast<JS::Symbol*>(*thingp)->isWellKnownSymbol())
+        if (thing.isSymbol() && thing.toSymbol()->isWellKnownSymbol())
             return;
 
         char16_t* name16 = nullptr;

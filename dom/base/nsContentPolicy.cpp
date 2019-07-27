@@ -15,10 +15,14 @@
 #include "nsContentPolicyUtils.h"
 #include "nsContentPolicy.h"
 #include "nsIURI.h"
+#include "nsIDocShell.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMWindow.h"
 #include "nsIContent.h"
+#include "nsILoadContext.h"
 #include "nsCOMArray.h"
+
+using mozilla::LogLevel;
 
 NS_IMPL_ISUPPORTS(nsContentPolicy, nsIContentPolicy)
 

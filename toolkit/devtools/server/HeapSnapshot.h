@@ -129,6 +129,41 @@ public:
                                      size_t length);
 };
 
+
+
+class CoreDumpWriter
+{
+public:
+  virtual ~CoreDumpWriter() { };
+
+  
+  
+  virtual bool writeMetadata(uint64_t timestamp) = 0;
+
+  enum EdgePolicy : bool {
+    INCLUDE_EDGES = true,
+    EXCLUDE_EDGES = false
+  };
+
+  
+  
+  
+  virtual bool writeNode(const JS::ubi::Node& node,
+                         EdgePolicy includeEdges) = 0;
+};
+
+
+
+
+
+bool
+WriteHeapGraph(JSContext* cx,
+               const JS::ubi::Node& node,
+               CoreDumpWriter& writer,
+               bool wantNames,
+               JS::ZoneSet* zones,
+               JS::AutoCheckCannotGC& noGC);
+
 } 
 } 
 
