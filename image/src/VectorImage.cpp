@@ -338,7 +338,7 @@ VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
 VectorImage::~VectorImage()
 {
   CancelAllListeners();
-  SurfaceCache::RemoveImage(ImageKey(this));
+  SurfaceCache::Discard(this);
 }
 
 
@@ -384,30 +384,25 @@ VectorImage::HeapSizeOfDecodedWithComputedFallback(MallocSizeOf aMallocSizeOf) c
   
   
   
-  
-  
-  
-  
-  
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::IN_PROCESS_HEAP,
-                                      aMallocSizeOf);
+  return 0;
 }
 
 size_t
 VectorImage::NonHeapSizeOfDecoded() const
 {
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::IN_PROCESS_NONHEAP,
-                                      nullptr);
+  
+  
+  
+  return 0;
 }
 
 size_t
 VectorImage::OutOfProcessSizeOfDecoded() const
 {
-  return SurfaceCache::SizeOfSurfaces(ImageKey(this),
-                                      gfxMemoryLocation::OUT_OF_PROCESS,
-                                      nullptr);
+  
+  
+  
+  return 0;
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(WindowsMallocSizeOf);
@@ -575,7 +570,7 @@ VectorImage::SendInvalidationNotifications()
   
 
   if (mStatusTracker) {
-    SurfaceCache::RemoveImage(ImageKey(this));
+    SurfaceCache::Discard(this);
     mStatusTracker->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
     mStatusTracker->OnStopFrame();
   }
@@ -919,8 +914,7 @@ VectorImage::CreateSurfaceAndShow(const SVGDrawingParameters& aParams)
   SurfaceCache::Insert(frame, ImageKey(this),
                        VectorSurfaceKey(aParams.size,
                                         aParams.svgContext,
-                                        aParams.animationTime),
-                       Lifetime::Transient);
+                                        aParams.animationTime));
 
   
   nsRefPtr<gfxDrawable> drawable =
@@ -988,7 +982,7 @@ VectorImage::UnlockImage()
 NS_IMETHODIMP
 VectorImage::RequestDiscard()
 {
-  SurfaceCache::RemoveImage(ImageKey(this));
+  SurfaceCache::Discard(this);
   return NS_OK;
 }
 

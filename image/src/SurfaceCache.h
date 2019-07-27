@@ -11,15 +11,13 @@
 #ifndef MOZILLA_IMAGELIB_SURFACECACHE_H_
 #define MOZILLA_IMAGELIB_SURFACECACHE_H_
 
-#include "mozilla/Maybe.h"           
-#include "mozilla/MemoryReporting.h" 
-#include "mozilla/HashFunctions.h"   
-#include "gfx2DGlue.h"               
-#include "gfxPoint.h"                
-#include "nsCOMPtr.h"                
-#include "mozilla/gfx/Point.h"       
-#include "mozilla/gfx/2D.h"          
-#include "SVGImageContext.h"         
+#include "mozilla/Maybe.h"          
+#include "mozilla/HashFunctions.h"  
+#include "gfxPoint.h"               
+#include "nsCOMPtr.h"               
+#include "mozilla/gfx/Point.h"      
+#include "mozilla/gfx/2D.h"         
+#include "SVGImageContext.h"        
 
 namespace mozilla {
 namespace image {
@@ -111,23 +109,6 @@ VectorSurfaceKey(const gfx::IntSize& aSize,
   return SurfaceKey(aSize, aSVGContext, aAnimationTime, 0);
 }
 
-MOZ_BEGIN_ENUM_CLASS(Lifetime, uint8_t)
-  Transient,
-  Persistent
-MOZ_END_ENUM_CLASS(Lifetime)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -169,8 +150,6 @@ struct SurfaceCache
 
 
 
-
-
   static DrawableFrameRef Lookup(const ImageKey    aImageKey,
                                  const SurfaceKey& aSurfaceKey);
 
@@ -184,34 +163,9 @@ struct SurfaceCache
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static bool Insert(imgFrame*         aSurface,
+  static void Insert(imgFrame*         aSurface,
                      const ImageKey    aImageKey,
-                     const SurfaceKey& aSurfaceKey,
-                     Lifetime          aLifetime);
+                     const SurfaceKey& aSurfaceKey);
 
   
 
@@ -239,17 +193,8 @@ struct SurfaceCache
 
 
 
-
-
-
-
-
-
-
-
-
-  static void LockImage(const ImageKey aImageKey);
-
+  static void RemoveIfPresent(const ImageKey    aImageKey,
+                              const SurfaceKey& aSurfaceKey);
   
 
 
@@ -258,59 +203,12 @@ struct SurfaceCache
 
 
 
-  static void UnlockImage(const ImageKey aImageKey);
+  static void Discard(const ImageKey aImageKey);
 
   
-
-
-
-
-
-
-
-
-
-
-  static void RemoveSurface(const ImageKey    aImageKey,
-                            const SurfaceKey& aSurfaceKey);
-
-  
-
-
-
-
-
-
-
-
-
-  static void RemoveImage(const ImageKey aImageKey);
-
-  
-
-
-
-
 
 
   static void DiscardAll();
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  static size_t SizeOfSurfaces(const ImageKey    aImageKey,
-                               gfxMemoryLocation aLocation,
-                               MallocSizeOf      aMallocSizeOf);
 
 private:
   virtual ~SurfaceCache() = 0;  

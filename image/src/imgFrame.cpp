@@ -123,6 +123,7 @@ imgFrame::imgFrame() :
   mCompositingFailed(false),
   mHasNoAlpha(false),
   mNonPremult(false),
+  mDiscardable(false),
   mOptimizable(false),
   mInformedDiscardTracker(false)
 {
@@ -414,7 +415,9 @@ nsresult imgFrame::Optimize()
   
   
   
-  mImageSurface = nullptr;
+  if (mDiscardable) {
+    mImageSurface = nullptr;
+  }
 #endif
 
   return NS_OK;
@@ -584,16 +587,7 @@ SurfaceFormat imgFrame::GetFormat() const
 bool imgFrame::GetNeedsBackground() const
 {
   
-  if (!ImageComplete()) {
-    return true;
-  }
-
-  
-  if (mFormat == SurfaceFormat::B8G8R8A8 && !mHasNoAlpha) {
-    return true;
-  }
-
-  return false;
+  return (mFormat == SurfaceFormat::B8G8R8A8 || !ImageComplete());
 }
 
 uint32_t imgFrame::GetImageBytesPerRow() const
@@ -663,16 +657,6 @@ uint32_t* imgFrame::GetPaletteData() const
   uint32_t length;
   GetPaletteData(&data, &length);
   return data;
-}
-
-uint8_t*
-imgFrame::GetRawData() const
-{
-  MOZ_ASSERT(mLockCount, "Should be locked to call GetRawData()");
-  if (mPalettedImageData) {
-    return mPalettedImageData;
-  }
-  return GetImageData();
 }
 
 nsresult imgFrame::LockImageData()
@@ -789,6 +773,13 @@ nsresult imgFrame::UnlockImageData()
   mLockCount--;
 
   return NS_OK;
+}
+
+void
+imgFrame::SetDiscardable()
+{
+  MOZ_ASSERT(mLockCount, "Expected to be locked when SetDiscardable is called");
+  mDiscardable = true;
 }
 
 void

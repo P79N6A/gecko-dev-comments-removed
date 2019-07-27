@@ -67,6 +67,7 @@ public:
 
 
 
+
   nsresult InitWithDrawable(gfxDrawable* aDrawable,
                             const nsIntSize& aSize,
                             const SurfaceFormat aFormat,
@@ -96,7 +97,6 @@ public:
   uint8_t* GetImageData() const;
   void GetPaletteData(uint32_t **aPalette, uint32_t *length) const;
   uint32_t* GetPaletteData() const;
-  uint8_t* GetRawData() const;
 
   int32_t GetRawTimeout() const;
   void SetRawTimeout(int32_t aTimeout);
@@ -113,6 +113,10 @@ public:
   bool GetCompositingFailed() const;
   void SetCompositingFailed(bool val);
 
+  nsresult LockImageData();
+  nsresult UnlockImageData();
+
+  void SetDiscardable();
   void SetOptimizable();
 
   TemporaryRef<SourceSurface> GetSurface();
@@ -147,8 +151,6 @@ private:
 
   ~imgFrame();
 
-  nsresult LockImageData();
-  nsresult UnlockImageData();
   nsresult Optimize();
 
   struct SurfaceWithFormat {
@@ -205,6 +207,7 @@ private:
   bool mCompositingFailed;
   bool mHasNoAlpha;
   bool mNonPremult;
+  bool mDiscardable;
   bool mOptimizable;
 
   
