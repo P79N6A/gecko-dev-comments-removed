@@ -749,8 +749,27 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     NS_ENSURE_SUCCESS(rv, rv);
     if (hasFlags) {
         if (aFlags & nsIScriptSecurityManager::ALLOW_CHROME) {
+
+            
+            
             if (!targetScheme.EqualsLiteral("chrome")) {
-                
+                return NS_OK;
+            }
+
+            
+            
+            
+            
+            
+            
+            
+            
+            bool sourceIsUIResource;
+            rv = NS_URIChainHasFlags(sourceBaseURI,
+                                     nsIProtocolHandler::URI_IS_UI_RESOURCE,
+                                     &sourceIsUIResource);
+            NS_ENSURE_SUCCESS(rv, rv);
+            if (sourceIsUIResource) {
                 return NS_OK;
             }
 
@@ -766,17 +785,6 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             }
         }
 
-        
-        
-        
-        bool sourceIsChrome;
-        rv = NS_URIChainHasFlags(sourceBaseURI,
-                                 nsIProtocolHandler::URI_IS_UI_RESOURCE,
-                                 &sourceIsChrome);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (sourceIsChrome) {
-            return NS_OK;
-        }
         if (reportErrors) {
             ReportError(nullptr, errorTag, sourceURI, aTargetURI);
         }
