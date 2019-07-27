@@ -120,6 +120,10 @@ TypedArrayObject::ensureHasBuffer(JSContext *cx, Handle<TypedArrayObject *> tarr
     tarray->setPrivate(buffer->dataPointer());
 
     tarray->setSlot(TypedArrayLayout::BUFFER_SLOT, ObjectValue(*buffer));
+
+    
+    MarkObjectStateChange(cx, tarray);
+
     return true;
 }
 
