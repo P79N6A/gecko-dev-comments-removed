@@ -95,6 +95,9 @@ enum Stat {
     
     STAT_STOREBUFFER_OVERFLOW,
 
+    
+    STAT_ARENA_RELOCATED,
+
     STAT_LIMIT
 };
 
