@@ -14,49 +14,26 @@
 #include "mozilla/NullPtr.h"
 
 #include <errno.h>
-#include <unistd.h>
-#include <linux/net.h>
 #include <linux/ipc.h>
+#include <linux/net.h>
+#include <linux/prctl.h>
+#include <linux/sched.h>
+#include <sys/mman.h>
+#include <time.h>
+#include <unistd.h>
 
 namespace mozilla {
 
 class SandboxFilterImpl : public SandboxAssembler
 {
-  void Build();
 public:
-  SandboxFilterImpl() {
-    Build();
-    Finish();
-  }
+  virtual void Build() = 0;
+  virtual ~SandboxFilterImpl() { }
 };
 
-SandboxFilter::SandboxFilter(const sock_fprog** aStored, bool aVerbose)
-  : mStored(aStored)
-{
-  MOZ_ASSERT(*mStored == nullptr);
-  std::vector<struct sock_filter> filterVec;
-  {
-    SandboxFilterImpl impl;
-    impl.Compile(&filterVec, aVerbose);
-  }
-  mProg = new sock_fprog;
-  mProg->len = filterVec.size();
-  mProg->filter = mFilter = new sock_filter[mProg->len];
-  for (size_t i = 0; i < mProg->len; ++i) {
-    mFilter[i] = filterVec[i];
-  }
-  *mStored = mProg;
-}
 
-SandboxFilter::~SandboxFilter()
-{
-  *mStored = nullptr;
-  delete[] mFilter;
-  delete mProg;
-}
 
-void
-SandboxFilterImpl::Build() {
+
 #define SYSCALL_EXISTS(name) (defined(__NR_##name))
 
 #define SYSCALL(name) (Condition(__NR_##name))
@@ -69,32 +46,40 @@ SandboxFilterImpl::Build() {
   Condition(__NR_##name, arg, argValues);         \
 })
 
-  
-  
-  
-  
+
+
+
+
 #if SYSCALL_EXISTS(stat64)
 #define SYSCALL_LARGEFILE(plain, versioned) SYSCALL(versioned)
 #else
 #define SYSCALL_LARGEFILE(plain, versioned) SYSCALL(plain)
 #endif
 
-  
-  
+
+
 #if SYSCALL_EXISTS(socketcall)
 #define SOCKETCALL(name, NAME) SYSCALL_WITH_ARG(socketcall, 0, SYS_##NAME)
 #else
 #define SOCKETCALL(name, NAME) SYSCALL(name)
 #endif
 
-  
-  
+
+
 #if SYSCALL_EXISTS(ipc)
 #define SYSVIPCCALL(name, NAME) SYSCALL_WITH_ARG(ipc, 0, NAME)
 #else
 #define SYSVIPCCALL(name, NAME) SYSCALL(name)
 #endif
 
+#ifdef MOZ_CONTENT_SANDBOX
+class SandboxFilterImplContent : public SandboxFilterImpl {
+protected:
+  virtual void Build() MOZ_OVERRIDE;
+};
+
+void
+SandboxFilterImplContent::Build() {
   
 
 
@@ -324,6 +309,151 @@ SandboxFilterImpl::Build() {
   Allow(SYSCALL(uname));
   Allow(SYSCALL(exit_group));
   Allow(SYSCALL(exit));
+}
+#endif 
+
+#ifdef MOZ_GMP_SANDBOX
+class SandboxFilterImplGMP : public SandboxFilterImpl {
+protected:
+  virtual void Build() MOZ_OVERRIDE;
+};
+
+void SandboxFilterImplGMP::Build() {
+  
+
+  Allow(SYSCALL_WITH_ARG(clock_gettime, 0, CLOCK_MONOTONIC, CLOCK_REALTIME));
+  Allow(SYSCALL(futex));
+  Allow(SYSCALL(gettimeofday));
+  Allow(SYSCALL(poll));
+  Allow(SYSCALL(write));
+  Allow(SYSCALL(read));
+  Allow(SYSCALL(epoll_wait));
+  Allow(SOCKETCALL(recvmsg, RECVMSG));
+  Allow(SOCKETCALL(sendmsg, SENDMSG));
+  Allow(SYSCALL(time));
+
+  
+
+#if SYSCALL_EXISTS(mmap2)
+  Allow(SYSCALL(mmap2));
+#else
+  Allow(SYSCALL(mmap));
+#endif
+  Allow(SYSCALL_LARGEFILE(fstat, fstat64));
+  Allow(SYSCALL(munmap));
+
+  Allow(SYSCALL(gettid));
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static const int new_thread_flags = CLONE_VM | CLONE_FS | CLONE_FILES |
+    CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM | CLONE_SETTLS |
+    CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID;
+  Allow(SYSCALL_WITH_ARG(clone, 0, new_thread_flags));
+
+  Allow(SYSCALL_WITH_ARG(prctl, 0, PR_GET_SECCOMP, PR_SET_NAME));
+
+#if SYSCALL_EXISTS(set_robust_list)
+  Allow(SYSCALL(set_robust_list));
+#endif
+
+  
+  
+  Deny(EACCES, SYSCALL(getpriority));
+
+  Allow(SYSCALL(mprotect));
+  Allow(SYSCALL_WITH_ARG(madvise, 2, MADV_DONTNEED));
+
+#if SYSCALL_EXISTS(sigreturn)
+  Allow(SYSCALL(sigreturn));
+#endif
+  Allow(SYSCALL(rt_sigreturn));
+
+  Allow(SYSCALL(restart_syscall));
+  Allow(SYSCALL(close));
+
+  
+  Allow(SYSCALL(nanosleep));
+
+  
+#if SYSCALL_EXISTS(sigprocmask)
+  Allow(SYSCALL(sigprocmask));
+#endif
+  Allow(SYSCALL(rt_sigprocmask));
+#if SYSCALL_EXISTS(sigaction)
+  Allow(SYSCALL(sigaction));
+#endif
+  Allow(SYSCALL(rt_sigaction));
+  Allow(SOCKETCALL(socketpair, SOCKETPAIR));
+  Allow(SYSCALL_WITH_ARG(tgkill, 0, uint32_t(getpid())));
+  Allow(SYSCALL_WITH_ARG(prctl, 0, PR_SET_DUMPABLE));
+
+  
+  
+
+  Allow(SYSCALL(epoll_ctl));
+  Allow(SYSCALL(exit));
+  Allow(SYSCALL(exit_group));
+}
+#endif 
+
+SandboxFilter::SandboxFilter(const sock_fprog** aStored, SandboxType aType,
+                             bool aVerbose)
+  : mStored(aStored)
+{
+  MOZ_ASSERT(*mStored == nullptr);
+  std::vector<struct sock_filter> filterVec;
+  SandboxFilterImpl *impl;
+
+  switch (aType) {
+  case kSandboxContentProcess:
+#ifdef MOZ_CONTENT_SANDBOX
+    impl = new SandboxFilterImplContent();
+#else
+    MOZ_CRASH("Content process sandboxing not supported in this build!");
+#endif
+    break;
+  case kSandboxMediaPlugin:
+#ifdef MOZ_GMP_SANDBOX
+    impl = new SandboxFilterImplGMP();
+#else
+    MOZ_CRASH("Gecko Media Plugin process sandboxing not supported in this"
+              " build!");
+#endif
+    break;
+  default:
+    MOZ_CRASH("Nonexistent sandbox type!");
+  }
+  impl->Build();
+  impl->Finish();
+  impl->Compile(&filterVec, aVerbose);
+  delete impl;
+
+  mProg = new sock_fprog;
+  mProg->len = filterVec.size();
+  mProg->filter = mFilter = new sock_filter[mProg->len];
+  for (size_t i = 0; i < mProg->len; ++i) {
+    mFilter[i] = filterVec[i];
+  }
+  *mStored = mProg;
+}
+
+SandboxFilter::~SandboxFilter()
+{
+  *mStored = nullptr;
+  delete[] mFilter;
+  delete mProg;
 }
 
 }
