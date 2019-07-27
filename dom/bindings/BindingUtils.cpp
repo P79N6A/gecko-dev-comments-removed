@@ -1595,17 +1595,10 @@ bool
 HasPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                        JS::Handle<jsid> id)
 {
-  JS::Rooted<JSObject*> obj(cx, proxy);
-  Maybe<JSAutoCompartment> ac;
-  if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
-    obj = js::UncheckedUnwrap(obj);
-    ac.emplace(cx, obj);
-  }
-
   bool found;
   
   
-  return !GetPropertyOnPrototype(cx, obj, id, &found, nullptr) || found;
+  return !GetPropertyOnPrototype(cx, proxy, id, &found, nullptr) || found;
 }
 
 bool
