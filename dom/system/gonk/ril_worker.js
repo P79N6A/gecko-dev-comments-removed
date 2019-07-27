@@ -15146,17 +15146,17 @@ ICCContactHelperObject.prototype = {
     let ICCRecordHelper = this.context.ICCRecordHelper;
 
     switch (contactType) {
-      case "adn":
+      case GECKO_CARDCONTACT_TYPE_ADN:
         if (!this.hasDfPhoneBook(appType)) {
           ICCRecordHelper.readADNLike(ICC_EF_ADN, onsuccess, onerror);
         } else {
           this.readUSimContacts(onsuccess, onerror);
         }
         break;
-      case "fdn":
+      case GECKO_CARDCONTACT_TYPE_FDN:
         ICCRecordHelper.readADNLike(ICC_EF_FDN, onsuccess, onerror);
         break;
-      case "sdn":
+      case GECKO_CARDCONTACT_TYPE_SDN:
         let ICCUtilsHelper = this.context.ICCUtilsHelper;
         if (!ICCUtilsHelper.isICCServiceAvailable("SDN")) {
           onerror(CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
@@ -15186,7 +15186,7 @@ ICCContactHelperObject.prototype = {
     let ICCRecordHelper = this.context.ICCRecordHelper;
 
     switch (contactType) {
-      case "adn":
+      case GECKO_CARDCONTACT_TYPE_ADN:
         if (!this.hasDfPhoneBook(appType)) {
           ICCRecordHelper.findFreeRecordId(ICC_EF_ADN, onsuccess.bind(null, 0), onerror);
         } else {
@@ -15197,7 +15197,7 @@ ICCContactHelperObject.prototype = {
           ICCRecordHelper.readPBR(gotPbrCb, onerror);
         }
         break;
-      case "fdn":
+      case GECKO_CARDCONTACT_TYPE_FDN:
         ICCRecordHelper.findFreeRecordId(ICC_EF_FDN, onsuccess.bind(null, 0), onerror);
         break;
       default:
@@ -15286,14 +15286,14 @@ ICCContactHelperObject.prototype = {
     let ICCRecordHelper = this.context.ICCRecordHelper;
 
     switch (contactType) {
-      case "adn":
+      case GECKO_CARDCONTACT_TYPE_ADN:
         if (!this.hasDfPhoneBook(appType)) {
           ICCRecordHelper.updateADNLike(ICC_EF_ADN, contact, null, onsuccess, onerror);
         } else {
           this.updateUSimContact(contact, onsuccess, onerror);
         }
         break;
-      case "fdn":
+      case GECKO_CARDCONTACT_TYPE_FDN:
         if (!pin2) {
           onerror(GECKO_ERROR_SIM_PIN2);
           return;
