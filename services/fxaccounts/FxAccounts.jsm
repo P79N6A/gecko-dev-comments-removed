@@ -1,6 +1,7 @@
 
 
 
+"use strict";
 
 this.EXPORTED_SYMBOLS = ["fxAccounts", "FxAccounts"];
 
@@ -8,13 +9,13 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/FxAccountsStorage.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsClient",
@@ -50,7 +51,6 @@ let publicProperties = [
   "resendVerificationEmail",
   "setSignedInUser",
   "signOut",
-  "version",
   "whenVerified"
 ];
 
@@ -72,28 +72,27 @@ let publicProperties = [
 
 
 
-let AccountState = function(fxaInternal, signedInUserStorage, accountData = null) {
+let AccountState = this.AccountState = function(fxaInternal, storageManager) {
   this.fxaInternal = fxaInternal;
-  this.signedInUserStorage = signedInUserStorage;
-  this.signedInUser = accountData ? {version: DATA_FORMAT_VERSION, accountData} : null;
-  this.uid = accountData ? accountData.uid : null;
-  this.oauthTokens = {};
+  this.storageManager = storageManager;
+  this.promiseInitialized = this.storageManager.getAccountData().then(data => {
+    this.oauthTokens = data && data.oauthTokens ? data.oauthTokens : {};
+  }).catch(err => {
+    log.error("Failed to initialize the storage manager", err);
+    
+  });
 };
 
 AccountState.prototype = {
   cert: null,
   keyPair: null,
-  signedInUser: null,
   oauthTokens: null,
   whenVerifiedDeferred: null,
   whenKeysReadyDeferred: null,
-  profile: null,
-  promiseInitialAccountData: null,
-  uid: null,
 
   get isCurrent() this.fxaInternal && this.fxaInternal.currentAccountState === this,
 
-  abort: function() {
+  abort() {
     if (this.whenVerifiedDeferred) {
       this.whenVerifiedDeferred.reject(
         new Error("Verification aborted; Another user signing in"));
@@ -108,127 +107,47 @@ AccountState.prototype = {
 
     this.cert = null;
     this.keyPair = null;
-    this.signedInUser = null;
-    this.uid = null;
+    this.oauthTokens = null;
     this.fxaInternal = null;
+    
+    
+    if (!this.storageManager) {
+      return Promise.resolve();
+    }
+    let storageManager = this.storageManager;
+    this.storageManager = null;
+    return storageManager.finalize();
   },
 
   
   signOut() {
     this.cert = null;
     this.keyPair = null;
-    this.signedInUser = null;
-    this.oauthTokens = {};
-    this.uid = null;
-    return this.persistUserData();
+    this.oauthTokens = null;
+    let storageManager = this.storageManager;
+    this.storageManager = null;
+    return storageManager.deleteAccountData().then(() => {
+      return storageManager.finalize();
+    });
   },
 
   getUserAccountData() {
     if (!this.isCurrent) {
-      return this.reject(new Error("Another user has signed in"));
+      return Promise.reject(new Error("Another user has signed in"));
     }
-    if (this.promiseInitialAccountData) {
-      
-      return this.promiseInitialAccountData;
-    }
-    
-    if (this.signedInUser) {
-      return this.resolve(this.signedInUser.accountData);
-    }
-
-    
-    
-    let accountData = null;
-    let oauthTokens = {};
-    return this.promiseInitialAccountData = this.signedInUserStorage.get()
-      .then(user => {
-        if (logPII) {
-          log.debug("getUserAccountData", user);
-        }
-        
-        
-        
-        
-        
-        accountData = user ? user.accountData : null;
-      }, err => {
-        
-        this.promiseInitialAccountData = null;
-        if (err instanceof OS.File.Error && err.becauseNoSuchFile) {
-          
-          
-          return;
-        }
-        
-        
-        log.error("Failed to read signed in user data", err);
-      }).then(() => {
-        if (!accountData) {
-          return null;
-        }
-        return this.signedInUserStorage.getOAuthTokens();
-      }).then(tokenData => {
-        if (tokenData && tokenData.tokens &&
-            tokenData.version == DATA_FORMAT_VERSION &&
-            tokenData.uid == accountData.uid ) {
-          oauthTokens = tokenData.tokens;
-        }
-      }, err => {
-        
-        if (err instanceof OS.File.Error && err.becauseNoSuchFile) {
-          
-          return;
-        }
-        log.error("Failed to read oauth tokens", err)
-      }).then(() => {
-        
-        
-        this.promiseInitialAccountData = null;
-        if (this.isCurrent) {
-          
-          
-          
-          
-          this.oauthTokens = oauthTokens;
-          this.uid = accountData ? accountData.uid : null;
-        }
-        return accountData;
-      });
-      
+    return this.storageManager.getAccountData().then(result => {
+      return this.resolve(result);
+    });
   },
 
-  
-  
-  
-  setUserAccountData: function(accountData) {
+  updateUserAccountData(updatedFields) {
     if (!this.isCurrent) {
-      return this.reject(new Error("Another user has signed in"));
+      return Promise.reject(new Error("Another user has signed in"));
     }
-    if (this.promiseInitialAccountData) {
-      throw new Error("Can't set account data before it's been read.");
-    }
-    if (!accountData) {
-      
-      throw new Error("Attempt to use setUserAccountData with null user data.");
-    }
-    if (accountData.uid != this.uid) {
-      
-      throw new Error("Attempt to use setUserAccountData with a different user.");
-    }
-    
-    
-    this.signedInUser = {version: DATA_FORMAT_VERSION, accountData: accountData};
-    return this.signedInUserStorage.set(this.signedInUser)
-        .then(() => this.resolve(accountData));
+    return this.storageManager.updateAccountData(updatedFields);
   },
-
 
   getCertificate: function(data, keyPair, mustBeValidUntil) {
-    if (logPII) {
-      
-      
-      log.debug("getCertificate" + JSON.stringify(this.signedInUser));
-    }
     
     if (this.cert && this.cert.validUntil > mustBeValidUntil) {
       log.debug(" getCertificate already had one");
@@ -292,7 +211,7 @@ AccountState.prototype = {
     if (!this.isCurrent) {
       log.info("An accountState promise was resolved, but was actually rejected" +
                " due to a different user being signed in. Originally resolved" +
-               " with: " + result);
+               " with", result);
       return Promise.reject(new Error("A different user signed in"));
     }
     return Promise.resolve(result);
@@ -306,12 +225,16 @@ AccountState.prototype = {
     if (!this.isCurrent) {
       log.info("An accountState promise was rejected, but we are ignoring that" +
                "reason and rejecting it due to a different user being signed in." +
-               "Originally rejected with: " + error);
+               "Originally rejected with", error);
       return Promise.reject(new Error("A different user signed in"));
     }
     return Promise.reject(error);
   },
 
+  
+  
+  
+  
   
   
 
@@ -340,23 +263,14 @@ AccountState.prototype = {
   getCachedToken(scopeArray) {
     this._cachePreamble();
     let key = getScopeKey(scopeArray);
-    if (this.oauthTokens[key]) {
+    let result = this.oauthTokens[key];
+    if (result) {
       
       
       log.trace("getCachedToken returning cached token");
-      return this.oauthTokens[key];
+      return result;
     }
     return null;
-  },
-
-  
-  getAllCachedTokens() {
-    this._cachePreamble();
-    let result = [];
-    for (let [key, tokenValue] in Iterator(this.oauthTokens)) {
-      result.push(tokenValue);
-    }
-    return result;
   },
 
   
@@ -380,30 +294,8 @@ AccountState.prototype = {
   
   _persistCachedTokens() {
     this._cachePreamble();
-    let record;
-    if (this.uid) {
-      record = {
-        version: DATA_FORMAT_VERSION,
-        uid: this.uid,
-        tokens: this.oauthTokens,
-      };
-    } else {
-      record = null;
-    }
-    return this.signedInUserStorage.setOAuthTokens(record).catch(
-      err => {
-        log.error("Failed to save account data for token cache", err);
-      }
-    );
-  },
-
-  persistUserData() {
-    return this._persistCachedTokens().catch(err => {
-      log.error("Failed to persist cached tokens", err);
-    }).then(() => {
-      return this.signedInUserStorage.set(this.signedInUser);
-    }).catch(err => {
-      log.error("Failed to persist account data", err);
+    return this.updateUserAccountData({ oauthTokens: this.oauthTokens }).catch(err => {
+      log.error("Failed to update cached tokens", err);
     });
   },
 }
@@ -473,13 +365,11 @@ this.FxAccounts = function (mockInternal) {
 
   if (mockInternal) {
     
-    
-    if (mockInternal.signedInUserStorage) {
-      internal.currentAccountState.signedInUserStorage = mockInternal.signedInUserStorage;
-    }
-    
     external.internal = internal;
   }
+
+  
+  internal.initialize();
 
   return Object.freeze(external);
 }
@@ -488,63 +378,30 @@ this.FxAccounts = function (mockInternal) {
 
 
 function FxAccountsInternal() {
-  this.version = DATA_FORMAT_VERSION;
-
   
   this.POLL_SESSION = POLL_SESSION;
 
   
   
-  
-  
-  
-  
-  
-  
-
-  
-#if defined(MOZ_B2G)
-  this.signedInUserStorage = new JSONStorage({
-#else
-  this.signedInUserStorage = new LoginManagerStorage({
-#endif
-    
-    
-    filename: DEFAULT_STORAGE_FILENAME,
-    oauthTokensFilename: DEFAULT_OAUTH_TOKENS_FILENAME,
-    baseDir: OS.Constants.Path.profileDir,
-  });
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  this.currentTimer = null;
-  this.currentAccountState = new AccountState(this, this.signedInUserStorage);
 }
 
 
 
 
 FxAccountsInternal.prototype = {
-
-  
-
-
-  version: DATA_FORMAT_VERSION,
-
   
   VERIFICATION_POLL_TIMEOUT_INITIAL: 5000, 
   
   VERIFICATION_POLL_TIMEOUT_SUBSEQUENT: 15000, 
 
   _fxAccountsClient: null,
+
+  
+  
+  initialize() {
+    this.currentTimer = null;
+    this.currentAccountState = this.newAccountState();
+  },
 
   get fxAccountsClient() {
     if (!this._fxAccountsClient) {
@@ -564,6 +421,13 @@ FxAccountsInternal.prototype = {
       });
     }
     return this._profile;
+  },
+
+  
+  newAccountState(credentials) {
+    let storage = new FxAccountsStorageManager();
+    storage.initialize(credentials);
+    return new AccountState(this, storage);
   },
 
   
@@ -676,24 +540,23 @@ FxAccountsInternal.prototype = {
 
   setSignedInUser: function setSignedInUser(credentials) {
     log.debug("setSignedInUser - aborting any existing flows");
-    this.abortExistingFlow();
-
-    let currentAccountState = this.currentAccountState = new AccountState(
-      this,
-      this.signedInUserStorage,
-      JSON.parse(JSON.stringify(credentials)) 
-    );
-
-    
-    
-    return currentAccountState.persistUserData().then(() => {
-      this.notifyObservers(ONLOGIN_NOTIFICATION);
-      if (!this.isUserEmailVerified(credentials)) {
-        this.startVerifiedCheck(credentials);
-      }
-    }).then(() => {
-      return currentAccountState.resolve();
-    });
+    return this.abortExistingFlow().then(() => {
+      let currentAccountState = this.currentAccountState = this.newAccountState(
+        Cu.cloneInto(credentials, {}) 
+      );
+      
+      
+      
+      
+      return currentAccountState.promiseInitialized.then(() => {
+        this.notifyObservers(ONLOGIN_NOTIFICATION);
+        if (!this.isUserEmailVerified(credentials)) {
+          this.startVerifiedCheck(credentials);
+        }
+      }).then(() => {
+        return currentAccountState.resolve();
+      });
+    })
   },
 
   
@@ -749,8 +612,13 @@ FxAccountsInternal.prototype = {
       clearTimeout(this.currentTimer);
       this.currentTimer = 0;
     }
-    this.currentAccountState.abort();
-    this.currentAccountState = new AccountState(this, this.signedInUserStorage);
+    if (this._profile) {
+      this._profile.tearDown();
+      this._profile = null;
+    }
+    
+    
+    return this.currentAccountState.abort();
   },
 
   accountStatus: function accountStatus() {
@@ -773,7 +641,7 @@ FxAccountsInternal.prototype = {
   _destroyAllOAuthTokens: function(tokenInfos) {
     
     let promises = [];
-    for (let tokenInfo of tokenInfos) {
+    for (let [key, tokenInfo] in Iterator(tokenInfos || {})) {
       promises.push(this._destroyOAuthToken(tokenInfo));
     }
     return Promise.all(promises);
@@ -786,7 +654,7 @@ FxAccountsInternal.prototype = {
     return currentState.getUserAccountData().then(data => {
       
       sessionToken = data && data.sessionToken;
-      tokensToRevoke = currentState.getAllCachedTokens();
+      tokensToRevoke = data && data.oauthTokens;
       return this._signOutLocal();
     }).then(() => {
       
@@ -821,12 +689,12 @@ FxAccountsInternal.prototype = {
 
   _signOutLocal: function signOutLocal() {
     let currentAccountState = this.currentAccountState;
-    if (this._profile) {
-      this._profile.tearDown();
-      this._profile = null;
-    }
     return currentAccountState.signOut().then(() => {
-      this.abortExistingFlow(); 
+      
+      return this.abortExistingFlow();
+    }).then(() => {
+      this.currentAccountState = this.newAccountState();
+      return this.currentAccountState.promiseInitialized;
     });
   },
 
@@ -917,23 +785,24 @@ FxAccountsInternal.prototype = {
       if (logPII) {
         log.debug("kB_hex: " + kB_hex);
       }
-      data.kA = CommonUtils.bytesAsHex(kA);
-      data.kB = CommonUtils.bytesAsHex(kB_hex);
-
-      delete data.keyFetchToken;
-      delete data.unwrapBKey;
-
-      log.debug("Keys Obtained: kA=" + !!data.kA + ", kB=" + !!data.kB);
-      if (logPII) {
-        log.debug("Keys Obtained: kA=" + data.kA + ", kB=" + data.kB);
+      let updateData = {
+        kA: CommonUtils.bytesAsHex(kA),
+        kB: CommonUtils.bytesAsHex(kB_hex),
+        keyFetchToken: null, 
+        unwrapBKey: null,
       }
 
-      yield currentState.setUserAccountData(data);
+      log.debug("Keys Obtained: kA=" + !!updateData.kA + ", kB=" + !!updateData.kB);
+      if (logPII) {
+        log.debug("Keys Obtained: kA=" + updateData.kA + ", kB=" + updateData.kB);
+      }
+
+      yield currentState.updateUserAccountData(updateData);
       
       
       
       this.notifyObservers(ONVERIFIED_NOTIFICATION);
-      return data;
+      return currentState.getUserAccountData();
     }.bind(this)).then(result => currentState.resolve(result));
   },
 
@@ -1070,12 +939,11 @@ FxAccountsInternal.prototype = {
       .then((response) => {
         log.debug("checkEmailStatus -> " + JSON.stringify(response));
         if (response && response.verified) {
-          currentState.getUserAccountData()
-            .then((data) => {
-              data.verified = true;
-              return currentState.setUserAccountData(data);
+          currentState.updateUserAccountData({ verified: true })
+            .then(() => {
+              return currentState.getUserAccountData();
             })
-            .then((data) => {
+            .then(data => {
               
               if (currentState.whenVerifiedDeferred) {
                 currentState.whenVerifiedDeferred.resolve(data);
@@ -1409,7 +1277,7 @@ FxAccountsInternal.prototype = {
     let currentState = this.currentAccountState;
     return this.profile.getProfile().then(
       profileData => {
-        let profile = JSON.parse(JSON.stringify(profileData));
+        let profile = Cu.cloneInto(profileData, {});
         return currentState.resolve(profile);
       },
       error => {
@@ -1420,241 +1288,6 @@ FxAccountsInternal.prototype = {
   },
 };
 
-
-
-
-
-
-
-
-
-
-
-
-function JSONStorage(options) {
-  this.baseDir = options.baseDir;
-  this.path = OS.Path.join(options.baseDir, options.filename);
-  this.oauthTokensPath = OS.Path.join(options.baseDir, options.oauthTokensFilename);
-};
-
-JSONStorage.prototype = {
-  set: function(contents) {
-    return OS.File.makeDir(this.baseDir, {ignoreExisting: true})
-      .then(CommonUtils.writeJSON.bind(null, contents, this.path));
-  },
-
-  get: function() {
-    return CommonUtils.readJSON(this.path);
-  },
-
-  setOAuthTokens: function(contents) {
-    return OS.File.makeDir(this.baseDir, {ignoreExisting: true})
-      .then(CommonUtils.writeJSON.bind(null, contents, this.oauthTokensPath));
-  },
-
-  getOAuthTokens: function(contents) {
-    return CommonUtils.readJSON(this.oauthTokensPath);
-  },
-
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-function LoginManagerStorage(options) {
-  
-  this.jsonStorage = new JSONStorage(options);
-}
-
-LoginManagerStorage.prototype = {
-  
-  
-  
-
-  
-  get _isLoggedIn() {
-    return Services.logins.isLoggedIn;
-  },
-
-  
-  
-  
-  _clearLoginMgrData: Task.async(function* () {
-    try { 
-      yield Services.logins.initializationPromise;
-      if (!this._isLoggedIn) {
-        return false;
-      }
-      let logins = Services.logins.findLogins({}, FXA_PWDMGR_HOST, null, FXA_PWDMGR_REALM);
-      for (let login of logins) {
-        Services.logins.removeLogin(login);
-      }
-      return true;
-    } catch (ex) {
-      log.error("Failed to clear login data: ${}", ex);
-      return false;
-    }
-  }),
-
-  set: Task.async(function* (contents) {
-    if (!contents) {
-      
-      yield this.jsonStorage.set(contents);
-
-      
-      let cleared = yield this._clearLoginMgrData();
-      if (!cleared) {
-        
-        
-        log.info("not removing credentials from login manager - not logged in");
-      }
-      return;
-    }
-
-    
-    
-    
-    let toWriteJSON = {version: contents.version};
-    let accountDataJSON = toWriteJSON.accountData = {};
-    let toWriteLoginMgr = {version: contents.version};
-    let accountDataLoginMgr = toWriteLoginMgr.accountData = {};
-    for (let [name, value] of Iterator(contents.accountData)) {
-      if (FXA_PWDMGR_PLAINTEXT_FIELDS.indexOf(name) >= 0) {
-        accountDataJSON[name] = value;
-      } else {
-        accountDataLoginMgr[name] = value;
-      }
-    }
-    yield this.jsonStorage.set(toWriteJSON);
-
-    try { 
-      
-      yield Services.logins.initializationPromise;
-      
-      
-      if (!this._isLoggedIn) {
-        log.info("not saving credentials to login manager - not logged in");
-        return;
-      }
-      
-      let loginInfo = new Components.Constructor(
-         "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo, "init");
-      let login = new loginInfo(FXA_PWDMGR_HOST,
-                                null, 
-                                FXA_PWDMGR_REALM, 
-                                contents.accountData.email, 
-                                JSON.stringify(toWriteLoginMgr), 
-                                "", 
-                                "");
-
-      let existingLogins = Services.logins.findLogins({}, FXA_PWDMGR_HOST, null,
-                                                      FXA_PWDMGR_REALM);
-      if (existingLogins.length) {
-        Services.logins.modifyLogin(existingLogins[0], login);
-      } else {
-        Services.logins.addLogin(login);
-      }
-    } catch (ex) {
-      log.error("Failed to save data to the login manager: ${}", ex);
-    }
-  }),
-
-  get: Task.async(function* () {
-    
-    
-    let data = yield this.jsonStorage.get();
-    if (!data) {
-      
-      
-      yield this._clearLoginMgrData();
-      return null;
-    }
-
-    
-    
-    if (data.accountData.kA || data.accountData.kB || data.keyFetchToken) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (!this._isLoggedIn) {
-        
-        log.info("account data needs migration to the login manager but the MP is locked.");
-        let result = {
-          version: data.version,
-          accountData: {},
-        };
-        for (let fieldName of FXA_PWDMGR_PLAINTEXT_FIELDS) {
-          result.accountData[fieldName] = data.accountData[fieldName];
-        }
-        return result;
-      }
-      
-      log.info("account data is being migrated to the login manager.");
-      yield this.set(data);
-    }
-
-    try { 
-      
-      yield Services.logins.initializationPromise;
-
-      if (!this._isLoggedIn) {
-        log.info("returning partial account data as the login manager is locked.");
-        return data;
-      }
-
-      let logins = Services.logins.findLogins({}, FXA_PWDMGR_HOST, null, FXA_PWDMGR_REALM);
-      if (logins.length == 0) {
-        
-        log.info("Can't find the rest of the credentials in the login manager");
-        return data;
-      }
-      let login = logins[0];
-      if (login.username == data.accountData.email) {
-        let lmData = JSON.parse(login.password);
-        if (lmData.version == data.version) {
-          
-          copyObjectProperties(lmData.accountData, data.accountData);
-        } else {
-          log.info("version field in the login manager doesn't match - ignoring it");
-          yield this._clearLoginMgrData();
-        }
-      } else {
-        log.info("username in the login manager doesn't match - ignoring it");
-        yield this._clearLoginMgrData();
-      }
-    } catch (ex) {
-      log.error("Failed to get data from the login manager: ${}", ex);
-    }
-    return data;
-  }),
-
-  
-  
-  
-  getOAuthTokens() {
-    return this.jsonStorage.getOAuthTokens();
-  },
-
-  setOAuthTokens(contents) {
-    return this.jsonStorage.setOAuthTokens(contents);
-  },
-}
 
 
 XPCOMUtils.defineLazyGetter(this, "fxAccounts", function() {

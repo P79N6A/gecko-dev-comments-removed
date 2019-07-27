@@ -12,6 +12,9 @@ Cu.import("resource://gre/modules/FxAccountsOAuthGrantClient.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 
+
+let {AccountState} = Cu.import("resource://gre/modules/FxAccounts.jsm", {});
+
 const ONE_HOUR_MS = 1000 * 60 * 60;
 const ONE_DAY_MS = ONE_HOUR_MS * 24;
 const TWO_MINUTES_MS = 1000 * 60 * 2;
@@ -46,6 +49,42 @@ Services.prefs.setCharPref("identity.fxaccounts.settings.uri", CONTENT_URL);
 
 
 
+
+
+function MockStorageManager() {
+}
+
+MockStorageManager.prototype = {
+  promiseInitialized: Promise.resolve(),
+
+  initialize(accountData) {
+    this.accountData = accountData;
+  },
+
+  finalize() {
+    return Promise.resolve();
+  },
+
+  getAccountData() {
+    return Promise.resolve(this.accountData);
+  },
+
+  updateAccountData(updatedFields) {
+    for (let [name, value] of Iterator(updatedFields)) {
+      if (value == null) {
+        delete this.accountData[name];
+      } else {
+        this.accountData[name] = value;
+      }
+    }
+    return Promise.resolve();
+  },
+
+  deleteAccountData() {
+    this.accountData = null;
+    return Promise.resolve();
+  }
+}
 
 function MockFxAccountsClient() {
   this._email = "nobody@example.com";
@@ -96,25 +135,6 @@ MockFxAccountsClient.prototype = {
   __proto__: FxAccountsClient.prototype
 }
 
-let MockStorage = function() {
-  this.data = null;
-};
-MockStorage.prototype = Object.freeze({
-  set: function (contents) {
-    this.data = contents;
-    return Promise.resolve(null);
-  },
-  get: function () {
-    return Promise.resolve(this.data);
-  },
-  getOAuthTokens() {
-    return Promise.resolve(null);
-  },
-  setOAuthTokens(contents) {
-    return Promise.resolve();
-  },
-});
-
 
 
 
@@ -128,9 +148,14 @@ function MockFxAccounts() {
     _getCertificateSigned_calls: [],
     _d_signCertificate: Promise.defer(),
     _now_is: new Date(),
-    signedInUserStorage: new MockStorage(),
     now: function () {
       return this._now_is;
+    },
+    newAccountState(credentials) {
+      
+      let storage = new MockStorageManager();
+      storage.initialize(credentials);
+      return new AccountState(this, storage);
     },
     getCertificateSigned: function (sessionToken, serializedPublicKey) {
       _("mock getCertificateSigned\n");
@@ -172,9 +197,13 @@ add_test(function test_non_https_remote_server_uri() {
 add_task(function test_get_signed_in_user_initially_unset() {
   
   
-  
   let account = new FxAccounts({
-    signedInUserStorage: new MockStorage(),
+    newAccountState(credentials) {
+      
+      let storage = new MockStorageManager();
+      storage.initialize(credentials);
+      return new AccountState(this, storage);
+    },
   });
   let credentials = {
     email: "foo@example.com",
@@ -185,9 +214,6 @@ add_task(function test_get_signed_in_user_initially_unset() {
     kB: "cafe",
     verified: true
   };
-  
-  account.internal.currentAccountState.signedInUserStorage = account.internal.signedInUserStorage;
-
   let result = yield account.getSignedInUser();
   do_check_eq(result, null);
 
@@ -221,7 +247,12 @@ add_task(function* test_getCertificate() {
   
   
   let fxa = new FxAccounts({
-    signedInUserStorage: new MockStorage(),
+    newAccountState(credentials) {
+      
+      let storage = new MockStorageManager();
+      storage.initialize(credentials);
+      return new AccountState(this, storage);
+    },
   });
   let credentials = {
     email: "foo@example.com",
@@ -232,8 +263,6 @@ add_task(function* test_getCertificate() {
     kB: "cafe",
     verified: true
   };
-  
-  fxa.internal.currentAccountState.signedInUserStorage = fxa.internal.signedInUserStorage;
   yield fxa.setSignedInUser(credentials);
 
   
@@ -814,7 +843,6 @@ add_task(function* test_getOAuthTokenCachedScopeNormalization() {
   do_check_eq(result, "token");
 });
 
-
 Services.prefs.setCharPref("identity.fxaccounts.remote.oauth.uri", "https://example.com/v1");
 add_test(function test_getOAuthToken_invalid_param() {
   let fxa = new MockFxAccounts();
@@ -967,13 +995,13 @@ add_test(function test_getSignedInUserProfile() {
   let mockProfile = {
     getProfile: function () {
       return Promise.resolve({ avatar: "image" });
-    }
+    },
+    tearDown: function() {},
   };
-  let fxa = new FxAccounts({
-    _profile: mockProfile,
-  });
+  let fxa = new FxAccounts({});
 
   fxa.setSignedInUser(alice).then(() => {
+    fxa.internal._profile = mockProfile;
     fxa.getSignedInUserProfile()
       .then(result => {
          do_check_true(!!result);
