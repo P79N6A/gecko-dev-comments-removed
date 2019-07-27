@@ -10,15 +10,30 @@
 #include "nsError.h"
 #include "nsString.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/RequestBinding.h"
 
 class nsIInputStream;
+class nsIGlobalObject;
 
 namespace mozilla {
 namespace dom {
 
 class ArrayBufferOrArrayBufferViewOrBlobOrScalarValueStringOrURLSearchParams;
+class InternalRequest;
 class OwningArrayBufferOrArrayBufferViewOrBlobOrScalarValueStringOrURLSearchParams;
 class Promise;
+class RequestOrScalarValueString;
+
+namespace workers {
+class WorkerPrivate;
+} 
+
+already_AddRefed<Promise>
+FetchRequest(nsIGlobalObject* aGlobal, const RequestOrScalarValueString& aInput,
+             const RequestInit& aInit, ErrorResult& aRv);
+
+nsresult
+GetRequestReferrer(nsIGlobalObject* aGlobal, const InternalRequest* aRequest, nsCString& aReferrer);
 
 
 
@@ -105,6 +120,7 @@ private:
   bool mBodyUsed;
   nsCString mMimeType;
 };
+
 } 
 } 
 

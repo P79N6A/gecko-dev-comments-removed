@@ -20,5 +20,40 @@ InternalResponse::InternalResponse(uint16_t aStatus, const nsACString& aStatusTe
 {
 }
 
+
+
+InternalResponse::InternalResponse(const InternalResponse& aOther)
+  : mType(aOther.mType)
+  , mTerminationReason(aOther.mTerminationReason)
+  , mURL(aOther.mURL)
+  , mStatus(aOther.mStatus)
+  , mStatusText(aOther.mStatusText)
+  , mBody(aOther.mBody)
+  , mContentType(aOther.mContentType)
+{
+}
+
+
+already_AddRefed<InternalResponse>
+InternalResponse::BasicResponse(InternalResponse* aInner)
+{
+  MOZ_ASSERT(aInner);
+  nsRefPtr<InternalResponse> basic = new InternalResponse(*aInner);
+  basic->mType = ResponseType::Basic;
+  basic->mHeaders = InternalHeaders::BasicHeaders(aInner->mHeaders);
+  return basic.forget();
+}
+
+
+already_AddRefed<InternalResponse>
+InternalResponse::CORSResponse(InternalResponse* aInner)
+{
+  MOZ_ASSERT(aInner);
+  nsRefPtr<InternalResponse> cors = new InternalResponse(*aInner);
+  cors->mType = ResponseType::Cors;
+  cors->mHeaders = InternalHeaders::CORSHeaders(aInner->mHeaders);
+  return cors.forget();
+}
+
 } 
 } 

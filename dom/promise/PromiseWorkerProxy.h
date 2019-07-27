@@ -5,6 +5,8 @@
 #ifndef mozilla_dom_PromiseWorkerProxy_h
 #define mozilla_dom_PromiseWorkerProxy_h
 
+
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/workers/bindings/WorkerFeature.h"
 #include "nsProxyRelease.h"
@@ -17,6 +19,16 @@ class Promise;
 namespace workers {
 class WorkerPrivate;
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
