@@ -44,42 +44,7 @@
 
 namespace skia {
 
-namespace {
-
-
-inline int CeilInt(float val) {
-  return static_cast<int>(ceil(val));
-}
-inline int FloorInt(float val) {
-  return static_cast<int>(floor(val));
-}
-
-
-
-
-float EvalBox(float x) {
-  return (x >= -0.5f && x < 0.5f) ? 1.0f : 0.0f;
-}
-
-
-
-
-
-
-
-
-
-
-float EvalLanczos(int filter_size, float x) {
-  if (x <= -filter_size || x >= filter_size)
-    return 0.0f;  
-  if (x > -std::numeric_limits<float>::epsilon() &&
-      x < std::numeric_limits<float>::epsilon())
-    return 1.0f;  
-  float xpi = x * static_cast<float>(M_PI);
-  return (sin(xpi) / xpi) *  
-          sin(xpi / filter_size) / (xpi / filter_size);  
-}
+namespace resize {
 
 
 
@@ -92,138 +57,16 @@ float EvalLanczos(int filter_size, float x) {
 
 
 
-
-
-
-
-float EvalHamming(int filter_size, float x) {
-  if (x <= -filter_size || x >= filter_size)
-    return 0.0f;  
-  if (x > -std::numeric_limits<float>::epsilon() &&
-      x < std::numeric_limits<float>::epsilon())
-    return 1.0f;  
-  const float xpi = x * static_cast<float>(M_PI);
-
-  return ((sin(xpi) / xpi) *  
-          (0.54f + 0.46f * cos(xpi / filter_size)));  
-}
-
-
-
-
-
-class ResizeFilter {
- public:
-  ResizeFilter(ImageOperations::ResizeMethod method,
-               int src_full_width, int src_full_height,
-               int dest_width, int dest_height,
-               const SkIRect& dest_subset);
-
-  
-  const ConvolutionFilter1D& x_filter() { return x_filter_; }
-  const ConvolutionFilter1D& y_filter() { return y_filter_; }
-
- private:
-  
-  
-  float GetFilterSupport(float scale) {
-    switch (method_) {
-      case ImageOperations::RESIZE_BOX:
-        
-        return 0.5f;  
-      case ImageOperations::RESIZE_HAMMING1:
-        
-        
-        return 1.0f;
-      case ImageOperations::RESIZE_LANCZOS2:
-        
-        
-        return 2.0f;
-      case ImageOperations::RESIZE_LANCZOS3:
-        
-        
-        return 3.0f;
-      default:
-        return 1.0f;
-    }
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  void ComputeFilters(int src_size,
-                      int dest_subset_lo, int dest_subset_size,
-                      float scale, ConvolutionFilter1D* output);
-
-  
-  inline float ComputeFilter(float pos) {
-    switch (method_) {
-      case ImageOperations::RESIZE_BOX:
-        return EvalBox(pos);
-      case ImageOperations::RESIZE_HAMMING1:
-        return EvalHamming(1, pos);
-      case ImageOperations::RESIZE_LANCZOS2:
-        return EvalLanczos(2, pos);
-      case ImageOperations::RESIZE_LANCZOS3:
-        return EvalLanczos(3, pos);
-      default:
-        return 0;
-    }
-  }
-
-  ImageOperations::ResizeMethod method_;
-
-  
-  SkIRect out_bounds_;
-
-  ConvolutionFilter1D x_filter_;
-  ConvolutionFilter1D y_filter_;
-
-  DISALLOW_COPY_AND_ASSIGN(ResizeFilter);
-};
-
-ResizeFilter::ResizeFilter(ImageOperations::ResizeMethod method,
-                           int src_full_width, int src_full_height,
-                           int dest_width, int dest_height,
-                           const SkIRect& dest_subset)
-    : method_(method),
-      out_bounds_(dest_subset) {
+void ComputeFilters(ImageOperations::ResizeMethod method,
+                    int src_size, int dst_size,
+                    int dest_subset_lo, int dest_subset_size,
+                    ConvolutionFilter1D* output) {
   
   SkASSERT((ImageOperations::RESIZE_FIRST_ALGORITHM_METHOD <= method) &&
            (method <= ImageOperations::RESIZE_LAST_ALGORITHM_METHOD));
 
-  float scale_x = static_cast<float>(dest_width) /
-                  static_cast<float>(src_full_width);
-  float scale_y = static_cast<float>(dest_height) /
-                  static_cast<float>(src_full_height);
-
-  ComputeFilters(src_full_width, dest_subset.fLeft, dest_subset.width(),
-                 scale_x, &x_filter_);
-  ComputeFilters(src_full_height, dest_subset.fTop, dest_subset.height(),
-                 scale_y, &y_filter_);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-void ResizeFilter::ComputeFilters(int src_size,
-                                  int dest_subset_lo, int dest_subset_size,
-                                  float scale, ConvolutionFilter1D* output) {
+  float scale = static_cast<float>(dst_size) / static_cast<float>(src_size);
+ 
   int dest_subset_hi = dest_subset_lo + dest_subset_size;  
 
   
@@ -233,7 +76,7 @@ void ResizeFilter::ComputeFilters(int src_size,
   
   float clamped_scale = std::min(1.0f, scale);
 
-  float src_support = GetFilterSupport(clamped_scale) / clamped_scale;
+  float src_support = GetFilterSupport(method, clamped_scale) / clamped_scale;
 
   
   float inv_scale = 1.0f / scale;
@@ -281,7 +124,7 @@ void ResizeFilter::ComputeFilters(int src_size,
       float dest_filter_dist = src_filter_dist * clamped_scale;
 
       
-      float filter_value = ComputeFilter(dest_filter_dist);
+      float filter_value = ComputeFilter(method, dest_filter_dist);
       filter_values->push_back(filter_value);
 
       filter_sum += filter_value;
@@ -312,6 +155,8 @@ void ResizeFilter::ComputeFilters(int src_size,
   output->PaddingForSIMD(8);
 }
 
+}
+
 ImageOperations::ResizeMethod ResizeMethodToAlgorithmMethod(
     ImageOperations::ResizeMethod method) {
   
@@ -340,8 +185,6 @@ ImageOperations::ResizeMethod ResizeMethodToAlgorithmMethod(
       return ImageOperations::RESIZE_LANCZOS3;
   }
 }
-
-}  
 
 
 
@@ -496,8 +339,11 @@ SkBitmap ImageOperations::ResizeBasic(const SkBitmap& source,
   if (!source.readyToDraw())
       return SkBitmap();
 
-  ResizeFilter filter(method, source.width(), source.height(),
-                      dest_width, dest_height, dest_subset);
+  ConvolutionFilter1D x_filter;
+  ConvolutionFilter1D y_filter;
+
+  resize::ComputeFilters(method, source.width(), dest_width, dest_subset.fLeft, dest_subset.width(), &x_filter);
+  resize::ComputeFilters(method, source.height(), dest_height, dest_subset.fTop, dest_subset.height(), &y_filter);
 
   
   
@@ -522,7 +368,7 @@ SkBitmap ImageOperations::ResizeBasic(const SkBitmap& source,
     return SkBitmap();
 
   BGRAConvolve2D(source_subset, static_cast<int>(source.rowBytes()),
-                 !source.isOpaque(), filter.x_filter(), filter.y_filter(),
+                 !source.isOpaque(), x_filter, y_filter,
                  static_cast<int>(result.rowBytes()),
                  static_cast<unsigned char*>(result.getPixels()));
 
