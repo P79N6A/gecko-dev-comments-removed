@@ -837,14 +837,14 @@ nsUrlClassifierLookupCallback::LookupComplete(nsTArray<LookupResult>* results)
       NS_ENSURE_SUCCESS(rv, rv);
       rv = listManager->GetGethashUrl(result.mTableName, gethashUrl);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (mDBService->GetCompleter(result.mTableName,
+      
+      
+      
+      
+      if ((!gethashUrl.IsEmpty() ||
+           StringBeginsWith(result.mTableName, NS_LITERAL_CSTRING("test-"))) &&
+          mDBService->GetCompleter(result.mTableName,
                                    getter_AddRefs(completer))) {
-        
-        if (gethashUrl.IsEmpty()) {
-          MOZ_ASSERT(
-            StringBeginsWith(result.mTableName, NS_LITERAL_CSTRING("test-")),
-            "Only test tables may have empty gethash urls");
-        }
         nsAutoCString partialHash;
         partialHash.Assign(reinterpret_cast<char*>(&result.hash.prefix),
                            PREFIX_SIZE);
