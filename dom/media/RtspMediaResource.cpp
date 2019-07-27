@@ -243,7 +243,10 @@ nsresult RtspTrackBuffer::ReadBuffer(uint8_t* aToBuffer, uint32_t aToBufferSize,
         aFrameSize = mBufferSlotData[mConsumerIdx].mLength;
         break;
       }
-      uint32_t slots = (mBufferSlotData[mConsumerIdx].mLength / mSlotSize) + 1;
+      uint32_t slots = mBufferSlotData[mConsumerIdx].mLength / mSlotSize;
+      if (mBufferSlotData[mConsumerIdx].mLength % mSlotSize > 0) {
+        slots++;
+      }
       
       MOZ_ASSERT(mBufferSlotData[mConsumerIdx].mLength <=
                  (int32_t)((BUFFER_SLOT_NUM - mConsumerIdx) * mSlotSize));
@@ -335,13 +338,15 @@ void RtspTrackBuffer::WriteBuffer(const char *aFromBuffer, uint32_t aWriteCount,
   
   bool returnToHead = false;
   
-  int32_t slots = 1;
+  int32_t slots = aWriteCount / mSlotSize;
+  if (aWriteCount % mSlotSize > 0) {
+    slots++;
+  }
   int32_t i;
   RTSPMLOG("WriteBuffer mTrackIdx %d mProducerIdx %d mConsumerIdx %d",
            mTrackIdx, mProducerIdx,mConsumerIdx);
   if (aWriteCount > mSlotSize) {
     isMultipleSlots = true;
-    slots = (aWriteCount / mSlotSize) + 1;
   }
   if (isMultipleSlots &&
       (aWriteCount > (BUFFER_SLOT_NUM - mProducerIdx) * mSlotSize)) {
