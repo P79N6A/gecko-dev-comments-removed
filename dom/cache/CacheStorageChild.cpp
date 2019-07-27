@@ -8,8 +8,8 @@
 
 #include "mozilla/unused.h"
 #include "mozilla/dom/cache/CacheChild.h"
+#include "mozilla/dom/cache/CacheOpChild.h"
 #include "mozilla/dom/cache/CacheStorage.h"
-#include "mozilla/dom/cache/PCacheOpChild.h"
 #include "mozilla/dom/cache/StreamUtils.h"
 
 namespace mozilla {
@@ -25,6 +25,7 @@ DeallocPCacheStorageChild(PCacheStorageChild* aActor)
 
 CacheStorageChild::CacheStorageChild(CacheStorage* aListener, Feature* aFeature)
   : mListener(aListener)
+  , mNumChildActors(0)
 {
   MOZ_COUNT_CTOR(cache::CacheStorageChild);
   MOZ_ASSERT(mListener);
@@ -48,6 +49,15 @@ CacheStorageChild::ClearListener()
 }
 
 void
+CacheStorageChild::ExecuteOp(nsIGlobalObject* aGlobal, Promise* aPromise,
+                             const CacheOpArgs& aArgs)
+{
+  mNumChildActors += 1;
+  unused << SendPCacheOpConstructor(
+    new CacheOpChild(GetFeature(), aGlobal, aPromise), aArgs);
+}
+
+void
 CacheStorageChild::StartDestroy()
 {
   NS_ASSERT_OWNINGTHREAD(CacheStorageChild);
@@ -61,12 +71,18 @@ CacheStorageChild::StartDestroy()
     return;
   }
 
-  
-
   listener->DestroyInternal(this);
 
   
   MOZ_ASSERT(!mListener);
+
+  
+  
+  
+  
+  if (mNumChildActors) {
+    return;
+  }
 
   
   unused << SendTeardown();
@@ -97,7 +113,18 @@ bool
 CacheStorageChild::DeallocPCacheOpChild(PCacheOpChild* aActor)
 {
   delete aActor;
+  NoteDeletedActor();
   return true;
+}
+
+void
+CacheStorageChild::NoteDeletedActor()
+{
+  MOZ_ASSERT(mNumChildActors);
+  mNumChildActors -= 1;
+  if (!mNumChildActors && !mListener) {
+    unused << SendTeardown();
+  }
 }
 
 } 
