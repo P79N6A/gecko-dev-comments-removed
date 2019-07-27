@@ -682,10 +682,6 @@ public:
 
 
 
-
-
-
-
   virtual nsresult ScrollContentIntoView(nsIContent* aContent,
                                                      ScrollAxis  aVertical,
                                                      ScrollAxis  aHorizontal,
@@ -694,8 +690,7 @@ public:
   enum {
     SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
     SCROLL_OVERFLOW_HIDDEN = 0x02,
-    SCROLL_NO_PARENT_FRAMES = 0x04,
-    SCROLL_SMOOTH = 0x08
+    SCROLL_NO_PARENT_FRAMES = 0x04
   };
   
 
