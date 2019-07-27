@@ -3678,9 +3678,7 @@ HTMLMediaElement::Buffered() const
 {
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
   if (mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
-    if (mMediaSource) {
-      mMediaSource->GetBuffered(ranges);
-    } else if (mDecoder) {
+    if (mDecoder) {
       
       
       mDecoder->GetBuffered(ranges);

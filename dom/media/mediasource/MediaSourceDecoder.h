@@ -74,11 +74,6 @@ private:
   
   dom::MediaSource* mMediaSource;
   nsRefPtr<MediaSourceReader> mReader;
-
-  
-  
-  
-  friend class MediaSourceReader;
 };
 
 } 
