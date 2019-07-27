@@ -24,7 +24,7 @@ namespace mozilla {
 
 
 
-#define SRTP_MAX_EXPANSION 20
+#define SRTP_MAX_EXPANSION (SRTP_MAX_TRAILER_LEN+4)
 
 
 class SrtpFlow {
