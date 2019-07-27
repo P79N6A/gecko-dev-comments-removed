@@ -419,6 +419,7 @@ void
 ForkJoinNursery::forwardFromTenured(ForkJoinNurseryCollectionTracer *trc)
 {
     JSObject *objs[ArenaCellCount];
+    ArenaLists &lists = tenured_->arenas;
     for (size_t k=0; k < FINALIZE_LIMIT; k++) {
         AllocKind kind = (AllocKind)k;
         if (!IsFJNurseryAllocable(kind))
@@ -429,22 +430,21 @@ ForkJoinNursery::forwardFromTenured(ForkJoinNurseryCollectionTracer *trc)
         
         JS_ASSERT(kind <= FINALIZE_OBJECT_LAST);
 
+        
+        lists.purge(kind);
+
+        
+        
+        JS_ASSERT(!lists.getArenaAfterCursor(kind));
+
         ArenaIter ai;
         ai.init(const_cast<Allocator *>(tenured_), kind);
         for (; !ai.done(); ai.next()) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
+            if (isEvacuating_ && lists.arenaIsInUse(ai.get(), kind))
+                break;
             
             
             size_t numObjs = 0;
-            tenured_->arenas.purge(kind);
             for (ArenaCellIterUnderFinalize i(ai.get()); !i.done(); i.next())
                 objs[numObjs++] = i.get<JSObject>();
             for (size_t i=0; i < numObjs; i++)
