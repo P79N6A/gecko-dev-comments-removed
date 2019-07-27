@@ -1606,6 +1606,10 @@ public:
     mRange = aRange;
   }
 
+  bool IsFinished(TimeStamp aTime) {
+    return aTime > mStartTime + mDuration; 
+  }
+
   
   nsCOMPtr<nsIAtom> mOrigin;
 
