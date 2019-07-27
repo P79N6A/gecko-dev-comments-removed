@@ -21,6 +21,7 @@
 
 #include "nsDebug.h"
 #include "pldhash.h"
+#include "mozilla/Attributes.h"
 
 class nsIFrame;
 class nsIPresShell;
@@ -59,7 +60,7 @@ protected:
   class UndisplayedMap;
 
   
-  nsIPresShell*                   mPresShell;
+  nsIPresShell* MOZ_NON_OWNING_REF mPresShell;
   
   nsStyleSet*                     mStyleSet;
   nsIFrame*                       mRootFrame;
