@@ -205,6 +205,49 @@ public:
 
   virtual void DestroyContent() MOZ_OVERRIDE;
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool
+    SelectSourceForTagWithAttrs(nsIDocument *aDocument,
+                                bool aIsSourceTag,
+                                const nsAString& aSrcAttr,
+                                const nsAString& aSrcsetAttr,
+                                const nsAString& aSizesAttr,
+                                const nsAString& aTypeAttr,
+                                const nsAString& aMediaAttr,
+                                nsAString& aResult);
+
 protected:
   virtual ~HTMLImageElement();
 
@@ -227,6 +270,9 @@ protected:
   
   
   nsresult LoadSelectedImage(bool aForce, bool aNotify);
+
+  
+  static bool SupportedPictureSourceType(const nsAString& aType);
 
   
   void PictureSourceSrcsetChanged(nsIContent *aSourceNode,

@@ -45,6 +45,12 @@ public:
   bool MatchesCurrentMedia();
 
   
+  
+  
+  static bool WouldMatchMediaForDocument(const nsAString& aMediaStr,
+                                         const nsIDocument *aDocument);
+
+  
   void GetSrc(nsString& aSrc)
   {
     GetURIAttr(nsGkAtoms::src, nullptr, aSrc);
