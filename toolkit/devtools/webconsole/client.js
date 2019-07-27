@@ -374,6 +374,23 @@ WebConsoleClient.prototype = {
 
 
 
+  getSecurityInfo: function WCC_getSecurityInfo(aActor, aOnResponse)
+  {
+    let packet = {
+      to: aActor,
+      type: "getSecurityInfo",
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
+
+
   sendHTTPRequest: function WCC_sendHTTPRequest(aData, aOnResponse) {
     let packet = {
       to: this._actor,
