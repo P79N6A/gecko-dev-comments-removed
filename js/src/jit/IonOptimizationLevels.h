@@ -77,6 +77,9 @@ class OptimizationInfo
     bool autoTruncate_;
 
     
+    bool sink_;
+
+    
     IonRegisterAllocator registerAllocator_;
 
     
@@ -151,6 +154,10 @@ class OptimizationInfo
 
     bool autoTruncateEnabled() const {
         return autoTruncate_ && rangeAnalysisEnabled();
+    }
+
+    bool sinkEnabled() const {
+        return sink_ && !js_JitOptions.disableSink;
     }
 
     bool eaaEnabled() const {

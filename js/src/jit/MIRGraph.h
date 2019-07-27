@@ -286,6 +286,15 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void moveBefore(MInstruction *at, MInstruction *ins);
 
+    enum IgnoreTop {
+        IgnoreNone = 0,
+        IgnoreRecover = 1 << 0
+    };
+
+    
+    
+    MInstruction *safeInsertTop(MDefinition *ins = nullptr, IgnoreTop ignore = IgnoreNone);
+
     
     void discard(MInstruction *ins);
     void discardLastIns();
