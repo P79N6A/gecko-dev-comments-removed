@@ -2,32 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 'use strict';
 
 const { classes: Cc, interfaces: Ci, manager: Cm, results: Cr,
@@ -807,17 +781,6 @@ function setupTestCommon() {
   
   
   adjustGeneralPaths();
-
-  
-  
-  let grePrefsFile = getGREDir();
-  if (!grePrefsFile.exists()) {
-    grePrefsFile.create(Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
-  }
-  grePrefsFile.append("greprefs.js");
-  if (!grePrefsFile.exists()) {
-    grePrefsFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, PERMS_FILE);
-  }
 
   
   
@@ -1618,8 +1581,8 @@ function shouldRunServiceTest(aFirstTest) {
     
     
     if (IS_AUTHENTICODE_CHECK_ENABLED) {
-      Assert.ok(!isBinSigned, "the updater.exe binary should not be signed " +
-                "when the test registry key doesn't exist (if it is, build " +
+      Assert.ok(isBinSigned, "the updater.exe binary should not be signed " +
+                "when the test registry key doesn't exist (if not, build " +
                 "system configuration bug?)");
     }
 
