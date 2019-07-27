@@ -154,13 +154,35 @@ function GetIterator(obj, method) {
     return iterator;
 }
 
+
 function SpeciesConstructor(obj, defaultConstructor) {
-    var C = obj.constructor;
-    if (C === undefined) {
+    
+    assert(IsObject(obj), "not passed an object");
+
+    
+    var ctor = obj.constructor;
+
+    
+    if (ctor === undefined)
         return defaultConstructor;
-    }
-    if (!IsConstructor(C)) {
-        ThrowError(JSMSG_NOT_CONSTRUCTOR, DecompileArg(1, C));
-    }
-    return C;
+
+    
+    if (!IsObject(ctor))
+        ThrowError(JSMSG_NOT_NONNULL_OBJECT, "object's 'constructor' property");
+
+    
+    
+    var s =  undefined;
+
+    
+    if (s === undefined || s === null)
+        return defaultConstructor;
+
+    
+    if (IsConstructor(s))
+        return s;
+
+    
+    ThrowError(JSMSG_NOT_CONSTRUCTOR,
+               "@@species property of object's constructor");
 }
