@@ -267,7 +267,14 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
 
   int nDevices = 0;
   ptrVoEHw->GetNumOfRecordingDevices(nDevices);
-  for (int i = 0; i < nDevices; i++) {
+  int i;
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
+  i = 0; 
+#else
+  
+  i = -1;
+#endif
+  for (; i < nDevices; i++) {
     
     char deviceName[128];
     char uniqueId[128];
