@@ -503,8 +503,8 @@ BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
 
   if (success && mPutFinalFlag) {
     mSuccessFlag = true;
+    RestoreReceivedFileAndNotify();
     FileTransferComplete();
-    NotifyAboutFileChange();
   }
 
   ReplyToPut(mPutFinalFlag, success);
@@ -573,6 +573,7 @@ BluetoothOppManager::AfterOppDisconnected()
     mReadFileThread->Shutdown();
     mReadFileThread = nullptr;
   }
+
   
   if (mMountLock) {
     
@@ -581,8 +582,14 @@ BluetoothOppManager::AfterOppDisconnected()
 }
 
 void
-BluetoothOppManager::RecoverFileName()
+BluetoothOppManager::RestoreReceivedFileAndNotify()
 {
+  
+  if (mDummyDsFile && mDummyDsFile->mFile) {
+    mDummyDsFile->mFile->Remove(false);
+    mDummyDsFile = nullptr;
+  }
+
   
   
   
@@ -596,16 +603,9 @@ BluetoothOppManager::RecoverFileName()
     mDsFile->SetPath(path);
     mDsFile->mFile->RenameTo(nullptr, mFileName);
   }
-}
 
-void
-BluetoothOppManager::DeleteDummyFile()
-{
   
-  if (mDummyDsFile && mDummyDsFile->mFile) {
-    mDummyDsFile->mFile->Remove(false);
-    mDummyDsFile = nullptr;
-  }
+  NotifyAboutFileChange();
 }
 
 void
@@ -621,7 +621,11 @@ BluetoothOppManager::DeleteReceivedFile()
     mDsFile = nullptr;
   }
 
-  DeleteDummyFile();
+  
+  if (mDummyDsFile && mDummyDsFile->mFile) {
+    mDummyDsFile->mFile->Remove(false);
+    mDummyDsFile = nullptr;
+  }
 }
 
 bool
@@ -977,12 +981,8 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     
     if (mPutFinalFlag) {
       mSuccessFlag = true;
-
-      DeleteDummyFile();
-      RecoverFileName();
-
+      RestoreReceivedFileAndNotify();
       FileTransferComplete();
-      NotifyAboutFileChange();
     }
   } else if (opCode == ObexRequestCode::Get ||
              opCode == ObexRequestCode::GetFinal ||
