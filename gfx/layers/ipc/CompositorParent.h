@@ -198,9 +198,6 @@ public:
                override;
   virtual void GetAPZTestData(const LayerTransactionParent* aLayerTree,
                               APZTestData* aOutData) override;
-  virtual void SetConfirmedTargetAPZC(const LayerTransactionParent* aLayerTree,
-                                      const uint64_t& aInputBlockId,
-                                      const nsTArray<ScrollableLayerGuid>& aTargets) override;
   virtual AsyncCompositionManager* GetCompositionManager(LayerTransactionParent* aLayerTree) override { return mCompositionManager; }
 
   
@@ -226,6 +223,7 @@ public:
 
 
 
+  bool ScheduleResumeOnCompositorThread();
   bool ScheduleResumeOnCompositorThread(int width, int height);
 
   virtual void ScheduleComposition();
