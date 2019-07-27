@@ -343,36 +343,14 @@ public class LoadFaviconTask {
             return pushToCacheAndGetResult(uriBitmaps);
         }
 
-        String storedFaviconUrl;
-        boolean isUsingDefaultURL = false;
-
-        
         
         if (TextUtils.isEmpty(faviconURL)) {
-            
-            storedFaviconUrl = Favicons.getFaviconURLForPageURLFromCache(pageUrl);
+            faviconURL = Favicons.getFaviconURLForPageURL(context, pageUrl);
+        }
 
-            
-            if (storedFaviconUrl == null) {
-                storedFaviconUrl = Favicons.getFaviconURLForPageURL(context, pageUrl);
-                if (storedFaviconUrl != null) {
-                    
-                    Favicons.putFaviconURLForPageURLInCache(pageUrl, storedFaviconUrl);
-                }
-            }
-
-            
-            if (storedFaviconUrl != null) {
-                faviconURL = storedFaviconUrl;
-            } else {
-                
-                faviconURL = Favicons.guessDefaultFaviconURL(pageUrl);
-
-                if (TextUtils.isEmpty(faviconURL)) {
-                    return null;
-                }
-                isUsingDefaultURL = true;
-            }
+        
+        if (TextUtils.isEmpty(faviconURL)) {
+            return null;
         }
 
         
@@ -444,18 +422,13 @@ public class LoadFaviconTask {
             return pushToCacheAndGetResult(loadedBitmaps);
         }
 
-        if (isUsingDefaultURL) {
-            Favicons.putFaviconInFailedCache(faviconURL);
-            return null;
-        }
-
         if (isCancelled()) {
             return null;
         }
 
         
         final String guessed = Favicons.guessDefaultFaviconURL(pageUrl);
-        if (guessed == null) {
+        if (guessed == null || guessed.equals(faviconURL)) {
             Favicons.putFaviconInFailedCache(faviconURL);
             return null;
         }
