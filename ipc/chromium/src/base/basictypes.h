@@ -46,11 +46,13 @@ const  int64_t kint64max  = (( int64_t) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
 
 
 
+#undef DISALLOW_COPY_AND_ASSIGN
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
   TypeName(const TypeName&);               \
   void operator=(const TypeName&)
 
 
+#undef DISALLOW_EVIL_CONSTRUCTORS
 #define DISALLOW_EVIL_CONSTRUCTORS(TypeName) DISALLOW_COPY_AND_ASSIGN(TypeName)
 
 
@@ -59,6 +61,7 @@ const  int64_t kint64max  = (( int64_t) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
 
 
 
+#undef DISALLOW_IMPLICIT_CONSTRUCTORS
 #define DISALLOW_IMPLICIT_CONSTRUCTORS(TypeName) \
   TypeName();                                    \
   DISALLOW_COPY_AND_ASSIGN(TypeName)
