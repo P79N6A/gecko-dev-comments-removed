@@ -251,11 +251,17 @@ gfxUserFontEntry::StoreUserFontData(gfxFontEntry* aFontEntry,
     gfxUserFontData* userFontData = aFontEntry->mUserFontData;
     userFontData->mSrcIndex = mSrcIndex;
     const gfxFontFaceSrc& src = mSrcList[mSrcIndex];
-    if (src.mIsLocal) {
-        userFontData->mLocalName = src.mLocalName;
-    } else {
-        userFontData->mURI = src.mURI;
-        userFontData->mPrincipal = mPrincipal;
+    switch (src.mSourceType) {
+        case gfxFontFaceSrc::eSourceType_Local:
+            userFontData->mLocalName = src.mLocalName;
+            break;
+        case gfxFontFaceSrc::eSourceType_URL:
+            userFontData->mURI = src.mURI;
+            userFontData->mPrincipal = mPrincipal;
+            break;
+        case gfxFontFaceSrc::eSourceType_Buffer:
+            userFontData->mIsBuffer = true;
+            break;
     }
     userFontData->mPrivate = aPrivate;
     userFontData->mFormat = src.mFormatFlags;
@@ -357,11 +363,11 @@ gfxUserFontEntry::LoadNextSrc()
     
     
     while (mSrcIndex < numSrc) {
-        const gfxFontFaceSrc& currSrc = mSrcList[mSrcIndex];
+        gfxFontFaceSrc& currSrc = mSrcList[mSrcIndex];
 
         
 
-        if (currSrc.mIsLocal) {
+        if (currSrc.mSourceType == gfxFontFaceSrc::eSourceType_Local) {
             gfxFontEntry* fe =
                 gfxPlatform::GetPlatform()->LookupLocalFont(currSrc.mLocalName,
                                                             mWeight,
@@ -393,7 +399,7 @@ gfxUserFontEntry::LoadNextSrc()
         }
 
         
-        else {
+        else if (currSrc.mSourceType == gfxFontFaceSrc::eSourceType_URL) {
             if (gfxPlatform::GetPlatform()->IsFontFormatSupported(currSrc.mURI,
                     currSrc.mFormatFlags)) {
 
@@ -477,6 +483,28 @@ gfxUserFontEntry::LoadNextSrc()
                 
                 
                 mUnsupportedFormat = true;
+            }
+        }
+
+        
+
+        else {
+            MOZ_ASSERT(currSrc.mSourceType == gfxFontFaceSrc::eSourceType_Buffer);
+
+            uint8_t* buffer = nullptr;
+            uint32_t bufferLength = 0;
+
+            
+            currSrc.mBuffer->TakeBuffer(buffer, bufferLength);
+            if (buffer && LoadPlatformFont(buffer, bufferLength)) {
+                
+                
+                SetLoadState(STATUS_LOADED);
+                return;
+            } else {
+                mFontSet->LogMessage(this,
+                                     "font load failed",
+                                     nsIScriptError::errorFlag);
             }
         }
 
@@ -597,7 +625,7 @@ gfxUserFontEntry::LoadPlatformFont(const uint8_t* aFontData, uint32_t& aLength)
 
     
     
-    NS_Free((void*)aFontData);
+    moz_free((void*)aFontData);
 
     return fe != nullptr;
 }
@@ -1008,6 +1036,16 @@ gfxUserFontSet::UserFontCache::CacheFont(gfxFontEntry* aFontEntry,
 {
     NS_ASSERTION(aFontEntry->mFamilyName.Length() != 0,
                  "caching a font associated with no family yet");
+
+    gfxUserFontData* data = aFontEntry->mUserFontData;
+    if (data->mIsBuffer) {
+#ifdef DEBUG_USERFONT_CACHE
+        printf("userfontcache skipped fontentry with buffer source: %p\n",
+               aFontEntry);
+#endif
+        return;
+    }
+
     if (!sUserFonts) {
         sUserFonts = new nsTHashtable<Entry>;
 
@@ -1022,7 +1060,6 @@ gfxUserFontSet::UserFontCache::CacheFont(gfxFontEntry* aFontEntry,
         }
     }
 
-    gfxUserFontData* data = aFontEntry->mUserFontData;
     if (data->mLength) {
         MOZ_ASSERT(aPersistence == kPersistent);
         MOZ_ASSERT(!data->mPrivate);

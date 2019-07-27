@@ -19,10 +19,27 @@ class nsFontFaceLoader;
 
 
 
+class gfxFontFaceBufferSource
+{
+  NS_INLINE_DECL_REFCOUNTING(gfxFontFaceBufferSource)
+public:
+  virtual void TakeBuffer(uint8_t*& aBuffer, uint32_t& aLength) = 0;
+
+protected:
+  virtual ~gfxFontFaceBufferSource() {}
+};
+
 
 
 struct gfxFontFaceSrc {
-    bool                   mIsLocal;       
+
+    enum SourceType {
+        eSourceType_Local,
+        eSourceType_URL,
+        eSourceType_Buffer
+    };
+
+    SourceType             mSourceType;
 
     
     bool                   mUseOriginPrincipal;
@@ -36,20 +53,33 @@ struct gfxFontFaceSrc {
     nsCOMPtr<nsIURI>       mURI;           
     nsCOMPtr<nsIURI>       mReferrer;      
     nsCOMPtr<nsIPrincipal> mOriginPrincipal; 
+
+    nsRefPtr<gfxFontFaceBufferSource> mBuffer;
 };
 
 inline bool
 operator==(const gfxFontFaceSrc& a, const gfxFontFaceSrc& b)
 {
-    bool equals;
-    return (a.mIsLocal && b.mIsLocal &&
-            a.mLocalName == b.mLocalName) ||
-           (!a.mIsLocal && !b.mIsLocal &&
-            a.mUseOriginPrincipal == b.mUseOriginPrincipal &&
-            a.mFormatFlags == b.mFormatFlags &&
-            NS_SUCCEEDED(a.mURI->Equals(b.mURI, &equals)) && equals &&
-            NS_SUCCEEDED(a.mReferrer->Equals(b.mReferrer, &equals)) && equals &&
-            a.mOriginPrincipal->Equals(b.mOriginPrincipal));
+    if (a.mSourceType != b.mSourceType) {
+        return false;
+    }
+    switch (a.mSourceType) {
+        case gfxFontFaceSrc::eSourceType_Local:
+            return a.mLocalName == b.mLocalName;
+        case gfxFontFaceSrc::eSourceType_URL: {
+            bool equals;
+            return a.mUseOriginPrincipal == b.mUseOriginPrincipal &&
+                   a.mFormatFlags == b.mFormatFlags &&
+                   NS_SUCCEEDED(a.mURI->Equals(b.mURI, &equals)) && equals &&
+                   NS_SUCCEEDED(a.mReferrer->Equals(b.mReferrer, &equals)) &&
+                     equals &&
+                   a.mOriginPrincipal->Equals(b.mOriginPrincipal);
+        }
+        case gfxFontFaceSrc::eSourceType_Buffer:
+            return a.mBuffer == b.mBuffer;
+    }
+    NS_WARNING("unexpected mSourceType");
+    return false;
 }
 
 
@@ -62,7 +92,7 @@ class gfxUserFontData {
 public:
     gfxUserFontData()
         : mSrcIndex(0), mFormat(0), mMetaOrigLen(0),
-          mCRC32(0), mLength(0), mPrivate(false)
+          mCRC32(0), mLength(0), mPrivate(false), mIsBuffer(false)
     { }
     virtual ~gfxUserFontData() { }
 
@@ -77,6 +107,7 @@ public:
     uint32_t          mCRC32;     
     uint32_t          mLength;    
     bool              mPrivate;   
+    bool              mIsBuffer;  
 };
 
 
