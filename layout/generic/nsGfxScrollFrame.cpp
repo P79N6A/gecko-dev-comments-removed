@@ -2516,6 +2516,7 @@ void
 ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
                                            const nsRect&           aDirtyRect,
                                            const nsDisplayListSet& aLists,
+                                           bool                    aUsingDisplayPort,
                                            bool                    aCreateLayer,
                                            bool                    aPositioned)
 {
@@ -2564,11 +2565,18 @@ ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
       flags |= nsDisplayOwnLayer::HORIZONTAL_SCROLLBAR;
     }
 
+    
+    
+    nsRect dirty = aUsingDisplayPort ?
+      scrollParts[i]->GetVisualOverflowRectRelativeToParent() : aDirtyRect;
+    nsDisplayListBuilder::AutoBuildingDisplayList
+      buildingForChild(aBuilder, scrollParts[i],
+                       dirty + mOuter->GetOffsetTo(scrollParts[i]), true);
     nsDisplayListBuilder::AutoCurrentScrollbarInfoSetter
       infoSetter(aBuilder, scrollTargetId, flags);
     nsDisplayListCollection partList;
     mOuter->BuildDisplayListForChild(
-      aBuilder, scrollParts[i], aDirtyRect, partList,
+      aBuilder, scrollParts[i], dirty, partList,
       nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
 
     
@@ -2783,16 +2791,10 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     bool usingDisplayPort = nsLayoutUtils::GetDisplayPort(mOuter->GetContent());
     bool addScrollBars = mIsRoot && usingDisplayPort && !aBuilder->IsForEventDelivery();
 
-    nsRect scrollbarDirty = aDirtyRect;
-    if (usingDisplayPort) {
-      
-      scrollbarDirty.Inflate(GetActualScrollbarSizes());
-    }
-
     if (addScrollBars) {
       
-      AppendScrollPartsTo(aBuilder, scrollbarDirty, aLists, createLayersForScrollbars,
-                          false);
+      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, usingDisplayPort,
+                          createLayersForScrollbars, false);
     }
 
     
@@ -2803,7 +2805,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     if (addScrollBars) {
       
-      AppendScrollPartsTo(aBuilder, scrollbarDirty, aLists,
+      AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, usingDisplayPort,
                           createLayersForScrollbars, true);
     }
 
@@ -2850,12 +2852,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
 
-  nsRect scrollbarDirty = aDirtyRect;
-  if (usingDisplayport) {
-    
-    scrollbarDirty.Inflate(GetActualScrollbarSizes());
-  }
-
   
   
   
@@ -2863,8 +2859,8 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  AppendScrollPartsTo(aBuilder, scrollbarDirty, aLists, createLayersForScrollbars,
-                      false);
+  AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, usingDisplayport,
+                      createLayersForScrollbars, false);
 
   if (aBuilder->IsForImageVisibility()) {
     
@@ -3004,7 +3000,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
   
-  AppendScrollPartsTo(aBuilder, scrollbarDirty, scrolledContent,
+  AppendScrollPartsTo(aBuilder, aDirtyRect, scrolledContent, usingDisplayport,
                       createLayersForScrollbars, true);
   scrolledContent.MoveTo(aLists);
 }
