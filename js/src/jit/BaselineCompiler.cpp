@@ -345,11 +345,9 @@ BaselineCompiler::emitPrologue()
     emitProfilerEnterFrame();
 
     masm.push(BaselineFrameReg);
-    masm.mov(BaselineStackReg, BaselineFrameReg);
+    masm.moveStackPtrTo(BaselineFrameReg);
+    masm.subFromStackPtr(Imm32(BaselineFrame::Size()));
 
-    masm.subPtr(Imm32(BaselineFrame::Size()), BaselineStackReg);
-
-    
     
     
 
@@ -453,7 +451,7 @@ BaselineCompiler::emitEpilogue()
         return false;
 #endif
 
-    masm.mov(BaselineFrameReg, BaselineStackReg);
+    masm.moveToStackPtr(BaselineFrameReg);
     masm.pop(BaselineFrameReg);
 
     emitProfilerExitFrame();
@@ -479,7 +477,7 @@ BaselineCompiler::emitOutOfLinePostBarrierSlot()
     regs.take(objReg);
     regs.take(BaselineFrameReg);
     Register scratch = regs.takeAny();
-#if defined(JS_CODEGEN_ARM)
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
     
     
     masm.push(lr);
@@ -527,7 +525,7 @@ BaselineCompiler::emitStackCheck(bool earlyCheck)
     uint32_t slotsSize = script->nslots() * sizeof(Value);
     uint32_t tolerance = earlyCheck ? slotsSize : 0;
 
-    masm.movePtr(BaselineStackReg, R1.scratchReg());
+    masm.moveStackPtrTo(R1.scratchReg());
 
     
     
@@ -3710,7 +3708,7 @@ BaselineCompiler::emit_JSOP_RESUME()
     
     masm.computeEffectiveAddress(Address(BaselineFrameReg, BaselineFrame::FramePointerOffset),
                                  scratch2);
-    masm.subPtr(BaselineStackReg, scratch2);
+    masm.subStackPtrFrom(scratch2);
     masm.store32(scratch2, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
     masm.makeFrameDescriptor(scratch2, JitFrame_BaselineJS);
 
@@ -3755,8 +3753,8 @@ BaselineCompiler::emit_JSOP_RESUME()
 
     
     masm.push(BaselineFrameReg);
-    masm.mov(BaselineStackReg, BaselineFrameReg);
-    masm.subPtr(Imm32(BaselineFrame::Size()), BaselineStackReg);
+    masm.moveStackPtrTo(BaselineFrameReg);
+    masm.subFromStackPtr(Imm32(BaselineFrame::Size()));
     masm.checkStackAlignment();
 
     
@@ -3823,7 +3821,7 @@ BaselineCompiler::emit_JSOP_RESUME()
         masm.computeEffectiveAddress(Address(BaselineFrameReg, BaselineFrame::FramePointerOffset),
                                      scratch2);
         masm.movePtr(scratch2, scratch1);
-        masm.subPtr(BaselineStackReg, scratch2);
+        masm.subStackPtrFrom(scratch2);
         masm.store32(scratch2, Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFrameSize()));
         masm.loadBaselineFramePtr(BaselineFrameReg, scratch2);
 
@@ -3838,14 +3836,18 @@ BaselineCompiler::emit_JSOP_RESUME()
             return false;
 
         
-        masm.subPtr(BaselineStackReg, scratch1);
+        masm.subStackPtrFrom(scratch1);
         masm.makeFrameDescriptor(scratch1, JitFrame_BaselineJS);
 
         
         
         
         masm.push(scratch1);
+
+        
+#ifndef JS_CODEGEN_ARM64
         masm.push(ImmWord(0));
+#endif
         masm.jump(code);
     }
 
@@ -3872,7 +3874,7 @@ BaselineCompiler::emit_JSOP_RESUME()
     
     
     masm.bind(&returnTarget);
-    masm.computeEffectiveAddress(frame.addressOfStackValue(frame.peek(-1)), BaselineStackReg);
+    masm.computeEffectiveAddress(frame.addressOfStackValue(frame.peek(-1)), masm.getStackPointer());
     frame.popn(2);
     frame.push(R0);
     return true;
