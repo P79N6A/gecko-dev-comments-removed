@@ -13,7 +13,7 @@ const kMainKey = "Software\\Microsoft\\Internet Explorer\\Main";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource:///modules/MigrationUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
@@ -169,23 +169,19 @@ Bookmarks.prototype = {
   },
 
   migrate: function B_migrate(aCallback) {
-    PlacesUtils.bookmarks.runInBatchMode({
-      runBatched: (function migrateBatched() {
-        
-        let destFolderId = PlacesUtils.bookmarksMenuFolderId;
-        if (!MigrationUtils.isStartupMigration) {
-          destFolderId =
-            MigrationUtils.createImportedBookmarksFolder("IE", destFolderId);
-        }
-
-        this._migrateFolder(this._favoritesFolder, destFolderId);
-
-        aCallback(true);
-      }).bind(this)
-    }, null);
+    return Task.spawn(function* () {
+      
+      let folderGuid = PlacesUtils.bookmarks.menuGuid;
+      if (!MigrationUtils.isStartupMigration) {
+        folderGuid =
+          yield MigrationUtils.createImportedBookmarksFolder("IE", folderGuid);
+      }
+      yield this._migrateFolder(this._favoritesFolder, folderGuid);
+    }.bind(this)).then(() => aCallback(true),
+                        e => { Cu.reportError(e); aCallback(false) });
   },
 
-  _migrateFolder: function B__migrateFolder(aSourceFolder, aDestFolderId) {
+  _migrateFolder: Task.async(function* (aSourceFolder, aDestFolderGuid) {
     
     
     
@@ -198,26 +194,28 @@ Bookmarks.prototype = {
         
         
         if (entry.path == entry.target && entry.isDirectory()) {
-          let destFolderId;
+          let folderGuid;
           if (entry.leafName == this._toolbarFolderName &&
               entry.parent.equals(this._favoritesFolder)) {
             
-            destFolderId = PlacesUtils.toolbarFolderId;
+            folderGuid = PlacesUtils.bookmarks.toolbarGuid;
             if (!MigrationUtils.isStartupMigration) {
-              destFolderId =
-                MigrationUtils.createImportedBookmarksFolder("IE", destFolderId);
+              folderGuid =
+                yield MigrationUtils.createImportedBookmarksFolder("IE", folderGuid);
             }
           }
           else {
             
-            destFolderId =
-              PlacesUtils.bookmarks.createFolder(aDestFolderId, entry.leafName,
-                                                 PlacesUtils.bookmarks.DEFAULT_INDEX);
+            folderGuid = (yield PlacesUtils.bookmarks.insert({
+              type: PlacesUtils.bookmarks.TYPE_FOLDER,
+              parentGuid: aDestFolderGuid,
+              title: entry.leafName
+            })).guid;
           }
 
           if (entry.isReadable()) {
             
-            this._migrateFolder(entry, destFolderId);
+            yield this._migrateFolder(entry, folderGuid);
           }
         }
         else {
@@ -230,17 +228,16 @@ Bookmarks.prototype = {
             let uri = fileHandler.readURLFile(entry);
             let title = matches[1];
 
-            PlacesUtils.bookmarks.insertBookmark(aDestFolderId,
-                                                 uri,
-                                                 PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                                 title);
+            yield PlacesUtils.bookmarks.insert({
+              parentGuid: aDestFolderGuid, url: uri, title
+            });
           }
         }
       } catch (ex) {
         Components.utils.reportError("Unable to import IE favorite (" + entry.leafName + "): " + ex);
       }
     }
-  }
+  })
 };
 
 function History() {

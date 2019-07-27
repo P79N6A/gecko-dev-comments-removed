@@ -32,23 +32,21 @@ Bookmarks.prototype = {
   type: MigrationUtils.resourceTypes.BOOKMARKS,
 
   migrate: function B_migrate(aCallback) {
-    PropertyListUtils.read(this._file,
-      MigrationUtils.wrapMigrateFunction(function migrateBookmarks(aDict) {
-        if (!aDict)
-          throw new Error("Could not read Bookmarks.plist");
+    return Task.spawn(function* () {
+      let dict = yield new Promise(resolve =>
+        PropertyListUtils.read(this._file, resolve)
+      );
+      if (!dict)
+        throw new Error("Could not read Bookmarks.plist");
+      let children = dict.get("Children");
+      if (!children)
+        throw new Error("Invalid Bookmarks.plist format");
 
-        let children = aDict.get("Children");;
-        if (!children)
-          throw new Error("Invalid Bookmarks.plist format");
-
-        PlacesUtils.bookmarks.runInBatchMode({
-          runBatched: function() {
-            let collection = aDict.get("Title") == "com.apple.ReadingList" ?
-              this.READING_LIST_COLLECTION : this.ROOT_COLLECTION;
-            this._migrateCollection(children, collection);
-          }.bind(this)
-        }, null);
-      }.bind(this), aCallback));
+      let collection = dict.get("Title") == "com.apple.ReadingList" ?
+        this.READING_LIST_COLLECTION : this.ROOT_COLLECTION;
+      yield this._migrateCollection(children, collection);
+    }.bind(this)).then(() => aCallback(true),
+                        e => { Cu.reportError(e); aCallback(false) });
   },
 
   
@@ -65,7 +63,7 @@ Bookmarks.prototype = {
 
 
 
-  _migrateCollection: function B__migrateCollection(aEntries, aCollection) {
+  _migrateCollection: Task.async(function* (aEntries, aCollection) {
     
     
     
@@ -79,11 +77,11 @@ Bookmarks.prototype = {
           let title = entry.get("Title");
           let children = entry.get("Children");
           if (title == "BookmarksBar")
-            this._migrateCollection(children, this.TOOLBAR_COLLECTION);
+            yield this._migrateCollection(children, this.TOOLBAR_COLLECTION);
           else if (title == "BookmarksMenu")
-            this._migrateCollection(children, this.MENU_COLLECTION);
+            yield this._migrateCollection(children, this.MENU_COLLECTION);
           else if (title == "com.apple.ReadingList")
-            this._migrateCollection(children, this.READING_LIST_COLLECTION);
+            yield this._migrateCollection(children, this.READING_LIST_COLLECTION);
           else if (entry.get("ShouldOmitFromUI") !== true)
             entriesFiltered.push(entry);
         }
@@ -99,7 +97,7 @@ Bookmarks.prototype = {
     if (entriesFiltered.length == 0)
       return;
 
-    let folder = -1;
+    let folderGuid = -1;
     switch (aCollection) {
       case this.ROOT_COLLECTION: {
         
@@ -108,22 +106,22 @@ Bookmarks.prototype = {
         
         
         
-        folder = PlacesUtils.unfiledBookmarksFolderId;
+        folderGuid = PlacesUtils.bookmarks.unfiledGuid;
         break;
       }
       case this.MENU_COLLECTION: {
-        folder = PlacesUtils.bookmarksMenuFolderId;
+        folderGuid = PlacesUtils.bookmarks.menuGuid;
         if (!MigrationUtils.isStartupMigration) {
-          folder = MigrationUtils.createImportedBookmarksFolder("Safari",
-                                                                folder);
+          folderGuid =
+            yield MigrationUtils.createImportedBookmarksFolder("Safari", folderGuid);
         }
         break;
       }
       case this.TOOLBAR_COLLECTION: {
-        folder = PlacesUtils.toolbarFolderId;
+        folderGuid = PlacesUtils.bookmarks.toolbarGuid;
         if (!MigrationUtils.isStartupMigration) {
-          folder = MigrationUtils.createImportedBookmarksFolder("Safari",
-                                                                folder);
+          folderGuid =
+            yield MigrationUtils.createImportedBookmarksFolder("Safari", folderGuid);
         }
         break;
       }
@@ -131,51 +129,52 @@ Bookmarks.prototype = {
         
         
         
-        folder = PlacesUtils.bookmarks.createFolder(
-            PlacesUtils.bookmarksMenuFolderId,
-            MigrationUtils.getLocalizedString("importedSafariReadingList"),
-            PlacesUtils.bookmarks.DEFAULT_INDEX);
+        folderGuid = (yield PlacesUtils.bookmarks.insert({
+            parentGuid: PlacesUtils.bookmarks.menuGuid,
+            type: PlacesUtils.bookmarks.TYPE_FOLDER,
+            title: MigrationUtils.getLocalizedString("importedSafariReadingList"),
+          })).guid;
         break;
       }
       default:
         throw new Error("Unexpected value for aCollection!");
     }
+    if (folderGuid == -1)
+      throw new Error("Invalid folder GUID");
 
-    this._migrateEntries(entriesFiltered, folder);
-  },
+    yield this._migrateEntries(entriesFiltered, folderGuid);
+  }),
 
   
   
-  _migrateEntries: function B__migrateEntries(aEntries, aFolderId) {
-    for (let entry of aEntries) {
+  _migrateEntries: Task.async(function* (entries, parentGuid) {
+    for (let entry of entries) {
       let type = entry.get("WebBookmarkType");
       if (type == "WebBookmarkTypeList" && entry.has("Children")) {
         let title = entry.get("Title");
-        let folderId = PlacesUtils.bookmarks.createFolder(
-           aFolderId, title, PlacesUtils.bookmarks.DEFAULT_INDEX);
+        let newFolderGuid = (yield PlacesUtils.bookmarks.insert({
+          parentGuid, type: PlacesUtils.bookmarks.TYPE_FOLDER, title
+        })).guid;
 
         
         if (entry.has("Children"))
-          this._migrateEntries(entry.get("Children"), folderId, false);
+          yield this._migrateEntries(entry.get("Children"), newFolderGuid, false);
       }
       else if (type == "WebBookmarkTypeLeaf" && entry.has("URLString")) {
-        let title, uri;
+        let title;
         if (entry.has("URIDictionary"))
           title = entry.get("URIDictionary").get("title");
 
         try {
-          uri = NetUtil.newURI(entry.get("URLString"));
-        }
-        catch(ex) {
-          Cu.reportError("Invalid uri set for Safari bookmark: " + entry.get("URLString"));
-        }
-        if (uri) {
-          PlacesUtils.bookmarks.insertBookmark(aFolderId, uri,
-            PlacesUtils.bookmarks.DEFAULT_INDEX, title);
+          yield PlacesUtils.bookmarks.insert({
+            parentGuid, url: entry.get("URLString"), title
+          });
+        } catch(ex) {
+          Cu.reportError("Invalid Safari bookmark: " + ex);
         }
       }
     }
-  }
+  })
 };
 
 function History(aHistoryFile) {
