@@ -305,7 +305,7 @@ MmsConnection.prototype = {
       this.hostsToRoute = [];
       this.networkInterface = null;
 
-      this.radioInterface.deactivateDataCallByType("mms");
+      this.radioInterface.deactivateDataCallByType(Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS);
     };
 
     let promises =
@@ -441,7 +441,7 @@ MmsConnection.prototype = {
 
       
       if (DEBUG) debug("acquire: buffer the MMS request and setup the MMS data call.");
-      this.radioInterface.setupDataCallByType("mms");
+      this.radioInterface.setupDataCallByType(Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS);
 
       return false;
     }
