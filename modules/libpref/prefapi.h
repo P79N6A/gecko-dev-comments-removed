@@ -42,7 +42,7 @@ struct PrefHashEntry : PLDHashEntryHdr
 
 
 
-nsresult    PREF_Init();
+void        PREF_Init();
 
 
 

@@ -10,7 +10,6 @@
 
 
 #include "mozilla/Attributes.h" 
-#include "mozilla/fallible.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Types.h"
 #include "nscore.h"
@@ -240,8 +239,7 @@ public:
   uint32_t EntryCount() const { return mEntryCount; }
   uint32_t Generation() const { return mGeneration; }
 
-  bool Init(const PLDHashTableOps* aOps, uint32_t aEntrySize,
-            const mozilla::fallible_t&, uint32_t aLength);
+  void Init(const PLDHashTableOps* aOps, uint32_t aEntrySize, uint32_t aLength);
 
   void Finish();
 
@@ -462,15 +460,6 @@ void PL_DHashTableDestroy(PLDHashTable* aTable);
 void PL_DHashTableInit(
   PLDHashTable* aTable, const PLDHashTableOps* aOps,
   uint32_t aEntrySize, uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
-
-
-
-
-
-MOZ_WARN_UNUSED_RESULT bool PL_DHashTableInit(
-  PLDHashTable* aTable, const PLDHashTableOps* aOps,
-  uint32_t aEntrySize, const mozilla::fallible_t&,
-  uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
 
 
