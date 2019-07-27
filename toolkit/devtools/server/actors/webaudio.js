@@ -523,24 +523,23 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
       
       
       let param = XPCNativeWrapper.unwrap(node[paramName]);
+      let contentGlobal = Cu.getGlobalForObject(param);
+      let contentArgs = Cu.cloneInto(args, contentGlobal);
 
       
       
       
       if (eventName === "setValueCurveAtTime") {
-        let contentGlobal = Cu.getGlobalForObject(param);
         
         
-        
-        let contentArray = copyInto(new contentGlobal.Array(), args[0]);
-
-        
-        
-        let curve = new contentGlobal.Float32Array(contentArray);
-        args[0] = curve;
+        let curve = new contentGlobal.Float32Array(contentArgs[0]);
+        contentArgs[0] = curve;
       }
 
-      param[eventName].apply(param, args);
+      
+      
+      
+      param[eventName].apply(param, contentArgs);
     } catch (e) {
       return constructError(e);
     }
