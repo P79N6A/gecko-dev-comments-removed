@@ -210,7 +210,7 @@ public:
     
     
     if (!trustDomain.SetUpCertChainTail()) {
-      PR_Abort();
+      abort();
     }
   }
 
