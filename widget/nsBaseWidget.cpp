@@ -2025,6 +2025,650 @@ nsIWidget::SnapshotWidgetOnScreen()
   return dt->Snapshot();
 }
 
+namespace mozilla {
+namespace widget {
+
+void
+IMENotification::TextChangeDataBase::MergeWith(
+                   const IMENotification::TextChangeDataBase& aOther)
+{
+  MOZ_ASSERT(aOther.IsValid(),
+             "Merging data must store valid data");
+  MOZ_ASSERT(aOther.mStartOffset <= aOther.mRemovedEndOffset,
+             "end of removed text must be same or larger than start");
+  MOZ_ASSERT(aOther.mStartOffset <= aOther.mAddedEndOffset,
+             "end of added text must be same or larger than start");
+
+  if (!IsValid()) {
+    *this = aOther;
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+
+  const TextChangeDataBase& newData = aOther;
+  const TextChangeDataBase oldData = *this;
+
+  mCausedByComposition =
+    newData.mCausedByComposition && oldData.mCausedByComposition;
+
+  if (newData.mStartOffset >= oldData.mAddedEndOffset) {
+    
+    
+    
+    
+    
+    
+    mStartOffset = oldData.mStartOffset;
+    
+    
+    
+    
+    uint32_t newRemovedEndOffsetInOldText =
+      newData.mRemovedEndOffset - oldData.Difference();
+    mRemovedEndOffset =
+      std::max(newRemovedEndOffsetInOldText, oldData.mRemovedEndOffset);
+    
+    mAddedEndOffset = newData.mAddedEndOffset;
+    return;
+  }
+
+  if (newData.mStartOffset >= oldData.mStartOffset) {
+    
+    
+    mStartOffset = oldData.mStartOffset;
+    if (newData.mRemovedEndOffset >= oldData.mAddedEndOffset) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      uint32_t newRemovedEndOffsetInOldText =
+        newData.mRemovedEndOffset - oldData.Difference();
+      mRemovedEndOffset =
+        std::max(newRemovedEndOffsetInOldText, oldData.mRemovedEndOffset);
+      
+      
+      
+      
+      mAddedEndOffset = newData.mAddedEndOffset;
+      return;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    mRemovedEndOffset = oldData.mRemovedEndOffset;
+    
+    
+    uint32_t oldAddedEndOffsetInNewText =
+      oldData.mAddedEndOffset + newData.Difference();
+    mAddedEndOffset =
+      std::max(newData.mAddedEndOffset, oldAddedEndOffsetInNewText);
+    return;
+  }
+
+  if (newData.mRemovedEndOffset >= oldData.mStartOffset) {
+    
+    
+    
+    MOZ_ASSERT(newData.mStartOffset < oldData.mStartOffset,
+      "new start offset should be less than old one here");
+    mStartOffset = newData.mStartOffset;
+    if (newData.mRemovedEndOffset >= oldData.mAddedEndOffset) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      uint32_t newRemovedEndOffsetInOldText =
+        newData.mRemovedEndOffset - oldData.Difference();
+      mRemovedEndOffset =
+        std::max(newRemovedEndOffsetInOldText, oldData.mRemovedEndOffset);
+      
+      
+      
+      
+      
+      mAddedEndOffset = newData.mAddedEndOffset;
+      return;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    mRemovedEndOffset = oldData.mRemovedEndOffset;
+    
+    
+    
+    uint32_t oldAddedEndOffsetInNewText =
+      oldData.mAddedEndOffset + newData.Difference();
+    mAddedEndOffset =
+      std::max(newData.mAddedEndOffset, oldAddedEndOffsetInNewText);
+    return;
+  }
+
+  
+  
+  
+  
+  
+  MOZ_ASSERT(newData.mStartOffset < oldData.mStartOffset,
+    "new start offset should be less than old one here");
+  mStartOffset = newData.mStartOffset;
+  MOZ_ASSERT(newData.mRemovedEndOffset < oldData.mRemovedEndOffset,
+     "new removed end offset should be less than old one here");
+  mRemovedEndOffset = oldData.mRemovedEndOffset;
+  
+  uint32_t oldAddedEndOffsetInNewText =
+    oldData.mAddedEndOffset + newData.Difference();
+  mAddedEndOffset =
+    std::max(newData.mAddedEndOffset, oldAddedEndOffsetInNewText);
+}
+
+#ifdef DEBUG
+
+
+
+
+void
+IMENotification::TextChangeDataBase::Test()
+{
+  static bool gTestTextChangeEvent = true;
+  if (!gTestTextChangeEvent) {
+    return;
+  }
+  gTestTextChangeEvent = false;
+
+  
+
+
+
+  
+  MergeWith(TextChangeData(10, 10, 20, false));
+  MergeWith(TextChangeData(20, 20, 35, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 1-1-1: mStartOffset should be the first offset");
+  MOZ_ASSERT(mRemovedEndOffset == 10, 
+    "Test 1-1-2: mRemovedEndOffset should be the first end of removed text");
+  MOZ_ASSERT(mAddedEndOffset == 35,
+    "Test 1-1-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  MergeWith(TextChangeData(10, 20, 10, false));
+  MergeWith(TextChangeData(10, 30, 10, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 1-2-1: mStartOffset should be the first offset");
+  MOZ_ASSERT(mRemovedEndOffset == 40, 
+    "Test 1-2-2: mRemovedEndOffset should be the the last end of removed text "
+    "with already removed length");
+  MOZ_ASSERT(mAddedEndOffset == 10,
+    "Test 1-2-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  MergeWith(TextChangeData(10, 20, 10, false));
+  MergeWith(TextChangeData(10, 15, 10, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 1-3-1: mStartOffset should be the first offset");
+  MOZ_ASSERT(mRemovedEndOffset == 25, 
+    "Test 1-3-2: mRemovedEndOffset should be the the last end of removed text "
+    "with already removed length");
+  MOZ_ASSERT(mAddedEndOffset == 10,
+    "Test 1-3-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  MergeWith(TextChangeData(10, 10, 20, false));
+  MergeWith(TextChangeData(55, 55, 60, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 1-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 45, 
+    "Test 1-4-2: mRemovedEndOffset should be the the largest end of removed "
+    "text without already added length");
+  MOZ_ASSERT(mAddedEndOffset == 60,
+    "Test 1-4-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  MergeWith(TextChangeData(10, 20, 10, false));
+  MergeWith(TextChangeData(55, 68, 55, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 1-5-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 78, 
+    "Test 1-5-2: mRemovedEndOffset should be the the largest end of removed "
+    "text with already removed length");
+  MOZ_ASSERT(mAddedEndOffset == 55,
+    "Test 1-5-3: mAddedEndOffset should be the largest end of added text");
+  Clear();
+
+  
+  MergeWith(TextChangeData(30, 35, 32, false));
+  MergeWith(TextChangeData(32, 32, 40, false));
+  MOZ_ASSERT(mStartOffset == 30,
+    "Test 1-6-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 35, 
+    "Test 1-6-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 40,
+    "Test 1-6-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  MergeWith(TextChangeData(30, 35, 32, false));
+  MergeWith(TextChangeData(32, 32, 33, false));
+  MOZ_ASSERT(mStartOffset == 30,
+    "Test 1-7-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 35, 
+    "Test 1-7-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 33,
+    "Test 1-7-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(30, 35, 30, false));
+  MergeWith(TextChangeData(32, 34, 48, false));
+  MOZ_ASSERT(mStartOffset == 30,
+    "Test 1-8-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 39, 
+    "Test 1-8-2: mRemovedEndOffset should be the the first end of removed text "
+    "without already removed text");
+  MOZ_ASSERT(mAddedEndOffset == 48,
+    "Test 1-8-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(30, 35, 30, false));
+  MergeWith(TextChangeData(32, 38, 36, false));
+  MOZ_ASSERT(mStartOffset == 30,
+    "Test 1-9-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 43, 
+    "Test 1-9-2: mRemovedEndOffset should be the the first end of removed text "
+    "without already removed text");
+  MOZ_ASSERT(mAddedEndOffset == 36,
+    "Test 1-9-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+
+
+
+  
+  
+  MergeWith(TextChangeData(50, 50, 55, false));
+  MergeWith(TextChangeData(53, 60, 54, false));
+  MOZ_ASSERT(mStartOffset == 50,
+    "Test 2-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 55, 
+    "Test 2-1-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mAddedEndOffset == 54,
+    "Test 2-1-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 50, 55, false));
+  MergeWith(TextChangeData(54, 62, 68, false));
+  MOZ_ASSERT(mStartOffset == 50,
+    "Test 2-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 57, 
+    "Test 2-2-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mAddedEndOffset == 68,
+    "Test 2-2-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(36, 48, 45, false));
+  MergeWith(TextChangeData(43, 50, 49, false));
+  MOZ_ASSERT(mStartOffset == 36,
+    "Test 2-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 53, 
+    "Test 2-3-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already removed text length");
+  MOZ_ASSERT(mAddedEndOffset == 49,
+    "Test 2-3-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(36, 52, 53, false));
+  MergeWith(TextChangeData(43, 68, 61, false));
+  MOZ_ASSERT(mStartOffset == 36,
+    "Test 2-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 67, 
+    "Test 2-4-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mAddedEndOffset == 61,
+    "Test 2-4-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+
+
+
+  
+  MergeWith(TextChangeData(10, 10, 20, false));
+  MergeWith(TextChangeData(15, 15, 30, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 3-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 10,
+    "Test 3-1-2: mRemovedEndOffset should be the the first end of removed text");
+  MOZ_ASSERT(mAddedEndOffset == 35, 
+    "Test 3-1-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+  MergeWith(TextChangeData(50, 50, 55, false));
+  MergeWith(TextChangeData(52, 53, 56, false));
+  MOZ_ASSERT(mStartOffset == 50,
+    "Test 3-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 50,
+    "Test 3-2-2: mRemovedEndOffset should be the the first end of removed text");
+  MOZ_ASSERT(mAddedEndOffset == 58, 
+    "Test 3-2-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(36, 48, 45, false));
+  MergeWith(TextChangeData(37, 38, 50, false));
+  MOZ_ASSERT(mStartOffset == 36,
+    "Test 3-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 48,
+    "Test 3-3-2: mRemovedEndOffset should be the the first end of removed text");
+  MOZ_ASSERT(mAddedEndOffset == 57, 
+    "Test 3-3-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(32, 48, 53, false));
+  MergeWith(TextChangeData(43, 50, 52, false));
+  MOZ_ASSERT(mStartOffset == 32,
+    "Test 3-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 48,
+    "Test 3-4-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mAddedEndOffset == 55, 
+    "Test 3-4-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(36, 48, 50, false));
+  MergeWith(TextChangeData(37, 49, 47, false));
+  MOZ_ASSERT(mStartOffset == 36,
+    "Test 3-5-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 48,
+    "Test 3-5-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 48, 
+    "Test 3-5-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(32, 48, 53, false));
+  MergeWith(TextChangeData(43, 50, 47, false));
+  MOZ_ASSERT(mStartOffset == 32,
+    "Test 3-6-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 48,
+    "Test 3-6-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mAddedEndOffset == 50, 
+    "Test 3-6-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  Clear();
+
+  
+
+
+
+  
+  MergeWith(TextChangeData(50, 50, 55, false));
+  MergeWith(TextChangeData(44, 66, 68, false));
+  MOZ_ASSERT(mStartOffset == 44,
+    "Test 4-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 61, 
+    "Test 4-1-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already added text length");
+  MOZ_ASSERT(mAddedEndOffset == 68,
+    "Test 4-1-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 62, 50, false));
+  MergeWith(TextChangeData(44, 66, 68, false));
+  MOZ_ASSERT(mStartOffset == 44,
+    "Test 4-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 78, 
+    "Test 4-2-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already removed text length");
+  MOZ_ASSERT(mAddedEndOffset == 68,
+    "Test 4-2-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 62, 60, false));
+  MergeWith(TextChangeData(49, 128, 130, false));
+  MOZ_ASSERT(mStartOffset == 49,
+    "Test 4-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 130, 
+    "Test 4-3-2: mRemovedEndOffset should be the the last end of removed text "
+    "without already removed text length");
+  MOZ_ASSERT(mAddedEndOffset == 130,
+    "Test 4-3-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 61, 73, false));
+  MergeWith(TextChangeData(44, 100, 50, false));
+  MOZ_ASSERT(mStartOffset == 44,
+    "Test 4-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 88, 
+    "Test 4-4-2: mRemovedEndOffset should be the the last end of removed text "
+    "with already added text length");
+  MOZ_ASSERT(mAddedEndOffset == 50,
+    "Test 4-4-3: mAddedEndOffset should be the last end of added text");
+  Clear();
+
+  
+
+
+
+  
+  MergeWith(TextChangeData(50, 50, 55, false));
+  MergeWith(TextChangeData(48, 52, 49, false));
+  MOZ_ASSERT(mStartOffset == 48,
+    "Test 5-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 50,
+    "Test 5-1-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 52, 
+    "Test 5-1-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 60, 58, false));
+  MergeWith(TextChangeData(43, 50, 48, false));
+  MOZ_ASSERT(mStartOffset == 43,
+    "Test 5-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 60,
+    "Test 5-2-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 56, 
+    "Test 5-2-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 60, 68, false));
+  MergeWith(TextChangeData(43, 55, 53, false));
+  MOZ_ASSERT(mStartOffset == 43,
+    "Test 5-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 60,
+    "Test 5-3-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 66, 
+    "Test 5-3-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 60, 58, false));
+  MergeWith(TextChangeData(43, 50, 128, false));
+  MOZ_ASSERT(mStartOffset == 43,
+    "Test 5-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 60,
+    "Test 5-4-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 136, 
+    "Test 5-4-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+  
+  MergeWith(TextChangeData(50, 60, 68, false));
+  MergeWith(TextChangeData(43, 55, 65, false));
+  MOZ_ASSERT(mStartOffset == 43,
+    "Test 5-5-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 60,
+    "Test 5-5-2: mRemovedEndOffset should be the the first end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 78, 
+    "Test 5-5-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+
+
+
+  
+  MergeWith(TextChangeData(30, 30, 45, false));
+  MergeWith(TextChangeData(10, 10, 20, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 6-1-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 30,
+    "Test 6-1-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 55, 
+    "Test 6-1-3: mAddedEndOffset should be the first end of added text with "
+    "added text length by the new change");
+  Clear();
+
+  
+  MergeWith(TextChangeData(30, 35, 30, false));
+  MergeWith(TextChangeData(10, 25, 10, false));
+  MOZ_ASSERT(mStartOffset == 10,
+    "Test 6-2-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 35,
+    "Test 6-2-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 15, 
+    "Test 6-2-3: mAddedEndOffset should be the first end of added text with "
+    "removed text length by the new change");
+  Clear();
+
+  
+  MergeWith(TextChangeData(50, 65, 70, false));
+  MergeWith(TextChangeData(13, 24, 15, false));
+  MOZ_ASSERT(mStartOffset == 13,
+    "Test 6-3-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 65,
+    "Test 6-3-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 61, 
+    "Test 6-3-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  Clear();
+
+  
+  MergeWith(TextChangeData(50, 65, 70, false));
+  MergeWith(TextChangeData(13, 24, 36, false));
+  MOZ_ASSERT(mStartOffset == 13,
+    "Test 6-4-1: mStartOffset should be the smallest offset");
+  MOZ_ASSERT(mRemovedEndOffset == 65,
+    "Test 6-4-2: mRemovedEndOffset should be the the largest end of removed "
+    "text");
+  MOZ_ASSERT(mAddedEndOffset == 82, 
+    "Test 6-4-3: mAddedEndOffset should be the first end of added text without "
+    "removed text length by the new change");
+  Clear();
+}
+
+#endif 
+
+} 
+} 
+
 #ifdef DEBUG
 
 
