@@ -115,6 +115,8 @@ var interfaceNamesInGlobalScope =
 
     "FileReaderSync",
 
+    "FormData",
+
     "Headers",
 
     "IDBCursor",
