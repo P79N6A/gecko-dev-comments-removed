@@ -1600,12 +1600,6 @@ public:
 
   
   
-  
-  
-  bool mObservingAppThemeChanged:1;
-
-  
-  
   bool mSSApplicableStateNotificationPending:1;
 
   uint32_t mCancelledPointerLockRequests;
