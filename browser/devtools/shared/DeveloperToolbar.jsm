@@ -645,9 +645,22 @@ DeveloperToolbar.prototype._notify = function(topic) {
 DeveloperToolbar.prototype.handleEvent = function(ev) {
   if (ev.type == "TabSelect" || ev.type == "load") {
     if (this.visible) {
-      this.target = TargetFactory.forTab(this._chromeWindow.gBrowser.selectedTab);
+      let tab = this._chromeWindow.gBrowser.selectedTab;
+      this.target = TargetFactory.forTab(tab);
       gcliInit.getSystem(this.target).then(system => {
         this.requisition.system = system;
+      }, error => {
+        if (!this._chromeWindow.gBrowser.getBrowserForTab(tab)) {
+          
+          
+          console.warn("An error occurred as the tab was closed while " +
+            "updating Developer Toolbar state. The error was: ", error);
+          return;
+        }
+
+        
+        
+        throw error;
       });
 
       if (ev.type == "TabSelect") {
