@@ -1992,7 +1992,9 @@ protected:
     nsIFrame* mPrimaryFrame;
 
     
-    nsINode* mSubtreeRoot;
+    
+    
+    nsINode* MOZ_NON_OWNING_REF mSubtreeRoot;
   };
 
   
