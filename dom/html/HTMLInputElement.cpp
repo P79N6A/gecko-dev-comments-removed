@@ -109,6 +109,7 @@
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "nsIController.h"
 #include "nsIMIMEInfo.h"
+#include "nsFrameSelection.h"
 
 
 #include "js/Date.h"
@@ -3283,6 +3284,19 @@ HTMLInputElement::Select()
   FocusTristate state = FocusState();
   if (state == eUnfocusable) {
     return NS_OK;
+  }
+
+  nsTextEditorState* tes = GetEditorState();
+  if (tes) {
+    nsFrameSelection* fs = tes->GetConstFrameSelection();
+    if (fs && fs->MouseDownRecorded()) {
+      
+      
+      
+      
+      
+      fs->SetDelayedCaretData(nullptr);
+    }
   }
 
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();

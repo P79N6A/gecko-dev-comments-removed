@@ -517,6 +517,13 @@ public:
     return mDelayedMouseEventClickCount;
   }
 
+  bool MouseDownRecorded()
+  {
+    return !GetDragState() &&
+           HasDelayedCaretData() &&
+           GetClickCountInDelayedCaretData() < 2;
+  }
+
   
 
 
