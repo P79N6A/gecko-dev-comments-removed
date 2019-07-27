@@ -917,6 +917,8 @@ AutoMounter::UpdateState()
             vol->SetIsSharing(true);
           } else if (vol->IsFormatRequested()){
             vol->SetIsFormatting(true);
+          } else if (vol->IsUnmountRequested()){
+            vol->SetIsUnmounting(true);
           }
 
           
