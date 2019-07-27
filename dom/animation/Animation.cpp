@@ -114,27 +114,6 @@ Animation::GetCurrentTime() const
 
 
 void
-Animation::SilentlySetCurrentTime(const TimeDuration& aSeekTime)
-{
-  if (!mHoldTime.IsNull() ||
-      mStartTime.IsNull() ||
-      !mTimeline ||
-      mTimeline->GetCurrentTime().IsNull() ||
-      mPlaybackRate == 0.0) {
-    mHoldTime.SetValue(aSeekTime);
-    if (!mTimeline || mTimeline->GetCurrentTime().IsNull()) {
-      mStartTime.SetNull();
-    }
-  } else {
-    mStartTime.SetValue(mTimeline->GetCurrentTime().Value() -
-                          (aSeekTime.MultDouble(1 / mPlaybackRate)));
-  }
-
-  mPreviousCurrentTime.SetNull();
-}
-
-
-void
 Animation::SetCurrentTime(const TimeDuration& aSeekTime)
 {
   SilentlySetCurrentTime(aSeekTime);
@@ -159,18 +138,6 @@ Animation::SetPlaybackRate(double aPlaybackRate)
   if (!previousTime.IsNull()) {
     ErrorResult rv;
     SetCurrentTime(previousTime.Value());
-    MOZ_ASSERT(!rv.Failed(), "Should not assert for non-null time");
-  }
-}
-
-void
-Animation::SilentlySetPlaybackRate(double aPlaybackRate)
-{
-  Nullable<TimeDuration> previousTime = GetCurrentTime();
-  mPlaybackRate = aPlaybackRate;
-  if (!previousTime.IsNull()) {
-    ErrorResult rv;
-    SilentlySetCurrentTime(previousTime.Value());
     MOZ_ASSERT(!rv.Failed(), "Should not assert for non-null time");
   }
 }
@@ -392,6 +359,39 @@ Animation::GetCurrentOrPendingStartTime() const
   
   result.SetValue(mPendingReadyTime.Value() - mHoldTime.Value());
   return result;
+}
+
+
+void
+Animation::SilentlySetCurrentTime(const TimeDuration& aSeekTime)
+{
+  if (!mHoldTime.IsNull() ||
+      mStartTime.IsNull() ||
+      !mTimeline ||
+      mTimeline->GetCurrentTime().IsNull() ||
+      mPlaybackRate == 0.0) {
+    mHoldTime.SetValue(aSeekTime);
+    if (!mTimeline || mTimeline->GetCurrentTime().IsNull()) {
+      mStartTime.SetNull();
+    }
+  } else {
+    mStartTime.SetValue(mTimeline->GetCurrentTime().Value() -
+                          (aSeekTime.MultDouble(1 / mPlaybackRate)));
+  }
+
+  mPreviousCurrentTime.SetNull();
+}
+
+void
+Animation::SilentlySetPlaybackRate(double aPlaybackRate)
+{
+  Nullable<TimeDuration> previousTime = GetCurrentTime();
+  mPlaybackRate = aPlaybackRate;
+  if (!previousTime.IsNull()) {
+    ErrorResult rv;
+    SilentlySetCurrentTime(previousTime.Value());
+    MOZ_ASSERT(!rv.Failed(), "Should not assert for non-null time");
+  }
 }
 
 void
