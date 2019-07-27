@@ -7370,6 +7370,12 @@ PresShell::HandleEvent(nsIFrame* aFrame,
         nsLayoutUtils::GetPopupFrameForEventCoordinates(rootPresContext, aEvent);
       
       
+      if (popupFrame && capturingContent &&
+          EventStateManager::IsRemoteTarget(capturingContent)) {
+        capturingContent = nullptr;
+      }
+      
+      
       if (popupFrame &&
           !nsContentUtils::ContentIsCrossDocDescendantOf(
              framePresContext->GetPresShell()->GetDocument(),
