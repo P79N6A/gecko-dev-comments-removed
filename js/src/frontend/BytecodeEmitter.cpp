@@ -2488,11 +2488,6 @@ EmitElemOpBase(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
     if (Emit1(cx, bce, op) < 0)
         return false;
     CheckTypeSet(cx, bce, op);
-
-    if (op == JSOP_CALLELEM) {
-        if (Emit1(cx, bce, JSOP_SWAP) < 0)
-            return false;
-    }
     return true;
 }
 
@@ -4736,11 +4731,11 @@ EmitIterator(ExclusiveContext *cx, BytecodeEmitter *bce)
     if (!EmitElemOpBase(cx, bce, JSOP_CALLELEM))               
         return false;
 #else
-    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) 
-        return false;
-    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
+    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce))  
         return false;
 #endif
+    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
+        return false;
     if (EmitCall(cx, bce, JSOP_CALL, 0) < 0)                   
         return false;
     CheckTypeSet(cx, bce, JSOP_CALL);
@@ -6050,6 +6045,10 @@ EmitCallOrNew(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case PNK_ELEM:
         if (!EmitElemOp(cx, pn2, callop ? JSOP_CALLELEM : JSOP_GETELEM, bce))
             return false;
+        if (callop) {
+            if (Emit1(cx, bce, JSOP_SWAP) < 0)
+                return false;
+        }
         break;
       case PNK_FUNCTION:
         
