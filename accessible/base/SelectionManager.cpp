@@ -179,7 +179,8 @@ SelectionManager::NotifySelectionChanged(nsIDOMDocument* aDOMDocument,
     logging::SelChange(aSelection, document, aReason);
 #endif
 
-  if (document) {
+  
+  if (document && document->IsContentLoaded()) {
     
     
     
