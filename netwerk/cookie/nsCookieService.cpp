@@ -110,13 +110,6 @@ static const uint32_t kMaxBytesPerCookie  = 4096;
 static const uint32_t kMaxBytesPerPath    = 1024;
 
 
-static const uint32_t BEHAVIOR_ACCEPT        = 0; 
-static const uint32_t BEHAVIOR_REJECTFOREIGN = 1; 
-static const uint32_t BEHAVIOR_REJECT        = 2; 
-static const uint32_t BEHAVIOR_LIMITFOREIGN  = 3; 
-                                                  
-
-
 static const char kPrefCookieBehavior[]     = "network.cookie.cookieBehavior";
 static const char kPrefMaxNumberOfCookies[] = "network.cookie.maxNumber";
 static const char kPrefMaxCookiesPerHost[]  = "network.cookie.maxPerHost";
@@ -711,7 +704,7 @@ NS_IMPL_ISUPPORTS(nsCookieService,
 
 nsCookieService::nsCookieService()
  : mDBState(nullptr)
- , mCookieBehavior(BEHAVIOR_ACCEPT)
+ , mCookieBehavior(nsICookieService::BEHAVIOR_ACCEPT)
  , mThirdPartySession(false)
  , mMaxNumberOfCookies(kMaxNumberOfCookies)
  , mMaxCookiesPerHost(kMaxCookiesPerHost)
@@ -3490,22 +3483,22 @@ nsCookieService::CheckPrefs(nsIURI          *aHostURI,
   }
 
   
-  if (mCookieBehavior == BEHAVIOR_REJECT) {
+  if (mCookieBehavior == nsICookieService::BEHAVIOR_REJECT) {
     COOKIE_LOGFAILURE(aCookieHeader ? SET_COOKIE : GET_COOKIE, aHostURI, aCookieHeader, "cookies are disabled");
     return STATUS_REJECTED;
   }
 
   
   if (aIsForeign) {
-    if (mCookieBehavior == BEHAVIOR_ACCEPT && mThirdPartySession)
+    if (mCookieBehavior == nsICookieService::BEHAVIOR_ACCEPT && mThirdPartySession)
       return STATUS_ACCEPT_SESSION;
 
-    if (mCookieBehavior == BEHAVIOR_REJECTFOREIGN) {
+    if (mCookieBehavior == nsICookieService::BEHAVIOR_REJECT_FOREIGN) {
       COOKIE_LOGFAILURE(aCookieHeader ? SET_COOKIE : GET_COOKIE, aHostURI, aCookieHeader, "context is third party");
       return STATUS_REJECTED;
     }
 
-    if (mCookieBehavior == BEHAVIOR_LIMITFOREIGN) {
+    if (mCookieBehavior == nsICookieService::BEHAVIOR_LIMIT_FOREIGN) {
       uint32_t priorCookieCount = 0;
       nsAutoCString hostFromURI;
       aHostURI->GetHost(hostFromURI);
