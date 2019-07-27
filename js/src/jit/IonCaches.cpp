@@ -429,26 +429,13 @@ IonCache::linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &a
     attachStub(masm, attacher, code);
 
     
-    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime())) {
+    if (cx->runtime()->jitRuntime()->isNativeToBytecodeMapEnabled(cx->runtime())) {
         JitcodeGlobalEntry::IonCacheEntry entry;
-        entry.init(code->raw(), code->rawEnd(), rejoinAddress());
+        entry.init(code->raw(), code->raw() + code->instructionsSize(), rejoinAddress());
 
         
         JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
-        if (!globalTable->addEntry(entry, cx->runtime())) {
-            entry.destroy();
-            return false;
-        }
-
-        
-        code->setHasBytecodeMap();
-    } else {
-        JitcodeGlobalEntry::DummyEntry entry;
-        entry.init(code->raw(), code->rawEnd());
-
-        
-        JitcodeGlobalTable *globalTable = cx->runtime()->jitRuntime()->getJitcodeGlobalTable();
-        if (!globalTable->addEntry(entry, cx->runtime())) {
+        if (!globalTable->addEntry(entry)) {
             entry.destroy();
             return false;
         }

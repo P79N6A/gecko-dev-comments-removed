@@ -35,12 +35,6 @@ class CompileRuntime
     const void *addressOfJitTop();
 
     
-    const void *addressOfJitActivation();
-
-    
-    const void *addressOfProfilingActivation();
-
-    
     const void *addressOfJitStackLimit();
 
     

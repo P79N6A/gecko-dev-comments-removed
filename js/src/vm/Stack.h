@@ -7,7 +7,6 @@
 #ifndef vm_Stack_h
 #define vm_Stack_h
 
-#include "mozilla/Atomics.h"
 #include "mozilla/MemoryReporting.h"
 
 #include "jsfun.h"
@@ -1131,10 +1130,6 @@ class Activation
         return hideScriptedCallerCount_ > 0;
     }
 
-    static size_t offsetOfPrevProfiling() {
-        return offsetof(Activation, prevProfiling_);
-    }
-
   private:
     Activation(const Activation &other) = delete;
     void operator=(const Activation &other) = delete;
@@ -1247,7 +1242,6 @@ class BailoutFrameInfo;
 class JitActivation : public Activation
 {
     uint8_t *prevJitTop_;
-    JitActivation *prevJitActivation_;
     JSContext *prevJitJSContext_;
     bool active_;
 
@@ -1277,14 +1271,6 @@ class JitActivation : public Activation
     
     BailoutFrameInfo *bailoutData_;
 
-    
-    
-    
-    mozilla::Atomic<void *, mozilla::Relaxed> lastProfilingFrame_;
-    mozilla::Atomic<void *, mozilla::Relaxed> lastProfilingCallSite_;
-    static_assert(sizeof(mozilla::Atomic<void *, mozilla::Relaxed>) == sizeof(void *),
-                  "Atomic should have same memory format as underlying type.");
-
     void clearRematerializedFrames();
 
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -1304,7 +1290,9 @@ class JitActivation : public Activation
     }
     void setActive(JSContext *cx, bool active = true);
 
-    bool isProfiling() const;
+    bool isProfiling() const {
+        return false;
+    }
 
     uint8_t *prevJitTop() const {
         return prevJitTop_;
@@ -1314,9 +1302,6 @@ class JitActivation : public Activation
     }
     static size_t offsetOfPrevJitJSContext() {
         return offsetof(JitActivation, prevJitJSContext_);
-    }
-    static size_t offsetOfPrevJitActivation() {
-        return offsetof(JitActivation, prevJitActivation_);
     }
     static size_t offsetOfActiveUint8() {
         MOZ_ASSERT(sizeof(bool) == 1);
@@ -1378,26 +1363,6 @@ class JitActivation : public Activation
 
     
     void cleanBailoutData();
-
-    static size_t offsetOfLastProfilingFrame() {
-        return offsetof(JitActivation, lastProfilingFrame_);
-    }
-    void *lastProfilingFrame() {
-        return lastProfilingFrame_;
-    }
-    void setLastProfilingFrame(void *ptr) {
-        lastProfilingFrame_ = ptr;
-    }
-
-    static size_t offsetOfLastProfilingCallSite() {
-        return offsetof(JitActivation, lastProfilingCallSite_);
-    }
-    void *lastProfilingCallSite() {
-        return lastProfilingCallSite_;
-    }
-    void setLastProfilingCallSite(void *ptr) {
-        lastProfilingCallSite_ = ptr;
-    }
 };
 
 

@@ -1633,7 +1633,7 @@ LIRGenerator::visitLimitedTruncate(MLimitedTruncate *nop)
 void
 LIRGenerator::visitOsrEntry(MOsrEntry *entry)
 {
-    LOsrEntry *lir = new(alloc()) LOsrEntry(temp());
+    LOsrEntry *lir = new(alloc()) LOsrEntry;
     defineFixed(lir, entry, LAllocation(AnyRegister(OsrFrameReg)));
 }
 
@@ -3490,6 +3490,18 @@ LIRGenerator::visitCallInstanceOf(MCallInstanceOf *ins)
     useBoxAtStart(lir, LCallInstanceOf::LHS, lhs);
     defineReturn(lir, ins);
     assignSafepoint(lir, ins);
+}
+
+void
+LIRGenerator::visitProfilerStackOp(MProfilerStackOp *ins)
+{
+    LProfilerStackOp *lir = new(alloc()) LProfilerStackOp(temp());
+    add(lir, ins);
+
+    
+    
+    if (gen->options.spsSlowAssertionsEnabled())
+        assignSafepoint(lir, ins);
 }
 
 void

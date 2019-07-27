@@ -297,6 +297,11 @@ ICStub::trace(JSTracer *trc)
         MarkTypeObject(trc, &updateStub->type(), "baseline-update-typeobject");
         break;
       }
+      case ICStub::Profiler_PushFunction: {
+        ICProfiler_PushFunction *pushFunStub = toProfiler_PushFunction();
+        MarkScript(trc, &pushFunStub->script(), "baseline-profilerpushfunction-stub-script");
+        break;
+      }
       case ICStub::GetName_Global: {
         ICGetName_Global *globalStub = toGetName_Global();
         MarkShape(trc, &globalStub->shape(), "baseline-global-stub-shape");
@@ -718,6 +723,66 @@ ICStubCompiler::leaveStubFrame(MacroAssembler &masm, bool calledIntoIon)
     EmitLeaveStubFrame(masm, calledIntoIon);
 }
 
+void
+ICStubCompiler::guardProfilingEnabled(MacroAssembler &masm, Register scratch, Label *skip)
+{
+    
+    MOZ_ASSERT(kind == ICStub::Call_Scripted                             ||
+               kind == ICStub::Call_AnyScripted                          ||
+               kind == ICStub::Call_Native                               ||
+               kind == ICStub::Call_ClassHook                            ||
+               kind == ICStub::Call_ScriptedApplyArray                   ||
+               kind == ICStub::Call_ScriptedApplyArguments               ||
+               kind == ICStub::Call_ScriptedFunCall                      ||
+               kind == ICStub::GetProp_CallScripted                      ||
+               kind == ICStub::GetProp_CallNative                        ||
+               kind == ICStub::GetProp_CallNativePrototype               ||
+               kind == ICStub::GetProp_CallDOMProxyNative                ||
+               kind == ICStub::GetElem_NativePrototypeCallNative         ||
+               kind == ICStub::GetElem_NativePrototypeCallScripted       ||
+               kind == ICStub::GetProp_CallDOMProxyWithGenerationNative  ||
+               kind == ICStub::GetProp_DOMProxyShadowed                  ||
+               kind == ICStub::SetProp_CallScripted                      ||
+               kind == ICStub::SetProp_CallNative);
+
+    
+    
+    
+    MOZ_ASSERT(entersStubFrame_);
+    masm.loadPtr(Address(BaselineFrameReg, 0), scratch);
+    masm.branchTest32(Assembler::Zero,
+                      Address(scratch, BaselineFrame::reverseOffsetOfFlags()),
+                      Imm32(BaselineFrame::HAS_PUSHED_SPS_FRAME),
+                      skip);
+
+    
+    uint32_t *enabledAddr = cx->runtime()->spsProfiler.addressOfEnabled();
+    masm.branch32(Assembler::Equal, AbsoluteAddress(enabledAddr), Imm32(0), skip);
+}
+
+void
+ICStubCompiler::emitProfilingUpdate(MacroAssembler &masm, Register pcIdx, Register scratch,
+                                    uint32_t stubPcOffset)
+{
+    Label skipProfilerUpdate;
+
+    
+    guardProfilingEnabled(masm, scratch, &skipProfilerUpdate);
+
+    
+    masm.load32(Address(BaselineStubReg, stubPcOffset), pcIdx);
+    masm.spsUpdatePCIdx(&cx->runtime()->spsProfiler, pcIdx, scratch);
+
+    masm.bind(&skipProfilerUpdate);
+}
+
+void
+ICStubCompiler::emitProfilingUpdate(MacroAssembler &masm, GeneralRegisterSet regs,
+                                    uint32_t stubPcOffset)
+{
+    emitProfilingUpdate(masm, regs.takeAny(), regs.takeAny(), stubPcOffset);
+}
+
 inline bool
 ICStubCompiler::emitPostWriteBarrierSlot(MacroAssembler &masm, Register obj, ValueOperand val,
                                          Register scratch, GeneralRegisterSet saveRegs)
@@ -798,8 +863,15 @@ EnsureCanEnterIon(JSContext *cx, ICWarmUpCounter_Fallback *stub, BaselineFrame *
 
     if (isLoopEntry) {
         IonScript *ion = script->ionScript();
-        MOZ_ASSERT(cx->runtime()->spsProfiler.enabled() == ion->hasProfilingInstrumentation());
+        MOZ_ASSERT(cx->runtime()->spsProfiler.enabled() == ion->hasSPSInstrumentation());
         MOZ_ASSERT(ion->osrPc() == pc);
+
+        
+        
+        if (frame->hasPushedSPSFrame() != ion->hasSPSInstrumentation()) {
+            JitSpew(JitSpew_BaselineOSR, "  OSR crosses SPS handling boundaries, skipping!");
+            return true;
+        }
 
         JitSpew(JitSpew_BaselineOSR, "  OSR possible!");
         *jitcodePtr = ion->method()->raw() + ion->osrEntryOffset();
@@ -1006,21 +1078,6 @@ ICWarmUpCounter_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     
     masm.pop(scratchReg);
 
-#ifdef DEBUG
-    
-    
-    {
-        Label checkOk;
-        AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
-        masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &checkOk);
-        masm.loadPtr(AbsoluteAddress((void*)&cx->mainThread().jitActivation), scratchReg);
-        masm.loadPtr(Address(scratchReg, JitActivation::offsetOfLastProfilingFrame()), scratchReg);
-        masm.branchPtr(Assembler::Equal, scratchReg, BaselineStackReg, &checkOk);
-        masm.assumeUnreachable("Baseline OSR lastProfilingFrame mismatch.");
-        masm.bind(&checkOk);
-    }
-#endif
-
     
     masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, jitcode)), scratchReg);
     masm.loadPtr(Address(osrDataReg, offsetof(IonOsrTempData, baselineFrame)), OsrFrameReg);
@@ -1032,6 +1089,99 @@ ICWarmUpCounter_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     return true;
 }
 
+
+
+
+
+static bool
+DoProfilerFallback(JSContext *cx, BaselineFrame *frame, ICProfiler_Fallback *stub)
+{
+    RootedScript script(cx, frame->script());
+    RootedFunction func(cx, frame->maybeFun());
+    mozilla::DebugOnly<ICEntry *> icEntry = stub->icEntry();
+
+    FallbackICSpew(cx, stub, "Profiler");
+
+    SPSProfiler *profiler = &cx->runtime()->spsProfiler;
+
+    
+    MOZ_ASSERT(profiler->enabled());
+    if (!cx->runtime()->spsProfiler.enter(script, func))
+        return false;
+    frame->setPushedSPSFrame();
+
+    
+    
+    MOZ_ASSERT_IF(icEntry->firstStub() != stub,
+                  icEntry->firstStub()->isProfiler_PushFunction() &&
+                  icEntry->firstStub()->next() == stub);
+    stub->unlinkStubsWithKind(cx, ICStub::Profiler_PushFunction);
+    MOZ_ASSERT(icEntry->firstStub() == stub);
+
+    
+    const char *string = profiler->profileString(script, func);
+    if (string == nullptr)
+        return false;
+
+    JitSpew(JitSpew_BaselineIC, "  Generating Profiler_PushFunction stub for %s:%d",
+            script->filename(), script->lineno());
+
+    
+    ICProfiler_PushFunction::Compiler compiler(cx, string, script);
+    ICStub *optStub = compiler.getStub(compiler.getStubSpace(script));
+    if (!optStub)
+        return false;
+    stub->addNewStub(optStub);
+
+    return true;
+}
+
+typedef bool (*DoProfilerFallbackFn)(JSContext *, BaselineFrame *frame, ICProfiler_Fallback *);
+static const VMFunction DoProfilerFallbackInfo =
+    FunctionInfo<DoProfilerFallbackFn>(DoProfilerFallback, TailCall);
+
+bool
+ICProfiler_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    EmitRestoreTailCallReg(masm);
+
+    masm.push(BaselineStubReg);         
+    masm.pushBaselineFramePtr(BaselineFrameReg, R0.scratchReg()); 
+
+    return tailCallVM(DoProfilerFallbackInfo, masm);
+}
+
+bool
+ICProfiler_PushFunction::Compiler::generateStubCode(MacroAssembler &masm)
+{
+
+    Register scratch = R0.scratchReg();
+    Register scratch2 = R1.scratchReg();
+
+    
+#ifdef DEBUG
+    Label spsEnabled;
+    uint32_t *enabledAddr = cx->runtime()->spsProfiler.addressOfEnabled();
+    masm.branch32(Assembler::NotEqual, AbsoluteAddress(enabledAddr), Imm32(0), &spsEnabled);
+    masm.assumeUnreachable("Profiling should have been enabled.");
+    masm.bind(&spsEnabled);
+#endif
+
+    
+    masm.spsPushFrame(&cx->runtime()->spsProfiler,
+                      Address(BaselineStubReg, ICProfiler_PushFunction::offsetOfStr()),
+                      Address(BaselineStubReg, ICProfiler_PushFunction::offsetOfScript()),
+                      scratch,
+                      scratch2);
+
+    
+    Address flagsOffset(BaselineFrameReg, BaselineFrame::reverseOffsetOfFlags());
+    masm.or32(Imm32(BaselineFrame::HAS_PUSHED_SPS_FRAME), flagsOffset);
+
+    EmitReturnFromIC(masm);
+
+    return true;
+}
 
 
 
@@ -4065,6 +4215,9 @@ ICGetElemNativeCompiler::emitCallNative(MacroAssembler &masm, Register objReg)
     regs.add(objReg);
 
     
+    emitProfilingUpdate(masm, regs, ICGetElemNativeGetterStub::offsetOfPCOffset());
+
+    
     if (!callVM(DoCallNativeGetterInfo, masm))
         return false;
 
@@ -4129,6 +4282,16 @@ ICGetElemNativeCompiler::emitCallScripted(MacroAssembler &masm, Register objReg)
     }
 
     masm.bind(&noUnderflow);
+
+    
+    
+    {
+        GeneralRegisterSet availRegs = availableGeneralRegs(0);
+        availRegs.take(ArgumentsRectifierReg);
+        availRegs.take(code);
+        emitProfilingUpdate(masm, availRegs, ICGetElemNativeGetterStub::offsetOfPCOffset());
+    }
+
     masm.callJit(code);
 
     leaveStubFrame(masm, true);
@@ -7285,6 +7448,16 @@ ICGetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
     }
 
     masm.bind(&noUnderflow);
+
+    
+    
+    {
+        GeneralRegisterSet availRegs = availableGeneralRegs(0);
+        availRegs.take(ArgumentsRectifierReg);
+        availRegs.take(code);
+        emitProfilingUpdate(masm, availRegs, ICGetProp_CallScripted::offsetOfPCOffset());
+    }
+
     masm.callJit(code);
 
     leaveStubFrame(masm, true);
@@ -7345,6 +7518,9 @@ ICGetProp_CallNative::Compiler::generateStubCode(MacroAssembler &masm)
     regs.add(scratch);
     if (!inputDefinitelyObject_)
         regs.add(R0);
+
+    
+    emitProfilingUpdate(masm, regs, ICGetProp_CallNative::offsetOfPCOffset());
 
     if (!callVM(DoCallNativeGetterInfo, masm))
         return false;
@@ -7415,6 +7591,9 @@ ICGetProp_CallNativePrototype::Compiler::generateStubCode(MacroAssembler &masm)
     else
         regs.add(objReg);
 
+    
+    emitProfilingUpdate(masm, regs, ICGetProp_CallNativePrototype::offsetOfPCOffset());
+
     if (!callVM(DoCallNativeGetterInfo, masm))
         return false;
     leaveStubFrame(masm);
@@ -7484,6 +7663,9 @@ ICGetPropCallDOMProxyNativeCompiler::generateStubCode(MacroAssembler &masm,
 
     
     regs.add(R0);
+
+    
+    emitProfilingUpdate(masm, regs, ICGetProp_CallDOMProxyNative::offsetOfPCOffset());
 
     if (!callVM(DoCallNativeGetterInfo, masm))
         return false;
@@ -7616,6 +7798,9 @@ ICGetProp_DOMProxyShadowed::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     regs.add(R0);
+
+    
+    emitProfilingUpdate(masm, regs, ICGetProp_DOMProxyShadowed::offsetOfPCOffset());
 
     if (!callVM(ProxyGetInfo, masm))
         return false;
@@ -8640,6 +8825,16 @@ ICSetProp_CallScripted::Compiler::generateStubCode(MacroAssembler &masm)
     }
 
     masm.bind(&noUnderflow);
+
+    
+    
+    {
+        GeneralRegisterSet availRegs = availableGeneralRegs(0);
+        availRegs.take(ArgumentsRectifierReg);
+        availRegs.take(code);
+        emitProfilingUpdate(masm, availRegs, ICSetProp_CallScripted::offsetOfPCOffset());
+    }
+
     masm.callJit(code);
 
     leaveStubFrame(masm, true);
@@ -8724,6 +8919,9 @@ ICSetProp_CallNative::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     regs.add(R0);
+
+    
+    emitProfilingUpdate(masm, regs, ICSetProp_CallNative::offsetOfPCOffset());
 
     if (!callVM(DoCallNativeSetterInfo, masm))
         return false;
@@ -9273,6 +9471,10 @@ DoCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_, uint
     if (!TryAttachCallStub(cx, stub, script, pc, op, argc, vp, constructing, false, newType))
         return false;
 
+    
+    if (cx->runtime()->spsProfiler.enabled() && frame->hasPushedSPSFrame())
+        cx->runtime()->spsProfiler.updatePC(script, pc);
+
     if (!MaybeCloneFunctionAtCallsite(cx, &callee, script, pc))
         return false;
 
@@ -9344,6 +9546,10 @@ DoSpreadCallFallback(JSContext *cx, BaselineFrame *frame, ICCall_Fallback *stub_
     {
         return false;
     }
+
+    
+    if (cx->runtime()->spsProfiler.enabled() && frame->hasPushedSPSFrame())
+        cx->runtime()->spsProfiler.updatePC(script, pc);
 
     if (!MaybeCloneFunctionAtCallsite(cx, &callee, script, pc))
         return false;
@@ -9924,6 +10130,18 @@ ICCallScriptedCompiler::generateStubCode(MacroAssembler &masm)
     }
 
     masm.bind(&noUnderflow);
+
+    
+    {
+        MOZ_ASSERT(kind == ICStub::Call_Scripted || kind == ICStub::Call_AnyScripted);
+        GeneralRegisterSet availRegs = availableGeneralRegs(0);
+        availRegs.take(ArgumentsRectifierReg);
+        availRegs.take(code);
+        emitProfilingUpdate(masm, availRegs, kind == ICStub::Call_Scripted ?
+                                                ICCall_Scripted::offsetOfPCOffset()
+                                              : ICCall_AnyScripted::offsetOfPCOffset());
+    }
+
     masm.callJit(code);
 
     
@@ -10185,6 +10403,10 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     masm.enterFakeExitFrame(NativeExitFrameLayout::Token());
 
     
+    
+    emitProfilingUpdate(masm, BaselineTailCallReg, scratch, ICCall_Native::offsetOfPCOffset());
+
+    
     masm.setupUnalignedABICall(3, scratch);
     masm.loadJSContext(scratch);
     masm.passABIArg(scratch);
@@ -10278,6 +10500,10 @@ ICCall_ClassHook::Compiler::generateStubCode(MacroAssembler &masm)
     masm.push(scratch);
     masm.push(BaselineTailCallReg);
     masm.enterFakeExitFrame(NativeExitFrameLayout::Token());
+
+    
+    
+    emitProfilingUpdate(masm, BaselineTailCallReg, scratch, ICCall_ClassHook::offsetOfPCOffset());
 
     
     masm.setupUnalignedABICall(3, scratch);
@@ -10394,6 +10620,11 @@ ICCall_ScriptedApplyArray::Compiler::generateStubCode(MacroAssembler &masm)
     regs.add(argcReg);
 
     
+    
+    emitProfilingUpdate(masm, regs.getAny(), scratch,
+                        ICCall_ScriptedApplyArguments::offsetOfPCOffset());
+
+    
     masm.callJit(target);
     leaveStubFrame(masm, true);
 
@@ -10488,6 +10719,11 @@ ICCall_ScriptedApplyArguments::Compiler::generateStubCode(MacroAssembler &masm)
     }
     masm.bind(&noUnderflow);
     regs.add(argcReg);
+
+    
+    
+    emitProfilingUpdate(masm, regs.getAny(), scratch,
+                        ICCall_ScriptedApplyArguments::offsetOfPCOffset());
 
     
     masm.callJit(target);
@@ -10605,6 +10841,16 @@ ICCall_ScriptedFunCall::Compiler::generateStubCode(MacroAssembler &masm)
     }
 
     masm.bind(&noUnderflow);
+
+    
+    {
+        
+        GeneralRegisterSet availRegs = availableGeneralRegs(0);
+        availRegs.take(ArgumentsRectifierReg);
+        availRegs.take(code);
+        emitProfilingUpdate(masm, availRegs, ICCall_ScriptedFunCall::offsetOfPCOffset());
+    }
+
     masm.callJit(code);
 
     leaveStubFrame(masm, true);
@@ -11256,6 +11502,13 @@ ICRetSub_Resume::Compiler::generateStubCode(MacroAssembler &masm)
     EmitStubGuardFailure(masm);
     return true;
 }
+
+ICProfiler_PushFunction::ICProfiler_PushFunction(JitCode *stubCode, const char *str,
+                                                 HandleScript script)
+  : ICStub(ICStub::Profiler_PushFunction, stubCode),
+    str_(str),
+    script_(script)
+{ }
 
 ICTypeMonitor_SingleObject::ICTypeMonitor_SingleObject(JitCode *stubCode, HandleObject obj)
   : ICStub(TypeMonitor_SingleObject, stubCode),

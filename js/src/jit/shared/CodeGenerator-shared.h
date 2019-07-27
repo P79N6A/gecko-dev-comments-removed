@@ -113,8 +113,13 @@ class CodeGeneratorShared : public LElementVisitor
     JSScript **nativeToBytecodeScriptList_;
     uint32_t nativeToBytecodeScriptListLength_;
 
-    bool isProfilerInstrumentationEnabled() {
-        return gen->isProfilerInstrumentationEnabled();
+    
+    
+    
+    IonInstrumentation sps_;
+
+    bool isNativeToBytecodeMapEnabled() {
+        return gen->isNativeToBytecodeMapEnabled();
     }
 
   protected:

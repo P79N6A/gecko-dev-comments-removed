@@ -37,7 +37,7 @@ GenerateReturn(MacroAssembler &masm, int returnCode, SPSProfiler *prof)
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsLoad, StackPointer, IA);
 
     
-    masm.addPtr(Imm32(sizeof(void*)), sp);
+    masm.spsUnmarkJit(prof, r8);
 
     
     masm.ma_mov(Imm32(returnCode), r0);
@@ -69,8 +69,7 @@ struct EnterJITStack
     double d14;
     double d15;
 
-    
-    void *padding;
+    size_t hasSPSMark;
 
     
     void *r4;
@@ -131,7 +130,8 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.finishDataTransfer();
 
     
-    masm.subPtr(Imm32(sizeof(void*)), sp);
+    masm.movePtr(sp, r8);
+    masm.spsMarkJit(&cx->runtime()->spsProfiler, r8, r9);
 
     
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsStore, sp, DB);
@@ -282,19 +282,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), sp);
         masm.addPtr(Imm32(BaselineFrame::Size()), framePtr);
         masm.branchIfFalseBool(ReturnReg, &error);
-
-        
-        
-        {
-            Label skipProfilingInstrumentation;
-            Register realFramePtr = numStackValues;
-            AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
-            masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0),
-                          &skipProfilingInstrumentation);
-            masm.ma_add(framePtr, Imm32(sizeof(void*)), realFramePtr);
-            masm.profilerEnterFrame(realFramePtr, scratch);
-            masm.bind(&skipProfilingInstrumentation);
-        }
 
         masm.jump(jitcode);
 
@@ -962,17 +949,6 @@ JitRuntime::generateDebugTrapHandler(JSContext *cx)
                    JSReturnOperand);
     masm.mov(r11, sp);
     masm.pop(r11);
-
-    
-    
-    {
-        Label skipProfilingInstrumentation;
-        AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
-        masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
-        masm.profilerExitFrame();
-        masm.bind(&skipProfilingInstrumentation);
-    }
-
     masm.ret();
 
     Linker linker(masm);
@@ -1017,297 +993,6 @@ JitRuntime::generateBailoutTailStub(JSContext *cx)
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "BailoutTailStub");
-#endif
-
-    return code;
-}
-
-JitCode *
-JitRuntime::generateProfilerExitFrameTailStub(JSContext *cx)
-{
-    MacroAssembler masm;
-
-    Register scratch1 = r5;
-    Register scratch2 = r6;
-    Register scratch3 = r7;
-    Register scratch4 = r8;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    Register actReg = scratch4;
-    AbsoluteAddress activationAddr(GetJitContext()->runtime->addressOfProfilingActivation());
-    masm.loadPtr(activationAddr, actReg);
-
-    Address lastProfilingFrame(actReg, JitActivation::offsetOfLastProfilingFrame());
-    Address lastProfilingCallSite(actReg, JitActivation::offsetOfLastProfilingCallSite());
-
-#ifdef DEBUG
-    
-    {
-        masm.loadPtr(lastProfilingFrame, scratch1);
-        Label checkOk;
-        masm.branchPtr(Assembler::Equal, scratch1, ImmWord(0), &checkOk);
-        masm.branchPtr(Assembler::Equal, StackPointer, scratch1, &checkOk);
-        masm.assumeUnreachable(
-            "Mismatch between stored lastProfilingFrame and current stack pointer.");
-        masm.bind(&checkOk);
-    }
-#endif
-
-    
-    masm.loadPtr(Address(StackPointer, JitFrameLayout::offsetOfDescriptor()), scratch1);
-
-    
-    
-    
-    masm.ma_and(Imm32((1 << FRAMESIZE_SHIFT) - 1), scratch1, scratch2);
-    masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), scratch1);
-
-    
-    Label handle_IonJS;
-    Label handle_BaselineStub;
-    Label handle_Rectifier;
-    Label handle_Entry;
-    Label end;
-
-    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_IonJS), &handle_IonJS);
-    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineJS), &handle_IonJS);
-    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineStub), &handle_BaselineStub);
-    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Rectifier), &handle_Rectifier);
-    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Entry), &handle_Entry);
-
-    masm.assumeUnreachable("Invalid caller frame type when exiting from Ion frame.");
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    masm.bind(&handle_IonJS);
-    {
-        
-
-        
-        
-        masm.loadPtr(Address(StackPointer, JitFrameLayout::offsetOfReturnAddress()), scratch2);
-        masm.storePtr(scratch2, lastProfilingCallSite);
-
-        
-        
-        masm.ma_add(StackPointer, scratch1, scratch2);
-        masm.ma_add(scratch2, Imm32(JitFrameLayout::Size()), scratch2);
-        masm.storePtr(scratch2, lastProfilingFrame);
-        masm.ret();
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    masm.bind(&handle_BaselineStub);
-    {
-        masm.ma_add(StackPointer, scratch1, scratch3);
-        Address stubFrameReturnAddr(scratch3,
-                                    JitFrameLayout::Size() +
-                                    BaselineStubFrameLayout::offsetOfReturnAddress());
-        masm.loadPtr(stubFrameReturnAddr, scratch2);
-        masm.storePtr(scratch2, lastProfilingCallSite);
-
-        Address stubFrameSavedFramePtr(scratch3,
-                                       JitFrameLayout::Size() - (2 * sizeof(void *)));
-        masm.loadPtr(stubFrameSavedFramePtr, scratch2);
-        masm.addPtr(Imm32(sizeof(void *)), scratch2); 
-        masm.storePtr(scratch2, lastProfilingFrame);
-        masm.ret();
-    }
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    masm.bind(&handle_Rectifier);
-    {
-        
-        masm.ma_add(StackPointer, scratch1, scratch2);
-        masm.add32(Imm32(JitFrameLayout::Size()), scratch2);
-        masm.loadPtr(Address(scratch2, RectifierFrameLayout::offsetOfDescriptor()), scratch3);
-        masm.ma_lsr(Imm32(FRAMESIZE_SHIFT), scratch3, scratch1);
-        masm.and32(Imm32((1 << FRAMETYPE_BITS) - 1), scratch3);
-
-        
-        
-        
-
-        
-        Label handle_Rectifier_BaselineStub;
-        masm.branch32(Assembler::NotEqual, scratch3, Imm32(JitFrame_IonJS),
-                      &handle_Rectifier_BaselineStub);
-
-        
-        
-        masm.loadPtr(Address(scratch2, RectifierFrameLayout::offsetOfReturnAddress()), scratch3);
-        masm.storePtr(scratch3, lastProfilingCallSite);
-
-        
-        masm.ma_add(scratch2, scratch1, scratch3);
-        masm.add32(Imm32(RectifierFrameLayout::Size()), scratch3);
-        masm.storePtr(scratch3, lastProfilingFrame);
-        masm.ret();
-
-        
-        masm.bind(&handle_Rectifier_BaselineStub);
-#ifdef DEBUG
-        {
-            Label checkOk;
-            masm.branch32(Assembler::Equal, scratch3, Imm32(JitFrame_BaselineStub), &checkOk);
-            masm.assumeUnreachable("Unrecognized frame preceding baselineStub.");
-            masm.bind(&checkOk);
-        }
-#endif
-        masm.ma_add(scratch2, scratch1, scratch3);
-        Address stubFrameReturnAddr(scratch3, RectifierFrameLayout::Size() +
-                                              BaselineStubFrameLayout::offsetOfReturnAddress());
-        masm.loadPtr(stubFrameReturnAddr, scratch2);
-        masm.storePtr(scratch2, lastProfilingCallSite);
-
-        Address stubFrameSavedFramePtr(scratch3,
-                                       RectifierFrameLayout::Size() - (2 * sizeof(void *)));
-        masm.loadPtr(stubFrameSavedFramePtr, scratch2);
-        masm.addPtr(Imm32(sizeof(void *)), scratch2);
-        masm.storePtr(scratch2, lastProfilingFrame);
-        masm.ret();
-    }
-
-    
-    
-    
-    
-    
-    masm.bind(&handle_Entry);
-    {
-        masm.movePtr(ImmPtr(nullptr), scratch1);
-        masm.storePtr(scratch1, lastProfilingCallSite);
-        masm.storePtr(scratch1, lastProfilingFrame);
-        masm.ret();
-    }
-
-    Linker linker(masm);
-    AutoFlushICache afc("ProfilerExitFrameTailStub");
-    JitCode *code = linker.newCode<NoGC>(cx, OTHER_CODE);
-
-#ifdef JS_ION_PERF
-    writePerfSpewerJitCodeProfile(code, "ProfilerExitFrameStub");
 #endif
 
     return code;

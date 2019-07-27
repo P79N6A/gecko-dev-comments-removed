@@ -421,18 +421,6 @@ MacroAssemblerX86::handleFailureWithHandlerTail(void *handler)
     loadValue(Address(ebp, BaselineFrame::reverseOffsetOfReturnValue()), JSReturnOperand);
     movl(ebp, esp);
     pop(ebp);
-
-    
-    
-    {
-        Label skipProfilingInstrumentation;
-        
-        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->spsProfiler().addressOfEnabled());
-        branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
-        profilerExitFrame();
-        bind(&skipProfilingInstrumentation);
-    }
-
     ret();
 
     
@@ -525,19 +513,4 @@ MacroAssemblerX86::branchValueIsNurseryObject(Condition cond, ValueOperand value
     branchPtrInNurseryRange(cond, value.payloadReg(), temp, label);
 
     bind(&done);
-}
-
-void
-MacroAssemblerX86::profilerEnterFrame(Register framePtr, Register scratch)
-{
-    AbsoluteAddress activation(GetJitContext()->runtime->addressOfProfilingActivation());
-    loadPtr(activation, scratch);
-    storePtr(framePtr, Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
-    storePtr(ImmPtr(nullptr), Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
-}
-
-void
-MacroAssemblerX86::profilerExitFrame()
-{
-    jmp(GetJitContext()->runtime->jitRuntime()->getProfilerExitFrameTail());
 }

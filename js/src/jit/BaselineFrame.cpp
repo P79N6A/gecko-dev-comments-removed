@@ -172,6 +172,19 @@ BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
     if (fp->hasReturnValue())
         setReturnValue(fp->returnValue());
 
+    
+    
+    
+    
+    
+    
+    JSContext *cx = GetJSContextFromJitCode();
+    SPSProfiler *p = &(cx->runtime()->spsProfiler);
+    if (p->enabled()) {
+        p->enter(fp->script(), fp->maybeFun());
+        flags_ |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
+    }
+
     frameSize_ = BaselineFrame::FramePointerOffset +
         BaselineFrame::Size() +
         numStackValues * sizeof(Value);
@@ -182,8 +195,6 @@ BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
         *valueSlot(i) = fp->slots()[i];
 
     if (fp->isDebuggee()) {
-        JSContext *cx = GetJSContextFromJitCode();
-
         
         
 

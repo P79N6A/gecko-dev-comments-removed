@@ -4294,18 +4294,6 @@ MacroAssemblerARMCompat::handleFailureWithHandlerTail(void *handler)
     loadValue(Address(r11, BaselineFrame::reverseOffsetOfReturnValue()), JSReturnOperand);
     ma_mov(r11, sp);
     pop(r11);
-
-    
-    
-    {
-        Label skipProfilingInstrumentation;
-        
-        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->spsProfiler().addressOfEnabled());
-        branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
-        profilerExitFrame();
-        bind(&skipProfilingInstrumentation);
-    }
-
     ret();
 
     
@@ -5034,18 +5022,3 @@ template void
 js::jit::MacroAssemblerARMCompat::atomicFetchOp(int nbytes, bool signExtend, AtomicOp op,
                                                 const Register &value, const BaseIndex &mem,
                                                 Register temp, Register output);
-
-void
-MacroAssemblerARMCompat::profilerEnterFrame(Register framePtr, Register scratch)
-{
-    AbsoluteAddress activation(GetJitContext()->runtime->addressOfProfilingActivation());
-    loadPtr(activation, scratch);
-    storePtr(framePtr, Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
-    storePtr(ImmPtr(nullptr), Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
-}
-
-void
-MacroAssemblerARMCompat::profilerExitFrame()
-{
-    branch(GetJitContext()->runtime->jitRuntime()->getProfilerExitFrameTail());
-}

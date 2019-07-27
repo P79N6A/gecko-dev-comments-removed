@@ -40,7 +40,6 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     BailoutFrameInfo bailoutData(jitActivations, sp);
     JitFrameIterator iter(jitActivations);
     MOZ_ASSERT(!iter.ionScript()->invalidated());
-    CommonFrameLayout *currentFramePtr = iter.current();
 
     TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogTimestamp(logger, TraceLogger_Bailout);
@@ -50,17 +49,31 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     MOZ_ASSERT(IsBaselineEnabled(cx));
 
     *bailoutInfo = nullptr;
+    bool poppedLastSPSFrame = false;
     uint32_t retval = BailoutIonToBaseline(cx, bailoutData.activation(), iter, false, bailoutInfo,
-                                            nullptr);
+                                            nullptr, &poppedLastSPSFrame);
     MOZ_ASSERT(retval == BAILOUT_RETURN_OK ||
                retval == BAILOUT_RETURN_FATAL_ERROR ||
                retval == BAILOUT_RETURN_OVERRECURSED);
     MOZ_ASSERT_IF(retval == BAILOUT_RETURN_OK, *bailoutInfo != nullptr);
 
     if (retval != BAILOUT_RETURN_OK) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        bool popSPSFrame = iter.ionScript()->hasSPSInstrumentation() &&
+                           (SnapshotIterator(iter).bailoutKind() != Bailout_ArgumentCheck) &&
+                           !poppedLastSPSFrame;
         JSScript *script = iter.script();
-        probes::ExitScript(cx, script, script->functionNonDelazifying(),
-                            false);
+        probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
 
         EnsureExitFrame(iter.jsFrame());
     }
@@ -75,26 +88,6 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     
     if (iter.ionScript()->invalidated())
         iter.ionScript()->decrementInvalidationCount(cx->runtime()->defaultFreeOp());
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
-        cx->mainThread().jitActivation->setLastProfilingFrame(currentFramePtr);
 
     return retval;
 }
@@ -113,7 +106,6 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     JitActivationIterator jitActivations(cx->runtime());
     BailoutFrameInfo bailoutData(jitActivations, sp);
     JitFrameIterator iter(jitActivations);
-    CommonFrameLayout *currentFramePtr = iter.current();
 
     TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogTimestamp(logger, TraceLogger_Invalidation);
@@ -126,8 +118,9 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     MOZ_ASSERT(IsBaselineEnabled(cx));
 
     *bailoutInfo = nullptr;
+    bool poppedLastSPSFrame = false;
     uint32_t retval = BailoutIonToBaseline(cx, bailoutData.activation(), iter, true, bailoutInfo,
-                                            nullptr);
+                                            nullptr, &poppedLastSPSFrame);
     MOZ_ASSERT(retval == BAILOUT_RETURN_OK ||
                retval == BAILOUT_RETURN_FATAL_ERROR ||
                retval == BAILOUT_RETURN_OVERRECURSED);
@@ -145,9 +138,11 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
         
         
         
+        bool popSPSFrame = iter.ionScript()->hasSPSInstrumentation() &&
+                           (SnapshotIterator(iter).bailoutKind() != Bailout_ArgumentCheck) &&
+                           !poppedLastSPSFrame;
         JSScript *script = iter.script();
-        probes::ExitScript(cx, script, script->functionNonDelazifying(),
-                            false);
+        probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
 
         JitFrameLayout *frame = iter.jsFrame();
         JitSpew(JitSpew_IonInvalidate, "Bailout failed (%s): converting to exit frame",
@@ -165,10 +160,6 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     }
 
     iter.ionScript()->decrementInvalidationCount(cx->runtime()->defaultFreeOp());
-
-    
-    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
-        cx->mainThread().jitActivation->setLastProfilingFrame(currentFramePtr);
 
     return retval;
 }
@@ -190,7 +181,7 @@ uint32_t
 jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
                              ResumeFromException *rfe,
                              const ExceptionBailoutInfo &excInfo,
-                             bool *overrecursed)
+                             bool *overrecursed, bool *poppedLastSPSFrameOut)
 {
     
     
@@ -203,11 +194,10 @@ jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
     JitActivationIterator jitActivations(cx->runtime());
     BailoutFrameInfo bailoutData(jitActivations, frame.frame());
     JitFrameIterator iter(jitActivations);
-    CommonFrameLayout *currentFramePtr = iter.current();
 
     BaselineBailoutInfo *bailoutInfo = nullptr;
     uint32_t retval = BailoutIonToBaseline(cx, bailoutData.activation(), iter, true,
-                                           &bailoutInfo, &excInfo);
+                                           &bailoutInfo, &excInfo, poppedLastSPSFrameOut);
 
     if (retval == BAILOUT_RETURN_OK) {
         MOZ_ASSERT(bailoutInfo);
@@ -235,10 +225,6 @@ jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
         else
             MOZ_ASSERT(retval == BAILOUT_RETURN_FATAL_ERROR);
     }
-
-    
-    if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(cx->runtime()))
-        cx->mainThread().jitActivation->setLastProfilingFrame(currentFramePtr);
 
     return retval;
 }

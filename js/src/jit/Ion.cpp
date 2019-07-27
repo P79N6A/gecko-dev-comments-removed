@@ -153,7 +153,6 @@ JitRuntime::JitRuntime()
     ionAlloc_(nullptr),
     exceptionTail_(nullptr),
     bailoutTail_(nullptr),
-    profilerExitFrameTail_(nullptr),
     enterJIT_(nullptr),
     bailoutHandler_(nullptr),
     argumentsRectifier_(nullptr),
@@ -201,11 +200,6 @@ JitRuntime::initialize(JSContext *cx)
 
     functionWrappers_ = cx->new_<VMWrapperMap>(cx);
     if (!functionWrappers_ || !functionWrappers_->init())
-        return false;
-
-    JitSpew(JitSpew_Codegen, "# Emitting profiler exit frame tail stub");
-    profilerExitFrameTail_ = generateProfilerExitFrameTailStub(cx);
-    if (!profilerExitFrameTail_)
         return false;
 
     JitSpew(JitSpew_Codegen, "# Emitting exception tail stub");
@@ -661,18 +655,17 @@ JitCode::trace(JSTracer *trc)
 void
 JitCode::finalize(FreeOp *fop)
 {
-    JSRuntime *rt = fop->runtime();
-
     
     if (hasBytecodeMap_) {
-        MOZ_ASSERT(rt->jitRuntime()->hasJitcodeGlobalTable());
-        rt->jitRuntime()->getJitcodeGlobalTable()->removeEntry(raw(), rt);
+        MOZ_ASSERT(fop->runtime()->jitRuntime()->hasJitcodeGlobalTable());
+        fop->runtime()->jitRuntime()->getJitcodeGlobalTable()->removeEntry(raw());
     }
 
     
     
     
-    memset(code_, JS_SWEPT_CODE_PATTERN, bufferSize_);
+    if (fop->runtime()->jitRuntime())
+        memset(code_, JS_SWEPT_CODE_PATTERN, bufferSize_);
     code_ = nullptr;
 
     
@@ -711,7 +704,7 @@ IonScript::IonScript()
     invalidateEpilogueOffset_(0),
     invalidateEpilogueDataOffset_(0),
     numBailouts_(0),
-    hasProfilingInstrumentation_(false),
+    hasSPSInstrumentation_(false),
     recompiling_(false),
     runtimeData_(0),
     runtimeSize_(0),

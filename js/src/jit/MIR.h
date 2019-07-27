@@ -11439,6 +11439,48 @@ class MNewStringObject :
 };
 
 
+
+
+class MProfilerStackOp : public MNullaryInstruction
+{
+  public:
+    enum Type {
+        Enter,        
+        Exit          
+    };
+
+  private:
+    JSScript *script_;
+    Type type_;
+
+    MProfilerStackOp(JSScript *script, Type type)
+      : script_(script), type_(type)
+    {
+        MOZ_ASSERT(script);
+        setGuard();
+    }
+
+  public:
+    INSTRUCTION_HEADER(ProfilerStackOp)
+
+    static MProfilerStackOp *New(TempAllocator &alloc, JSScript *script, Type type) {
+        return new(alloc) MProfilerStackOp(script, type);
+    }
+
+    JSScript *script() {
+        return script_;
+    }
+
+    Type type() {
+        return type_;
+    }
+
+    AliasSet getAliasSet() const MOZ_OVERRIDE {
+        return AliasSet::None();
+    }
+};
+
+
 class MEnclosingScope : public MLoadFixedSlot
 {
     explicit MEnclosingScope(MDefinition *obj)
