@@ -4,8 +4,10 @@
 
 package org.mozilla.gecko.background.fxa;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Locale;
 
 import org.mozilla.gecko.fxa.FxAccountConstants;
 
@@ -55,22 +57,60 @@ public class FxAccountAgeLockoutHelper {
 
 
 
+  public static boolean isMagicYear(int yearOfBirth) {
+    final Calendar cal = Calendar.getInstance();
+    final int thisYear = cal.get(Calendar.YEAR);
+    return (thisYear - yearOfBirth) == FxAccountConstants.MINIMUM_AGE_TO_CREATE_AN_ACCOUNT;
+  }
 
-  public static boolean passesAgeCheck(int yearOfBirth) {
-    int thisYear = Calendar.getInstance().get(Calendar.YEAR);
-    int approximateAge = thisYear - yearOfBirth;
-    boolean oldEnough = approximateAge >= FxAccountConstants.MINIMUM_AGE_TO_CREATE_AN_ACCOUNT;
+  
+
+
+
+
+
+
+
+
+
+
+  public static boolean passesAgeCheck(final int dayOfBirth, final int zeroBasedMonthOfBirth, final int yearOfBirth) {
+    final Calendar latestBirthday = Calendar.getInstance();
+    final int y = latestBirthday.get(Calendar.YEAR);
+    final int m = latestBirthday.get(Calendar.MONTH);
+    final int d = latestBirthday.get(Calendar.DAY_OF_MONTH);
+    latestBirthday.clear();
+    latestBirthday.set(y - FxAccountConstants.MINIMUM_AGE_TO_CREATE_AN_ACCOUNT, m, d);
+
+    
+    latestBirthday.add(Calendar.SECOND, 1);
+
+    final Calendar birthday = Calendar.getInstance();
+    birthday.clear();
+    birthday.set(yearOfBirth, zeroBasedMonthOfBirth, dayOfBirth);
+
+    boolean oldEnough = birthday.before(latestBirthday);
+
     if (FxAccountUtils.LOG_PERSONAL_INFORMATION) {
-      FxAccountUtils.pii(LOG_TAG, "Age check " + (oldEnough ? "passes" : "fails") +
-          ": age is " + approximateAge + " = " + thisYear + " - " + yearOfBirth);
+      final StringBuilder message = new StringBuilder();
+      final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.getDefault());
+      message.append("Age check ");
+      message.append(oldEnough ? "passes" : "fails");
+      message.append(": birthday is ");
+      message.append(sdf.format(birthday.getTime()));
+      message.append("; latest birthday is ");
+      message.append(sdf.format(latestBirthday.getTime()));
+      message.append(" (Y/M/D).");
+      FxAccountUtils.pii(LOG_TAG, message.toString());
     }
+
     return oldEnough;
   }
 
   
 
 
-  public static boolean passesAgeCheck(String yearText, String[] yearItems) {
+  public static boolean passesAgeCheck(int dayOfBirth, int zeroBaseMonthOfBirth, String yearText, String[] yearItems) {
     if (yearText == null) {
       throw new IllegalArgumentException("yearText must not be null");
     }
@@ -91,6 +131,7 @@ public class FxAccountAgeLockoutHelper {
       FxAccountUtils.pii(LOG_TAG, "Passed age check: year text was found in item list but was not a number.");
       return true;
     }
-    return passesAgeCheck(yearOfBirth);
+
+    return passesAgeCheck(dayOfBirth, zeroBaseMonthOfBirth, yearOfBirth);
   }
 }

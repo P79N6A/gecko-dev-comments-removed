@@ -17,7 +17,7 @@ public class FxAccountConstants {
   public static final String STAGE_TOKEN_SERVER_ENDPOINT = "https://token.stage.mozaws.net/1.0/sync/1.5";
 
   
-  public static final int MINIMUM_AGE_TO_CREATE_AN_ACCOUNT = 14;
+  public static final int MINIMUM_AGE_TO_CREATE_AN_ACCOUNT = 13;
 
   
   public static final long MINIMUM_TIME_TO_WAIT_AFTER_AGE_CHECK_FAILED_IN_MILLISECONDS = 15 * 60 * 1000;
