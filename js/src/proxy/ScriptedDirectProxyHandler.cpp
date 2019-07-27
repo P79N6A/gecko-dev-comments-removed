@@ -310,7 +310,7 @@ ScriptedDirectProxyHandler::setImmutablePrototype(JSContext *cx, HandleObject pr
 
 bool
 ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
-                                              bool *succeeded) const
+                                              ObjectOpResult &result) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
@@ -329,7 +329,7 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::preventExtensions(cx, proxy, succeeded);
+        return DirectProxyHandler::preventExtensions(cx, proxy, result);
 
     
     Value argv[] = {
@@ -340,22 +340,18 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
         return false;
 
     
-    bool booleanTrapResult = ToBoolean(trapResult);
-
-    
-    if (booleanTrapResult) {
+    if (ToBoolean(trapResult)) {
         bool extensible;
         if (!IsExtensible(cx, target, &extensible))
             return false;
         if (extensible) {
-            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_REPORT_AS_NON_EXTENSIBLE);
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr,
+                                 JSMSG_CANT_REPORT_AS_NON_EXTENSIBLE);
             return false;
         }
+        return result.succeed();
     }
-
-    
-    *succeeded = booleanTrapResult;
-    return true;
+    return result.fail(JSMSG_PROXY_PREVENTEXTENSIONS_RETURNED_FALSE);
 }
 
 

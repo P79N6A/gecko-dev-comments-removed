@@ -1764,16 +1764,15 @@ XrayToString(JSContext *cx, unsigned argc, Value *vp)
 
 template <typename Base, typename Traits>
 bool
-XrayWrapper<Base, Traits>::preventExtensions(JSContext *cx, HandleObject wrapper, bool *succeeded)
-                                             const
+XrayWrapper<Base, Traits>::preventExtensions(JSContext *cx, HandleObject wrapper,
+                                             ObjectOpResult &result) const
 {
     
     
     
     
     
-    *succeeded = false;
-    return true;
+    return result.failCantPreventExtensions();
 }
 
 template <typename Base, typename Traits>

@@ -969,13 +969,8 @@ js::SetIntegrityLevel(JSContext *cx, HandleObject obj, IntegrityLevel level)
     assertSameCompartment(cx, obj);
 
     
-    bool status;
-    if (!PreventExtensions(cx, obj, &status))
+    if (!PreventExtensions(cx, obj))
         return false;
-    if (!status) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_CHANGE_EXTENSIBILITY);
-        return false;
-    }
 
     
     AutoIdVector keys(cx);
@@ -3173,35 +3168,38 @@ js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succ
 }
 
 bool
-js::PreventExtensions(JSContext *cx, HandleObject obj, bool *succeeded)
+js::PreventExtensions(JSContext *cx, HandleObject obj, ObjectOpResult &result)
 {
     if (obj->is<ProxyObject>())
-        return js::Proxy::preventExtensions(cx, obj, succeeded);
+        return js::Proxy::preventExtensions(cx, obj, result);
 
-    if (!obj->nonProxyIsExtensible()) {
-        *succeeded = true;
-        return true;
-    }
+    if (!obj->nonProxyIsExtensible())
+        return result.succeed();
 
     
-
-
-
     AutoIdVector props(cx);
     if (!js::GetPropertyKeys(cx, obj, JSITER_HIDDEN | JSITER_OWNONLY, &props))
         return false;
 
     
+    
+    
+    
+    if (obj->isNative()) {
+        if (!NativeObject::sparsifyDenseElements(cx, obj.as<NativeObject>()))
+            return false;
+    }
 
-
-
-
-
-    if (obj->isNative() && !NativeObject::sparsifyDenseElements(cx, obj.as<NativeObject>()))
+    if (!obj->setFlags(cx, BaseShape::NOT_EXTENSIBLE, JSObject::GENERATE_SHAPE))
         return false;
+    return result.succeed();
+}
 
-    *succeeded = true;
-    return obj->setFlags(cx, BaseShape::NOT_EXTENSIBLE, JSObject::GENERATE_SHAPE);
+bool
+js::PreventExtensions(JSContext *cx, HandleObject obj)
+{
+    ObjectOpResult result;
+    return PreventExtensions(cx, obj, result) && result.checkStrict(cx, obj);
 }
 
 bool

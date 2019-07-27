@@ -125,6 +125,7 @@ class ObjectOpResult
     JS_PUBLIC_API(bool) failCantDelete();
     JS_PUBLIC_API(bool) failCantDeleteWindowElement();
     JS_PUBLIC_API(bool) failCantDeleteWindowNamedProperty();
+    JS_PUBLIC_API(bool) failCantPreventExtensions();
 
     uint32_t failureCode() const {
         MOZ_ASSERT(!ok());
@@ -155,8 +156,10 @@ class ObjectOpResult
 
 
 
-    bool checkStrict(JSContext *cx, HandleObject obj, HandleId id) {
-        return checkStrictErrorOrWarning(cx, obj, id, true);
+
+
+    bool checkStrictErrorOrWarning(JSContext *cx, HandleObject obj, bool strict) {
+        return ok() || reportStrictErrorOrWarning(cx, obj, strict);
     }
 
     
@@ -165,7 +168,32 @@ class ObjectOpResult
     }
 
     
+
+
+
+    bool reportError(JSContext *cx, HandleObject obj) {
+        return reportStrictErrorOrWarning(cx, obj, true);
+    }
+
+    
     JS_PUBLIC_API(bool) reportStrictErrorOrWarning(JSContext *cx, HandleObject obj, HandleId id, bool strict);
+    JS_PUBLIC_API(bool) reportStrictErrorOrWarning(JSContext *cx, HandleObject obj, bool strict);
+
+    
+
+
+
+    bool checkStrict(JSContext *cx, HandleObject obj, HandleId id) {
+        return checkStrictErrorOrWarning(cx, obj, id, true);
+    }
+
+    
+
+
+
+    bool checkStrict(JSContext *cx, HandleObject obj) {
+        return checkStrictErrorOrWarning(cx, obj, true);
+    }
 };
 
 }
