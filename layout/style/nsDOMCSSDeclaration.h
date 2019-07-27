@@ -134,12 +134,18 @@ protected:
   
   
   struct CSSParsingEnvironment {
-    nsIURI* mSheetURI;
+    nsIURI* MOZ_UNSAFE_REF("user of CSSParsingEnviroment must hold an owning "
+                           "reference; reference counting here has unacceptable "
+                           "performance overhead (see bug 649163)") mSheetURI;
     nsCOMPtr<nsIURI> mBaseURI;
-    nsIPrincipal* mPrincipal;
-    mozilla::css::Loader* mCSSLoader;
+    nsIPrincipal* MOZ_UNSAFE_REF("user of CSSParsingEnviroment must hold an owning "
+                                 "reference; reference counting here has unacceptable "
+                                 "performance overhead (see bug 649163)") mPrincipal;
+    mozilla::css::Loader* MOZ_UNSAFE_REF("user of CSSParsingEnviroment must hold an owning "
+                                         "reference; reference counting here has unacceptable "
+                                         "performance overhead (see bug 649163)") mCSSLoader;
   };
-  
+
   
   
   
@@ -176,4 +182,4 @@ MOZ_ALWAYS_INLINE bool IsCSSPropertyExposedToJS(JSContext* cx, JSObject* obj)
   return IsCSSPropertyExposedToJS(Property, cx, obj);
 }
 
-#endif
+#endif 
