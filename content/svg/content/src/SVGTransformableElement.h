@@ -48,6 +48,7 @@ public:
                                       int32_t aModType) const MOZ_OVERRIDE;
 
 
+  
   virtual bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
 
 
@@ -65,8 +66,6 @@ public:
   virtual bool IsTransformable() MOZ_OVERRIDE { return true; }
 
 protected:
-  
-
   nsAutoPtr<nsSVGAnimatedTransformList> mTransforms;
 
   
@@ -77,4 +76,3 @@ protected:
 } 
 
 #endif 
-
