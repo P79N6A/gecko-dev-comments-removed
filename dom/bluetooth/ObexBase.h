@@ -234,6 +234,68 @@ public:
     }
   }
 
+  uint32_t GetConnectionId() const
+  {
+    int length = mHeaders.Length();
+
+    for (int i = 0; i < length; ++i) {
+      if (mHeaders[i]->mId == ObexHeaderId::ConnectionId) {
+        uint32_t* id = (uint32_t *) mHeaders[i]->mData.get();
+        return *id;
+      }
+    }
+
+    
+    
+    return 0xFFFFFFFF;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  bool GetAppParameter(uint8_t aTagId, uint8_t* aRetBuf, int aBufferSize) const
+  {
+    int length = mHeaders.Length();
+
+    for (int i = 0; i < length; ++i) {
+      
+      if (mHeaders[i]->mId == ObexHeaderId::AppParameters) {
+        uint8_t* ptr = mHeaders[i]->mData.get();
+        int dataLen = mHeaders[i]->mDataLength;
+
+        
+        
+        
+        uint8_t tagId;
+        uint8_t offset = 0;
+        do {
+          tagId = *(ptr + offset++);
+
+          
+          uint8_t paramLen = *(ptr + offset++);
+
+          if (tagId == aTagId) {
+            memcpy(aRetBuf, ptr + offset, paramLen < aBufferSize ? paramLen
+                                                                 : aBufferSize);
+            return true;
+          }
+
+          offset += paramLen;
+        } while (offset < dataLen);
+      }
+    }
+
+    
+    return false;
+  }
+
   bool Has(ObexHeaderId aId) const
   {
     int length = mHeaders.Length();
