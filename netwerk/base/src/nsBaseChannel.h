@@ -72,7 +72,7 @@ protected:
   
   
 
-  virtual ~nsBaseChannel() {}
+  virtual ~nsBaseChannel();
 
 private:
   
