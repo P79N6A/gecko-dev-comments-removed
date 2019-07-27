@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 describe("loop.panel", function() {
   "use strict";
@@ -18,7 +18,7 @@ describe("loop.panel", function() {
     sandbox = sinon.sandbox.create();
     fakeXHR = sandbox.useFakeXMLHttpRequest();
     requests = [];
-    
+    // https://github.com/cjohansen/Sinon.JS/issues/393
     fakeXHR.xhr.onCreate = function (xhr) {
       requests.push(xhr);
     };
@@ -803,12 +803,12 @@ describe("loop.panel", function() {
 
       var view = createTestComponent();
 
-      
+      // Simulate being visible
       view.onDocumentVisible();
 
       var node = view.getDOMNode();
 
-      
+      // Select the checkbox
       TestUtils.Simulate.click(node.querySelector(".checkbox-wrapper"));
 
       TestUtils.Simulate.click(node.querySelector(".new-room-button"));
@@ -843,29 +843,11 @@ describe("loop.panel", function() {
 
       var view = createTestComponent();
 
-      
+      // Simulate being visible
       view.onDocumentVisible();
 
       var contextContent = view.getDOMNode().querySelector(".context-content");
       expect(contextContent).to.not.equal(null);
-    });
-
-    it("should show a default favicon when none is available", function() {
-      fakeMozLoop.getSelectedTabMetadata = function (callback) {
-        callback({
-          url: "https://www.example.com",
-          description: "fake description",
-          previews: [""]
-        });
-      };
-
-      var view = createTestComponent();
-
-      
-      view.onDocumentVisible();
-
-      var previewImage = view.getDOMNode().querySelector(".context-preview");
-      expect(previewImage.src).to.match(/loop\/shared\/img\/icons-16x16.svg#globe$/);
     });
 
     it("should not show context information when a URL is unavailable", function() {
@@ -896,7 +878,7 @@ describe("loop.panel", function() {
 
       var view = createTestComponent();
 
-      
+      // Simulate being visible
       view.onDocumentVisible();
 
       var contextHostname = view.getDOMNode().querySelector(".context-url");
@@ -916,7 +898,7 @@ describe("loop.panel", function() {
 
       var view = createTestComponent();
 
-      
+      // Simulate being visible.
       view.onDocumentVisible();
 
       var contextPreview = view.getDOMNode().querySelector(".context-preview");

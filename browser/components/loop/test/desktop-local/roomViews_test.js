@@ -1,5 +1,5 @@
-
-
+/* Any copyright is dedicated to the Public Domain.
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 describe("loop.roomViews", function () {
   "use strict";
@@ -54,8 +54,8 @@ describe("loop.roomViews", function () {
     };
     loop.shared.mixins.setRootObject(fakeWindow);
 
-    
-    
+    // XXX These stubs should be hoisted in a common file
+    // Bug 1040968
     sandbox.stub(document.mozL10n, "get", function(x) {
       return x;
     });
@@ -212,7 +212,7 @@ describe("loop.roomViews", function () {
 
           React.addons.TestUtils.Simulate.click(copyBtn);
 
-          
+          // copied_url_button is the l10n string.
           expect(copyBtn.textContent).eql("copied_url_button");
       });
     });
@@ -282,7 +282,7 @@ describe("loop.roomViews", function () {
         expect(view.state.editMode).to.eql(true);
         var node = view.getDOMNode();
         expect(node.querySelector("form")).to.not.eql(null);
-        
+        // No text paragraphs should be visible in editMode.
         var visiblePs = Array.slice(node.querySelector("p")).filter(function(p) {
           return p.classList.contains("hide") || p.classList.contains("error");
         });
@@ -304,19 +304,6 @@ describe("loop.roomViews", function () {
 
         expect(view.getDOMNode().querySelector(".room-context-url").textContent)
           .eql("hostname");
-      });
-
-      it("should show a default favicon when none is available", function() {
-        fakeContextURL.thumbnail = null;
-        view = mountTestComponent({
-          showContext: true,
-          roomData: {
-            roomContextUrls: [fakeContextURL]
-          }
-        });
-
-        expect(view.getDOMNode().querySelector(".room-context-thumbnail").src)
-          .to.match(/loop\/shared\/img\/icons-16x16.svg#globe$/);
       });
     });
   });
@@ -766,7 +753,7 @@ describe("loop.roomViews", function () {
 
         var node = view.getDOMNode();
         expect(node.querySelector("form")).to.not.eql(null);
-        
+        // Check the contents of the form fields.
         expect(node.querySelector(".room-context-name").value).to.eql(roomName);
         expect(node.querySelector(".room-context-url").value).to.eql(fakeContextURL.location);
         expect(node.querySelector(".room-context-comments").value).to.eql(fakeContextURL.description);
@@ -796,10 +783,10 @@ describe("loop.roomViews", function () {
           }
         });
 
-        
-        
+        // Switch to editMode via setting the prop, since we can control that
+        // better.
         view.setProps({ editMode: true }, function() {
-          
+          // First check if availableContext is set correctly.
           expect(view.state.availableContext).to.not.eql(null);
           expect(view.state.availableContext.previewImage).to.eql(favicon);
 
@@ -821,10 +808,10 @@ describe("loop.roomViews", function () {
           }
         });
 
-        
-        
+        // Switch to editMode via setting the prop, since we can control that
+        // better.
         view.setProps({ editMode: true }, function() {
-          
+          // First check if availableContext is set correctly.
           expect(view.state.availableContext).to.not.eql(null);
           expect(view.state.availableContext.previewImage).to.eql(favicon);
 
@@ -895,12 +882,12 @@ describe("loop.roomViews", function () {
       it("should close the edit form when context was saved successfully", function(done) {
         view.setProps({ savingContext: true }, function() {
           var node = view.getDOMNode();
-          
+          // The button should show up as disabled.
           expect(node.querySelector(".btn-info").hasAttribute("disabled")).to.eql(true);
 
-          
+          // Now simulate a successful save.
           view.setProps({ savingContext: false }, function() {
-            
+            // The editMode flag should be updated.
             expect(view.state.editMode).to.eql(false);
             done();
           });
@@ -939,7 +926,7 @@ describe("loop.roomViews", function () {
 
       it("should undo prefill when clicking the checkbox again", function() {
         React.addons.TestUtils.Simulate.click(checkbox);
-        
+        // Twice.
         React.addons.TestUtils.Simulate.click(checkbox);
 
         expect(node.querySelector(".room-context-name").value).to.eql("fakeName");

@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 describe("loop.standaloneRoomViews", function() {
   "use strict";
@@ -37,7 +37,7 @@ describe("loop.standaloneRoomViews", function() {
 
     sandbox.useFakeTimers();
 
-    
+    // Prevents audio request errors in the test console.
     sandbox.useFakeXMLHttpRequest();
   });
 
@@ -148,20 +148,6 @@ describe("loop.standaloneRoomViews", function() {
         new sharedActions.RecordClick({
           linkInfo: "Shared URL"
         }));
-    });
-
-    it("should display the default favicon when no thumbnail is available", function() {
-      var view = mountTestComponent({
-        roomName: "Mike's room",
-        roomContextUrls: [{
-          description: "Mark's super page",
-          location: "http://invalid.com",
-          thumbnail: ""
-        }]
-      });
-
-      expect(view.getDOMNode().querySelector(".standalone-context-url > img").src)
-        .to.match(/shared\/img\/icons-16x16.svg#globe$/);
     });
   });
 
@@ -537,7 +523,7 @@ describe("loop.standaloneRoomViews", function() {
           height: 0.75
         });
 
-        
+        // 200 (top) - 75 (height) - 10 (spacing) = 115
         expect(remoteElement.style.top).eql("115px");
       });
 

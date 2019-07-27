@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var loop = loop || {};
 loop.standaloneRoomViews = (function(mozL10n) {
@@ -24,7 +24,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
     },
 
     onFeedbackSent: function() {
-      
+      // We pass a tick to prevent React warnings regarding nested updates.
       setTimeout(function() {
         this.props.activeRoomStore.dispatchAction(new sharedActions.FeedbackComplete());
       }.bind(this));
@@ -49,13 +49,13 @@ loop.standaloneRoomViews = (function(mozL10n) {
       );
     },
 
-    
-
-
+    /**
+     * @return String An appropriate string according to the failureReason.
+     */
     _getFailureString: function() {
       switch(this.props.failureReason) {
         case FAILURE_DETAILS.MEDIA_DENIED:
-        
+        // XXX Bug 1166824 should provide a better string for this.
         case FAILURE_DETAILS.NO_MEDIA:
           return mozL10n.get("rooms_media_denied_message");
         case FAILURE_DETAILS.EXPIRED_OR_INVALID:
@@ -69,7 +69,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
       switch(this.props.roomState) {
         case ROOM_STATES.INIT:
         case ROOM_STATES.READY: {
-          
+          // XXX: In ENDED state, we should rather display the feedback form.
           return (
             React.createElement("div", {className: "room-inner-info-area"}, 
               React.createElement("button", {className: "btn btn-join btn-info", 
@@ -134,8 +134,8 @@ loop.standaloneRoomViews = (function(mozL10n) {
             );
           }
 
-          
-          
+          // In case the room was not used (no one was here), we
+          // bypass the feedback form.
           this.onFeedbackSent();
           return null;
         }
@@ -190,9 +190,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
     },
 
     _getContent: function() {
-      
-      
-      
+      // We use this technique of static markup as it means we get
+      // just one overall string for L10n to define the structure of
+      // the whole item.
       return mozL10n.get("legal_text_and_links", {
         "clientShortname": mozL10n.get("clientShortname2"),
         "terms_of_use_url": React.renderToStaticMarkup(
@@ -209,8 +209,8 @@ loop.standaloneRoomViews = (function(mozL10n) {
     },
 
     recordClick: function(event) {
-      
-      
+      // Check for valid href, as this is clicking on the paragraph -
+      // so the user may be clicking on the text rather than the link.
       if (event.target && event.target.href) {
         this.props.dispatcher.dispatch(new sharedActions.RecordClick({
           linkInfo: event.target.href
@@ -262,7 +262,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
       return (
         React.createElement("div", {className: classes}, 
-          React.createElement("img", {src: this.props.roomContextUrl.thumbnail || "shared/img/icons-16x16.svg#globe"}), 
+            React.createElement("img", {src: this.props.roomContextUrl.thumbnail}), 
           React.createElement("div", {className: "standalone-context-url-description-wrapper"}, 
             this.props.roomContextUrl.description, 
             React.createElement("br", null), React.createElement("a", {href: locationInfo.location, 
@@ -298,8 +298,8 @@ loop.standaloneRoomViews = (function(mozL10n) {
     },
 
     render: function() {
-      
-      
+      // For failures, we currently just log the messages - UX doesn't want them
+      // displayed on primary UI at the moment.
       if (this.props.roomInfoFailure === ROOM_INFO_FAILURES.WEB_CRYPTO_UNSUPPORTED) {
         this._logFailure("room_information_failure_unsupported_browser");
         return null;
@@ -308,7 +308,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
         return null;
       }
 
-      
+      // We only support one item in the context Urls array for now.
       var roomContextUrl = (this.props.roomContextUrls &&
                             this.props.roomContextUrls.length > 0) ?
                             this.props.roomContextUrls[0] : null;
@@ -338,7 +338,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
       ]).isRequired,
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       isFirefox: React.PropTypes.bool.isRequired,
-      
+      // The poster URLs are for UI-showcase testing and development
       localPosterUrl: React.PropTypes.string,
       remotePosterUrl: React.PropTypes.string,
       screenSharePosterUrl: React.PropTypes.string
@@ -347,7 +347,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
     getInitialState: function() {
       var storeState = this.props.activeRoomStore.getStoreState();
       return _.extend({}, storeState, {
-        
+        // Used by the UI showcase.
         roomState: this.props.roomState || storeState.roomState
       });
     },
@@ -357,12 +357,12 @@ loop.standaloneRoomViews = (function(mozL10n) {
                     this._onActiveRoomStateChanged);
     },
 
-    
-
-
-
-
-
+    /**
+     * Handles a "change" event on the roomStore, and updates this.state
+     * to match the store.
+     *
+     * @private
+     */
     _onActiveRoomStateChanged: function() {
       var state = this.props.activeRoomStore.getStoreState();
       this.updateVideoDimensions(state.localVideoDimensions, state.remoteVideoDimensions);
@@ -370,7 +370,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
     },
 
     componentDidMount: function() {
-      
+      // Adding a class to the document body element from here to ease styling it.
       document.body.classList.add("is-standalone-room");
     },
 
@@ -378,13 +378,13 @@ loop.standaloneRoomViews = (function(mozL10n) {
       this.stopListening(this.props.activeRoomStore);
     },
 
-    
-
-
-
-
-
-
+    /**
+     * Watches for when we transition to MEDIA_WAIT room state, so we can request
+     * user media access.
+     *
+     * @param  {Object} nextProps (Unused)
+     * @param  {Object} nextState Next state object.
+     */
     componentWillUpdate: function(nextProps, nextState) {
       if (this.state.roomState !== ROOM_STATES.MEDIA_WAIT &&
           nextState.roomState === ROOM_STATES.MEDIA_WAIT) {
@@ -395,9 +395,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
       if (this.state.roomState !== ROOM_STATES.JOINED &&
           nextState.roomState === ROOM_STATES.JOINED) {
-        
-        
-        
+        // This forces the video size to update - creating the publisher
+        // first, and then connecting to the session doesn't seem to set the
+        // initial size correctly.
         this.updateVideoContainer();
       }
 
@@ -407,9 +407,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
         this.resetDimensionsCache();
       }
 
-      
+      // When screen sharing stops.
       if (this.state.receivingScreenShare && !nextState.receivingScreenShare) {
-        
+        // Remove the custom screenshare styles on the remote camera.
         var node = this._getElement(".remote");
         node.removeAttribute("style");
       }
@@ -428,23 +428,23 @@ loop.standaloneRoomViews = (function(mozL10n) {
       this.props.dispatcher.dispatch(new sharedActions.LeaveRoom());
     },
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Wrapper for window.matchMedia so that we use an appropriate version
+     * for the ui-showcase, which puts views inside of their own iframes.
+     *
+     * Currently, we use an icky hack, and the showcase conspires with
+     * react-frame-component to set iframe.contentWindow.matchMedia onto
+     * activeRoomStore.  Once React context matures a bit (somewhere between
+     * 0.14 and 1.0, apparently):
+     *
+     * https://facebook.github.io/react/blog/2015/02/24/streamlining-react-elements.html#solution-make-context-parent-based-instead-of-owner-based
+     *
+     * we should be able to use those to clean this up.
+     *
+     * @param queryString
+     * @returns {MediaQueryList|null}
+     * @private
+     */
     _matchMedia: function(queryString) {
       if ("matchMedia" in this.state) {
         return this.state.matchMedia(queryString);
@@ -454,12 +454,12 @@ loop.standaloneRoomViews = (function(mozL10n) {
       return null;
     },
 
-    
-
-
-
-
-
+    /**
+     * Toggles streaming status for a given stream type.
+     *
+     * @param  {String}  type     Stream type ("audio" or "video").
+     * @param  {Boolean} enabled  Enabled stream flag.
+     */
     publishStream: function(type, enabled) {
       this.props.dispatcher.dispatch(new sharedActions.SetMute({
         type: type,
@@ -467,20 +467,20 @@ loop.standaloneRoomViews = (function(mozL10n) {
       }));
     },
 
-    
-
-
-
-
-
-
-
+    /**
+     * Specifically updates the local camera stream size and position, depending
+     * on the size and position of the remote video stream.
+     * This method gets called from `updateVideoContainer`, which is defined in
+     * the `MediaSetupMixin`.
+     *
+     * @param  {Object} ratio Aspect ratio of the local camera stream
+     */
     updateLocalCameraPosition: function(ratio) {
-      
+      // The local stream is a quarter of the remote stream.
       var LOCAL_STREAM_SIZE = 0.25;
-      
+      // The local stream overlaps the remote stream by a quarter of the local stream.
       var LOCAL_STREAM_OVERLAP = 0.25;
-      
+      // The minimum size of video height/width allowed by the sdk css.
       var SDK_MIN_SIZE = 48;
 
       var node = this._getElement(".local");
@@ -488,17 +488,17 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
       node.style.right = "auto";
       if (this._matchMedia("screen and (max-width:640px)").matches) {
-        
+        // For reduced screen widths, we just go for a fixed size and no overlap.
         targetWidth = 180;
         node.style.width = (targetWidth * ratio.width) + "px";
         node.style.height = (targetWidth * ratio.height) + "px";
         node.style.left = "auto";
       } else {
-        
-        
+        // The local camera view should be a quarter of the size of the remote stream
+        // and positioned to overlap with the remote stream at a quarter of its width.
 
-        
-        
+        // Now position the local camera view correctly with respect to the remote
+        // video stream or the screen share stream.
         var remoteVideoDimensions;
         var isScreenShare = this.state.receivingScreenShare;
         var videoDisplayed = isScreenShare ?
@@ -524,7 +524,7 @@ loop.standaloneRoomViews = (function(mozL10n) {
         var realWidth = targetWidth * ratio.width;
         var realHeight = targetWidth * ratio.height;
 
-        
+        // If we've hit the min size limits, then limit at the minimum.
         if (realWidth < SDK_MIN_SIZE) {
           realWidth = SDK_MIN_SIZE;
           realHeight = realWidth / ratio.width * ratio.height;
@@ -535,80 +535,80 @@ loop.standaloneRoomViews = (function(mozL10n) {
         }
 
         var offsetX = (remoteVideoDimensions.streamWidth + remoteVideoDimensions.offsetX);
-        
-        
-        
-        
+        // The horizontal offset of the stream, and the width of the resulting
+        // pillarbox, is determined by the height exponent of the aspect ratio.
+        // Therefore we multiply the width of the local camera view by the height
+        // ratio.
         node.style.left = (offsetX - (realWidth * LOCAL_STREAM_OVERLAP)) + "px";
         node.style.width = realWidth + "px";
         node.style.height = realHeight + "px";
       }
     },
 
-    
-
-
-
-
-
-
-
-
+    /**
+     * Specifically updates the remote camera stream size and position, if
+     * a screen share is being received. It is slaved from the position of the
+     * local stream.
+     * This method gets called from `updateVideoContainer`, which is defined in
+     * the `MediaSetupMixin`.
+     *
+     * @param  {Object} ratio Aspect ratio of the remote camera stream
+     */
     updateRemoteCameraPosition: function(ratio) {
-      
+      // Nothing to do for screenshare
       if (!this.state.receivingScreenShare) {
         return;
       }
-      
-      
+      // XXX For the time being, if we're a narrow screen, aka mobile, we don't display
+      // the remote media (bug 1133534).
       if (this._matchMedia("screen and (max-width:640px)").matches) {
         return;
       }
 
-      
+      // 10px separation between the two streams.
       var LOCAL_REMOTE_SEPARATION = 10;
 
       var node = this._getElement(".remote");
       var localNode = this._getElement(".local");
 
-      
+      // Match the width to the local video.
       node.style.width = localNode.offsetWidth + "px";
 
-      
+      // The height is then determined from the aspect ratio
       var height = ((localNode.offsetWidth / ratio.width) * ratio.height);
       node.style.height = height + "px";
 
       node.style.right = "auto";
       node.style.bottom = "auto";
 
-      
-      
+      // Now position the local camera view correctly with respect to the remote
+      // video stream.
 
-      
-      
+      // The top is measured from the top of the element down the screen,
+      // so subtract the height of the video and the separation distance.
       node.style.top = (localNode.offsetTop - height - LOCAL_REMOTE_SEPARATION) + "px";
 
-      
+      // Match the left-hand sides.
       node.style.left = localNode.offsetLeft + "px";
     },
 
-    
-
-
-
-
+    /**
+     * Checks if current room is active.
+     *
+     * @return {Boolean}
+     */
     _roomIsActive: function() {
       return this.state.roomState === ROOM_STATES.JOINED            ||
              this.state.roomState === ROOM_STATES.SESSION_CONNECTED ||
              this.state.roomState === ROOM_STATES.HAS_PARTICIPANTS;
     },
 
-    
-
-
-
-
-
+    /**
+     * Works out if remote video should be rended or not, depending on the
+     * room state and other flags.
+     *
+     * @return {Boolean} True if remote video should be rended.
+     */
     shouldRenderRemoteVideo: function() {
       switch(this.state.roomState) {
         case ROOM_STATES.HAS_PARTICIPANTS:
@@ -617,8 +617,8 @@ loop.standaloneRoomViews = (function(mozL10n) {
           }
 
           if (this.state.mediaConnected) {
-            
-            
+            // since the remoteVideo hasn't yet been enabled, if the
+            // media is connected, then we should be displaying an avatar.
             return false;
           }
 
@@ -630,12 +630,12 @@ loop.standaloneRoomViews = (function(mozL10n) {
         case ROOM_STATES.SESSION_CONNECTED:
         case ROOM_STATES.JOINED:
         case ROOM_STATES.MEDIA_WAIT:
-          
-          
+          // this case is so that we don't show an avatar while waiting for
+          // the other party to connect
           return true;
 
         case ROOM_STATES.CLOSING:
-          
+          // the other person has shown up, so we don't want to show an avatar
           return true;
 
         default:

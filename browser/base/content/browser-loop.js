@@ -522,38 +522,38 @@ let LoopUI;
 
 
     getFavicon: function(callback) {
-      let pageURI = gBrowser.selectedTab.linkedBrowser.currentURI.spec;
+      let favicon = gBrowser.getIcon(gBrowser.selectedTab);
       
-      if (!/^https?:/.test(pageURI)) {
-        callback();
+      
+      if (/^https?:/.test(favicon)) {
+        let faviconURI = makeURI(favicon);
+        favicon = this.favIconService.getFaviconLinkForIcon(faviconURI).spec;
+      }
+      if (!favicon) {
+        callback(new Error("No favicon found"));
         return;
       }
+      favicon = this.PlacesUtils.getImageURLForResolution(window, favicon);
 
-      this.PlacesUtils.promiseFaviconLinkUrl(pageURI).then(uri => {
-        uri = this.PlacesUtils.getImageURLForResolution(window, uri.spec);
+      
+      
+      let xhr = new XMLHttpRequest();
+      xhr.open("get", favicon, true);
+      xhr.responseType = "blob";
+      xhr.overrideMimeType("image/x-icon");
+      xhr.onload = () => {
+        if (xhr.status != 200) {
+          callback(new Error("Invalid status code received for favicon XHR: " + xhr.status));
+          return;
+        }
 
-        
-        
-        let xhr = new XMLHttpRequest();
-        xhr.open("get", uri, true);
-        xhr.responseType = "blob";
-        xhr.overrideMimeType("image/x-icon");
-        xhr.onload = () => {
-          if (xhr.status != 200) {
-            callback(new Error("Invalid status code received for favicon XHR: " + xhr.status));
-            return;
-          }
-
-          let reader = new FileReader();
-          reader.onload = reader.onload = () => callback(null, reader.result);
-          reader.onerror = callback;
-          reader.readAsDataURL(xhr.response);
-        };
-        xhr.onerror = callback;
-        xhr.send();
-      }).catch(err => {
-        callback(err || new Error("No favicon found"));
-      });
+        let reader = new FileReader();
+        reader.onload = () => callback(null, reader.result);
+        reader.onerror = callback;
+        reader.readAsDataURL(xhr.response);
+      };
+      xhr.onerror = callback;
+      xhr.send();
     }
   };
 })();
@@ -563,3 +563,5 @@ XPCOMUtils.defineLazyModuleGetter(LoopUI, "LoopRooms", "resource:///modules/loop
 XPCOMUtils.defineLazyModuleGetter(LoopUI, "MozLoopService", "resource:///modules/loop/MozLoopService.jsm");
 XPCOMUtils.defineLazyModuleGetter(LoopUI, "PanelFrame", "resource:///modules/PanelFrame.jsm");
 XPCOMUtils.defineLazyModuleGetter(LoopUI, "PlacesUtils", "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyServiceGetter(LoopUI, "favIconService",
+  "@mozilla.org/browser/favicon-service;1", "nsIFaviconService");
