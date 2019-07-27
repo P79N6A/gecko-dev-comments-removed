@@ -50,11 +50,6 @@ ValueNumberer::VisibleValues::ValueHasher::hash(Lookup ins)
 bool
 ValueNumberer::VisibleValues::ValueHasher::match(Key k, Lookup l)
 {
-    
-    
-    if (k->dependency() != l->dependency())
-        return false;
-
     return k->congruentTo(l); 
 }
 
@@ -411,13 +406,17 @@ ValueNumberer::leader(MDefinition *def)
         
         VisibleValues::AddPtr p = values_.findLeaderForAdd(def);
         if (p) {
+            
             MDefinition *rep = *p;
-            if (rep->block()->dominates(def->block())) {
+            if (rep->block()->dominates(def->block()) &&
+                rep->dependency() == def->dependency())
+            {
                 
                 MOZ_ASSERT(!rep->isInWorklist(), "Dead value in set");
                 return rep;
             }
 
+            
             
             
             values_.overwrite(p, def);
