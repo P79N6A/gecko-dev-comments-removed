@@ -118,7 +118,7 @@ GetJSValFromKeyPathString(JSContext* aCx,
         IDB_ENSURE_TRUE(ok, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
         
-        if (intermediate == JSVAL_VOID) {
+        if (intermediate.isUndefined()) {
           return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
         }
         if (tokenizer.hasMoreTokens()) {
@@ -149,7 +149,7 @@ GetJSValFromKeyPathString(JSContext* aCx,
       
       
 
-      *aKeyJSVal = JSVAL_VOID;
+      aKeyJSVal->setUndefined();
 
       if (tokenizer.hasMoreTokens()) {
         

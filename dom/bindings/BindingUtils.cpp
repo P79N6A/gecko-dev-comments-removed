@@ -193,7 +193,7 @@ ErrorResult::ThrowJSException(JSContext* cx, JS::Handle<JS::Value> exn)
   
   
   
-  mJSException = JS::UndefinedValue();
+  mJSException.setUndefined();
   if (!js::AddRawValueRoot(cx, &mJSException, "ErrorResult::mJSException")) {
     
     

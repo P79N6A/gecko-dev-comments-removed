@@ -33,7 +33,7 @@ DOMCursor::Reset()
   MOZ_ASSERT(!mFinished);
 
   
-  mResult = JSVAL_VOID;
+  mResult.setUndefined();
   mDone = false;
 }
 
@@ -66,7 +66,7 @@ DOMCursor::Continue(ErrorResult& aRv)
   MOZ_ASSERT(mCallback, "If you're creating your own cursor class with no callback, you should override Continue()");
 
   
-  if (mResult == JSVAL_VOID) {
+  if (mResult.isUndefined()) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
