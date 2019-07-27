@@ -131,8 +131,12 @@ this.ImportExport = {
     }
 
     let files = [];
+    debug("aApp=" + uneval(aApp));
     if (aApp.origin.startsWith("app://")) {
-      files.push("update.webapp");
+      
+      if (!aApp.sideloaded) {
+        files.push("update.webapp");
+      }
       files.push("application.zip");
     } else {
       files.push("manifest.webapp");
@@ -215,18 +219,19 @@ this.ImportExport = {
   _importPackagedApp: function(aZipReader, aManifestURL, aDir) {
     debug("Importing packaged app " + aManifestURL);
 
-    if (!aZipReader.hasEntry("update.webapp")) {
-      throw "NoUpdateManifestFound";
-    }
-
     if (!aZipReader.hasEntry("application.zip")) {
       throw "NoPackageFound";
     }
 
     
+    let files = [];
+    aZipReader.hasEntry("update.webapp") && files.push("update.webapp");
+    files.push("application.zip");
+
+    
     
     let file;
-    ["update.webapp", "application.zip"].forEach((aName) => {
+    files.forEach((aName) => {
       file = aDir.clone();
       file.append(aName);
       aZipReader.extract(aName, file);
