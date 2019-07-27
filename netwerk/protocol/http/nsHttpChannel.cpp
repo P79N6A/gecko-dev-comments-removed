@@ -2951,11 +2951,8 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
 
     
     
-    
-    
     NS_ENSURE_TRUE((mCachedResponseHead->Status() / 100 != 3) ||
-                   isCachedRedirect ||
-                   mInterceptCache == INTERCEPTED, NS_ERROR_ABORT);
+                   isCachedRedirect, NS_ERROR_ABORT);
 
     
     
