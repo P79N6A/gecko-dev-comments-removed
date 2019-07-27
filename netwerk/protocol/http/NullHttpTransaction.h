@@ -62,7 +62,9 @@ private:
   
   
   
-  uint32_t mCapsToClear;
+  
+  
+  Atomic<uint32_t> mCapsToClear;
   nsHttpRequestHead *mRequestHead;
   bool mIsDone;
   bool mClaimed;
