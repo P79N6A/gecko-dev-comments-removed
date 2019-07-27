@@ -1309,8 +1309,22 @@ DocAccessible::GetAccessibleOrContainer(nsINode* aNode) const
 
   nsINode* currNode = aNode;
   Accessible* accessible = nullptr;
-  while (!(accessible = GetAccessible(currNode)) &&
-         (currNode = currNode->GetParentNode()));
+  while (!(accessible = GetAccessible(currNode))) {
+    nsINode* parent = nullptr;
+
+    
+    
+    
+    if (currNode->IsContent())
+      parent = currNode->AsContent()->GetFlattenedTreeParent();
+
+    
+    
+    if (!parent)
+      parent = currNode->GetParentNode();
+
+    if (!(currNode = parent)) break;
+  }
 
   return accessible;
 }
