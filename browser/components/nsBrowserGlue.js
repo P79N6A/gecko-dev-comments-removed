@@ -513,7 +513,6 @@ BrowserGlue.prototype = {
       SignInToWebsiteUX.init();
     }
 #endif
-    PdfJs.init();
 #ifdef NIGHTLY_BUILD
     ShumwayUtils.init();
 #endif
@@ -671,6 +670,19 @@ BrowserGlue.prototype = {
 
   
   _onFirstWindowLoaded: function BG__onFirstWindowLoaded(aWindow) {
+    
+    
+    
+    
+    
+    
+    
+    PdfJs.init(true);
+    
+    
+    
+    
+    aWindow.messageManager.loadFrameScript("resource://pdf.js/pdfjschildbootstrap.js", true);
 #ifdef XP_WIN
     
     const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
