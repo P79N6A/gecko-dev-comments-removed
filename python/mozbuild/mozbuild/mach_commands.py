@@ -4,10 +4,13 @@
 
 from __future__ import print_function, unicode_literals
 
+import argparse
 import itertools
+import json
 import logging
 import operator
 import os
+import subprocess
 import sys
 
 import mozpack.path as mozpath
@@ -565,6 +568,65 @@ class Doctor(MachCommandBase):
         from mozbuild.doctor import Doctor
         doctor = Doctor(self.topsrcdir, self.topobjdir, fix)
         return doctor.check_all()
+
+@CommandProvider
+class Logs(MachCommandBase):
+    """Provide commands to read mach logs."""
+    NO_AUTO_LOG = True
+
+    @Command('show-log', category='post-build',
+        description='Display mach logs')
+    @CommandArgument('log_file', nargs='?', type=argparse.FileType('rb'),
+        help='Filename to read log data from. Defaults to the log of the last '
+             'mach command.')
+    def show_log(self, log_file=None):
+        if not log_file:
+            path = self._get_state_filename('last_log.json')
+            log_file = open(path, 'rb')
+
+        if self.log_manager.terminal:
+            env = dict(os.environ)
+            if 'LESS' not in env:
+                
+                
+                env['LESS'] = 'FRX'
+            less = subprocess.Popen(['less'], stdin=subprocess.PIPE, env=env)
+            
+            
+            
+            
+            output_fd = os.dup(sys.stdout.fileno())
+            os.dup2(less.stdin.fileno(), sys.stdout.fileno())
+
+        startTime = 0
+        for line in log_file:
+            created, action, params = json.loads(line)
+            if not startTime:
+                startTime = created
+                self.log_manager.terminal_handler.formatter.start_time = \
+                    created
+            if 'line' in params:
+                record = logging.makeLogRecord({
+                    'created': created,
+                    'name': self._logger.name,
+                    'levelno': logging.INFO,
+                    'msg': '{line}',
+                    'params': params,
+                    'action': action,
+                })
+                self._logger.handle(record)
+
+        if self.log_manager.terminal:
+            
+            less.stdin.close()
+            
+            
+            
+            
+            
+            os.dup2(output_fd, sys.stdout.fileno())
+            less.wait()
+
 
 @CommandProvider
 class Warnings(MachCommandBase):
