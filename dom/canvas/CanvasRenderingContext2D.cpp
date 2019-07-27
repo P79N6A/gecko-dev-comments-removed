@@ -900,7 +900,10 @@ CanvasRenderingContext2D::CheckSizeForSkiaGL(IntSize size) {
     
     
     
-    gScreenPixels = 980 * 480;
+    
+    if (gfxPlatform::GetPlatform()->HasEnoughTotalSystemMemoryForSkiaGL()) {
+      gScreenPixels = 980 * 480;
+    }
 
     nsCOMPtr<nsIScreenManager> screenManager =
       do_GetService("@mozilla.org/gfx/screenmanager;1");
@@ -917,21 +920,7 @@ CanvasRenderingContext2D::CheckSizeForSkiaGL(IntSize size) {
   }
 
   
-  
-  
-  static double gDefaultScale = 0.0;
-  if (gDefaultScale < 1.0) {
-    nsIPresShell* ps = GetPresShell();
-    if (ps) {
-      nsIFrame* frame = ps->GetRootFrame();
-      if (frame) {
-        nsIWidget* widget = frame->GetNearestWidget();
-        if (widget) {
-          gDefaultScale = widget->GetDefaultScale().scale;
-        }
-      }
-    }
-  }
+  static double gDefaultScale = 1.0;
 
   double scale = gDefaultScale > 0 ? gDefaultScale : 1.0;
   int32_t threshold = ceil(scale * scale * gScreenPixels);
