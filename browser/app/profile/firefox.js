@@ -818,6 +818,14 @@ pref("plugins.state.nproblox", 2);
 #endif
 
 
+#ifdef XP_WIN
+pref("plugins.state.npboxedit", 2);
+#endif
+#ifdef XP_MACOSX
+pref("plugins.state.box edit", 2);
+#endif
+
+
 pref("plugins.notifyMissingFlash", true);
 
 #ifdef XP_MACOSX
