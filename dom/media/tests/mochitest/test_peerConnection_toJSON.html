@@ -29,9 +29,9 @@
       if (typeof(rtcSession[key]) == "function") continue;
       is(rtcSession[key], jsonCopy[key], "key " + key + " should match.");
     }
-  
+
     /** Test for Bug 928304 **/
-  
+
     var rtcIceCandidate = new mozRTCIceCandidate({ candidate: "dummy",
                                                    sdpMid: "test",
                                                    sdpMLineIndex: 3 });
