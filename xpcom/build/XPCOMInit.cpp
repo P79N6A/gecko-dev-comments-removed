@@ -949,6 +949,18 @@ ShutdownXPCOM(nsIServiceManager* aServMgr)
   NS_ShutdownNativeCharsetUtils();
 #endif
 
+#if defined(XP_WIN)
+  
+  
+  
+  
+  
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      NS_WARNING("Exiting child process early!");
+      exit(0);
+  }
+#endif
+
   
   
   if (nsComponentManagerImpl::gComponentManager) {
@@ -1025,6 +1037,17 @@ ShutdownXPCOM(nsIServiceManager* aServMgr)
   profiler_shutdown();
 
   NS_LogTerm();
+
+#if defined(MOZ_WIDGET_GONK)
+  
+  
+  
+  
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      NS_WARNING("Exiting child process early!");
+      exit(0);
+  }
+#endif
 
   return NS_OK;
 }
