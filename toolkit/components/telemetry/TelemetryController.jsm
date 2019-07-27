@@ -24,6 +24,8 @@ Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/TelemetryUtils.jsm", this);
 
+const Utils = TelemetryUtils;
+
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetryController::";
 
@@ -53,11 +55,10 @@ const TELEMETRY_TEST_DELAY = 100;
 const PING_SUBMIT_TIMEOUT_MS = 2 * 60 * 1000;
 
 
-const MIDNIGHT_TOLERANCE_MS = 15 * 60 * 1000;
-
 const MIDNIGHT_TOLERANCE_FUZZ_MS = 5 * 60 * 1000;
 
 const MIDNIGHT_FUZZING_INTERVAL_MS = 60 * 60 * 1000;
+
 const MIDNIGHT_FUZZING_DELAY_MS = Math.random() * MIDNIGHT_FUZZING_INTERVAL_MS;
 
 
@@ -532,7 +533,16 @@ let Impl = {
 
 
   _getNextPingSendTime: function(now) {
-    const midnight = TelemetryUtils.getNearestMidnight(now, MIDNIGHT_FUZZING_INTERVAL_MS);
+    
+    
+    
+    
+    
+    
+    
+    
+
+    const midnight = Utils.getNearestMidnight(now, MIDNIGHT_FUZZING_INTERVAL_MS);
 
     
     if (!midnight) {
