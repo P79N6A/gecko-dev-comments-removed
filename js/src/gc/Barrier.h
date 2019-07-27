@@ -149,6 +149,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class JSAtom;
 struct JSCompartment;
 class JSFlatString;
