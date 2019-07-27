@@ -995,6 +995,16 @@ RestyleManager::ReframingStyleContexts::ReframingStyleContexts(
   mRestyleManager->mReframingStyleContexts = this;
 }
 
+RestyleManager::ReframingStyleContexts::~ReframingStyleContexts()
+{
+  
+  
+  
+  
+  
+  mRestyleManager->mPresContext->FrameConstructor()->CreateNeededFrames();
+}
+
 static inline dom::Element*
 ElementForStyleContext(nsIContent* aParentContent,
                        nsIFrame* aFrame,
