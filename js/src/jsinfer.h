@@ -776,10 +776,6 @@ class TemporaryTypeSet : public TypeSet
     bool propertyNeedsBarrier(CompilerConstraintList *constraints, jsid id);
 
     
-    bool propertyMightBeConstant(CompilerConstraintList *constraints, jsid id);
-    bool propertyIsConstant(CompilerConstraintList *constraints, jsid id, Value *valOut);
-
-    
 
 
 
@@ -1511,6 +1507,7 @@ class HeapTypeSetKey
     JSObject *singleton(CompilerConstraintList *constraints);
     bool needsBarrier(CompilerConstraintList *constraints);
     bool constant(CompilerConstraintList *constraints, Value *valOut);
+    bool couldBeConstant(CompilerConstraintList *constraints);
 };
 
 

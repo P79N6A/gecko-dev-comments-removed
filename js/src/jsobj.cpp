@@ -4919,7 +4919,11 @@ js::NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg,
                 if (!obj->nativeSetSlotIfHasType(shape, vp))
                     return false;
             } else {
-                obj->nativeSetSlotWithType(cxArg->asExclusiveContext(), shape, vp);
+                
+                
+                
+                bool overwriting = !obj->is<GlobalObject>() || !obj->nativeGetSlot(shape->slot()).isUndefined();
+                obj->nativeSetSlotWithType(cxArg->asExclusiveContext(), shape, vp, overwriting);
             }
 
             return true;

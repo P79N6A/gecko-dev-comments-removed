@@ -448,6 +448,20 @@ CanHaveEmptyPropertyTypesForOwnProperty(JSObject *obj)
 }
 
 inline bool
+PropertyHasBeenMarkedNonConstant(JSObject *obj, jsid id)
+{
+    
+    if (!obj->hasSingletonType())
+        return true;
+
+    
+    if (obj->type()->unknownProperties())
+        return true;
+    HeapTypeSet *types = obj->type()->maybeGetProperty(IdToTypeId(id));
+    return types->nonConstantProperty();
+}
+
+inline bool
 HasTypePropertyId(JSObject *obj, jsid id, Type type)
 {
     if (obj->hasLazyType())

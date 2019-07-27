@@ -7550,6 +7550,16 @@ TryAttachSetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc, ICSetPr
     }
 
     if (IsCacheableSetPropWriteSlot(obj, oldShape, holder, shape)) {
+        
+        
+        
+        
+        types::EnsureTrackPropertyTypes(cx, obj, id);
+        if (!types::PropertyHasBeenMarkedNonConstant(obj, id)) {
+            *attached = true;
+            return true;
+        }
+
         bool isFixedSlot;
         uint32_t offset;
         GetFixedOrDynamicSlotOffset(obj, shape->slot(), &isFixedSlot, &offset);

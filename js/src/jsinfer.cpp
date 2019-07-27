@@ -1783,6 +1783,50 @@ HeapTypeSetKey::constant(CompilerConstraintList *constraints, Value *valOut)
     return true;
 }
 
+
+class ConstraintDataInert
+{
+  public:
+    explicit ConstraintDataInert() {}
+
+    const char *kind() { return "inert"; }
+
+    bool invalidateOnNewType(Type type) { return false; }
+    bool invalidateOnNewPropertyState(TypeSet *property) { return false; }
+    bool invalidateOnNewObjectState(TypeObject *object) { return false; }
+
+    bool constraintHolds(JSContext *cx,
+                         const HeapTypeSetKey &property, TemporaryTypeSet *expected)
+    {
+        return true;
+    }
+
+    bool shouldSweep() { return false; }
+};
+
+bool
+HeapTypeSetKey::couldBeConstant(CompilerConstraintList *constraints)
+{
+    
+    if (!object()->singleton())
+        return false;
+
+    if (!maybeTypes() || !maybeTypes()->nonConstantProperty())
+        return true;
+
+    
+    
+    
+    
+    
+
+    LifoAlloc *alloc = constraints->alloc();
+    typedef CompilerConstraintInstance<ConstraintDataInert> T;
+    constraints->add(alloc->new_<T>(alloc, *this, ConstraintDataInert()));
+
+    return false;
+}
+
 bool
 TemporaryTypeSet::filtersType(const TemporaryTypeSet *other, Type filteredType) const
 {
@@ -1808,95 +1852,6 @@ TemporaryTypeSet::filtersType(const TemporaryTypeSet *other, Type filteredType) 
     }
 
     return true;
-}
-
-namespace {
-
-
-class ConstraintDataInert
-{
-  public:
-    explicit ConstraintDataInert() {}
-
-    const char *kind() { return "inert"; }
-
-    bool invalidateOnNewType(Type type) { return false; }
-    bool invalidateOnNewPropertyState(TypeSet *property) { return false; }
-    bool invalidateOnNewObjectState(TypeObject *object) { return false; }
-
-    bool constraintHolds(JSContext *cx,
-                         const HeapTypeSetKey &property, TemporaryTypeSet *expected)
-    {
-        return true;
-    }
-
-    bool shouldSweep() { return false; }
-};
-
-} 
-
-bool
-TemporaryTypeSet::propertyMightBeConstant(CompilerConstraintList *constraints, jsid id)
-{
-    if (unknownObject())
-        return true;
-
-    for (size_t i = 0; i < getObjectCount(); i++) {
-        TypeObjectKey *type = getObject(i);
-
-        
-        
-        
-        
-
-        if (!type || !type->isSingleObject())
-            continue;
-
-        if (type->unknownProperties())
-            return true;
-
-        HeapTypeSetKey property = type->property(id);
-        if (!property.maybeTypes() || !property.maybeTypes()->nonConstantProperty())
-            return true;
-    }
-
-    
-    
-    
-    
-    
-
-    LifoAlloc *alloc = constraints->alloc();
-    for (size_t i = 0; i < getObjectCount(); i++) {
-        TypeObjectKey *type = getObject(i);
-
-        if (!type || !type->isSingleObject())
-            continue;
-
-        HeapTypeSetKey property = type->property(id);
-
-        typedef CompilerConstraintInstance<ConstraintDataInert> T;
-        constraints->add(alloc->new_<T>(alloc, property, ConstraintDataInert()));
-    }
-
-    return false;
-}
-
-bool
-TemporaryTypeSet::propertyIsConstant(CompilerConstraintList *constraints, jsid id, Value *valOut)
-{
-    JS_ASSERT(valOut);
-
-    JSObject *singleton = getSingleton();
-    if (!singleton)
-        return false;
-
-    TypeObjectKey *type = TypeObjectKey::get(singleton);
-    if (type->unknownProperties())
-        return false;
-
-    HeapTypeSetKey property = type->property(id);
-    return property.constant(constraints, valOut);
 }
 
 TemporaryTypeSet::DoubleConversion
@@ -3032,7 +2987,7 @@ InlineAddTypeProperty(ExclusiveContext *cx, TypeObject *obj, jsid id, Type type)
         return;
 
     
-    if (!types->nonConstantProperty()) {
+    if (!types->empty() && !types->nonConstantProperty()) {
         InferSpew(ISpewOps, "constantMutated: %sT%p%s %s",
                   InferSpewColor(types), types, InferSpewColorReset(), TypeString(type));
         types->setNonConstantProperty(cx);
