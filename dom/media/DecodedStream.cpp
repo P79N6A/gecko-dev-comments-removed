@@ -152,26 +152,9 @@ private:
   void DoNotifyFinished()
   {
     MOZ_ASSERT(NS_IsMainThread());
-    if (!mDecodedStream) {
-      return;
-    }
-
-    
-    ReentrantMonitorAutoEnter mon(mDecodedStream->GetReentrantMonitor());
-    auto& streams = mDecodedStream->OutputStreams();
-    
-    
-    for (int32_t i = streams.Length() - 1; i >= 0; --i) {
-      auto& os = streams[i];
-      MediaStream* p = os.mStream.get();
-      if (p == mStream.get()) {
-        if (os.mPort) {
-          os.mPort->Destroy();
-          os.mPort = nullptr;
-        }
-        streams.RemoveElementAt(i);
-        break;
-      }
+    if (mDecodedStream) {
+      
+      mDecodedStream->Remove(mStream);
     }
   }
 
@@ -270,6 +253,7 @@ DecodedStream::RecreateData(MediaStreamGraph* aGraph)
 nsTArray<OutputStreamData>&
 DecodedStream::OutputStreams()
 {
+  MOZ_ASSERT(NS_IsMainThread());
   GetReentrantMonitor().AssertCurrentThreadIn();
   return mOutputStreams;
 }
@@ -308,6 +292,27 @@ DecodedStream::Connect(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
   if (aFinishWhenEnded) {
     
     aStream->SetAutofinish(true);
+  }
+}
+
+void
+DecodedStream::Remove(MediaStream* aStream)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+
+  auto& streams = OutputStreams();
+  for (int32_t i = streams.Length() - 1; i >= 0; --i) {
+    auto& os = streams[i];
+    MediaStream* p = os.mStream.get();
+    if (p == aStream) {
+      if (os.mPort) {
+        os.mPort->Destroy();
+        os.mPort = nullptr;
+      }
+      streams.RemoveElementAt(i);
+      break;
+    }
   }
 }
 
