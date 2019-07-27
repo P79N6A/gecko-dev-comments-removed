@@ -34,7 +34,7 @@ import android.util.Log;
 final class BrowserDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String LOGTAG = "GeckoBrowserDBHelper";
-    public static final int DATABASE_VERSION = 18;
+    public static final int DATABASE_VERSION = 19;
     public static final String DATABASE_NAME = "browser.db";
 
     final protected Context mContext;
@@ -653,73 +653,108 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                     " ON " + Combined.FAVICON_ID + " = " + qualifyColumn(TABLE_FAVICONS, Favicons._ID));
     }
 
-    private void createCombinedViewOn16(SQLiteDatabase db) {
-        debug("Creating " + VIEW_COMBINED + " view");
+    private void createCombinedViewOn19(SQLiteDatabase db) {
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         db.execSQL("CREATE VIEW IF NOT EXISTS " + VIEW_COMBINED + " AS" +
-                " SELECT " + Combined.BOOKMARK_ID + ", " +
-                             Combined.HISTORY_ID + ", " +
-                             
-                             
-                             
-                             
-                             "0 AS " + Combined._ID + ", " +
-                             Combined.URL + ", " +
-                             Combined.TITLE + ", " +
-                             Combined.VISITS + ", " +
-                             Combined.DISPLAY + ", " +
-                             Combined.DATE_LAST_VISITED + ", " +
-                             Combined.FAVICON_ID +
-                " FROM (" +
+
+                
+                " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + "," +
+                    "-1 AS " + Combined.HISTORY_ID + "," +
+                    "0 AS " + Combined._ID + "," +
+                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
+                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
+                    "-1 AS " + Combined.VISITS + ", " +
+                    "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) +
+                        " WHEN " + Bookmarks.FIXED_READING_LIST_ID + " THEN " +
+                            Combined.DISPLAY_READER +
+                        " ELSE " +
+                            Combined.DISPLAY_NORMAL +
+                    " END AS " + Combined.DISPLAY + "," +
+                    "-1 AS " + Combined.DATE_LAST_VISITED + "," +
+                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
+                " FROM " + TABLE_BOOKMARKS +
+                " WHERE " +
+                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
                     
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Combined.DISPLAY_READER + " ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
-                                 "-1 AS " + Combined.HISTORY_ID + ", " +
-                                 "-1 AS " + Combined.VISITS + ", " +
-                                 "-1 AS " + Combined.DATE_LAST_VISITED + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
-                    " FROM " + TABLE_BOOKMARKS +
-                    " WHERE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
-                                
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT)  + " <> " + Bookmarks.FIXED_PINNED_LIST_ID + " AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
-                                    " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
-                    " UNION ALL" +
+                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT)  + " <> " + Bookmarks.FIXED_PINNED_LIST_ID + " AND " +
+                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
+                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
+                        " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
+                " UNION ALL" +
+
                     
-                    " SELECT " + "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN " +
-                                    
-                                    
-                                    "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_PINNED_LIST_ID + " THEN NULL ELSE " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " END " +
-                                 "ELSE NULL END AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + ", " +
-                                 
-                                 
-                                 "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
-                                               qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 
-                                 
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN CASE " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " + Bookmarks.FIXED_READING_LIST_ID +
-                                    " THEN " + Combined.DISPLAY_READER + " ELSE " + Combined.DISPLAY_NORMAL + " END ELSE " +
-                                    Combined.DISPLAY_NORMAL + " END AS " + Combined.DISPLAY + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
+                    " SELECT " +
+                        "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) +
+
+                            
+                            
+                            " WHEN 0 THEN " +
+                                "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) +
+                                    " WHEN " + Bookmarks.FIXED_PINNED_LIST_ID + " THEN " +
+                                        "NULL " +
+                                    "ELSE " +
+                                        qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) +
+                                " END " +
+                            "ELSE " +
+                                "NULL " +
+                        "END AS " + Combined.BOOKMARK_ID + "," +
+                        qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + "," +
+                        "0 AS " + Combined._ID + "," +
+                        qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + "," +
+
+                        
+                        
+                        "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
+                                      qualifyColumn(TABLE_HISTORY, History.TITLE) +
+                                ") AS " + Combined.TITLE + "," +
+                        qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + "," +
+
+                        
+                        
+                        "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " " +
+                            "WHEN 0 THEN " +
+                                "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " " +
+                                    "WHEN " + Bookmarks.FIXED_READING_LIST_ID + " THEN " +
+                                        Combined.DISPLAY_READER + " " +
+                                    "ELSE " + Combined.DISPLAY_NORMAL + " " +
+                                "END " +
+                            "ELSE " +
+                                Combined.DISPLAY_NORMAL + " " +
+                        "END AS " + Combined.DISPLAY + "," +
+                        qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED + "," +
+                        qualifyColumn(TABLE_HISTORY, History.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
                     " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
-                        " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
-                    " WHERE " + qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
-                                qualifyColumn(TABLE_HISTORY, History.IS_DELETED)  + " = 0 AND (" +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + ") " +
-                ")");
+                    " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
+                    " WHERE " +
+                        qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
+                        qualifyColumn(TABLE_HISTORY, History.IS_DELETED) + " = 0 AND " +
+                        "(" +
+                            qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
+                            qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " = " + Bookmarks.TYPE_BOOKMARK +
+                        ")"
+        );
 
         debug("Creating " + VIEW_COMBINED_WITH_FAVICONS + " view");
 
@@ -742,7 +777,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
 
         createBookmarksWithFaviconsView(db);
         createHistoryWithFaviconsView(db);
-        createCombinedViewOn16(db);
+        createCombinedViewOn19(db);
 
         createOrUpdateSpecialFolder(db, Bookmarks.PLACES_FOLDER_GUID,
             R.string.bookmarks_folder_places, 0);
@@ -1298,10 +1333,10 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private void upgradeDatabaseFrom15to16(SQLiteDatabase db) {
-        db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED);
-        db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED_WITH_FAVICONS);
-
-        createCombinedViewOn16(db);
+        
+        
+        
+        createV19CombinedView(db);
     }
 
     private void upgradeDatabaseFrom16to17(SQLiteDatabase db) {
@@ -1376,6 +1411,18 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             }
             db.endTransaction();
         }
+    }
+
+    private void upgradeDatabaseFrom18to19(SQLiteDatabase db) {
+        
+        createV19CombinedView(db);
+    }
+
+    private void createV19CombinedView(SQLiteDatabase db) {
+        db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED);
+        db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED_WITH_FAVICONS);
+
+        createCombinedViewOn19(db);
     }
 
     @Override
@@ -1453,6 +1500,10 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
 
                 case 18:
                     upgradeDatabaseFrom17to18(db);
+                    break;
+
+                case 19:
+                    upgradeDatabaseFrom18to19(db);
                     break;
             }
         }
