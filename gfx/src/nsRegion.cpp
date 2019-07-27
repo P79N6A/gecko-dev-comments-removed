@@ -337,22 +337,22 @@ void nsRegion::SimplifyOutwardByArea(uint32_t aThreshold)
       rect = MergeRects(topRects, topRectsEnd, bottomRects, bottomRectsEnd, tmpRect);
 
       
-      topRectsEnd = CopyRow(destRect, tmpRect, rect);
+      
       topRects = destRect;
-      bottomRects = bottomRectsEnd;
-      destRect = topRects;
+      
+      topRectsEnd = CopyRow(destRect, tmpRect, rect);
     } else {
       
       destRect = CopyRow(destRect, topRects, topRectsEnd);
 
       topRects = bottomRects;
       topRectsEnd = bottomRectsEnd;
-      bottomRects = bottomRectsEnd;
       if (bottomRectsEnd == end) {
         
         topRectsEnd = CopyRow(destRect, topRects, topRectsEnd);
       }
     }
+    bottomRects = bottomRectsEnd;
   } while (bottomRectsEnd != end);
 
 
