@@ -133,6 +133,29 @@ void EllipseToBezier(T* aSink, const Point &aOrigin, const Size &aRadius)
 
 
 
+
+
+
+
+
+
+
+GFX2D_API void AppendRectToPath(PathBuilder* aPathBuilder,
+                                const Rect& aRect,
+                                bool aDrawClockwise = true);
+
+inline TemporaryRef<Path> MakePathForRect(const DrawTarget& aDrawTarget,
+                                          const Rect& aRect,
+                                          bool aDrawClockwise = true)
+{
+  RefPtr<PathBuilder> builder = aDrawTarget.CreatePathBuilder();
+  AppendRectToPath(builder, aRect, aDrawClockwise);
+  return builder->Finish();
+}
+
+
+
+
 struct RectCorner {
   enum {
     
