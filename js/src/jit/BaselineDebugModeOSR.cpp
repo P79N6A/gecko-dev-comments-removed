@@ -193,7 +193,9 @@ CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &ob
                 break;
             }
 
-            if (BaselineDebugModeOSRInfo *info = iter.baselineFrame()->getDebugModeOSRInfo()) {
+            BaselineFrame *frame = iter.baselineFrame();
+
+            if (BaselineDebugModeOSRInfo *info = frame->getDebugModeOSRInfo()) {
                 
                 
                 
@@ -203,24 +205,22 @@ CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &ob
                 
                 if (!entries.append(DebugModeOSREntry(script, info)))
                     return false;
+            } else if (frame->isDebuggerHandlingException() && frame->maybeOverridePc()) {
+                
+                
+                
+                
+                
+                
+                uint32_t offset = script->pcToOffset(frame->overridePc());
+                if (!entries.append(DebugModeOSREntry(script, offset)))
+                    return false;
             } else {
+                
                 uint8_t *retAddr = iter.returnAddressToFp();
-                if (iter.baselineFrame()->isDebuggerHandlingException()) {
-                    
-                    
-                    
-                    
-                    
-                    
-                    jsbytecode *pc = script->baselineScript()->pcForNativeAddress(script, retAddr);
-                    if (!entries.append(DebugModeOSREntry(script, script->pcToOffset(pc))))
-                        return false;
-                } else {
-                    
-                    ICEntry &icEntry = script->baselineScript()->icEntryFromReturnAddress(retAddr);
-                    if (!entries.append(DebugModeOSREntry(script, icEntry)))
-                        return false;
-                }
+                ICEntry &icEntry = script->baselineScript()->icEntryFromReturnAddress(retAddr);
+                if (!entries.append(DebugModeOSREntry(script, icEntry)))
+                    return false;
             }
 
             if (entries.back().needsRecompileInfo()) {
@@ -428,10 +428,9 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
-                
-                
                 MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
-                uint8_t *retAddr = bl->nativeCodeForPC(script, pc);
+                MOZ_ASSERT(iter.baselineFrame()->overridePc() == pc);
+                uint8_t *retAddr = nullptr;
                 SpewPatchBaselineFrameFromExceptionHandler(prev->returnAddress(), retAddr,
                                                            script, pc);
                 DebugModeOSRVolatileJitFrameIterator::forwardLiveIterators(
@@ -482,12 +481,6 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
-                
-                
-                
-                
-                (void) bl->maybeNativeCodeForPC(script, pc + GetBytecodeLength(pc),
-                                                &recompInfo->slotInfo);
                 ICEntry &callVMEntry = bl->callVMEntryFromPCOffset(pcOffset);
                 recompInfo->resumeAddr = bl->returnAddressForIC(callVMEntry);
                 popFrameReg = false;
@@ -537,6 +530,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
 
             prev->setReturnAddress(reinterpret_cast<uint8_t *>(handlerAddr));
             iter.baselineFrame()->setDebugModeOSRInfo(recompInfo);
+            iter.baselineFrame()->setOverridePc(recompInfo->pc);
 
             entryIndex++;
             break;
@@ -954,6 +948,9 @@ static void
 FinishBaselineDebugModeOSR(BaselineFrame *frame)
 {
     frame->deleteDebugModeOSRInfo();
+
+    
+    frame->clearOverridePc();
 }
 
 void

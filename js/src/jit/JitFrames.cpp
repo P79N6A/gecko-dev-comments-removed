@@ -214,43 +214,20 @@ JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) 
     if (scriptRes)
         *scriptRes = script;
 
+    MOZ_ASSERT(pcRes);
+
     
     
-    if (jsbytecode *overridePc = baselineFrame()->getUnwoundScopeOverridePc()) {
+    
+    if (jsbytecode *overridePc = baselineFrame()->maybeOverridePc()) {
         *pcRes = overridePc;
         return;
     }
 
     
-    
-    if (baselineFrame()->getDebugModeOSRInfo()) {
-        *pcRes = baselineFrame()->debugModeOSRInfo()->pc;
-        return;
-    }
-
     uint8_t *retAddr = returnAddressToFp();
-    if (pcRes) {
-        
-        
-        if (retAddr == script->baselineScript()->prologueEntryAddr() ||
-            retAddr == script->baselineScript()->postDebugPrologueAddr())
-        {
-            *pcRes = script->code();
-            return;
-        }
-
-        
-        
-        ICEntry *icEntry = script->baselineScript()->maybeICEntryFromReturnAddress(retAddr);
-        if (icEntry) {
-            *pcRes = icEntry->pc(script);
-            return;
-        }
-
-        
-        
-        *pcRes = script->baselineScript()->pcForReturnAddress(script, retAddr);
-    }
+    ICEntry &icEntry = script->baselineScript()->icEntryFromReturnAddress(retAddr);
+    *pcRes = icEntry.pc(script);
 }
 
 Value *
@@ -533,7 +510,7 @@ HandleClosingGeneratorReturn(JSContext *cx, const JitFrameIterator &frame, jsbyt
 
     if (unwoundScopeToPc) {
         if (frame.baselineFrame()->isDebuggee())
-            frame.baselineFrame()->setUnwoundScopeOverridePc(unwoundScopeToPc);
+            frame.baselineFrame()->setOverridePc(unwoundScopeToPc);
         pc = unwoundScopeToPc;
     }
 
@@ -698,6 +675,13 @@ struct AutoDeleteDebugModeOSRInfo
     ~AutoDeleteDebugModeOSRInfo() { frame->deleteDebugModeOSRInfo(); }
 };
 
+struct AutoClearBaselineOverridePc
+{
+    BaselineFrame *frame;
+    explicit AutoClearBaselineOverridePc(BaselineFrame *frame) : frame(frame) { MOZ_ASSERT(frame); }
+    ~AutoClearBaselineOverridePc() { frame->clearOverridePc(); }
+};
+
 void
 HandleException(ResumeFromException *rfe)
 {
@@ -789,6 +773,17 @@ HandleException(ResumeFromException *rfe)
             
             jsbytecode *unwoundScopeToPc = nullptr;
 
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            AutoClearBaselineOverridePc clearPc(iter.baselineFrame());
+
             HandleExceptionBaseline(cx, iter, rfe, &unwoundScopeToPc, &calledDebugEpilogue);
 
             
@@ -820,14 +815,13 @@ HandleException(ResumeFromException *rfe)
                 
                 
                 if (unwoundScopeToPc)
-                    iter.baselineFrame()->setUnwoundScopeOverridePc(unwoundScopeToPc);
+                    iter.baselineFrame()->setOverridePc(unwoundScopeToPc);
 
                 
                 
                 BaselineFrame *frame = iter.baselineFrame();
-                RootedScript script(cx);
                 jsbytecode *pc;
-                iter.baselineScriptAndPc(script.address(), &pc);
+                iter.baselineScriptAndPc(nullptr, &pc);
                 if (jit::DebugEpilogue(cx, frame, pc, false)) {
                     MOZ_ASSERT(frame->hasReturnValue());
                     rfe->kind = ResumeFromException::RESUME_FORCED_RETURN;

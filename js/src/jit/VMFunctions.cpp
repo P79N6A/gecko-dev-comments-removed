@@ -788,7 +788,7 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool ok)
     ScopeIter si(frame, pc, cx);
     UnwindAllScopes(cx, si);
     jsbytecode *unwindPc = frame->script()->main();
-    frame->setUnwoundScopeOverridePc(unwindPc);
+    frame->setOverridePc(unwindPc);
 
     
     
@@ -819,9 +819,14 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, jsbytecode *pc, bool ok)
         JitFrameLayout *prefix = frame->framePrefix();
         EnsureExitFrame(prefix);
         cx->mainThread().jitTop = (uint8_t *)prefix;
+        return false;
     }
 
-    return ok;
+    
+    
+    
+    frame->clearOverridePc();
+    return true;
 }
 
 JSObject *
@@ -912,11 +917,19 @@ DebugAfterYield(JSContext *cx, BaselineFrame *frame)
 }
 
 bool
-GeneratorThrowOrClose(JSContext *cx, BaselineFrame *frame, HandleObject obj, HandleValue arg,
-                      uint32_t resumeKind)
+GeneratorThrowOrClose(JSContext *cx, BaselineFrame *frame, Handle<GeneratorObject*> genObj,
+                      HandleValue arg, uint32_t resumeKind)
 {
+    
+    
+    
+    JSScript *script = frame->script();
+    uint32_t offset = script->yieldOffsets()[genObj->yieldIndex()];
+    frame->setOverridePc(script->offsetToPC(offset));
+
     MOZ_ALWAYS_TRUE(DebugAfterYield(cx, frame));
-    return js::GeneratorThrowOrClose(cx, obj, arg, resumeKind);
+    MOZ_ALWAYS_FALSE(js::GeneratorThrowOrClose(cx, genObj, arg, resumeKind));
+    return false;
 }
 
 bool

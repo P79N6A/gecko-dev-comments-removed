@@ -125,6 +125,7 @@ struct BaselineStackBuilder
         header_->valueR1 = UndefinedValue();
         header_->resumeFramePtr = nullptr;
         header_->resumeAddr = nullptr;
+        header_->resumePC = nullptr;
         header_->monitorStub = nullptr;
         header_->numFrames = 0;
         return true;
@@ -273,6 +274,10 @@ struct BaselineStackBuilder
 
     void setResumeAddr(void *resumeAddr) {
         header_->resumeAddr = resumeAddr;
+    }
+
+    void setResumePC(jsbytecode *pc) {
+        header_->resumePC = pc;
     }
 
     void setMonitorStub(ICStub *stub) {
@@ -983,6 +988,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         if (resumeAfter && !enterMonitorChain)
             pc = GetNextPc(pc);
 
+        builder.setResumePC(pc);
         builder.setResumeFramePtr(prevFramePtr);
 
         if (enterMonitorChain) {
@@ -1034,12 +1040,9 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
             
             
             PCMappingSlotInfo slotInfo;
-            uint8_t *nativeCodeForPC = baselineScript->maybeNativeCodeForPC(script, pc, &slotInfo);
-            unsigned numUnsynced = slotInfo.numUnsynced();
+            uint8_t *nativeCodeForPC;
 
-            if (excInfo && excInfo->propagatingIonExceptionForDebugMode() && resumeAfter) {
-                
-                
+            if (excInfo && excInfo->propagatingIonExceptionForDebugMode()) {
                 
                 
                 
@@ -1052,10 +1055,15 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 jsbytecode *throwPC = script->offsetToPC(iter.pcOffset());
-                nativeCodeForPC = baselineScript->nativeCodeForPC(script, throwPC);
+                builder.setResumePC(throwPC);
+                nativeCodeForPC = nullptr;
+            } else {
+                nativeCodeForPC = baselineScript->nativeCodeForPC(script, pc, &slotInfo);
+                MOZ_ASSERT(nativeCodeForPC);
             }
 
-            MOZ_ASSERT(nativeCodeForPC);
+            unsigned numUnsynced = slotInfo.numUnsynced();
+
             MOZ_ASSERT(numUnsynced <= 2);
             PCMappingSlotInfo::SlotLocation loc1, loc2;
             if (numUnsynced > 0) {
@@ -1684,11 +1692,11 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
     JitSpew(JitSpew_BaselineBailouts, "  Done restoring frames");
 
     
-#ifdef DEBUG
-    jsbytecode *pc;
-    cx->currentScript(&pc);
-    JitSpew(JitSpew_BaselineBailouts, "  Got pc=%p", pc);
-#endif
+    
+    
+    
+    BaselineFrame *topFrame = GetTopBaselineFrame(cx);
+    topFrame->setOverridePc(bailoutInfo->resumePC);
 
     uint32_t numFrames = bailoutInfo->numFrames;
     MOZ_ASSERT(numFrames > 0);
@@ -1701,7 +1709,6 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
     
     
     
-    BaselineFrame *topFrame = GetTopBaselineFrame(cx);
     if (topFrame->scopeChain() && !EnsureHasScopeObjects(cx, topFrame))
         return false;
 
@@ -1850,5 +1857,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
     if (!CheckFrequentBailouts(cx, outerScript))
         return false;
 
+    
+    topFrame->clearOverridePc();
     return true;
 }

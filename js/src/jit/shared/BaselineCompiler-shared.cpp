@@ -49,6 +49,17 @@ BaselineCompilerShared::callVM(const VMFunction &fun, CallVMPhase phase)
     inCall_ = false;
 #endif
 
+#ifdef DEBUG
+    
+    {
+        Label ok;
+        masm.branchTest32(Assembler::Zero, frame.addressOfFlags(),
+                          Imm32(BaselineFrame::HAS_OVERRIDE_PC), &ok);
+        masm.assumeUnreachable("BaselineFrame shouldn't override pc when executing JIT code");
+        masm.bind(&ok);
+    }
+#endif
+
     
     
     uint32_t argSize = fun.explicitStackSlots() * sizeof(void *) + sizeof(void *);
@@ -98,6 +109,17 @@ BaselineCompilerShared::callVM(const VMFunction &fun, CallVMPhase phase)
     masm.call(code);
     uint32_t callOffset = masm.currentOffset();
     masm.pop(BaselineFrameReg);
+
+#ifdef DEBUG
+    
+    {
+        Label ok;
+        masm.branchTest32(Assembler::Zero, frame.addressOfFlags(),
+                          Imm32(BaselineFrame::HAS_OVERRIDE_PC), &ok);
+        masm.assumeUnreachable("BaselineFrame shouldn't override pc after VM call");
+        masm.bind(&ok);
+    }
+#endif
 
     
     
