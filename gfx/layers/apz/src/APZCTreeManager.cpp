@@ -450,9 +450,15 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     
     
     
-    if (aLayersId == aState.mOriginatingLayersId && apzc->GetParent()) {
-      aState.mPaintLogger.LogTestData(aMetrics.GetScrollId(), "parentScrollId",
-          apzc->GetParent()->GetGuid().mScrollId);
+    if (aLayersId == aState.mOriginatingLayersId) {
+      if (apzc->IsRootForLayersId()) {
+        aState.mPaintLogger.LogTestData(aMetrics.GetScrollId(),
+            "isRootForLayersId", true);
+      } else {
+        MOZ_ASSERT(apzc->GetParent());
+        aState.mPaintLogger.LogTestData(aMetrics.GetScrollId(),
+            "parentScrollId", apzc->GetParent()->GetGuid().mScrollId);
+      }
     }
 
     if (newApzc) {

@@ -82,16 +82,19 @@ function addRoot(root, id) {
 
 
 
+
+
+
 function buildApzcTree(paint) {
   
   
   
   var root = makeNode(-1);
   for (var scrollId in paint) {
-    if ("parentScrollId" in paint[scrollId]) {
-      addLink(root, scrollId, paint[scrollId]["parentScrollId"]);
-    } else {
+    if ("isRootForLayersId" in paint[scrollId]) {
       addRoot(root, scrollId);
+    } else if ("parentScrollId" in paint[scrollId]) {
+      addLink(root, scrollId, paint[scrollId]["parentScrollId"]);
     }
   }
   return root;
