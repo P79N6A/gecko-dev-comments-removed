@@ -30,6 +30,19 @@ const TWO_WAY_MEDIA_CONN_LENGTH = {
 };
 
 
+
+
+
+
+
+const SHARING_STATE_CHANGE = {
+  WINDOW_ENABLED: "WINDOW_ENABLED",
+  WINDOW_DISABLED: "WINDOW_DISABLED",
+  BROWSER_ENABLED: "BROWSER_ENABLED",
+  BROWSER_DISABLED: "BROWSER_DISABLED"
+};
+
+
 const PREF_LOG_LEVEL = "loop.debug.loglevel";
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -42,7 +55,8 @@ Cu.import("resource://gre/modules/FxAccountsOAuthClient.jsm");
 
 Cu.importGlobalProperties(["URL"]);
 
-this.EXPORTED_SYMBOLS = ["MozLoopService", "LOOP_SESSION_TYPE", "TWO_WAY_MEDIA_CONN_LENGTH"];
+this.EXPORTED_SYMBOLS = ["MozLoopService", "LOOP_SESSION_TYPE",
+  "TWO_WAY_MEDIA_CONN_LENGTH", "SHARING_STATE_CHANGE"];
 
 XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI",
   "resource:///modules/loop/MozLoopAPI.jsm");
