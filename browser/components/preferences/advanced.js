@@ -234,6 +234,24 @@ var gAdvancedPane = {
 #endif
   },
 
+  
+
+
+
+  setTelemetrySectionEnabled: function (aEnabled)
+  {
+#ifdef MOZ_TELEMETRY_REPORTING
+    
+    let disabled = !aEnabled;
+    document.getElementById("submitTelemetryBox").disabled = disabled;
+    if (disabled) {
+      
+      document.getElementById("submitTelemetryBox").checked = false;
+    }
+    document.getElementById("telemetryDataDesc").disabled = disabled;
+#endif
+  },
+
 #ifdef MOZ_SERVICES_HEALTHREPORT
   
 
@@ -254,6 +272,7 @@ var gAdvancedPane = {
     }
 
     checkbox.checked = policy.healthReportUploadEnabled;
+    this.setTelemetrySectionEnabled(checkbox.checked);
   },
 
   
@@ -272,6 +291,7 @@ var gAdvancedPane = {
     let checkbox = document.getElementById("submitHealthReportBox");
     policy.recordHealthReportUploadEnabled(checkbox.checked,
                                            "Checkbox from preferences pane");
+    this.setTelemetrySectionEnabled(checkbox.checked);
   },
 #endif
 
