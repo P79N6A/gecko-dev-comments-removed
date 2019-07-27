@@ -371,15 +371,6 @@ RasterImage::~RasterImage()
     ReentrantMonitorAutoEnter lock(mDecodingMonitor);
     DecodePool::StopDecoding(this);
     mDecoder = nullptr;
-
-    
-    
-    
-    
-    if (GetNumFrames() > 0) {
-      nsRefPtr<imgFrame> curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
-      curframe->UnlockImageData();
-    }
   }
 
   
@@ -1048,18 +1039,20 @@ RasterImage::InternalAddFrameHelper(uint32_t framenum, imgFrame *aFrame,
   if (framenum > GetNumFrames())
     return NS_ERROR_INVALID_ARG;
 
-  nsRefPtr<imgFrame> frame(aFrame);
-
-  
-  
-  frame->LockImageData();
+  nsRefPtr<imgFrame> frame = aFrame;
+  RawAccessFrameRef ref = frame->RawAccessRef();
+  if (!ref) {
+    
+    
+    return NS_ERROR_FAILURE;
+  }
 
   if (paletteData && paletteLength)
     frame->GetPaletteData(paletteData, paletteLength);
 
   frame->GetImageData(imageData, imageLength);
 
-  mFrameBlender.InsertFrame(framenum, frame);
+  mFrameBlender.InsertFrame(framenum, Move(ref));
 
   frame.forget(aRetFrame);
   return NS_OK;
@@ -1095,13 +1088,6 @@ RasterImage::InternalAddFrame(uint32_t framenum,
   if (!NS_SUCCEEDED(rv))
     NS_WARNING("imgFrame::Init should succeed");
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  if (GetNumFrames() > 0) {
-    nsRefPtr<imgFrame> prevframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
-    prevframe->UnlockImageData();
-  }
 
   if (GetNumFrames() == 0) {
     return InternalAddFrameHelper(framenum, frame, imageData, imageLength,
@@ -1266,11 +1252,6 @@ RasterImage::EnsureFrame(uint32_t aFrameNum, int32_t aX, int32_t aY,
   }
 
   
-
-  
-  
-  frame->UnlockImageData();
-
   mFrameBlender.RemoveFrame(aFrameNum);
   nsRefPtr<imgFrame> newFrame(new imgFrame());
   nsIntRect frameRect(aX, aY, aWidth, aHeight);
@@ -1354,8 +1335,7 @@ RasterImage::DecodingComplete()
   
   if (mMultipart) {
     if (GetNumFrames() == 1) {
-      mMultipartDecodedFrame = mFrameBlender.SwapFrame(GetCurrentFrameIndex(),
-                                                       mMultipartDecodedFrame);
+      mMultipartDecodedFrame = mFrameBlender.GetFrame(GetCurrentFrameIndex());
     } else {
       
       
@@ -1978,14 +1958,6 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   }
 
   
-  
-  
-  if (GetNumFrames() > 0) {
-    nsRefPtr<imgFrame> curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
-    curframe->LockImageData();
-  }
-
-  
   if (!mDecodeRequest) {
     mDecodeRequest = new DecodeRequest(this);
   }
@@ -2059,13 +2031,6 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   decoder->Finish(aIntent);
   mInDecoder = false;
   mFinishing = false;
-
-  
-  
-  if (GetNumFrames() > 0) {
-    nsRefPtr<imgFrame> curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
-    curframe->UnlockImageData();
-  }
 
   
   

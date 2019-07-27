@@ -9,13 +9,11 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "gfxTypes.h"
-#include "FrameSequence.h"
+#include "imgFrame.h"
 #include "nsCOMPtr.h"
 
 namespace mozilla {
 namespace image {
-
-class imgFrame;
 
 
 
@@ -32,28 +30,25 @@ public:
 
 
 
-  explicit FrameBlender(FrameSequence* aSequenceToUse = nullptr);
+  explicit FrameBlender();
   ~FrameBlender();
 
   bool DoBlend(nsIntRect* aDirtyRect, uint32_t aPrevFrameIndex,
                uint32_t aNextFrameIndex);
 
-  already_AddRefed<FrameSequence> GetFrameSequence();
-
   
 
 
 
-  already_AddRefed<imgFrame> GetFrame(uint32_t aIndex) const;
+  already_AddRefed<imgFrame> GetFrame(uint32_t aIndex);
 
   
 
 
-  already_AddRefed<imgFrame> RawGetFrame(uint32_t aIndex) const;
+  already_AddRefed<imgFrame> RawGetFrame(uint32_t aIndex);
 
-  void InsertFrame(uint32_t framenum, imgFrame* aFrame);
-  void RemoveFrame(uint32_t framenum);
-  already_AddRefed<imgFrame> SwapFrame(uint32_t framenum, imgFrame* aFrame);
+  void InsertFrame(uint32_t aFrameNum, RawAccessFrameRef&& aRef);
+  void RemoveFrame(uint32_t aFrameNum);
   void ClearFrames();
 
   
@@ -64,7 +59,7 @@ public:
 
 
 
-  int32_t GetTimeoutForFrame(uint32_t framenum) const;
+  int32_t GetTimeoutForFrame(uint32_t aFrameNum);
 
   
 
@@ -125,7 +120,7 @@ private:
 
 
 
-    FrameDataPair compositingFrame;
+    RawAccessFrameRef compositingFrame;
 
     
 
@@ -133,14 +128,12 @@ private:
 
 
 
-    FrameDataPair compositingPrevFrame;
+    RawAccessFrameRef compositingPrevFrame;
 
     Anim() :
       lastCompositedFrameIndex(-1)
     {}
   };
-
-  void EnsureAnimExists();
 
   
 
@@ -180,7 +173,7 @@ private:
 
 private: 
   
-  nsRefPtr<FrameSequence> mFrames;
+  nsTArray<RawAccessFrameRef> mFrames;
   nsIntSize mSize;
   Anim* mAnim;
   int32_t mLoopCount;

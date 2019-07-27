@@ -587,7 +587,16 @@ SurfaceFormat imgFrame::GetFormat() const
 bool imgFrame::GetNeedsBackground() const
 {
   
-  return (mFormat == SurfaceFormat::B8G8R8A8 || !ImageComplete());
+  if (!ImageComplete()) {
+    return true;
+  }
+
+  
+  if (mFormat == SurfaceFormat::B8G8R8A8 && !mHasNoAlpha) {
+    return true;
+  }
+
+  return false;
 }
 
 uint32_t imgFrame::GetImageBytesPerRow() const
@@ -657,6 +666,16 @@ uint32_t* imgFrame::GetPaletteData() const
   uint32_t length;
   GetPaletteData(&data, &length);
   return data;
+}
+
+uint8_t*
+imgFrame::GetRawData() const
+{
+  MOZ_ASSERT(mLockCount, "Should be locked to call GetRawData()");
+  if (mPalettedImageData) {
+    return mPalettedImageData;
+  }
+  return GetImageData();
 }
 
 nsresult imgFrame::LockImageData()
