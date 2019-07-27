@@ -161,7 +161,7 @@
 
 
 #include "nsIContentSecurityPolicy.h"
-#include "nsCSPService.h"
+#include "mozilla/dom/nsCSPService.h"
 #include "nsHTMLStyleSheet.h"
 #include "nsHTMLCSSStyleSheet.h"
 #include "SVGAttrAnimationRuleProcessor.h"
