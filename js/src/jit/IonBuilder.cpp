@@ -626,6 +626,14 @@ IonBuilder::init()
         return false;
     }
 
+    if (inlineCallInfo_) {
+        
+        
+        
+        thisTypes = inlineCallInfo_->thisArg()->resultTypeSet();
+        argTypes = nullptr;
+    }
+
     if (!analysis().init(alloc(), gsn))
         return false;
 
@@ -807,10 +815,10 @@ bool
 IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoint,
                         CallInfo &callInfo)
 {
+    inlineCallInfo_ = &callInfo;
+
     if (!init())
         return false;
-
-    inlineCallInfo_ = &callInfo;
 
     JitSpew(JitSpew_IonScripts, "Inlining script %s:%d (%p)",
             script()->filename(), script()->lineno(), (void *)script());
@@ -5726,7 +5734,7 @@ IonBuilder::jsop_eval(uint32_t argc)
         
         
         
-        MIRType type = thisTypes->getKnownMIRType();
+        MIRType type = thisTypes ? thisTypes->getKnownMIRType() : MIRType_Value;
         if (type != MIRType_Object && type != MIRType_Null && type != MIRType_Undefined)
             return abort("Direct eval from script with maybe-primitive 'this'");
 
@@ -10400,8 +10408,8 @@ IonBuilder::jsop_this()
         return true;
     }
 
-    if (thisTypes->getKnownMIRType() == MIRType_Object ||
-        (thisTypes->empty() && baselineFrame_ && baselineFrame_->thisType.isSomeObject()))
+    if (thisTypes && (thisTypes->getKnownMIRType() == MIRType_Object ||
+        (thisTypes->empty() && baselineFrame_ && baselineFrame_->thisType.isSomeObject())))
     {
         
         
