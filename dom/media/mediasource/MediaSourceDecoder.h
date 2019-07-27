@@ -62,7 +62,6 @@ public:
   void SetInitialDuration(int64_t aDuration);
   void SetMediaSourceDuration(double aDuration, MSRangeRemovalAction aAction);
   double GetMediaSourceDuration();
-  void DurationChanged(double aOldDuration, double aNewDuration);
 
   
   
@@ -94,9 +93,6 @@ public:
 
 private:
   void DoSetMediaSourceDuration(double aDuration);
-  void ScheduleDurationChange(double aOldDuration,
-                              double aNewDuration,
-                              MSRangeRemovalAction aAction);
 
   
   
