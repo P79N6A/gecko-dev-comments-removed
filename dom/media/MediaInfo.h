@@ -41,6 +41,7 @@ public:
     : mDisplay(0,0)
     , mStereoMode(StereoMode::MONO)
     , mHasVideo(false)
+    , mIsHardwareAccelerated(false)
   {
     
     
@@ -59,6 +60,8 @@ public:
   bool mHasVideo;
 
   TrackInfo mTrackInfo;
+
+  bool mIsHardwareAccelerated;
 };
 
 class AudioInfo {
