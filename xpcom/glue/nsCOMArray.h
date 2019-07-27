@@ -219,7 +219,6 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
 
 
 
-
 template<class T>
 class nsCOMArray : public nsCOMArray_base
 {
