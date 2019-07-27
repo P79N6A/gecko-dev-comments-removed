@@ -1461,7 +1461,9 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
     SetInDocument();
 
-    if (GetCustomElementData()) {
+    
+    
+    if (GetCustomElementData() && aDocument->GetDocShell()) {
       
       aDocument->EnqueueLifecycleCallback(nsIDocument::eAttached, this);
     }
@@ -1673,7 +1675,9 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
 
     document->ClearBoxObjectFor(this);
 
-    if (GetCustomElementData()) {
+    
+    
+    if (GetCustomElementData() && document->GetDocShell()) {
       
       document->EnqueueLifecycleCallback(nsIDocument::eDetached, this);
     }
