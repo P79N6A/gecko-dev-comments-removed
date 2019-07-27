@@ -771,6 +771,9 @@ function gKeywordURIFixup(fixupInfo, topic, data) {
     return;
   }
 
+  if (!docshellRef.document)
+    return;
+
   
   let browser = gBrowser.getBrowserForDocument(docshellRef.document);
   if (!browser)
@@ -830,8 +833,11 @@ function gKeywordURIFixup(fixupInfo, topic, data) {
         label: yesMessage,
         accessKey: gNavigatorBundle.getString("keywordURIFixup.goTo.accesskey"),
         callback: function() {
-          let pref = "browser.fixup.domainwhitelist." + asciiHost;
-          Services.prefs.setBoolPref(pref, true);
+          
+          if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
+            let pref = "browser.fixup.domainwhitelist." + asciiHost;
+            Services.prefs.setBoolPref(pref, true);
+          }
           openUILinkIn(alternativeURI.spec, "current");
         }
       },
