@@ -126,6 +126,9 @@ public:
   
   static DOMLocalStorageManager* Self() { return sSelf; }
 
+  
+  static DOMLocalStorageManager* Ensure();
+
 private:
   static DOMLocalStorageManager* sSelf;
 };

@@ -771,8 +771,11 @@ DOMStorageCache::StartDatabase()
 
     sDatabase = db.forget();
   } else {
+    
+    
+    
     nsRefPtr<DOMStorageDBChild> db = new DOMStorageDBChild(
-        DOMLocalStorageManager::Self());
+        DOMLocalStorageManager::Ensure());
 
     nsresult rv = db->Init();
     if (NS_FAILED(rv)) {

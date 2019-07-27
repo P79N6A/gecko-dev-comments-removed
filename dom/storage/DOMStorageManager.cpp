@@ -628,6 +628,21 @@ DOMLocalStorageManager::~DOMLocalStorageManager()
   sSelf = nullptr;
 }
 
+DOMLocalStorageManager*
+DOMLocalStorageManager::Ensure()
+{
+  if (sSelf) {
+    return sSelf;
+  }
+
+  
+  nsCOMPtr<nsIDOMStorageManager> initializer =
+    do_GetService("@mozilla.org/dom/localStorage-manager;1");
+  MOZ_ASSERT(sSelf, "Didn't initialize?");
+
+  return sSelf;
+}
+
 
 
 DOMSessionStorageManager::DOMSessionStorageManager()
