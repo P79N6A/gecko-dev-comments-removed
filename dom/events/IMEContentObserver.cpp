@@ -1558,15 +1558,40 @@ IMEContentObserver::TestMergingTextChangeData()
 
 
 
+bool
+IMEContentObserver::AChangeEvent::CanNotifyIME() const
+{
+  if (NS_WARN_IF(!mIMEContentObserver)) {
+    return false;
+  }
+  State state = mIMEContentObserver->GetState();
+  
+  if (state == eState_NotObserving) {
+    return false;
+  }
+  
+  if (mChangeEventType == eChangeEventType_Focus) {
+    return !NS_WARN_IF(mIMEContentObserver->mIMEHasFocus);
+  }
+  
+  if (!mIMEContentObserver->mIMEHasFocus) {
+    return false;
+  }
+
+  
+  MOZ_ASSERT(mIMEContentObserver->mWidget);
+
+  return true;
+}
+
+
+
+
+
 NS_IMETHODIMP
 IMEContentObserver::FocusSetEvent::Run()
 {
-  if (NS_WARN_IF(mIMEContentObserver->mIMEHasFocus)) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIWidget> widget = mIMEContentObserver->GetWidget();
-  if (!widget) {
+  if (!CanNotifyIME()) {
     
     
     mIMEContentObserver->ClearPendingNotifications();
@@ -1574,7 +1599,7 @@ IMEContentObserver::FocusSetEvent::Run()
   }
 
   mIMEContentObserver->mIMEHasFocus = true;
-  widget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
+  mIMEContentObserver->mWidget->NotifyIME(IMENotification(NOTIFY_IME_OF_FOCUS));
   return NS_OK;
 }
 
@@ -1585,21 +1610,19 @@ IMEContentObserver::FocusSetEvent::Run()
 NS_IMETHODIMP
 IMEContentObserver::SelectionChangeEvent::Run()
 {
-  
-  
-  if (!mIMEContentObserver->mIMEHasFocus) {
+  if (!CanNotifyIME()) {
     return NS_OK;
   }
 
-  nsCOMPtr<nsIWidget> widget = mIMEContentObserver->mWidget;
   nsPresContext* presContext = mIMEContentObserver->GetPresContext();
-  if (!widget || !presContext) {
+  if (!presContext) {
     return NS_OK;
   }
 
   
   
-  WidgetQueryContentEvent selection(true, NS_QUERY_SELECTED_TEXT, widget);
+  WidgetQueryContentEvent selection(true, NS_QUERY_SELECTED_TEXT,
+                                    mIMEContentObserver->mWidget);
   ContentEventHandler handler(presContext);
   handler.OnQuerySelectedText(&selection);
   if (NS_WARN_IF(!selection.mSucceeded)) {
@@ -1607,9 +1630,7 @@ IMEContentObserver::SelectionChangeEvent::Run()
   }
 
   
-  
-  widget = mIMEContentObserver->mWidget;
-  if (!widget || NS_WARN_IF(widget->Destroyed())) {
+  if (!CanNotifyIME()) {
     return NS_OK;
   }
 
@@ -1623,7 +1644,7 @@ IMEContentObserver::SelectionChangeEvent::Run()
   notification.mSelectionChangeData.mReversed = selection.mReply.mReversed;
   notification.mSelectionChangeData.mCausedByComposition =
     mCausedByComposition;
-  widget->NotifyIME(notification);
+  mIMEContentObserver->mWidget->NotifyIME(notification);
   return NS_OK;
 }
 
@@ -1634,15 +1655,10 @@ IMEContentObserver::SelectionChangeEvent::Run()
 NS_IMETHODIMP
 IMEContentObserver::TextChangeEvent::Run()
 {
-  
-  
-  if (!mIMEContentObserver->mIMEHasFocus) {
+  if (!CanNotifyIME()) {
     return NS_OK;
   }
 
-  if (!mIMEContentObserver->mWidget) {
-    return NS_OK;
-  }
   IMENotification notification(NOTIFY_IME_OF_TEXT_CHANGE);
   notification.mTextChangeData.mStartOffset = mData.mStartOffset;
   notification.mTextChangeData.mOldEndOffset = mData.mRemovedEndOffset;
@@ -1660,16 +1676,12 @@ IMEContentObserver::TextChangeEvent::Run()
 NS_IMETHODIMP
 IMEContentObserver::PositionChangeEvent::Run()
 {
-  
-  
-  if (!mIMEContentObserver->mIMEHasFocus) {
+  if (!CanNotifyIME()) {
     return NS_OK;
   }
 
-  if (mIMEContentObserver->mWidget) {
-    mIMEContentObserver->mWidget->NotifyIME(
-      IMENotification(NOTIFY_IME_OF_POSITION_CHANGE));
-  }
+  mIMEContentObserver->mWidget->NotifyIME(
+    IMENotification(NOTIFY_IME_OF_POSITION_CHANGE));
   return NS_OK;
 }
 
@@ -1680,6 +1692,10 @@ IMEContentObserver::PositionChangeEvent::Run()
 NS_IMETHODIMP
 IMEContentObserver::AsyncMergeableNotificationsFlusher::Run()
 {
+  if (!CanNotifyIME()) {
+    return NS_OK;
+  }
+
   mIMEContentObserver->FlushMergeableNotifications();
   return NS_OK;
 }
