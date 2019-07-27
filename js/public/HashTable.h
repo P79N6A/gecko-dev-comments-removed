@@ -732,7 +732,6 @@ class HashTableEntry
     void removeLive()      { MOZ_ASSERT(isLive()); keyHash = sRemovedKey; mem.addr()->~T(); }
     bool isLive() const    { return isLiveHash(keyHash); }
     void setCollision()               { MOZ_ASSERT(isLive()); keyHash |= sCollisionBit; }
-    void setCollision(HashNumber bit) { MOZ_ASSERT(isLive()); keyHash |= bit; }
     void unsetCollision()             { keyHash &= ~sCollisionBit; }
     bool hasCollision() const         { return keyHash & sCollisionBit; }
     bool matchHash(HashNumber hn)     { return (keyHash & ~sCollisionBit) == hn; }
@@ -1026,6 +1025,8 @@ class HashTable : private AllocPolicy
 #ifdef JS_DEBUG
     uint64_t     mutationCount;
     mutable bool mEntered;
+    
+    
     mutable struct Stats
     {
         uint32_t        searches;       
@@ -1223,6 +1224,11 @@ class HashTable : private AllocPolicy
         return HashPolicy::match(HashPolicy::getKey(e.get()), l);
     }
 
+    
+    
+    
+    
+    
     Entry &lookup(const Lookup &l, HashNumber keyHash, unsigned collisionBit) const
     {
         MOZ_ASSERT(isLiveHash(keyHash));
@@ -1253,12 +1259,13 @@ class HashTable : private AllocPolicy
         
         Entry *firstRemoved = nullptr;
 
-        while(true) {
+        while (true) {
             if (MOZ_UNLIKELY(entry->isRemoved())) {
                 if (!firstRemoved)
                     firstRemoved = entry;
             } else {
-                entry->setCollision(collisionBit);
+                if (collisionBit == sCollisionBit)
+                    entry->setCollision();
             }
 
             METER(stats.steps++);
@@ -1304,7 +1311,7 @@ class HashTable : private AllocPolicy
         
         DoubleHash dh = hash2(keyHash);
 
-        while(true) {
+        while (true) {
             MOZ_ASSERT(!entry->isRemoved());
             entry->setCollision();
 
