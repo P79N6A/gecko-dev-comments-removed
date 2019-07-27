@@ -859,7 +859,7 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
 
     
     TIME_START(updateJitActivations);
-    js::jit::UpdateJitActivationsForMinorGC(&rt->mainThread, &trc);
+    js::jit::UpdateJitActivationsForMinorGC(rt, &trc);
     forwardedBuffers.finish();
     TIME_END(updateJitActivations);
 
