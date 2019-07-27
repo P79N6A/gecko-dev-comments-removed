@@ -59,6 +59,27 @@ addMessageListener("Test:SetAnimationPlayerCurrentTime", function(msg) {
 
 
 
+
+addMessageListener("Test:SetAnimationPlayerPlaybackRate", function(msg) {
+  let {selector, animationIndex, playbackRate} = msg.data;
+  let node = superQuerySelector(selector);
+  if (!node) {
+    return;
+  }
+
+  let player = node.getAnimations()[animationIndex];
+  player.playbackRate = playbackRate;
+
+  sendAsyncMessage("Test:SetAnimationPlayerPlaybackRate");
+});
+
+
+
+
+
+
+
+
 addMessageListener("Test:GetAnimationPlayerState", function(msg) {
   let {selector, animationIndex} = msg.data;
   let node = superQuerySelector(selector);
