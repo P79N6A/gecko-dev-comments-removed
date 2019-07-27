@@ -467,7 +467,10 @@ CreateStrokeStyleForOptions(const StrokeOptions &aStrokeOptions)
 
 
   HRESULT hr;
-  if (aStrokeOptions.mDashPattern) {
+  
+  
+  
+  if (aStrokeOptions.mDashLength > 0 && aStrokeOptions.mDashPattern) {
     typedef std::vector<Float> FloatVector;
     
     
