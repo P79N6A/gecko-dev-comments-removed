@@ -227,8 +227,6 @@
 using namespace js;
 using namespace js::gc;
 
-using mozilla::ArrayEnd;
-using mozilla::DebugOnly;
 using mozilla::Maybe;
 using mozilla::Swap;
 
@@ -245,7 +243,6 @@ static const int MAX_EMPTY_CHUNK_COUNT = 2;
 #else
 static const int MAX_EMPTY_CHUNK_COUNT = 30;
 #endif
-
 
 const AllocKind gc::slotsToThingKind[] = {
       FINALIZE_OBJECT0,  FINALIZE_OBJECT2,  FINALIZE_OBJECT2,  FINALIZE_OBJECT4,
