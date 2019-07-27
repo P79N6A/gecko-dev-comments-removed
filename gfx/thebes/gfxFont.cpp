@@ -5180,7 +5180,7 @@ gfxFontGroup::FindPlatformFont(const nsAString& aName,
             
             
             
-            family = mUserFontSet->LookupFamily(aName);
+            family = mUserFontSet->GetFamily(aName);
             if (family) {
                 bool waitForUserFont = false;
                 fe = mUserFontSet->FindFontEntry(family, mStyle,
