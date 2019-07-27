@@ -87,14 +87,26 @@ nsresult UnregisterAppMemory(void* ptr);
 
 typedef nsDataHashtable<nsCStringHashKey, nsCString> AnnotationTable;
 
+void DeleteMinidumpFilesForID(const nsAString& id);
 bool GetMinidumpForID(const nsAString& id, nsIFile** minidump);
 bool GetIDFromMinidump(nsIFile* minidump, nsAString& id);
 bool GetExtraFileForID(const nsAString& id, nsIFile** extraFile);
 bool GetExtraFileForMinidump(nsIFile* minidump, nsIFile** extraFile);
 bool AppendExtraData(const nsAString& id, const AnnotationTable& data);
 bool AppendExtraData(nsIFile* extraFile, const AnnotationTable& data);
-void RenameAdditionalHangMinidump(nsIFile* minidump, nsIFile* childMinidump,
-                                  const nsACString& name);
+
+
+
+
+
+
+
+
+
+
+
+void RenameAdditionalHangMinidump(nsIFile* aDumpFile, const nsIFile* aOwnerDumpFile,
+                                  const nsACString& aDumpFileProcessType);
 
 #ifdef XP_WIN32
   nsresult WriteMinidumpForException(EXCEPTION_POINTERS* aExceptionInfo);
@@ -115,6 +127,17 @@ nsresult SetSubmitReports(bool aSubmitReport);
 
 
 void OOPInit();
+
+
+
+
+
+
+
+
+
+
+bool TakeMinidump(nsIFile** aResult, bool aMoveToPending = false);
 
 
 
@@ -153,9 +176,21 @@ ThreadId CurrentThreadId();
 
 
 
-bool CreatePairedMinidumps(ProcessHandle childPid,
-                           ThreadId childBlamedThread,
-                           nsIFile** childDump);
+
+
+
+
+
+
+
+
+
+
+bool CreateMinidumpsAndPair(ProcessHandle aTargetPid,
+                            ThreadId aTargetBlamedThread,
+                            const nsACString& aIncomingPairName,
+                            nsIFile* aIncomingDumpToPair,
+                            nsIFile** aTargetDumpOut);
 
 
 
