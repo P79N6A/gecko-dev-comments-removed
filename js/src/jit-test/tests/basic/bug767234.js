@@ -4,7 +4,7 @@ function gen()
     yield 1;
     local = null;
     gc();
-    gcslice(0);
+    gcslice(0); 
     yield 2;
 }
 
