@@ -7362,7 +7362,7 @@ CodeGenerator::link(JSContext *cx, CompilerConstraintList *constraints)
     
     Linker linker(masm);
     AutoFlushICache afc("IonLink");
-    JitCode *code = linker.newCodeForIonScript(cx);
+    JitCode *code = linker.newCode<CanGC>(cx, ION_CODE);
     if (!code)
         return false;
 

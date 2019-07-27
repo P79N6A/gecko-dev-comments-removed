@@ -146,13 +146,6 @@ class JitRuntime
     ExecutableAllocator *execAlloc_;
 
     
-    
-    
-    
-    
-    ExecutableAllocator *ionAlloc_;
-
-    
     JitCode *exceptionTail_;
 
     
@@ -254,8 +247,6 @@ class JitRuntime
     JitCode *generateBaselineDebugModeOSRHandler(JSContext *cx, uint32_t *noFrameRegPopOffsetOut);
     JitCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
 
-    ExecutableAllocator *createIonAlloc(JSContext *cx);
-
   public:
     JitRuntime();
     ~JitRuntime();
@@ -268,15 +259,6 @@ class JitRuntime
 
     ExecutableAllocator *execAlloc() const {
         return execAlloc_;
-    }
-    ExecutableAllocator *getIonAlloc(JSContext *cx) {
-        return ionAlloc_ ? ionAlloc_ : createIonAlloc(cx);
-    }
-    ExecutableAllocator *ionAlloc(JSRuntime *rt) {
-        return ionAlloc_;
-    }
-    bool hasIonAlloc() const {
-        return !!ionAlloc_;
     }
 
     class AutoMutateBackedges
@@ -497,8 +479,6 @@ class JitCompartment
     }
 
     void toggleBarriers(bool enabled);
-
-    ExecutableAllocator *createIonAlloc();
 
   public:
     JitCompartment();
