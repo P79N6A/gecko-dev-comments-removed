@@ -589,24 +589,39 @@ TelephonyService.prototype = {
     let activeCall = this._getOneActiveCall(aClientId);
     if (!activeCall) {
       this._sendDialCallRequest(aClientId, aOptions, aCallback);
-    } else {
-      if (DEBUG) debug("There is an active call. Hold it first before dial.");
+      return;
+    }
 
-      this._cachedDialRequest = {
-        clientId: aClientId,
-        options: aOptions,
-        callback: aCallback
-      };
+    
+    if (DEBUG) debug("There is an active call. Hold it first before dial.");
 
-      if (activeCall.isConference) {
-        this.holdConference(aClientId,
-                            { notifySuccess: function () {},
-                              notifyError: function (errorMsg) {} });
-      } else {
-        this.holdCall(aClientId, activeCall.callIndex,
-                      { notifySuccess: function () {},
-                        notifyError: function (errorMsg) {} });
+    if (this._cachedDialRequest) {
+      if (DEBUG) debug("Error: There already is a pending dial request.");
+      aCallback.notifyError(DIAL_ERROR_INVALID_STATE_ERROR);
+      return;
+    }
+
+    let autoHoldCallback = {
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyCallback]),
+
+      notifySuccess: () => {
+        this._cachedDialRequest = {
+          clientId: aClientId,
+          options: aOptions,
+          callback: aCallback
+        };
+      },
+
+      notifyError: (aErrorMsg) => {
+        if (DEBUG) debug("Error: Fail to automatically hold the active call.");
+        aCallback.notifyError(aErrorMsg);
       }
+    };
+
+    if (activeCall.isConference) {
+      this.holdConference(aClientId, autoHoldCallback);
+    } else {
+      this.holdCall(aClientId, activeCall.callIndex, autoHoldCallback);
     }
   },
 
