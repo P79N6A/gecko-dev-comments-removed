@@ -256,8 +256,8 @@ MaybeInvalidTabContext::MaybeInvalidTabContext(const IPCTabContext& aParams)
       const PopupIPCTabContext &ipcContext = appBrowser.get_PopupIPCTabContext();
 
       TabContext *context;
-      if (ipcContext.opener().type() == PBrowserOrId::TPBrowserParent) {
-        context = static_cast<TabParent*>(ipcContext.opener().get_PBrowserParent());
+      if (ipcContext.openerParent()) {
+        context = static_cast<TabParent*>(ipcContext.openerParent());
         if (context->IsBrowserElement() && !ipcContext.isBrowserElement()) {
           
           
@@ -267,13 +267,8 @@ MaybeInvalidTabContext::MaybeInvalidTabContext(const IPCTabContext& aParams)
                            "open a non-browser tab.";
           return;
         }
-      } else if (ipcContext.opener().type() == PBrowserOrId::TPBrowserChild) {
-        context = static_cast<TabChild*>(ipcContext.opener().get_PBrowserChild());
-      } else if (ipcContext.opener().type() == PBrowserOrId::TTabId) {
-        
-        
-        mInvalidReason = "Child process tried to open an tab without the opener information.";
-        return;
+      } else if (ipcContext.openerChild()) {
+        context = static_cast<TabChild*>(ipcContext.openerChild());
       } else {
         
         

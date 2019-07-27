@@ -15,7 +15,6 @@ class nsIPrincipal;
 namespace mozilla {
 
 namespace dom {
-class TabContext;
 class PBrowserParent;
 class PContentParent;
 }
@@ -46,24 +45,6 @@ AssertAppProcess(mozilla::dom::PBrowserParent* aActor,
 
 bool
 AssertAppStatus(mozilla::dom::PBrowserParent* aActor,
-                unsigned short aStatus);
-
-
-
-
-
-
-bool
-AssertAppProcess(const mozilla::dom::TabContext& aContext,
-                 AssertAppProcessType aType,
-                 const char* aCapability);
-
-
-
-
-
-bool
-AssertAppStatus(const mozilla::dom::TabContext& aContext,
                 unsigned short aStatus);
 
 
