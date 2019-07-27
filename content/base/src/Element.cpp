@@ -2747,6 +2747,33 @@ Element::SetTokenList(nsIAtom* aAtom, nsIVariant* aValue)
   return rv.ErrorCode();
 }
 
+Element*
+Element::Closest(const nsAString& aSelector, ErrorResult& aResult)
+{
+  nsCSSSelectorList* selectorList = ParseSelectorList(aSelector, aResult);
+  if (!selectorList) {
+    
+    
+    return nullptr;
+  }
+  OwnerDoc()->FlushPendingLinkUpdates();
+  TreeMatchContext matchingContext(false,
+                                   nsRuleWalker::eRelevantLinkUnvisited,
+                                   OwnerDoc(),
+                                   TreeMatchContext::eNeverMatchVisited);
+  matchingContext.SetHasSpecifiedScope();
+  matchingContext.AddScopeElement(this);
+  for (nsINode* node = this; node; node = node->GetParentNode()) {
+    if (node->IsElement() &&
+        nsCSSRuleProcessor::SelectorListMatches(node->AsElement(),
+                                                matchingContext,
+                                                selectorList)) {
+      return node->AsElement();
+    }
+  }
+  return nullptr;
+}
+
 bool
 Element::Matches(const nsAString& aSelector, ErrorResult& aError)
 {
