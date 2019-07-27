@@ -25,6 +25,11 @@ loop.shared.models = (function() {
       sessionId:    undefined,     
       sessionToken: undefined,     
       apiKey:       undefined,     
+      callId:       undefined,     
+      progressURL:  undefined,     
+      websocketToken: undefined,   
+                                   
+                                   
       callType:     undefined,     
                                    
       selectedCallType: undefined  
@@ -140,9 +145,12 @@ loop.shared.models = (function() {
     setOutgoingSessionData: function(sessionData) {
       
       this.set({
-        sessionId:    sessionData.sessionId,
-        sessionToken: sessionData.sessionToken,
-        apiKey:       sessionData.apiKey
+        sessionId:      sessionData.sessionId,
+        sessionToken:   sessionData.sessionToken,
+        apiKey:         sessionData.apiKey,
+        callId:         sessionData.callId,
+        progressURL:    sessionData.progressURL,
+        websocketToken: sessionData.websocketToken.toString(16)
       });
     },
 
@@ -154,10 +162,13 @@ loop.shared.models = (function() {
     setIncomingSessionData: function(sessionData) {
       
       this.set({
-        sessionId:    sessionData.sessionId,
-        sessionToken: sessionData.sessionToken,
-        apiKey:       sessionData.apiKey,
-        callType:     sessionData.callType || "audio-video"
+        sessionId:      sessionData.sessionId,
+        sessionToken:   sessionData.sessionToken,
+        apiKey:         sessionData.apiKey,
+        callId:         sessionData.callId,
+        progressURL:    sessionData.progressURL,
+        websocketToken: sessionData.websocketToken.toString(16),
+        callType:       sessionData.callType || "audio-video"
       });
     },
 

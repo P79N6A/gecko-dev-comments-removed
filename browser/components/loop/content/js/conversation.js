@@ -193,17 +193,37 @@ loop.conversation = (function(OT, mozL10n) {
           this._notifier.errorL10n("cannot_start_call_session_not_ready");
           return;
         }
+
         
         
         
         
         
         this._conversation.setIncomingSessionData(sessionData[0]);
+
+        this._setupWebSocketAndCallView();
+      });
+    },
+
+    
+
+
+
+    _setupWebSocketAndCallView: function() {
+      this._websocket = new loop.CallConnectionWebSocket({
+        url: this._conversation.get("progressURL"),
+        websocketToken: this._conversation.get("websocketToken"),
+        callId: this._conversation.get("callId"),
+      });
+      this._websocket.promiseConnect().then(function() {
         this.loadReactComponent(loop.conversation.IncomingCallView({
           model: this._conversation,
           video: {enabled: this._conversation.hasVideoStream("incoming")}
         }));
-      });
+      }.bind(this), function() {
+        this._handleSessionError();
+        return;
+      }.bind(this));
     },
 
     
@@ -217,10 +237,22 @@ loop.conversation = (function(OT, mozL10n) {
     
 
 
+    _declineCall: function() {
+      this._websocket.decline();
+      
+      
+      
+      
+      
+      setTimeout(window.close, 0);
+    },
+
+    
+
+
     decline: function() {
       navigator.mozLoop.stopAlerting();
-      
-      window.close();
+      this._declineCall();
     },
 
     
@@ -238,7 +270,7 @@ loop.conversation = (function(OT, mozL10n) {
         
         console.log(error);
       });
-      window.close();
+      this._declineCall();
     },
 
     
@@ -249,7 +281,7 @@ loop.conversation = (function(OT, mozL10n) {
       if (!this._conversation.isSessionReady()) {
         console.error("Error: navigated to conversation route without " +
           "the start route to initialise the call first");
-        this._notifier.errorL10n("cannot_start_call_session_not_ready");
+        this._handleSessionError();
         return;
       }
 
@@ -262,6 +294,15 @@ loop.conversation = (function(OT, mozL10n) {
         model: this._conversation,
         video: {enabled: videoStream}
       }));
+    },
+
+    
+
+
+    _handleSessionError: function() {
+      
+      
+      this._notifier.errorL10n("cannot_start_call_session_not_ready");
     },
 
     

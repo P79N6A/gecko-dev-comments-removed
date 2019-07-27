@@ -1,8 +1,8 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global loop, sinon */
+
+
+
+
 
 var expect = chai.expect;
 
@@ -17,15 +17,16 @@ describe("loop.shared.models", function() {
     sandbox.useFakeTimers();
     fakeXHR = sandbox.useFakeXMLHttpRequest();
     requests = [];
-    // https://github.com/cjohansen/Sinon.JS/issues/393
+    
     fakeXHR.xhr.onCreate = function(xhr) {
       requests.push(xhr);
     };
     fakeSessionData = {
-      sessionId:    "sessionId",
-      sessionToken: "sessionToken",
-      apiKey:       "apiKey",
-      callType:     "callType"
+      sessionId:      "sessionId",
+      sessionToken:   "sessionToken",
+      apiKey:         "apiKey",
+      callType:       "callType",
+      websocketToken: 123
     };
     fakeSession = _.extend({
       connect: function () {},

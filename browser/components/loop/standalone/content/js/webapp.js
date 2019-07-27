@@ -374,10 +374,65 @@ loop.webapp = (function($, _, OT, webL10n) {
         this._notifier.errorL10n("missing_conversation_info");
         this.navigate("home", {trigger: true});
       } else {
+        this._setupWebSocketAndCallView(loopToken);
+      }
+    },
+
+    
+
+
+
+
+
+    _setupWebSocketAndCallView: function(loopToken) {
+      this._websocket = new loop.CallConnectionWebSocket({
+        url: this._conversation.get("progressURL"),
+        websocketToken: this._conversation.get("websocketToken"),
+        callId: this._conversation.get("callId"),
+      });
+      this._websocket.promiseConnect().then(function() {
         this.navigate("call/ongoing/" + loopToken, {
           trigger: true
         });
+      }.bind(this), function() {
+        
+        
+        this._notifier.errorL10n("cannot_start_call_session_not_ready");
+        return;
+      }.bind(this));
+
+      this._websocket.on("progress", this._handleWebSocketProgress, this);
+    },
+
+    
+
+
+
+    _handleWebSocketProgress: function(progressData) {
+      if (progressData.state === "terminated") {
+        
+        
+        
+        
+        
+        
+        
+        
+        switch (progressData.reason) {
+          case "reject":
+            this._handleCallRejected();
+        }
       }
+    },
+
+    
+
+
+
+
+    _handleCallRejected: function() {
+      this.endCall();
+      this._notifier.errorL10n("call_timeout_notification_text");
     },
 
     
