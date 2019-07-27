@@ -38,7 +38,7 @@ import org.mozilla.gecko.mozglue.WebRTCJNITarget;
 
 
 
-public class VideoCaptureAndroid implements PreviewCallback, Callback {
+public class VideoCaptureAndroid implements PreviewCallback, Callback, AppStateListener {
   private final static String TAG = "WEBRTC-JC";
 
   private Camera camera;  
@@ -52,8 +52,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
   
   private final int numCaptureBuffers = 3;
   
-  private AppStateListener mAppStateListener;
-  private int mCaptureRotation;
+  private volatile int mCaptureRotation;
   private int mCaptureWidth;
   private int mCaptureHeight;
   private int mCaptureMinFPS = 0;
@@ -73,32 +72,25 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
     mCaptureRotation = GetRotateAmount();
   }
 
-  private void LinkAppStateListener() {
-    mAppStateListener = new AppStateListener() {
-      @Override
-      public void onPause() {
-        if (camera != null) {
-          mResumeCapture = true;
-          stopCapture();
-        }
-      }
-      @Override
-      public void onResume() {
-        if (mResumeCapture) {
-          startCapture(mCaptureWidth, mCaptureHeight, mCaptureMinFPS, mCaptureMaxFPS);
-          mResumeCapture = false;
-        }
-      }
-      @Override
-      public void onOrientationChanged() {
-        mCaptureRotation = GetRotateAmount();
-      }
-    };
-    GeckoAppShell.getGeckoInterface().addAppStateListener(mAppStateListener);
+  @Override
+  public synchronized void onPause() {
+    if (camera != null) {
+      mResumeCapture = true;
+      stopCapture();
+    }
   }
 
-  private void RemoveAppStateListener() {
-      GeckoAppShell.getGeckoInterface().removeAppStateListener(mAppStateListener);
+  @Override
+  public synchronized void onResume() {
+    if (mResumeCapture) {
+      startCapture(mCaptureWidth, mCaptureHeight, mCaptureMinFPS, mCaptureMaxFPS);
+      mResumeCapture = false;
+    }
+  }
+
+  @Override
+  public void onOrientationChanged() {
+    mCaptureRotation = GetRotateAmount();
   }
 
   public int GetRotateAmount() {
@@ -212,7 +204,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
       mCaptureMaxFPS = max_mfps;
       
       if (!mResumeCapture) {
-        LinkAppStateListener();
+        GeckoAppShell.getGeckoInterface().addAppStateListener(this);
       }
       return true;
     } catch (IOException e) {
@@ -250,7 +242,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback {
       camera = null;
       
       if (!mResumeCapture) {
-        RemoveAppStateListener();
+        GeckoAppShell.getGeckoInterface().removeAppStateListener(this);
         ViERenderer.DestroyLocalRenderer();
       }
       return true;
