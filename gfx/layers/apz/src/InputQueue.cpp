@@ -60,6 +60,7 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget,
         
         
         block->SetDuringFastMotion();
+        INPQ_LOG("block %p tagged as fast-motion\n", block);
       }
       block->GetOverscrollHandoffChain()->CancelAnimations();
     }

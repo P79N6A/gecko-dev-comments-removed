@@ -37,6 +37,7 @@ InputBlockState::SetConfirmedTargetApzc(const nsRefPtr<AsyncPanZoomController>& 
   }
   mTargetConfirmed = true;
 
+  TBS_LOG("%p got confirmed target APZC %p\n", this, mTargetApzc.get());
   if (mTargetApzc == aTargetApzc) {
     
     return true;
