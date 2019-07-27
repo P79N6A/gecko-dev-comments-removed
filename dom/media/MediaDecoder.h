@@ -420,10 +420,11 @@ public:
 
 
   void UpdateStreamBlockingForStateMachinePlaying();
+
   nsTArray<OutputStreamData>& OutputStreams()
   {
     GetReentrantMonitor().AssertCurrentThreadIn();
-    return mOutputStreams;
+    return mDecodedStream.OutputStreams();
   }
 
   DecodedStreamData* GetDecodedStream()
@@ -1031,8 +1032,6 @@ private:
 #endif
 
 protected:
-  
-  nsTArray<OutputStreamData> mOutputStreams;
   
   
   

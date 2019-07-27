@@ -328,8 +328,9 @@ void MediaDecoder::DestroyDecodedStream()
 
   
   
-  for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
-    OutputStreamData& os = mOutputStreams[i];
+  auto& outputStreams = OutputStreams();
+  for (int32_t i = outputStreams.Length() - 1; i >= 0; --i) {
+    OutputStreamData& os = outputStreams[i];
     
     
     MOZ_ASSERT(os.mPort, "Double-delete of the ports!");
@@ -340,7 +341,7 @@ void MediaDecoder::DestroyDecodedStream()
     
     if (os.mStream->IsDestroyed()) {
       
-      mOutputStreams.RemoveElementAt(i);
+      outputStreams.RemoveElementAt(i);
     } else {
       os.mStream->ChangeExplicitBlockerCount(1);
     }
@@ -389,8 +390,9 @@ void MediaDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs,
   
   
   
-  for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
-    OutputStreamData& os = mOutputStreams[i];
+  auto& outputStreams = OutputStreams();
+  for (int32_t i = outputStreams.Length() - 1; i >= 0; --i) {
+    OutputStreamData& os = outputStreams[i];
     MOZ_ASSERT(!os.mStream->IsDestroyed(),
         "Should've been removed in DestroyDecodedStream()");
     ConnectDecodedStreamToOutputStream(&os);
@@ -417,7 +419,7 @@ void MediaDecoder::AddOutputStream(ProcessedMediaStream* aStream,
     if (!GetDecodedStream()) {
       RecreateDecodedStream(mLogicalPosition, aStream->Graph());
     }
-    OutputStreamData* os = mOutputStreams.AppendElement();
+    OutputStreamData* os = OutputStreams().AppendElement();
     os->Init(this, aStream);
     ConnectDecodedStreamToOutputStream(os);
     if (aFinishWhenEnded) {
