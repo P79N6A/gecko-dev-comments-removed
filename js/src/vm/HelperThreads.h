@@ -86,6 +86,15 @@ class GlobalHelperThreadState
     GCHelperStateVector gcHelperWorklist_;
 
   public:
+    size_t maxIonCompilationThreads() const {
+        return 1;
+    }
+    size_t maxAsmJSCompilationThreads() const {
+        if (cpuCount < 2)
+            return 2;
+        return cpuCount;
+    }
+
     GlobalHelperThreadState();
 
     void ensureInitialized();
@@ -103,7 +112,11 @@ class GlobalHelperThreadState
         CONSUMER,
 
         
-        PRODUCER
+        PRODUCER,
+
+        
+        
+        PAUSE
     };
 
     void wait(CondVar which, uint32_t timeoutMillis = 0);
@@ -165,6 +178,14 @@ class GlobalHelperThreadState
     bool canStartCompressionTask();
     bool canStartGCHelperTask();
 
+    
+    
+    bool pendingIonCompileHasSufficientPriority();
+
+    jit::IonBuilder *highestPriorityPendingIonCompile(bool remove = false);
+    HelperThread *lowestPriorityUnpausedIonCompileAtThreshold();
+    HelperThread *highestPriorityPausedIonCompile();
+
     uint32_t harvestFailedAsmJSJobs() {
         JS_ASSERT(isLocked());
         uint32_t n = numAsmJSFailedJobs;
@@ -207,6 +228,16 @@ class GlobalHelperThreadState
     
     PRCondVar *consumerWakeup;
     PRCondVar *producerWakeup;
+    PRCondVar *pauseWakeup;
+
+    PRCondVar *whichWakeup(CondVar which) {
+        switch (which) {
+          case CONSUMER: return consumerWakeup;
+          case PRODUCER: return producerWakeup;
+          case PAUSE: return pauseWakeup;
+          default: MOZ_CRASH();
+        }
+    }
 
     
 
@@ -235,7 +266,17 @@ struct HelperThread
     PRThread *thread;
 
     
+
+
+
     bool terminate;
+
+    
+
+
+
+
+    mozilla::Atomic<bool, mozilla::Relaxed> pause;
 
     
     jit::IonBuilder *ionBuilder;
@@ -280,6 +321,10 @@ EnsureHelperThreadsInitialized(ExclusiveContext *cx);
 
 void
 SetFakeCPUCount(size_t count);
+
+
+void
+PauseCurrentHelperThread();
 
 #ifdef JS_ION
 

@@ -5673,7 +5673,7 @@ CheckFunctionsParallel(ModuleCompiler &m)
     IonSpew(IonSpew_Logs, "Can't log asm.js script. (Compiled on background thread.)");
 
     
-    size_t numParallelJobs = HelperThreadState().threadCount + 1;
+    size_t numParallelJobs = HelperThreadState().maxAsmJSCompilationThreads();
 
     
     
