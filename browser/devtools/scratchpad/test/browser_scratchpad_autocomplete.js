@@ -49,7 +49,7 @@ function* runTests([win, sp]) {
 
   
   sp.setText("5");
-  yield keyOnce("show-information", " ", { shiftKey: true });
+  yield keyOnce("show-information", " ", { ctrlKey: true, shiftKey: true });
 
   
   const info = editorWin.document.querySelector(".CodeMirror-Tern-information");
