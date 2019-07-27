@@ -23,22 +23,22 @@ add_task(function* () {
 
   
   yield promiseTabLoadEvent(tab, url);
-  test1(gBrowser.getBrowserForTab(tab));
+  yield* test1(gBrowser.getBrowserForTab(tab));
 
   yield promiseTabLoadEvent(tab);
   
-  test2(gBrowser.getBrowserForTab(tab));
+  yield* test2(gBrowser.getBrowserForTab(tab));
 
   
   yield promiseTabLoadEvent(tab);
-  test3(gBrowser.getBrowserForTab(tab));
+  yield* test3(gBrowser.getBrowserForTab(tab));
 });
 
-function test1(gTestBrowser) {
+function* test1(gTestBrowser) {
   var notification =
     PopupNotifications.getNotification("bad-content", gTestBrowser);
   isnot(notification, null, "Mixed Content Doorhanger did appear in Test1");
-  notification.reshow();
+  yield promiseNotificationShown(notification);
   isnot(PopupNotifications.panel.firstChild.isMixedContentBlocked, 0,
     "Mixed Content is being blocked in Test1");
 
@@ -49,11 +49,11 @@ function test1(gTestBrowser) {
   PopupNotifications.panel.firstChild.disableMixedContentProtection();
 }
 
-function test2(gTestBrowser) {
+function* test2(gTestBrowser) {
   var notification =
     PopupNotifications.getNotification("bad-content", gTestBrowser);
   isnot(notification, null, "Mixed Content Doorhanger did appear in Test2");
-  notification.reshow();
+  yield promiseNotificationShown(notification);
   is(PopupNotifications.panel.firstChild.isMixedContentBlocked, 0,
     "Mixed Content is NOT being blocked in Test2");
 
@@ -64,11 +64,11 @@ function test2(gTestBrowser) {
   PopupNotifications.panel.firstChild.enableMixedContentProtection();
 }
 
-function test3(gTestBrowser) {
+function* test3(gTestBrowser) {
   var notification =
     PopupNotifications.getNotification("bad-content", gTestBrowser);
   isnot(notification, null, "Mixed Content Doorhanger did appear in Test3");
-  notification.reshow();
+  yield promiseNotificationShown(notification);
   isnot(PopupNotifications.panel.firstChild.isMixedContentBlocked, 0,
     "Mixed Content is being blocked in Test3");
 
