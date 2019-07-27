@@ -1200,9 +1200,15 @@ nsresult nsWebBrowserPersist::SaveURIInternal(
 
     
     nsCOMPtr<nsIChannel> inputChannel;
-    rv = NS_NewChannel(getter_AddRefs(inputChannel), aURI,
-            nullptr, nullptr, static_cast<nsIInterfaceRequestor*>(this),
-            loadFlags);
+    rv = NS_NewChannel(getter_AddRefs(inputChannel),
+                       aURI,
+                       nsContentUtils::GetSystemPrincipal(),
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_OTHER,
+                       nullptr,  
+                       nullptr,  
+                       static_cast<nsIInterfaceRequestor*>(this),
+                       loadFlags);
 
     nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(inputChannel);
     if (pbChannel)
