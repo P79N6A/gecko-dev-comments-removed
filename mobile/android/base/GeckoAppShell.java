@@ -1887,36 +1887,30 @@ public class GeckoAppShell
                           (new File("/system/lib/hw/gralloc.tegra3.so")).exists();
         if (isTegra) {
             
-            File vfile = new File("/proc/version");
-            FileReader vreader = null;
+            if (Versions.feature19Plus) {
+                Log.w(LOGTAG, "Blocking plugins because of Tegra (bug 957694)");
+                return null;
+            }
+
+            
+            final File vfile = new File("/proc/version");
             try {
                 if (vfile.canRead()) {
-                    vreader = new FileReader(vfile);
-                    String version = new BufferedReader(vreader).readLine();
-                    if (version.indexOf("CM9") != -1 ||
-                        version.indexOf("cyanogen") != -1 ||
-                        version.indexOf("Nova") != -1)
-                    {
-                        Log.w(LOGTAG, "Blocking plugins because of Tegra 2 + unofficial ICS bug (bug 736421)");
-                        return null;
+                    final BufferedReader reader = new BufferedReader(new FileReader(vfile));
+                    try {
+                        final String version = reader.readLine();
+                        if (version.indexOf("CM9") != -1 ||
+                            version.indexOf("cyanogen") != -1 ||
+                            version.indexOf("Nova") != -1) {
+                            Log.w(LOGTAG, "Blocking plugins because of Tegra 2 + unofficial ICS bug (bug 736421)");
+                            return null;
+                        }
+                    } finally {
+                      reader.close();
                     }
                 }
             } catch (IOException ex) {
                 
-            } finally {
-                try {
-                    if (vreader != null) {
-                        vreader.close();
-                    }
-                } catch (IOException ex) {
-                    
-                }
-            }
-
-            
-            if (Versions.feature19Plus) {
-                Log.w(LOGTAG, "Blocking plugins because of Tegra (bug 957694)");
-                return null;
             }
         }
 
