@@ -34,6 +34,10 @@ gfxSurfaceDrawable::DrawWithSamplingRect(gfxContext* aContext,
                                          const GraphicsFilter& aFilter,
                                          gfxFloat aOpacity)
 {
+  if (!mSourceSurface) {
+    return true;
+  }
+
   
   
   gfxRect samplingRect = aSamplingRect;
