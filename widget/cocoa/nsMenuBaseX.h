@@ -31,6 +31,13 @@ public:
   virtual void*             NativeData()=0;
   nsIContent*               Content() { return mContent; }
 
+  
+
+
+
+
+  virtual void IconUpdated() {}
+
 protected:
   nsCOMPtr<nsIContent> mContent;
 };
