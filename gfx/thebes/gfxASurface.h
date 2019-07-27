@@ -187,11 +187,6 @@ public:
     
 
 
-    void DumpAsDataURL(FILE* aOutput = stdout);
-
-    
-
-
     void CopyAsDataURL();
 
     void WriteAsPNG_internal(FILE* aFile, bool aBinary);
