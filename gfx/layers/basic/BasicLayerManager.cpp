@@ -16,7 +16,6 @@
 #include "RenderTrace.h"                
 #include "basic/BasicImplData.h"        
 #include "basic/BasicLayers.h"          
-#include "gfx3DMatrix.h"                
 #include "gfxASurface.h"                
 #include "gfxColor.h"                   
 #include "gfxContext.h"                 
@@ -609,7 +608,7 @@ BasicLayerManager::SetRoot(Layer* aLayer)
 }
 
 static pixman_transform
-BasicLayerManager_Matrix3DToPixman(const gfx3DMatrix& aMatrix)
+BasicLayerManager_Matrix4x4ToPixman(const Matrix4x4& aMatrix)
 {
   pixman_f_transform transform;
 
@@ -632,8 +631,8 @@ BasicLayerManager_Matrix3DToPixman(const gfx3DMatrix& aMatrix)
 static void
 PixmanTransform(const gfxImageSurface* aDest,
                 RefPtr<DataSourceSurface> aSrc,
-                const gfx3DMatrix& aTransform,
-                gfxPoint aDestOffset)
+                const Matrix4x4& aTransform,
+                Point aDestOffset)
 {
   IntSize destSize = ToIntSize(aDest->GetSize());
   pixman_image_t* dest = pixman_image_create_bits(aDest->Format() == gfxImageFormat::ARGB32 ? PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8,
@@ -651,7 +650,7 @@ PixmanTransform(const gfxImageSurface* aDest,
 
   NS_ABORT_IF_FALSE(src && dest, "Failed to create pixman images?");
 
-  pixman_transform pixTransform = BasicLayerManager_Matrix3DToPixman(aTransform);
+  pixman_transform pixTransform = BasicLayerManager_Matrix4x4ToPixman(aTransform);
   pixman_transform pixTransformInverted;
 
   
@@ -695,16 +694,16 @@ PixmanTransform(const gfxImageSurface* aDest,
 static already_AddRefed<gfxASurface>
 Transform3D(RefPtr<SourceSurface> aSource,
             gfxContext* aDest,
-            const gfxRect& aBounds,
-            const gfx3DMatrix& aTransform,
-            gfxRect& aDestRect)
+            const Rect& aBounds,
+            const Matrix4x4& aTransform,
+            Rect& aDestRect)
 {
   
-  gfxRect offsetRect = aTransform.TransformBounds(aBounds);
+  Rect offsetRect = aTransform.TransformBounds(aBounds);
 
   
   
-  aDestRect = aDest->GetClipExtents();
+  aDestRect = ToRect(aDest->GetClipExtents());
   aDestRect.IntersectRect(aDestRect, offsetRect);
   aDestRect.RoundOut();
 
@@ -713,10 +712,10 @@ Transform3D(RefPtr<SourceSurface> aSource,
   nsRefPtr<gfxImageSurface> destImage = new gfxImageSurface(gfxIntSize(aDestRect.width,
                                                                        aDestRect.height),
                                                             gfxImageFormat::ARGB32);
-  gfxPoint offset = aDestRect.TopLeft();
+  Point offset = aDestRect.TopLeft();
 
   
-  gfx3DMatrix translation = gfx3DMatrix::Translation(aBounds.x, aBounds.y, 0);
+  Matrix4x4 translation = Matrix4x4().Translate(aBounds.x, aBounds.y, 0);
 
   
   PixmanTransform(destImage, aSource->GetDataSurface(), translation * aTransform, offset);
@@ -884,7 +883,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
     
     NS_ABORT_IF_FALSE(untransformedDT,
                       "We should always allocate an untransformed surface with 3d transforms!");
-    gfxRect destRect;
+    gfx::Rect destRect;
 #ifdef DEBUG
     if (aLayer->GetDebugColorIndex() != 0) {
       gfxRGBA  color((aLayer->GetDebugColorIndex() & 1) ? 1.0 : 0.0,
@@ -897,18 +896,17 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       temp->Paint();
     }
 #endif
-    gfx3DMatrix effectiveTransform = gfx::To3DMatrix(aLayer->GetEffectiveTransform());
     nsRefPtr<gfxASurface> result =
-      Transform3D(untransformedDT->Snapshot(), aTarget, bounds,
-                  effectiveTransform, destRect);
+      Transform3D(untransformedDT->Snapshot(), aTarget, ToRect(bounds),
+                  aLayer->GetEffectiveTransform(), destRect);
 
     if (result) {
-      aTarget->SetSource(result, destRect.TopLeft());
+      aTarget->SetSource(result, ThebesPoint(destRect.TopLeft()));
       
       
       
       aTarget->NewPath();
-      aTarget->SnappedRectangle(destRect);
+      aTarget->SnappedRectangle(ThebesRect(destRect));
       aTarget->Clip();
       FlushGroup(paintLayerContext, needsClipToVisibleRegion);
     }
