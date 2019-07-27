@@ -8,7 +8,12 @@ const CLIENT_EVENT_TYPE = "ContentSearchClient";
 
 
 content.addEventListener(SERVICE_EVENT_TYPE, event => {
-  sendAsyncMessage(TEST_MSG, event.detail);
+  
+  
+  
+  
+  
+  sendAsyncMessage(TEST_MSG, Components.utils.waiveXrays(event.detail));
 });
 
 
