@@ -60,4 +60,7 @@ class TestLog(MarionetteTestCase):
 
         
         
-        self.marionette.restart()
+        
+        
+        
+        self.marionette.restart(clean=True)
