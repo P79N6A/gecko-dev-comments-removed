@@ -138,9 +138,89 @@ function runEmulatorCmdSafe(aCommand) {
 
 
 
+
+
 function sendEmulatorStkPdu(aPdu) {
   let cmd = "stk pdu " + aPdu;
   return runEmulatorCmdSafe(cmd);
+}
+
+
+
+
+
+
+
+
+
+
+
+function peekLastStkResponse() {
+  return runEmulatorCmdSafe("stk lastresponse")
+    .then(aResult => aResult[0]);
+}
+
+
+
+
+
+
+
+
+
+
+
+function peekLastStkEnvelope() {
+  return runEmulatorCmdSafe("stk lastenvelope")
+    .then(aResult => aResult[0]);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function verifyWithPeekedStkResponse(aExpectResponse) {
+  return new Promise(function(aResolve, aReject) {
+    window.setTimeout(function() {
+      peekLastStkResponse().then(aResult => {
+        is(aResult, aExpectResponse, "Verify sent APDU");
+        aResolve();
+      });
+    }, 3000);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function verifyWithPeekedStkEnvelope(aExpectEnvelope) {
+  return new Promise(function(aResolve, aReject) {
+    window.setTimeout(function() {
+      peekLastStkEnvelope().then(aResult => {
+        is(aResult, aExpectEnvelope, "Verify sent APDU");
+        aResolve();
+      });
+    }, 3000);
+  });
 }
 
 let workingFrame;
