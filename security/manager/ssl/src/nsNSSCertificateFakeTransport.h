@@ -3,18 +3,17 @@
 
 
 
-#ifndef _NS_NSSCERTIFICATECHILD_H_
-#define _NS_NSSCERTIFICATECHILD_H_
+#ifndef nsNSSCertificateFakeTransport_h
+#define nsNSSCertificateFakeTransport_h
 
-#include "nsIX509Cert.h"
-#include "nsISerializable.h"
 #include "nsIClassInfo.h"
+#include "nsISerializable.h"
+#include "nsIX509Cert.h"
 #include "secitem.h"
 
-
 class nsNSSCertificateFakeTransport : public nsIX509Cert,
-                              public nsISerializable,
-                              public nsIClassInfo
+                                      public nsISerializable,
+                                      public nsIClassInfo
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -28,7 +27,7 @@ protected:
   virtual ~nsNSSCertificateFakeTransport();
 
 private:
-  SECItem *mCertSerialization;
+  SECItem* mCertSerialization;
 };
 
 #endif 
