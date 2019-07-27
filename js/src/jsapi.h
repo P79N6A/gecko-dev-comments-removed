@@ -4517,6 +4517,9 @@ PropertySpecNameIsSymbol(const char *name)
     return u != 0 && u - 1 < WellKnownSymbolLimit;
 }
 
+JS_PUBLIC_API(bool)
+PropertySpecNameEqualsId(const char *name, HandleId id);
+
 
 
 
