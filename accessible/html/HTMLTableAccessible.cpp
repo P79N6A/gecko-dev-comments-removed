@@ -314,34 +314,28 @@ HTMLTableHeaderCellAccessible::NativeRole()
       return roles::ROWHEADER;
   }
 
-  
-  
-  
-  nsIContent* parentContent = mContent->GetParent();
-  if (!parentContent) {
-    NS_ERROR("Deattached content on alive accessible?");
+  TableAccessible* table = Table();
+  if (!table)
     return roles::NOTHING;
-  }
-
-  for (nsIContent* siblingContent = mContent->GetPreviousSibling(); siblingContent;
-       siblingContent = siblingContent->GetPreviousSibling()) {
-    if (siblingContent->IsElement()) {
-      return nsCoreUtils::IsHTMLTableHeader(siblingContent) ?
-        roles::COLUMNHEADER : roles::ROWHEADER;
-    }
-  }
-
-  for (nsIContent* siblingContent = mContent->GetNextSibling(); siblingContent;
-       siblingContent = siblingContent->GetNextSibling()) {
-    if (siblingContent->IsElement()) {
-      return nsCoreUtils::IsHTMLTableHeader(siblingContent) ?
-       roles::COLUMNHEADER : roles::ROWHEADER;
-    }
-  }
 
   
   
-  return roles::COLUMNHEADER;
+  uint32_t rowIdx = RowIdx(), colIdx = ColIdx();
+  Accessible* cell = table->CellAt(rowIdx, colIdx + ColExtent());
+  if (cell && !nsCoreUtils::IsHTMLTableHeader(cell->GetContent()))
+    return roles::ROWHEADER;
+
+  
+  
+  uint32_t rowExtent = RowExtent();
+  cell = table->CellAt(rowIdx + rowExtent, colIdx);
+  if (cell && !nsCoreUtils::IsHTMLTableHeader(cell->GetContent()))
+    return roles::COLUMNHEADER;
+
+  
+  
+  
+  return rowExtent > 1 ? roles::ROWHEADER : roles::COLUMNHEADER;
 }
 
 
