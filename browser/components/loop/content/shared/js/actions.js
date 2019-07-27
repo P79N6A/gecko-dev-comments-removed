@@ -138,6 +138,18 @@ loop.shared.actions = (function() {
     
 
 
+    ConnectedToSdkServers: Action.define("connectedToSdkServers", {
+    }),
+
+    
+
+
+    RemotePeerConnected: Action.define("remotePeerConnected", {
+    }),
+
+    
+
+
 
     SetupStreamElements: Action.define("setupStreamElements", {
       

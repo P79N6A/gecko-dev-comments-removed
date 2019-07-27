@@ -21,9 +21,11 @@ loop.store.ActiveRoomStore = (function() {
     
     JOINED: "room-joined",
     
-    FAILED: "room-failed",
+    SESSION_CONNECTED: "room-session-connected",
     
-    HAS_PARTICIPANTS: "room-has-participants"
+    HAS_PARTICIPANTS: "room-has-participants",
+    
+    FAILED: "room-failed"
   };
 
   
@@ -51,6 +53,11 @@ loop.store.ActiveRoomStore = (function() {
     }
     this._mozLoop = options.mozLoop;
 
+    if (!options.sdkDriver) {
+      throw new Error("Missing option sdkDriver");
+    }
+    this._sdkDriver = options.sdkDriver;
+
     
     
     
@@ -73,7 +80,9 @@ loop.store.ActiveRoomStore = (function() {
 
 
     this._storeState = {
-      roomState: ROOM_STATES.INIT
+      roomState: ROOM_STATES.INIT,
+      audioMuted: false,
+      videoMuted: false
     };
   }
 
@@ -121,6 +130,11 @@ loop.store.ActiveRoomStore = (function() {
         "updateRoomInfo",
         "joinRoom",
         "joinedRoom",
+        "connectedToSdkServers",
+        "connectionFailure",
+        "setMute",
+        "remotePeerDisconnected",
+        "remotePeerConnected",
         "windowUnload",
         "leaveRoom"
       ]);
@@ -245,6 +259,57 @@ loop.store.ActiveRoomStore = (function() {
       });
 
       this._setRefreshTimeout(actionData.expires);
+      this._sdkDriver.connectSession(actionData);
+    },
+
+    
+
+
+    connectedToSdkServers: function() {
+      this.setStoreState({
+        roomState: ROOM_STATES.SESSION_CONNECTED
+      });
+    },
+
+    
+
+
+    connectionFailure: function() {
+      
+      
+      
+      this._leaveRoom(ROOM_STATES.FAILED);
+    },
+
+    
+
+
+
+
+    setMute: function(actionData) {
+      var muteState = {};
+      muteState[actionData.type + "Muted"] = !actionData.enabled;
+      this.setStoreState(muteState);
+    },
+
+    
+
+
+    remotePeerConnected: function() {
+      this.setStoreState({
+        roomState: ROOM_STATES.HAS_PARTICIPANTS
+      });
+    },
+
+    
+
+
+    remotePeerDisconnected: function() {
+      
+      
+      this.setStoreState({
+        roomState: ROOM_STATES.SESSION_CONNECTED
+      });
     },
 
     
@@ -293,21 +358,26 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
-    _leaveRoom: function() {
-      if (this._storeState.roomState !== ROOM_STATES.JOINED) {
-        return;
-      }
+
+
+
+    _leaveRoom: function(nextState) {
+      this._sdkDriver.disconnectSession();
 
       if (this._timeout) {
         clearTimeout(this._timeout);
         delete this._timeout;
       }
 
-      this._mozLoop.rooms.leave(this._storeState.roomToken,
-        this._storeState.sessionToken);
+      if (this._storeState.roomState === ROOM_STATES.JOINED ||
+          this._storeState.roomState === ROOM_STATES.SESSION_CONNECTED ||
+          this._storeState.roomState === ROOM_STATES.HAS_PARTICIPANTS) {
+        this._mozLoop.rooms.leave(this._storeState.roomToken,
+          this._storeState.sessionToken);
+      }
 
       this.setStoreState({
-        roomState: ROOM_STATES.READY
+        roomState: nextState ? nextState : ROOM_STATES.READY
       });
     }
 

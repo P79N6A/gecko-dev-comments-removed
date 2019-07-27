@@ -11,6 +11,7 @@ var loop = loop || {};
 loop.roomViews = (function(mozL10n) {
   "use strict";
 
+  var sharedActions = loop.shared.actions;
   var ROOM_STATES = loop.store.ROOM_STATES;
   var sharedViews = loop.shared.views;
 
@@ -37,7 +38,12 @@ loop.roomViews = (function(mozL10n) {
     },
 
     _onActiveRoomStateChanged: function() {
-      this.setState(this.props.roomStore.getStoreState("activeRoom"));
+      
+      
+      
+      if (this.isMounted()) {
+        this.setState(this.props.roomStore.getStoreState("activeRoom"));
+      }
     },
 
     getInitialState: function() {
@@ -104,16 +110,7 @@ loop.roomViews = (function(mozL10n) {
     mixins: [ActiveRoomStoreMixin, loop.shared.mixins.DocumentTitleMixin],
 
     propTypes: {
-      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      video: React.PropTypes.object,
-      audio: React.PropTypes.object
-    },
-
-    getDefaultProps: function() {
-      return {
-        video: {enabled: true, visible: true},
-        audio: {enabled: true, visible: true}
-      };
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired
     },
 
     _renderInvitationOverlay: function() {
@@ -126,6 +123,89 @@ loop.roomViews = (function(mozL10n) {
       return null;
     },
 
+    componentDidMount: function() {
+      
+
+
+
+
+
+      window.addEventListener('orientationchange', this.updateVideoContainer);
+      window.addEventListener('resize', this.updateVideoContainer);
+
+      
+      
+      
+      this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
+        publisherConfig: this._getPublisherConfig(),
+        getLocalElementFunc: this._getElement.bind(this, ".local"),
+        getRemoteElementFunc: this._getElement.bind(this, ".remote")
+      }));
+    },
+
+    _getPublisherConfig: function() {
+      
+      
+      return {
+        insertMode: "append",
+        width: "100%",
+        height: "100%",
+        publishVideo: !this.state.videoMuted,
+        style: {
+          audioLevelDisplayMode: "off",
+          bugDisplayMode: "off",
+          buttonDisplayMode: "off",
+          nameDisplayMode: "off",
+          videoDisabledDisplayMode: "off"
+        }
+      };
+    },
+
+    
+
+
+
+    updateVideoContainer: function() {
+      var localStreamParent = this._getElement('.local .OT_publisher');
+      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
+      if (localStreamParent) {
+        localStreamParent.style.width = "100%";
+      }
+      if (remoteStreamParent) {
+        remoteStreamParent.style.height = "100%";
+      }
+    },
+
+    
+
+
+
+
+    _getElement: function(className) {
+      return this.getDOMNode().querySelector(className);
+    },
+
+    
+
+
+    closeWindow: function() {
+      window.close();
+    },
+
+    
+
+
+
+
+
+    publishStream: function(type, enabled) {
+      this.props.dispatcher.dispatch(
+        new sharedActions.SetMute({
+          type: type,
+          enabled: enabled
+        }));
+    },
+
     render: function() {
       if (this.state.roomName) {
         this.setTitle(this.state.roomName);
@@ -134,7 +214,7 @@ loop.roomViews = (function(mozL10n) {
       var localStreamClasses = React.addons.classSet({
         local: true,
         "local-stream": true,
-        "local-stream-audio": !this.props.video.enabled
+        "local-stream-audio": !this.state.videoMuted
       });
 
       switch(this.state.roomState) {
@@ -156,9 +236,9 @@ loop.roomViews = (function(mozL10n) {
                     React.DOM.div({className: localStreamClasses})
                   ), 
                   sharedViews.ConversationToolbar({
-                    video: this.props.video, 
-                    audio: this.props.audio, 
-                    publishStream: noop, 
+                    video: {enabled: !this.state.videoMuted, visible: true}, 
+                    audio: {enabled: !this.state.audioMuted, visible: true}, 
+                    publishStream: this.publishStream, 
                     hangup: noop})
                 )
               )
