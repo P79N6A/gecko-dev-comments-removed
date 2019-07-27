@@ -164,6 +164,11 @@
 }
 
 
+.standalone .room-conversation .remote_wrapper {
+  background: none;
+}
+
+
 
 .svg-icon-entry {
   width: 180px;
