@@ -3430,7 +3430,6 @@ status_t MPEG4Source::fragmentedRead(
 
         if (mCurrentSampleIndex >= mCurrentSamples.size()) {
             
-            Sample lastSample = mCurrentSamples[mCurrentSamples.size() - 1];
             off64_t nextMoof = mNextMoofOffset; 
 
             
