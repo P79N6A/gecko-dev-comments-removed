@@ -107,7 +107,6 @@ private:
   
   
   
-  
   mozilla::Maybe<JS::PersistentRooted<JSObject*>> mStackTrace;
 };
 
