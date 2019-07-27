@@ -12,6 +12,7 @@
 
 #include "imgLoader.h"
 #include "nsIContent.h"
+#include "nsIContentInlines.h"
 #include "nsIDocShell.h"
 #include "nsIDocument.h"
 #include "nsIDOMCustomEvent.h"
@@ -82,6 +83,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/dom/HTMLObjectElementBinding.h"
 
 #ifdef XP_WIN
 
@@ -916,6 +918,167 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
 }
 
 void
+nsObjectLoadingContent::GetPluginAttributes(nsTArray<MozPluginParameter>& aAttributes)
+{
+  aAttributes = mCachedAttributes;
+}
+
+void
+nsObjectLoadingContent::GetPluginParameters(nsTArray<MozPluginParameter>& aParameters)
+{
+  aParameters = mCachedParameters;
+}
+
+void
+nsObjectLoadingContent::GetNestedParams(nsTArray<MozPluginParameter>& aParams,
+                                        bool aIgnoreCodebase)
+{
+  nsCOMPtr<nsIDOMElement> domElement =
+    do_QueryInterface(static_cast<nsIObjectLoadingContent*>(this));
+
+  nsCOMPtr<nsIDOMHTMLCollection> allParams;
+  NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
+  domElement->GetElementsByTagNameNS(xhtml_ns,
+        NS_LITERAL_STRING("param"), getter_AddRefs(allParams));
+
+  if (!allParams)
+    return;
+
+  uint32_t numAllParams;
+  allParams->GetLength(&numAllParams);
+  for (uint32_t i = 0; i < numAllParams; i++) {
+    nsCOMPtr<nsIDOMNode> pNode;
+    allParams->Item(i, getter_AddRefs(pNode));
+    nsCOMPtr<nsIDOMElement> element = do_QueryInterface(pNode);
+
+    if (!element)
+      continue;
+
+    nsAutoString name;
+    element->GetAttribute(NS_LITERAL_STRING("name"), name);
+
+    if (name.IsEmpty())
+      continue;
+
+    nsCOMPtr<nsIDOMNode> parent;
+    nsCOMPtr<nsIDOMHTMLObjectElement> domObject;
+    nsCOMPtr<nsIDOMHTMLAppletElement> domApplet;
+    pNode->GetParentNode(getter_AddRefs(parent));
+    while (!(domObject || domApplet) && parent) {
+      domObject = do_QueryInterface(parent);
+      domApplet = do_QueryInterface(parent);
+      nsCOMPtr<nsIDOMNode> temp;
+      parent->GetParentNode(getter_AddRefs(temp));
+      parent = temp;
+    }
+
+    if (domApplet) {
+      parent = do_QueryInterface(domApplet);
+    } else if (domObject) {
+      parent = do_QueryInterface(domObject);
+    } else {
+      continue;
+    }
+
+    nsCOMPtr<nsIDOMNode> domNode = do_QueryInterface(domElement);
+    if (parent == domNode) {
+      MozPluginParameter param;
+      element->GetAttribute(NS_LITERAL_STRING("name"), param.mName);
+      element->GetAttribute(NS_LITERAL_STRING("value"), param.mValue);
+
+      param.mName.Trim(" \n\r\t\b", true, true, false);
+      param.mValue.Trim(" \n\r\t\b", true, true, false);
+
+      
+      if (aIgnoreCodebase && param.mName.EqualsIgnoreCase("codebase")) {
+        continue;
+      }
+
+      aParams.AppendElement(param);
+    }
+  }
+}
+
+void
+nsObjectLoadingContent::BuildParametersArray()
+{
+  if (mCachedAttributes.Length() || mCachedParameters.Length()) {
+    MOZ_ASSERT(false, "Parameters array should be empty.");
+    return;
+  }
+
+  nsCOMPtr<nsIContent> content =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+
+  int32_t start = 0, end = content->GetAttrCount(), step = 1;
+  
+  if (content->IsHTML() && content->IsInHTMLDocument()) {
+    start = end - 1;
+    end = -1;
+    step = -1;
+  }
+
+  for (int32_t i = start; i != end; i += step) {
+    MozPluginParameter param;
+    const nsAttrName* attrName = content->GetAttrNameAt(i);
+    nsIAtom* atom = attrName->LocalName();
+    content->GetAttr(attrName->NamespaceID(), atom, param.mValue);
+    atom->ToString(param.mName);
+    mCachedAttributes.AppendElement(param);
+  }
+
+  bool isJava = nsPluginHost::IsJavaMIMEType(mContentType.get());
+
+  nsCString codebase;
+  if (isJava) {
+      mBaseURI->GetSpec(codebase);
+  }
+
+  nsAdoptingCString wmodeOverride = Preferences::GetCString("plugins.force.wmode");
+
+  for (uint32_t i = 0; i < mCachedAttributes.Length(); i++) {
+    if (!wmodeOverride.IsEmpty() && mCachedAttributes[i].mName.EqualsIgnoreCase("wmode")) {
+      CopyASCIItoUTF16(wmodeOverride, mCachedAttributes[i].mValue);
+      wmodeOverride.Truncate();
+    } else if (!codebase.IsEmpty() && mCachedAttributes[i].mName.EqualsIgnoreCase("codebase")) {
+      CopyASCIItoUTF16(codebase, mCachedAttributes[i].mValue);
+      codebase.Truncate();
+    }
+  }
+
+  if (!wmodeOverride.IsEmpty()) {
+    MozPluginParameter param;
+    param.mName = NS_LITERAL_STRING("wmode");
+    CopyASCIItoUTF16(wmodeOverride, param.mValue);
+    mCachedAttributes.AppendElement(param);
+  }
+
+  if (!codebase.IsEmpty()) {
+    MozPluginParameter param;
+    param.mName = NS_LITERAL_STRING("codebase");
+    CopyASCIItoUTF16(codebase, param.mValue);
+    mCachedAttributes.AppendElement(param);
+  }
+
+  
+  
+  
+  
+  
+  if (content->Tag() == nsGkAtoms::object &&
+      !content->HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
+    MozPluginParameter param;
+    content->GetAttr(kNameSpaceID_None, nsGkAtoms::data, param.mValue);
+    if (!param.mValue.IsEmpty()) {
+      param.mName = NS_LITERAL_STRING("SRC");
+      mCachedAttributes.AppendElement(param);
+    }
+  }
+
+  GetNestedParams(mCachedParameters, isJava);
+}
+
+void
 nsObjectLoadingContent::NotifyOwnerDocumentActivityChanged()
 {
   
@@ -1502,59 +1665,15 @@ nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
 
 
   
-  
-  
   if (isJava) {
     
     
-    nsCOMArray<nsIDOMElement> ourParams;
-    nsCOMPtr<nsIDOMElement> mydomElement = do_QueryInterface(thisContent);
-
-    nsCOMPtr<nsIDOMHTMLCollection> allParams;
-    NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
-    mydomElement->GetElementsByTagNameNS(xhtml_ns, NS_LITERAL_STRING("param"),
-                                         getter_AddRefs(allParams));
-    if (allParams) {
-      uint32_t numAllParams;
-      allParams->GetLength(&numAllParams);
-      for (uint32_t i = 0; i < numAllParams; i++) {
-        nsCOMPtr<nsIDOMNode> pnode;
-        allParams->Item(i, getter_AddRefs(pnode));
-        nsCOMPtr<nsIDOMElement> domelement = do_QueryInterface(pnode);
-        if (domelement) {
-          nsAutoString name;
-          domelement->GetAttribute(NS_LITERAL_STRING("name"), name);
-          name.Trim(" \n\r\t\b", true, true, false);
-          if (name.EqualsIgnoreCase("codebase")) {
-            
-            nsCOMPtr<nsIDOMNode> parent;
-            nsCOMPtr<nsIDOMHTMLObjectElement> domobject;
-            nsCOMPtr<nsIDOMHTMLAppletElement> domapplet;
-            pnode->GetParentNode(getter_AddRefs(parent));
-            while (!(domobject || domapplet) && parent) {
-              domobject = do_QueryInterface(parent);
-              domapplet = do_QueryInterface(parent);
-              nsCOMPtr<nsIDOMNode> temp;
-              parent->GetParentNode(getter_AddRefs(temp));
-              parent = temp;
-            }
-            if (domapplet || domobject) {
-              if (domapplet) {
-                parent = do_QueryInterface(domapplet);
-              }
-              else {
-                parent = do_QueryInterface(domobject);
-              }
-              nsCOMPtr<nsIDOMNode> mydomNode = do_QueryInterface(mydomElement);
-              if (parent == mydomNode) {
-                hasCodebase = true;
-                domelement->GetAttribute(NS_LITERAL_STRING("value"),
-                                         codebaseStr);
-                codebaseStr.Trim(" \n\r\t\b", true, true, false);
-              }
-            }
-          }
-        }
+    nsTArray<MozPluginParameter> params;
+    GetNestedParams(params, false);
+    for (uint32_t i = 0; i < params.Length(); i++) {
+      if (params[i].mName.EqualsIgnoreCase("codebase")) {
+        hasCodebase = true;
+        codebaseStr = params[i].mValue;
       }
     }
   }
@@ -2121,6 +2240,12 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
 
+
+  
+  if (mType == eType_Plugin || mType == eType_Null) {
+    BuildParametersArray();
+  }
+
   
   
   nsCOMPtr<nsIStreamListener> finalListener;
@@ -2476,6 +2601,9 @@ nsObjectLoadingContent::UnloadObject(bool aResetState)
     TeardownProtoChain();
     mIsStopping = false;
   }
+
+  mCachedAttributes.Clear();
+  mCachedParameters.Clear();
 
   
   StopPluginInstance();

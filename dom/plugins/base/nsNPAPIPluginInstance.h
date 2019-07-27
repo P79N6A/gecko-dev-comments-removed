@@ -305,10 +305,6 @@ protected:
   virtual ~nsNPAPIPluginInstance();
 
   nsresult GetTagType(nsPluginTagType *result);
-  nsresult GetAttributes(uint16_t& n, const char*const*& names,
-                         const char*const*& values);
-  nsresult GetParameters(uint16_t& n, const char*const*& names,
-                         const char*const*& values);
   nsresult GetMode(int32_t *result);
 
   
@@ -398,6 +394,12 @@ private:
   bool mHaveJavaC2PJSObjectQuirk;
 
   static uint32_t gInUnsafePluginCalls;
+
+  
+  
+  uint32_t mCachedParamLength;
+  char **mCachedParamNames;
+  char **mCachedParamValues;
 };
 
 

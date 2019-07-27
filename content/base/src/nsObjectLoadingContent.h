@@ -34,6 +34,7 @@ class nsPluginInstanceOwner;
 namespace mozilla {
 namespace dom {
 template<typename T> class Sequence;
+struct MozPluginParameter;
 }
 }
 
@@ -118,6 +119,19 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     {
       mNetworkCreated = aNetworkCreated;
     }
+
+    
+
+
+
+
+
+
+    
+    void GetPluginAttributes(nsTArray<mozilla::dom::MozPluginParameter>& aAttributes);
+
+    
+    void GetPluginParameters(nsTArray<mozilla::dom::MozPluginParameter>& aParameters);
 
     
 
@@ -321,6 +335,26 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       
       eParamContentTypeChanged = 1u << 2
     };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void GetNestedParams(nsTArray<mozilla::dom::MozPluginParameter>& aParameters,
+                         bool aIgnoreCodebase);
+
+    void BuildParametersArray();
 
     
 
@@ -579,6 +613,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     nsWeakFrame                 mPrintFrame;
 
     nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
+    nsTArray<mozilla::dom::MozPluginParameter> mCachedAttributes;
+    nsTArray<mozilla::dom::MozPluginParameter> mCachedParameters;
 };
 
 #endif

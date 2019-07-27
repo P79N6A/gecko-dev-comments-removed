@@ -29,6 +29,12 @@ class nsPluginDOMContextMenuListener;
 class nsObjectFrame;
 class nsDisplayListBuilder;
 
+namespace mozilla {
+namespace dom {
+struct MozPluginParameter;
+}
+}
+
 #ifdef MOZ_X11
 class gfxXlibSurface;
 #ifdef MOZ_WIDGET_QT
@@ -72,50 +78,8 @@ public:
 
   NS_IMETHOD GetTagType(nsPluginTagType *aResult);
 
-  
-
-
-
-
-
-  NS_IMETHOD GetParameters(uint16_t& aCount,
-                           const char*const*& aNames,
-                           const char*const*& aValues);
-
-  
-
-
-
-
-
-
-
-  NS_IMETHOD GetParameter(const char* aName, const char* *aResult);
-
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD GetAttributes(uint16_t& aCount,
-                           const char*const*& aNames,
-                           const char*const*& aValues);
-
-
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD GetAttribute(const char* aName, const char* *aResult);
+  void GetParameters(nsTArray<mozilla::dom::MozPluginParameter>& parameters);
+  void GetAttributes(nsTArray<mozilla::dom::MozPluginParameter>& attributes);
 
   
 
@@ -300,8 +264,7 @@ private:
     return NS_SUCCEEDED(mInstance->GetImageSize(&size)) &&
     size == nsIntSize(mPluginWindow->width, mPluginWindow->height);
   }
-  
-  void FixUpURLS(const nsString &name, nsAString &value);
+
 #ifdef MOZ_WIDGET_ANDROID
   mozilla::LayoutDeviceRect GetPluginRect();
   bool AddPluginView(const mozilla::LayoutDeviceRect& aRect = mozilla::LayoutDeviceRect(0, 0, 0, 0));
@@ -347,11 +310,6 @@ private:
   bool                        mPluginWindowVisible;
   bool                        mPluginDocumentActiveState;
 
-  uint16_t          mNumCachedAttrs;
-  uint16_t          mNumCachedParams;
-  char              **mCachedAttrParamNames;
-  char              **mCachedAttrParamValues;
-  
 #ifdef XP_MACOSX
   NPEventModel mEventModel;
   
@@ -370,9 +328,7 @@ private:
   nsresult DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent);
 
   int mLastMouseDownButtonType;
-  
-  nsresult EnsureCachedAttrParamArrays();
-  
+
 #ifdef MOZ_X11
   class Renderer
 #if defined(MOZ_WIDGET_QT)
