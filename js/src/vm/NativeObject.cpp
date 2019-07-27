@@ -268,7 +268,7 @@ js::NativeObject::slotInRange(uint32_t slot, SentinelAllowed sentinel) const
 }
 #endif 
 
-#if defined(_MSC_VER) && _MSC_VER >= 1500
+#if defined(_MSC_VER)
 
 
 
