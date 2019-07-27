@@ -24,8 +24,8 @@ class ObjectId {
     static const size_t FLAG_BITS = 1;
     static const uint64_t SERIAL_NUMBER_MAX = (uint64_t(1) << SERIAL_NUMBER_BITS) - 1;
 
-    explicit ObjectId(uint64_t serialNumber, bool isCallable)
-      : serialNumber_(serialNumber), isCallable_(isCallable)
+    explicit ObjectId(uint64_t serialNumber, bool hasXrayWaiver)
+      : serialNumber_(serialNumber), hasXrayWaiver_(hasXrayWaiver)
     {
         if (MOZ_UNLIKELY(serialNumber == 0 || serialNumber > SERIAL_NUMBER_MAX))
             MOZ_CRASH("Bad CPOW Id");
@@ -33,17 +33,17 @@ class ObjectId {
 
     bool operator==(const ObjectId &other) const {
         bool equal = serialNumber() == other.serialNumber();
-        MOZ_ASSERT_IF(equal, isCallable() == other.isCallable());
+        MOZ_ASSERT_IF(equal, hasXrayWaiver() == other.hasXrayWaiver());
         return equal;
     }
 
     bool isNull() { return !serialNumber_; }
 
     uint64_t serialNumber() const { return serialNumber_; }
-    bool isCallable() const { return isCallable_; }
+    bool hasXrayWaiver() const { return hasXrayWaiver_; }
     uint64_t serialize() const {
         MOZ_ASSERT(serialNumber(), "Don't send a null ObjectId over IPC");
-        return uint64_t((serialNumber() << FLAG_BITS) | ((isCallable() ? 1 : 0) << 0));
+        return uint64_t((serialNumber() << FLAG_BITS) | ((hasXrayWaiver() ? 1 : 0) << 0));
     }
 
     static ObjectId nullId() { return ObjectId(); }
@@ -52,10 +52,10 @@ class ObjectId {
     }
 
   private:
-    ObjectId() : serialNumber_(0), isCallable_(false) {}
+    ObjectId() : serialNumber_(0), hasXrayWaiver_(false) {}
 
     uint64_t serialNumber_ : SERIAL_NUMBER_BITS;
-    bool isCallable_ : 1;
+    bool hasXrayWaiver_ : 1;
 };
 
 class JavaScriptShared;
@@ -174,9 +174,6 @@ class JavaScriptShared
     JSObject *findCPOWById(const ObjectId &objId) {
         return cpows_.find(objId);
     }
-    JSObject *findObjectById(const ObjectId &objId) {
-        return objects_.find(objId);
-    }
     JSObject *findObjectById(JSContext *cx, const ObjectId &objId);
 
     static bool LoggingEnabled() { return sLoggingEnabled; }
@@ -196,7 +193,27 @@ class JavaScriptShared
     IdToObjectMap cpows_;
 
     uint64_t nextSerialNumber_;
-    ObjectToIdMap objectIds_;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    ObjectToIdMap unwaivedObjectIds_;
+    ObjectToIdMap waivedObjectIds_;
+    ObjectToIdMap &objectIdMap(bool waiver) {
+        return waiver ? waivedObjectIds_ : unwaivedObjectIds_;
+    }
 
     static bool sLoggingInitialized;
     static bool sLoggingEnabled;
