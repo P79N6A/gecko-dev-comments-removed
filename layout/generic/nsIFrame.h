@@ -1651,6 +1651,13 @@ public:
   virtual IntrinsicISizeOffsetData
     IntrinsicISizeOffsets(nsRenderingContext* aRenderingContext) = 0;
 
+  
+
+
+
+  IntrinsicISizeOffsetData
+    IntrinsicBSizeOffsets(nsRenderingContext* aRenderingContext);
+
   virtual mozilla::IntrinsicSize GetIntrinsicSize() = 0;
 
   
