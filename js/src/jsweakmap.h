@@ -91,7 +91,7 @@ class WeakMapBase {
     virtual void finish() = 0;
 
     
-    JSObject *memberOf;
+    HeapPtrObject memberOf;
 
     
     JSCompartment *compartment;
