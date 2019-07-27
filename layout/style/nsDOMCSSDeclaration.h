@@ -101,9 +101,25 @@ public:
 
 protected:
   
-  
-  
-  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate) = 0;
+  enum Operation {
+    
+    
+    
+    eOperation_Read,
+
+    
+    
+    
+    
+    eOperation_Modify,
+
+    
+    
+    
+    
+    eOperation_RemoveProperty
+  };
+  virtual mozilla::css::Declaration* GetCSSDeclaration(Operation aOperation) = 0;
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl) = 0;
   
   
@@ -160,4 +176,4 @@ MOZ_ALWAYS_INLINE bool IsCSSPropertyExposedToJS(JSContext* cx, JSObject* obj)
   return IsCSSPropertyExposedToJS(Property, cx, obj);
 }
 
-#endif 
+#endif

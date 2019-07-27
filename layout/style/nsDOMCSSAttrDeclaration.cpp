@@ -93,21 +93,11 @@ nsDOMCSSAttributeDeclaration::DocToUpdate()
 {
   
   
-  
-  
-  if (!mIsSMILOverride) {
-    nsNodeUtils::AttributeWillChange(mElement, kNameSpaceID_None,
-                                     nsGkAtoms::style,
-                                     nsIDOMMutationEvent::MODIFICATION);
-  }
- 
-  
-  
   return mElement->OwnerDoc();
 }
 
 css::Declaration*
-nsDOMCSSAttributeDeclaration::GetCSSDeclaration(bool aAllocate)
+nsDOMCSSAttributeDeclaration::GetCSSDeclaration(Operation aOperation)
 {
   if (!mElement)
     return nullptr;
@@ -118,10 +108,31 @@ nsDOMCSSAttributeDeclaration::GetCSSDeclaration(bool aAllocate)
   else
     cssRule = mElement->GetInlineStyleRule();
 
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  if (!mIsSMILOverride &&
+      ((aOperation == eOperation_Modify) ||
+       (aOperation == eOperation_RemoveProperty && cssRule))) {
+    nsNodeUtils::AttributeWillChange(mElement, kNameSpaceID_None,
+                                     nsGkAtoms::style,
+                                     nsIDOMMutationEvent::MODIFICATION);
+  }
+
   if (cssRule) {
     return cssRule->GetDeclaration();
   }
-  if (!aAllocate) {
+
+  if (aOperation != eOperation_Modify) {
     return nullptr;
   }
 

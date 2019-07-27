@@ -543,7 +543,7 @@ nsComputedDOMStyle::GetPresShellForContent(nsIContent* aContent)
 
 
 css::Declaration*
-nsComputedDOMStyle::GetCSSDeclaration(bool)
+nsComputedDOMStyle::GetCSSDeclaration(Operation)
 {
   NS_RUNTIMEABORT("called nsComputedDOMStyle::GetCSSDeclaration");
   return nullptr;
