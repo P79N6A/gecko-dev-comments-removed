@@ -26,19 +26,6 @@ public:
   }
   void SetScriptOwner(JSObject* aScriptOwner);
 
-  JSObject* GetParentObject()
-  {
-    if (mScriptOwner) {
-      return mScriptOwner;
-    }
-
-    
-    nsCOMPtr<nsIScriptGlobalObject> parent;
-    DOMEventTargetHelper::GetParentObject(getter_AddRefs(parent));
-
-    return parent ? parent->GetGlobalJSObject() : nullptr;
-  }
-
 #ifdef DEBUG
   void AssertIsRooted() const;
 #else
