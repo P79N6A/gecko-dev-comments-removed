@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_ORIENTATION_H_
-#define MOZILLA_IMAGELIB_ORIENTATION_H_
+#ifndef mozilla_image_src_Orientation_h
+#define mozilla_image_src_Orientation_h
 
 #include <stdint.h>
 
@@ -56,7 +56,7 @@ struct Orientation
   Flip  flip;
 };
 
-}
-}
+} 
+} 
 
 #endif

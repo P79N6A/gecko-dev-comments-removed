@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_IMAGEWRAPPER_H_
-#define MOZILLA_IMAGELIB_IMAGEWRAPPER_H_
+#ifndef mozilla_image_src_ImageWrapper_h
+#define mozilla_image_src_ImageWrapper_h
 
 #include "mozilla/MemoryReporting.h"
 #include "Image.h"

@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_IMAGE_REGION_H_
-#define MOZILLA_IMAGELIB_IMAGE_REGION_H_
+#ifndef mozilla_image_src_ImageRegion_h
+#define mozilla_image_src_ImageRegion_h
 
 #include "gfxRect.h"
 
@@ -155,4 +155,4 @@ private:
 }  
 }  
 
-#endif
+#endif 

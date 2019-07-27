@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsImageModule_h
-#define nsImageModule_h
+#ifndef mozilla_image_build_nsImageModule_h
+#define mozilla_image_build_nsImageModule_h
 
 #include "nsError.h"
 
@@ -16,6 +16,5 @@ void ShutdownModule();
 
 } 
 } 
-
 
 #endif 

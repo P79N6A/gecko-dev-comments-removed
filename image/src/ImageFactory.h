@@ -4,8 +4,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_IMAGEFACTORY_H_
-#define MOZILLA_IMAGELIB_IMAGEFACTORY_H_
+#ifndef mozilla_image_src_ImageFactory_h
+#define mozilla_image_src_ImageFactory_h
 
 #include "nsCOMPtr.h"
 #include "nsProxyRelease.h"

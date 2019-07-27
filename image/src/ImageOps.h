@@ -4,8 +4,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_IMAGEOPS_H_
-#define MOZILLA_IMAGELIB_IMAGEOPS_H_
+#ifndef mozilla_image_src_ImageOps_h
+#define mozilla_image_src_ImageOps_h
 
 #include "nsCOMPtr.h"
 

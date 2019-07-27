@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_PROGRESSOBSERVER_H_
-#define MOZILLA_IMAGELIB_PROGRESSOBSERVER_H_
+#ifndef mozilla_image_src_IProgressObserver_h
+#define mozilla_image_src_IProgressObserver_h
 
 #include "mozilla/WeakPtr.h"
 #include "nsISupports.h"

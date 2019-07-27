@@ -8,8 +8,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_SOURCEBUFFER_H_
-#define MOZILLA_IMAGELIB_SOURCEBUFFER_H_
+#ifndef mozilla_image_src_sourcebuffer_h
+#define mozilla_image_src_sourcebuffer_h
 
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
@@ -117,7 +117,8 @@ public:
   
   nsresult CompletionStatus() const
   {
-    MOZ_ASSERT(mState == COMPLETE, "Calling CompletionStatus() in the wrong state");
+    MOZ_ASSERT(mState == COMPLETE,
+               "Calling CompletionStatus() in the wrong state");
     return mState == COMPLETE ? mData.mAtEnd.mStatus : NS_OK;
   }
 

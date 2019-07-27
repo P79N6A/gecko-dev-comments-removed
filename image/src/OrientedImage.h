@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_ORIENTEDIMAGE_H_
-#define MOZILLA_IMAGELIB_ORIENTEDIMAGE_H_
+#ifndef mozilla_image_src_OrientedImage_h
+#define mozilla_image_src_OrientedImage_h
 
 #include "ImageWrapper.h"
 #include "mozilla/gfx/2D.h"

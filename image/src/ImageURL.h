@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_IMAGEURL_H_
-#define MOZILLA_IMAGELIB_IMAGEURL_H_
+#ifndef mozilla_image_src_ImageURL_h
+#define mozilla_image_src_ImageURL_h
 
 #include "nsIURI.h"
 #include "MainThreadUtils.h"

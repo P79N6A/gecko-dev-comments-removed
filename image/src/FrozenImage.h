@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_FROZENIMAGE_H_
-#define MOZILLA_IMAGELIB_FROZENIMAGE_H_
+#ifndef mozilla_image_src_FrozenImage_h
+#define mozilla_image_src_FrozenImage_h
 
 #include "ImageWrapper.h"
 #include "mozilla/gfx/2D.h"
