@@ -378,7 +378,7 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
   
   
   switch (aResponseCode) {
-    case ResponseCode::VolumeListResult: {
+    case ::ResponseCode::VolumeListResult: {
       
       
       
@@ -397,7 +397,7 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
       break;
     }
 
-    case ResponseCode::VolumeStateChange: {
+    case ::ResponseCode::VolumeStateChange: {
       
       
       
@@ -415,12 +415,12 @@ Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer
       break;
     }
 
-    case ResponseCode::VolumeDiskInserted:
+    case ::ResponseCode::VolumeDiskInserted:
       SetMediaPresent(true);
       break;
 
-    case ResponseCode::VolumeDiskRemoved: 
-    case ResponseCode::VolumeBadRemoval:
+    case ::ResponseCode::VolumeDiskRemoved: 
+    case ::ResponseCode::VolumeBadRemoval:
       SetMediaPresent(false);
       break;
 

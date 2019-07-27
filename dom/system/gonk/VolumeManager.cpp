@@ -143,7 +143,7 @@ class VolumeListCallback : public VolumeResponseCallback
   virtual void ResponseReceived(const VolumeCommand* aCommand)
   {
     switch (ResponseCode()) {
-      case ResponseCode::VolumeListResult: {
+      case ::ResponseCode::VolumeListResult: {
         
         
         
@@ -157,7 +157,7 @@ class VolumeListCallback : public VolumeResponseCallback
         break;
       }
 
-      case ResponseCode::CommandOkay: {
+      case ::ResponseCode::CommandOkay: {
         
         
         VolumeManager::SetState(VolumeManager::VOLUMES_READY);
@@ -285,7 +285,7 @@ VolumeManager::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
   nsDependentCString  responseLine(endPtr, aMessage.Length() - (endPtr - aMessage.Data()));
   DBG("Rcvd: %d '%s'", responseCode, responseLine.Data());
 
-  if (responseCode >= ResponseCode::UnsolicitedInformational) {
+  if (responseCode >= ::ResponseCode::UnsolicitedInformational) {
     
     
     HandleBroadcast(responseCode, responseLine);
@@ -294,7 +294,7 @@ VolumeManager::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
     if (mCommands.size() > 0) {
       VolumeCommand* cmd = mCommands.front();
       cmd->HandleResponse(responseCode, responseLine);
-      if (responseCode >= ResponseCode::CommandOkay) {
+      if (responseCode >= ::ResponseCode::CommandOkay) {
         
         mCommands.pop();
         mCommandPending = false;
