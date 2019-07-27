@@ -420,7 +420,6 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
 
 void
 TiledContentHost::RenderTile(TileHost& aTile,
-                             const gfxRGBA* aBackgroundColor,
                              EffectChain& aEffectChain,
                              float aOpacity,
                              const gfx::Matrix4x4& aTransform,
@@ -431,20 +430,7 @@ TiledContentHost::RenderTile(TileHost& aTile,
                              const IntSize& aTextureBounds,
                              const gfx::Rect& aVisibleRect)
 {
-  if (aTile.IsPlaceholderTile()) {
-    
-    
-    return;
-  }
-
-  if (aBackgroundColor) {
-    aEffectChain.mPrimaryEffect = new EffectSolidColor(ToColor(*aBackgroundColor));
-    nsIntRegionRectIterator it(aScreenRegion);
-    for (const IntRect* rect = it.Next(); rect != nullptr; rect = it.Next()) {
-      Rect graphicsRect(rect->x, rect->y, rect->width, rect->height);
-      mCompositor->DrawQuad(graphicsRect, aClipRect, aEffectChain, 1.0, aTransform);
-    }
-  }
+  MOZ_ASSERT(!aTile.IsPlaceholderTile());
 
   AutoLockTextureHost autoLock(aTile.mTextureHost);
   AutoLockTextureHost autoLockOnWhite(aTile.mTextureHostOnWhite);
@@ -541,55 +527,57 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
 
   DiagnosticFlags componentAlphaDiagnostic = DiagnosticFlags::NO_DIAGNOSTIC;
 
-  uint32_t rowCount = 0;
-  uint32_t tileX = 0;
+  nsIntRegion compositeRegion = aLayerBuffer.GetValidRegion();
+  compositeRegion.AndWith(aVisibleRegion);
+  compositeRegion.SubOut(maskRegion);
+
   IntRect visibleRect = aVisibleRegion.GetBounds();
-  gfx::IntSize scaledTileSize = aLayerBuffer.GetScaledTileSize();
-  for (int32_t x = visibleRect.x; x < visibleRect.x + visibleRect.width;) {
-    rowCount++;
-    int32_t tileStartX = aLayerBuffer.GetTileStart(x, scaledTileSize.width);
-    int32_t w = scaledTileSize.width - tileStartX;
-    if (x + w > visibleRect.x + visibleRect.width) {
-      w = visibleRect.x + visibleRect.width - x;
-    }
-    int tileY = 0;
-    for (int32_t y = visibleRect.y; y < visibleRect.y + visibleRect.height;) {
-      int32_t tileStartY = aLayerBuffer.GetTileStart(y, scaledTileSize.height);
-      int32_t h = scaledTileSize.height - tileStartY;
-      if (y + h > visibleRect.y + visibleRect.height) {
-        h = visibleRect.y + visibleRect.height - y;
-      }
 
-      nsIntPoint tileOrigin = nsIntPoint(aLayerBuffer.RoundDownToTileEdge(x, scaledTileSize.width),
-                                         aLayerBuffer.RoundDownToTileEdge(y, scaledTileSize.height));
-      TileHost& tileTexture = aLayerBuffer.GetTile(tileOrigin);
-      if (!tileTexture.IsPlaceholderTile()) {
-        nsIntRegion tileDrawRegion;
-        tileDrawRegion.And(IntRect(x, y, w, h), aLayerBuffer.GetValidRegion());
-        tileDrawRegion.And(tileDrawRegion, aVisibleRegion);
-        tileDrawRegion.Sub(tileDrawRegion, maskRegion);
-
-        if (!tileDrawRegion.IsEmpty()) {
-          tileDrawRegion.ScaleRoundOut(resolution, resolution);
-          IntPoint tileOffset((x - tileStartX) * resolution,
-                                (y - tileStartY) * resolution);
-          gfx::IntSize tileSize = aLayerBuffer.GetTileSize();
-          RenderTile(tileTexture, aBackgroundColor, aEffectChain, aOpacity, aTransform,
-                     aFilter, aClipRect, tileDrawRegion, tileOffset,
-                     IntSize(tileSize.width, tileSize.height),
-                     gfx::Rect(visibleRect.x, visibleRect.y,
-                               visibleRect.width, visibleRect.height));
-          if (tileTexture.mTextureHostOnWhite) {
-            componentAlphaDiagnostic = DiagnosticFlags::COMPONENT_ALPHA;
-          }
-        }
-      }
-      tileY++;
-      y += h;
-    }
-    tileX++;
-    x += w;
+  if (compositeRegion.IsEmpty()) {
+    return;
   }
+
+  if (aBackgroundColor) {
+    nsIntRegion backgroundRegion = compositeRegion;
+    backgroundRegion.ScaleRoundOut(resolution, resolution);
+    EffectChain effect;
+    effect.mPrimaryEffect = new EffectSolidColor(ToColor(*aBackgroundColor));
+    nsIntRegionRectIterator it(backgroundRegion);
+    for (const IntRect* rect = it.Next(); rect != nullptr; rect = it.Next()) {
+      Rect graphicsRect(rect->x, rect->y, rect->width, rect->height);
+      mCompositor->DrawQuad(graphicsRect, aClipRect, effect, 1.0, aTransform);
+    }
+  }
+
+  for (size_t i = 0; i < aLayerBuffer.GetTileCount(); ++i) {
+    TileHost& tile = aLayerBuffer.GetTile(i);
+    if (tile.IsPlaceholderTile()) {
+      continue;
+    }
+
+    TileIntPoint tilePosition = aLayerBuffer.GetPlacement().TilePosition(i);
+    
+    MOZ_ASSERT(tilePosition.x == tile.x && tilePosition.y == tile.y);
+
+    IntPoint tileOffset = aLayerBuffer.GetTileOffset(tilePosition);
+    nsIntRegion tileDrawRegion = IntRect(tileOffset, aLayerBuffer.GetScaledTileSize());
+    tileDrawRegion.AndWith(compositeRegion);
+
+    if (tileDrawRegion.IsEmpty()) {
+      continue;
+    }
+
+    tileDrawRegion.ScaleRoundOut(resolution, resolution);
+    RenderTile(tile, aEffectChain, aOpacity,
+               aTransform, aFilter, aClipRect, tileDrawRegion,
+               tileOffset * resolution, aLayerBuffer.GetTileSize(),
+               gfx::Rect(visibleRect.x, visibleRect.y,
+                         visibleRect.width, visibleRect.height));
+    if (tile.mTextureHostOnWhite) {
+      componentAlphaDiagnostic = DiagnosticFlags::COMPONENT_ALPHA;
+    }
+  }
+
   gfx::Rect rect(visibleRect.x, visibleRect.y,
                  visibleRect.width, visibleRect.height);
   GetCompositor()->DrawDiagnostics(DiagnosticFlags::CONTENT | componentAlphaDiagnostic,
