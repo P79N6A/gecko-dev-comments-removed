@@ -153,21 +153,6 @@ inline TemporaryRef<Path> MakePathForRect(const DrawTarget& aDrawTarget,
   return builder->Finish();
 }
 
-
-
-
-struct RectCorner {
-  enum {
-    
-    
-    TopLeft = 0,
-    TopRight = 1,
-    BottomRight = 2,
-    BottomLeft = 3,
-    Count = 4
-  };
-};
-
 struct RectCornerRadii {
   Size radii[RectCorner::Count];
 

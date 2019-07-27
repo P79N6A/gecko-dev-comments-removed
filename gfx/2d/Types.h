@@ -295,6 +295,22 @@ struct GradientStop
 
 namespace mozilla {
 
+
+
+
+struct RectCorner {
+  enum {
+    
+    
+    TopLeft = 0,
+    TopRight = 1,
+    BottomRight = 2,
+    BottomLeft = 3,
+    Count = 4
+  };
+};
+
+
 enum Side { eSideTop, eSideRight, eSideBottom, eSideLeft };
 
 enum SideBits {
