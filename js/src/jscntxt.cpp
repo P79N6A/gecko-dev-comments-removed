@@ -229,13 +229,6 @@ ReportError(JSContext *cx, const char *message, JSErrorReport *reportp,
     if (cx->options().autoJSAPIOwnsErrorReporting() || JS_IsRunning(cx)) {
         if (ErrorToException(cx, message, reportp, callback, userRef))
             return;
-
-        
-
-
-
-        if (cx->options().autoJSAPIOwnsErrorReporting())
-            return;
     }
 
     
@@ -1113,7 +1106,7 @@ JSContext::mark(JSTracer *trc)
 
     
     if (isExceptionPending())
-        MarkValueRoot(trc, &unwrappedException_, "unwrapped exception");
+        TraceRoot(trc, &unwrappedException_, "unwrapped exception");
 
     TraceCycleDetectionSet(trc, cycleDetectorSet);
 
