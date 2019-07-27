@@ -908,6 +908,16 @@ InterpretResume(JSContext *cx, HandleObject obj, HandleValue val, HandleProperty
 }
 
 bool
+DebugAfterYield(JSContext *cx, BaselineFrame *frame)
+{
+    
+    
+    if (frame->script()->isDebuggee())
+        frame->setIsDebuggee();
+    return true;
+}
+
+bool
 StrictEvalPrologue(JSContext *cx, BaselineFrame *frame)
 {
     return frame->strictEvalPrologue(cx);
