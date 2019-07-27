@@ -4,17 +4,22 @@
 
 
 
+
+
+"use strict";
+
 const {Cc, Ci, Cu} = require("chrome");
 
 const ToolDefinitions = require("main").Tools;
 const {CssLogic} = require("devtools/styleinspector/css-logic");
 const {ELEMENT_STYLE} = require("devtools/server/actors/styles");
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
-const {EventEmitter} = require("devtools/toolkit/event-emitter");
 const {OutputParser} = require("devtools/output-parser");
 const {PrefObserver, PREF_ORIG_SOURCES} = require("devtools/styleeditor/utils");
 const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
-const overlays = require("devtools/styleinspector/style-inspector-overlays");
+
+loader.lazyRequireGetter(this, "overlays", "devtools/styleinspector/style-inspector-overlays");
+loader.lazyRequireGetter(this, "StyleInspectorMenu", "devtools/styleinspector/style-inspector-menu");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -24,7 +29,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
 
 const FILTER_CHANGED_TIMEOUT = 150;
 const HTML_NS = "http://www.w3.org/1999/xhtml";
-const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
 
@@ -50,7 +54,7 @@ function UpdateProcess(aWin, aGenerator, aOptions)
   this.win = aWin;
   this.iter = _Iterator(aGenerator);
   this.onItem = aOptions.onItem || function() {};
-  this.onBatch = aOptions.onBatch || function () {};
+  this.onBatch = aOptions.onBatch || function() {};
   this.onDone = aOptions.onDone || function() {};
   this.onCancel = aOptions.onCancel || function() {};
   this.threshold = aOptions.threshold || 45;
@@ -127,13 +131,13 @@ UpdateProcess.prototype = {
 
 
 
-function CssHtmlTree(aStyleInspector, aPageStyle)
-{
-  this.styleWindow = aStyleInspector.doc.defaultView;
-  this.styleDocument = aStyleInspector.doc;
-  this.styleInspector = aStyleInspector;
-  this.inspector = this.styleInspector.inspector;
-  this.pageStyle = aPageStyle;
+
+function CssComputedView(inspector, document, pageStyle) {
+  this.inspector = inspector;
+  this.styleDocument = document;
+  this.styleWindow = this.styleDocument.defaultView;
+  this.pageStyle = pageStyle;
+
   this.propertyViews = [];
 
   this._outputParser = new OutputParser();
@@ -146,13 +150,8 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this.focusWindow = this.focusWindow.bind(this);
   this._onKeypress = this._onKeypress.bind(this);
   this._onContextMenu = this._onContextMenu.bind(this);
-  this._contextMenuUpdate = this._contextMenuUpdate.bind(this);
-  this._onSelectAll = this._onSelectAll.bind(this);
   this._onClick = this._onClick.bind(this);
   this._onCopy = this._onCopy.bind(this);
-  this._onCopyColor = this._onCopyColor.bind(this);
-  this._onCopyUrl = this._onCopyUrl.bind(this);
-  this._onCopyImageDataUrl = this._onCopyImageDataUrl.bind(this);
   this._onFilterStyles = this._onFilterStyles.bind(this);
   this._onFilterKeyPress = this._onFilterKeyPress.bind(this);
   this._onClearSearch = this._onClearSearch.bind(this);
@@ -188,19 +187,21 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   gDevTools.on("pref-changed", this._handlePrefChange);
 
   
-  this._updateSourceLinks = this._updateSourceLinks.bind(this);
+  this._onSourcePrefChanged = this._onSourcePrefChanged.bind(this);
   this._prefObserver = new PrefObserver("devtools.");
-  this._prefObserver.on(PREF_ORIG_SOURCES, this._updateSourceLinks);
+  this._prefObserver.on(PREF_ORIG_SOURCES, this._onSourcePrefChanged);
 
   
   this.viewedElement = null;
 
-  this._buildContextMenu();
   this.createStyleViews();
+
+  this._contextmenu = new StyleInspectorMenu(this, { isRuleView: false });
 
   
   this.tooltips = new overlays.TooltipsOverlay(this);
   this.tooltips.addToView();
+
   this.highlighters = new overlays.HighlightersOverlay(this);
   this.highlighters.addToView();
 }
@@ -210,17 +211,17 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
 
 
 
-CssHtmlTree.l10n = function CssHtmlTree_l10n(aName)
+CssComputedView.l10n = function CssComputedView_l10n(aName)
 {
   try {
-    return CssHtmlTree._strings.GetStringFromName(aName);
+    return CssComputedView._strings.GetStringFromName(aName);
   } catch (ex) {
     Services.console.logStringMessage("Error reading '" + aName + "'");
     throw new Error("l10n error with " + aName);
   }
 };
 
-XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() {
+XPCOMUtils.defineLazyGetter(CssComputedView, "_strings", function() {
   return Services.strings.createBundle(
     "chrome://global/locale/devtools/styleinspector.properties");
 });
@@ -230,7 +231,7 @@ XPCOMUtils.defineLazyGetter(this, "clipboardHelper", function() {
          .getService(Ci.nsIClipboardHelper);
 });
 
-CssHtmlTree.prototype = {
+CssComputedView.prototype = {
   
   _matchedProperties: null,
 
@@ -395,7 +396,7 @@ CssHtmlTree.prototype = {
     this.numVisibleProperties = 0;
     let fragment = this.styleDocument.createDocumentFragment();
 
-    this._createViewsProcess = new UpdateProcess(this.styleWindow, CssHtmlTree.propertyNames, {
+    this._createViewsProcess = new UpdateProcess(this.styleWindow, CssComputedView.propertyNames, {
       onItem: (aPropertyName) => {
         
         let propView = new PropertyView(this, aPropertyName);
@@ -425,7 +426,7 @@ CssHtmlTree.prototype = {
   
 
 
-  refreshPanel: function CssHtmlTree_refreshPanel()
+  refreshPanel: function CssComputedView_refreshPanel()
   {
     if (!this.viewedElement) {
       return promise.resolve();
@@ -591,7 +592,7 @@ CssHtmlTree.prototype = {
 
 
 
-  refreshSourceFilter: function CssHtmlTree_setSourceFilter()
+  refreshSourceFilter: function CssComputedView_setSourceFilter()
   {
     this._matchedProperties = null;
     this._sourceFilter = this.includeBrowserStyles ?
@@ -599,7 +600,7 @@ CssHtmlTree.prototype = {
                                  CssLogic.FILTER.USER;
   },
 
-  _updateSourceLinks: function CssHtmlTree__updateSourceLinks()
+  _onSourcePrefChanged: function CssComputedView__onSourcePrefChanged()
   {
     for (let propView of this.propertyViews) {
       propView.updateSourceLinks();
@@ -610,13 +611,13 @@ CssHtmlTree.prototype = {
   
 
 
-  createStyleViews: function CssHtmlTree_createStyleViews()
+  createStyleViews: function CssComputedView_createStyleViews()
   {
-    if (CssHtmlTree.propertyNames) {
+    if (CssComputedView.propertyNames) {
       return;
     }
 
-    CssHtmlTree.propertyNames = [];
+    CssComputedView.propertyNames = [];
 
     
     
@@ -630,16 +631,16 @@ CssHtmlTree.prototype = {
       } else if (prop.startsWith("-")) {
         mozProps.push(prop);
       } else {
-        CssHtmlTree.propertyNames.push(prop);
+        CssComputedView.propertyNames.push(prop);
       }
     }
 
-    CssHtmlTree.propertyNames.sort();
-    CssHtmlTree.propertyNames.push.apply(CssHtmlTree.propertyNames,
+    CssComputedView.propertyNames.sort();
+    CssComputedView.propertyNames.push.apply(CssComputedView.propertyNames,
       mozProps.sort());
 
     this._createPropertyViews().then(null, e => {
-      if (!this.styleInspector) {
+      if (!this._isDestroyed) {
         console.warn("The creation of property views was cancelled because the " +
           "computed-view was destroyed before it was done creating views");
       } else {
@@ -672,184 +673,8 @@ CssHtmlTree.prototype = {
   
 
 
-  _buildContextMenu: function()
-  {
-    let doc = this.styleDocument.defaultView.parent.document;
-
-    this._contextmenu = this.styleDocument.createElementNS(XUL_NS, "menupopup");
-    this._contextmenu.addEventListener("popupshowing", this._contextMenuUpdate);
-    this._contextmenu.id = "computed-view-context-menu";
-
-    
-    this.menuitemSelectAll = createMenuItem(this._contextmenu, {
-      label: "computedView.contextmenu.selectAll",
-      accesskey: "computedView.contextmenu.selectAll.accessKey",
-      command: this._onSelectAll
-    });
-
-    
-    this.menuitemCopy = createMenuItem(this._contextmenu, {
-      label: "computedView.contextmenu.copy",
-      accesskey: "computedView.contextmenu.copy.accessKey",
-      command: this._onCopy
-    });
-
-    
-    this.menuitemCopyColor = createMenuItem(this._contextmenu, {
-      label: "ruleView.contextmenu.copyColor",
-      accesskey: "ruleView.contextmenu.copyColor.accessKey",
-      command: this._onCopyColor
-    });
-
-    
-    this.menuitemCopyUrl = createMenuItem(this._contextmenu, {
-      label: "styleinspector.contextmenu.copyUrl",
-      accesskey: "styleinspector.contextmenu.copyUrl.accessKey",
-      command: this._onCopyUrl
-    });
-
-    
-    this.menuitemCopyImageDataUrl = createMenuItem(this._contextmenu, {
-      label: "styleinspector.contextmenu.copyImageDataUrl",
-      accesskey: "styleinspector.contextmenu.copyImageDataUrl.accessKey",
-      command: this._onCopyImageDataUrl
-    });
-
-    
-    this.menuitemSources= createMenuItem(this._contextmenu, {
-      label: "ruleView.contextmenu.showOrigSources",
-      accesskey: "ruleView.contextmenu.showOrigSources.accessKey",
-      command: this._onToggleOrigSources,
-      type: "checkbox"
-    });
-
-    let popupset = doc.documentElement.querySelector("popupset");
-    if (!popupset) {
-      popupset = doc.createElementNS(XUL_NS, "popupset");
-      doc.documentElement.appendChild(popupset);
-    }
-    popupset.appendChild(this._contextmenu);
-  },
-
-  
-
-
-
-  _contextMenuUpdate: function()
-  {
-    let win = this.styleDocument.defaultView;
-    let disable = win.getSelection().isCollapsed;
-    this.menuitemCopy.disabled = disable;
-
-    let showOrig = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
-    this.menuitemSources.setAttribute("checked", showOrig);
-
-    this.menuitemCopyColor.hidden = !this._isColorPopup();
-    this.menuitemCopyUrl.hidden = !this._isImageUrlPopup();
-    this.menuitemCopyImageDataUrl.hidden = !this._isImageUrlPopup();
-  },
-
-  
-
-
-
-
-
-
-  _isColorPopup: function () {
-    this._colorToCopy = "";
-
-
-    let container = this._getPopupNodeContainer();
-    if (!container) {
-      return false;
-    }
-
-    let isColorNode = el => el.dataset && "color" in el.dataset;
-
-    while (!isColorNode(container)) {
-      container = container.parentNode;
-      if (!container) {
-        return false;
-      }
-    }
-
-    this._colorToCopy = container.dataset["color"];
-    return true;
-  },
-
-  
-
-
-
-  _isImageUrlPopup: function () {
-    this._imageUrlToCopy = "";
-
-    let container = this._getPopupNodeContainer();
-    let isImageUrlNode = this._isImageUrlNode(container);
-    if (isImageUrlNode) {
-      this._imageUrlToCopy = container.href;
-    }
-
-    return isImageUrlNode;
-  },
-
-  
-
-
-
-
-  _isImageUrlNode: function (node) {
-    let nodeInfo = this.getNodeInfo(node);
-    if (!nodeInfo) {
-      return false
-    }
-    return nodeInfo.type == overlays.VIEW_NODE_IMAGE_URL_TYPE;
-  },
-
-  
-
-
-
-
-  _getPopupNodeContainer: function () {
-    let container = null;
-    let node = this.popupNode;
-
-    if (node) {
-      let isTextNode = node.nodeType == node.TEXT_NODE;
-      container = isTextNode ? node.parentElement : node;
-    }
-
-    return container;
-  },
-
-  
-
-
   _onContextMenu: function(event) {
-    try {
-      this.popupNode = event.explicitOriginalTarget;
-      this.styleDocument.defaultView.focus();
-      this._contextmenu.openPopupAtScreen(event.screenX, event.screenY, true);
-    } catch(e) {
-      console.error(e);
-    }
-  },
-
-  
-
-
-  _onSelectAll: function()
-  {
-    try {
-      let win = this.styleDocument.defaultView;
-      let selection = win.getSelection();
-
-      selection.selectAllChildren(this.styleDocument.documentElement);
-    } catch(e) {
-      console.error(e);
-    }
+    this._contextmenu.show(event);
   },
 
   _onClick: function(event) {
@@ -863,40 +688,21 @@ CssHtmlTree.prototype = {
     }
   },
 
-  _onCopyColor: function() {
-    clipboardHelper.copyString(this._colorToCopy);
-  },
-
   
 
 
-  _onCopyUrl: function() {
-    clipboardHelper.copyString(this._imageUrlToCopy);
-  },
 
-  
-
-
-  _onCopyImageDataUrl: Task.async(function*() {
-    let message;
-    try {
-      let inspectorFront = this.inspector.inspector;
-      let data = yield inspectorFront.getImageDataFromURL(this._imageUrlToCopy);
-      message = yield data.data.string();
-    } catch (e) {
-      message = CssHtmlTree.l10n("styleinspector.copyImageDataUrlError");
+  _onCopy: function(event) {
+    this.copySelection();
+    if (event) {
+      event.preventDefault();
     }
-
-    clipboardHelper.copyString(message);
-  }),
+  },
 
   
 
 
-
-
-  _onCopy: function(event)
-  {
+  copySelection: function() {
     try {
       let win = this.styleDocument.defaultView;
       let text = win.getSelection().toString().trim();
@@ -909,15 +715,12 @@ CssHtmlTree.prototype = {
       
       if (textArray.length > 1) {
         for (let prop of textArray) {
-          if (CssHtmlTree.propertyNames.indexOf(prop) !== -1) {
+          if (CssComputedView.propertyNames.indexOf(prop) !== -1) {
             
             result += prop;
           } else {
             
-            result += ": " + prop;
-            if (result.length > 0) {
-              result += ";\n";
-            }
+            result += ": " + prop + ";\n";
           }
         }
       } else {
@@ -926,10 +729,6 @@ CssHtmlTree.prototype = {
       }
 
       clipboardHelper.copyString(result);
-
-      if (event) {
-        event.preventDefault();
-      }
     } catch(e) {
       console.error(e);
     }
@@ -938,23 +737,14 @@ CssHtmlTree.prototype = {
   
 
 
-  _onToggleOrigSources: function()
-  {
-    let isEnabled = Services.prefs.getBoolPref(PREF_ORIG_SOURCES);
-    Services.prefs.setBoolPref(PREF_ORIG_SOURCES, !isEnabled);
-  },
-
-  
-
-
-  destroy: function CssHtmlTree_destroy()
+  destroy: function CssComputedView_destroy()
   {
     this.viewedElement = null;
     this._outputParser = null;
 
     gDevTools.off("pref-changed", this._handlePrefChange);
 
-    this._prefObserver.off(PREF_ORIG_SOURCES, this._updateSourceLinks);
+    this._prefObserver.off(PREF_ORIG_SOURCES, this._onSourcePrefChanged);
     this._prefObserver.destroy();
 
     
@@ -967,33 +757,9 @@ CssHtmlTree.prototype = {
 
     
     if (this._contextmenu) {
-      
-      this.menuitemCopy.removeEventListener("command", this._onCopy);
-      this.menuitemCopy = null;
-
-      
-      this.menuitemSelectAll.removeEventListener("command", this._onSelectAll);
-      this.menuitemSelectAll = null;
-
-      
-      this.menuitemCopyColor.removeEventListener("command", this._onCopyColor);
-      this.menuitemCopyColor = null;
-
-      
-      this.menuitemCopyUrl.removeEventListener("command", this._onCopyUrl);
-      this.menuitemCopyUrl = null;
-
-      
-      this.menuitemCopyImageDataUrl.removeEventListener("command", this._onCopyImageDataUrl);
-      this.menuitemCopyImageDataUrl = null;
-
-      
-      this._contextmenu.removeEventListener("popupshowing", this._contextMenuUpdate);
-      this._contextmenu.parentNode.removeChild(this._contextmenu);
+      this._contextmenu.destroy();
       this._contextmenu = null;
     }
-
-    this.popupNode = null;
 
     this.tooltips.destroy();
     this.highlighters.destroy();
@@ -1019,17 +785,16 @@ CssHtmlTree.prototype = {
     this.includeBrowserStylesCheckbox = null;
 
     
-    this.styleDocument = null;
-
-    for (let propView of this.propertyViews)  {
+    for (let propView of this.propertyViews) {
       propView.destroy();
     }
-
-    
     this.propertyViews = null;
-    this.styleWindow = null;
+
+    this.inspector = null;
     this.styleDocument = null;
-    this.styleInspector = null;
+    this.styleWindow = null;
+
+    this._isDestroyed = true;
   }
 };
 
@@ -1045,25 +810,6 @@ PropertyInfo.prototype = {
     }
   }
 };
-
-function createMenuItem(aMenu, aAttributes)
-{
-  let item = aMenu.ownerDocument.createElementNS(XUL_NS, "menuitem");
-
-  item.setAttribute("label", CssHtmlTree.l10n(aAttributes.label));
-  if (aAttributes.accesskey) {
-    item.setAttribute("accesskey", CssHtmlTree.l10n(aAttributes.accesskey));
-  }
-  item.addEventListener("command", aAttributes.command);
-
-  if (aAttributes.type) {
-    item.setAttribute("type", aAttributes.type);
-  }
-
-  aMenu.appendChild(item);
-
-  return item;
-}
 
 
 
@@ -1393,7 +1139,6 @@ PropertyView.prototype = {
           this._matchedSelectorViews.push(new SelectorView(this.tree, aSelectorInfo));
         }, this);
     }
-
     return this._matchedSelectorViews;
   },
 
@@ -1509,7 +1254,7 @@ SelectorView.prototype = {
     for (let status in CssLogic.STATUS) {
       let i = CssLogic.STATUS[status];
       if (i > CssLogic.STATUS.UNMATCHED) {
-        let value = CssHtmlTree.l10n("rule.status." + status);
+        let value = CssComputedView.l10n("rule.status." + status);
         
         SelectorView.STATUS_NAMES[i] = value.replace(/ /g, '\u00A0');
       }
@@ -1600,7 +1345,6 @@ SelectorView.prototype = {
     if (!rule || !this.sheet) {
       let oldSource = this.source;
       this.source = CssLogic.l10n("rule.sourceElement");
-      this.href = "#";
       return promise.resolve(oldSource);
     }
 
@@ -1714,5 +1458,5 @@ function createChild(aParent, aTag, aAttributes={}) {
   return elt;
 }
 
-exports.CssHtmlTree = CssHtmlTree;
+exports.CssComputedView = CssComputedView;
 exports.PropertyView = PropertyView;

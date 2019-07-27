@@ -268,13 +268,14 @@ TooltipsOverlay.prototype = {
     this.previewTooltip.startTogglingOnHover(this.view.element,
       this._onPreviewTooltipTargetHover.bind(this));
 
+    
+    this.cssDocs = new CssDocsTooltip(this.view.inspector.panelDoc);
+
     if (this.isRuleView) {
       
       this.colorPicker = new SwatchColorPickerTooltip(this.view.inspector.panelDoc);
       
       this.cubicBezier = new SwatchCubicBezierTooltip(this.view.inspector.panelDoc);
-      
-      this.cssDocs = new CssDocsTooltip(this.view.inspector.panelDoc);
       
       this.filterEditor = new SwatchFilterTooltip(this.view.inspector.panelDoc);
     }
