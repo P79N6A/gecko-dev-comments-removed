@@ -41,24 +41,105 @@ static Result BuildForward(TrustDomain& trustDomain,
                            unsigned int subCACount,
                             ScopedCERTCertList& results);
 
+class PathBuildingStep
+{
+public:
+  PathBuildingStep(TrustDomain& trustDomain, const BackCert& subject,
+                   PRTime time, EndEntityOrCA endEntityOrCA,
+                   KeyPurposeId requiredEKUIfPresent,
+                   const CertPolicyId& requiredPolicy,
+                    const SECItem* stapledOCSPResponse,
+                   unsigned int subCACount,
+                    ScopedCERTCertList& results)
+    : trustDomain(trustDomain)
+    , subject(subject)
+    , time(time)
+    , endEntityOrCA(endEntityOrCA)
+    , requiredEKUIfPresent(requiredEKUIfPresent)
+    , requiredPolicy(requiredPolicy)
+    , stapledOCSPResponse(stapledOCSPResponse)
+    , subCACount(subCACount)
+    , results(results)
+    , result(SEC_ERROR_LIBRARY_FAILURE)
+    , resultWasSet(false)
+  {
+  }
 
-static Result
-BuildForwardInner(TrustDomain& trustDomain,
-                  const BackCert& subject,
-                  PRTime time,
-                  EndEntityOrCA endEntityOrCA,
-                  KeyPurposeId requiredEKUIfPresent,
-                  const CertPolicyId& requiredPolicy,
-                  const SECItem& potentialIssuerDER,
-                   const SECItem* stapledOCSPResponse,
-                  unsigned int subCACount,
-                   ScopedCERTCertList& results)
+  SECStatus Build(const SECItem& potentialIssuerDER,
+                   bool& keepGoing);
+
+  Result CheckResult() const;
+
+private:
+  TrustDomain& trustDomain;
+  const BackCert& subject;
+  const PRTime time;
+  const EndEntityOrCA endEntityOrCA;
+  const KeyPurposeId requiredEKUIfPresent;
+  const CertPolicyId& requiredPolicy;
+   SECItem const* const stapledOCSPResponse;
+  const unsigned int subCACount;
+   ScopedCERTCertList& results;
+
+  SECStatus RecordResult(PRErrorCode currentResult,  bool& keepGoing);
+  PRErrorCode result;
+  bool resultWasSet;
+
+  PathBuildingStep(const PathBuildingStep&) ;
+  void operator=(const PathBuildingStep&) ;
+};
+
+SECStatus
+PathBuildingStep::RecordResult(PRErrorCode newResult,
+                                bool& keepGoing)
+{
+  if (newResult == SEC_ERROR_UNTRUSTED_CERT) {
+    newResult = SEC_ERROR_UNTRUSTED_ISSUER;
+  }
+  if (resultWasSet) {
+    if (result == 0) {
+      PR_NOT_REACHED("RecordResult called after finding a chain");
+      PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+      return SECFailure;
+    }
+    
+    
+    
+    
+    if (newResult != 0 && newResult != result) {
+      newResult = SEC_ERROR_UNKNOWN_ISSUER;
+    }
+  }
+
+  result = newResult;
+  resultWasSet = true;
+  keepGoing = result != 0;
+  return SECSuccess;
+}
+
+Result
+PathBuildingStep::CheckResult() const
+{
+  if (!resultWasSet) {
+    return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER);
+  }
+  if (result == 0) {
+    return Success;
+  }
+  PR_SetError(result, 0);
+  return MapSECStatus(SECFailure);
+}
+
+
+SECStatus
+PathBuildingStep::Build(const SECItem& potentialIssuerDER,
+                         bool& keepGoing)
 {
   BackCert potentialIssuer(potentialIssuerDER, &subject,
                            BackCert::IncludeCN::No);
   Result rv = potentialIssuer.Init();
   if (rv != Success) {
-    return rv;
+    return RecordResult(PR_GetError(), keepGoing);
   }
 
   
@@ -74,13 +155,14 @@ BuildForwardInner(TrustDomain& trustDomain,
                               &prev->GetSubjectPublicKeyInfo()) &&
         SECITEM_ItemsAreEqual(&potentialIssuer.GetSubject(),
                               &prev->GetSubject())) {
-      return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER); 
+      
+      return RecordResult(SEC_ERROR_UNKNOWN_ISSUER, keepGoing);
     }
   }
 
   rv = CheckNameConstraints(potentialIssuer);
   if (rv != Success) {
-    return rv;
+    return RecordResult(PR_GetError(), keepGoing);
   }
 
   
@@ -90,14 +172,14 @@ BuildForwardInner(TrustDomain& trustDomain,
                     KeyUsage::keyCertSign, requiredEKUIfPresent,
                     requiredPolicy, nullptr, subCACount, results);
   if (rv != Success) {
-    return rv;
+    return RecordResult(PR_GetError(), keepGoing);
   }
 
   SECStatus srv = trustDomain.VerifySignedData(
                                 subject.GetSignedData(),
                                 potentialIssuer.GetSubjectPublicKeyInfo());
   if (srv != SECSuccess) {
-    return MapSECStatus(srv);
+    return RecordResult(PR_GetError(), keepGoing);
   }
 
   CertID certID(subject.GetIssuer(), potentialIssuer.GetSubjectPublicKeyInfo(),
@@ -106,10 +188,10 @@ BuildForwardInner(TrustDomain& trustDomain,
                                     stapledOCSPResponse,
                                     subject.GetAuthorityInfoAccess());
   if (srv != SECSuccess) {
-    return MapSECStatus(SECFailure);
+    return RecordResult(PR_GetError(), keepGoing);
   }
 
-  return Success;
+  return RecordResult(0, keepGoing);
 }
 
 
@@ -193,6 +275,11 @@ BuildForward(TrustDomain& trustDomain,
   }
 
   
+
+  PathBuildingStep pathBuilder(trustDomain, subject, time, endEntityOrCA,
+                               requiredEKUIfPresent, requiredPolicy,
+                               stapledOCSPResponse, subCACount, results);
+
   
   ScopedCERTCertList candidates;
   if (trustDomain.FindPotentialIssuers(&subject.GetIssuer(), time,
@@ -202,54 +289,34 @@ BuildForward(TrustDomain& trustDomain,
   if (!candidates) {
     return Fail(RecoverableError, SEC_ERROR_UNKNOWN_ISSUER);
   }
-
-  PRErrorCode errorToReturn = 0;
-
   for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
        !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
-    rv = BuildForwardInner(trustDomain, subject, time, endEntityOrCA,
-                           requiredEKUIfPresent,
-                           requiredPolicy, n->cert->derCert,
-                           stapledOCSPResponse, subCACount, results);
-    if (rv == Success) {
-      
-
-      
-      
-      if (deferredEndEntityError != 0) {
-        return Fail(FatalError, deferredEndEntityError);
-      }
-
-      
-      return Success;
+    bool keepGoing;
+    SECStatus srv = pathBuilder.Build(n->cert->derCert, keepGoing);
+    if (srv != SECSuccess) {
+      return MapSECStatus(SECFailure);
     }
-    if (rv != RecoverableError) {
-      return rv;
-    }
-
-    PRErrorCode currentError = PR_GetError();
-    switch (currentError) {
-      case 0:
-        PR_NOT_REACHED("Error code not set!");
-        return Fail(FatalError, PR_INVALID_STATE_ERROR);
-      case SEC_ERROR_UNTRUSTED_CERT:
-        currentError = SEC_ERROR_UNTRUSTED_ISSUER;
-        break;
-      default:
-        break;
-    }
-    if (errorToReturn == 0) {
-      errorToReturn = currentError;
-    } else if (errorToReturn != currentError) {
-      errorToReturn = SEC_ERROR_UNKNOWN_ISSUER;
+    if (!keepGoing) {
+      break;
     }
   }
 
-  if (errorToReturn == 0) {
-    errorToReturn = SEC_ERROR_UNKNOWN_ISSUER;
+  rv = pathBuilder.CheckResult();
+  if (rv != Success) {
+    return rv;
   }
 
-  return Fail(RecoverableError, errorToReturn);
+  
+  
+
+  
+  
+  if (deferredEndEntityError != 0) {
+    return Fail(RecoverableError, deferredEndEntityError);
+  }
+
+  
+  return Success;
 }
 
 SECStatus
