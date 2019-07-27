@@ -329,6 +329,8 @@ class SnapshotIterator
         return snapshot_.numAllocationsRead() < numAllocations();
     }
 
+    int32_t readOuterNumActualArgs() const;
+
   public:
     
     uint32_t pcOffset() const;
