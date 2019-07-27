@@ -13,7 +13,13 @@ let SocialService = Components.utils.import("resource://gre/modules/SocialServic
 
 
 function runTests(tests, cbPreTest, cbPostTest, cbFinish) {
-  let testIter = Iterator(tests);
+  let testIter = (function*() {
+    for (let name in tests) {
+      if (tests.hasOwnProperty(name)) {
+        yield [name, tests[name]];
+      }
+    }
+  })();
 
   if (cbPreTest === undefined) {
     cbPreTest = function(cb) {cb()};
@@ -23,14 +29,13 @@ function runTests(tests, cbPreTest, cbPostTest, cbFinish) {
   }
 
   function runNextTest() {
-    let name, func;
-    try {
-      [name, func] = testIter.next();
-    } catch (err if err instanceof StopIteration) {
+    let result = testIter.next();
+    if (result.done) {
       
       (cbFinish || finish)();
       return;
     }
+    let [name, func] = result.value;
     
     
     executeSoon(function() {

@@ -122,16 +122,12 @@ var AccessFuTest = {
   },
 
   nextTest: function AccessFuTest_nextTest() {
-    var testFunc;
-    try {
-      
-      
-      testFunc = gIterator.next()[1];
-    } catch (ex) {
-      
+    var result = gIterator.next();
+    if (result.done) {
       this.finish();
       return;
     }
+    var testFunc = result.value;
     testFunc();
   },
 
@@ -143,7 +139,11 @@ var AccessFuTest = {
     }
 
     
-    gIterator = Iterator(gTestFuncs); 
+    gIterator = (function*() {
+      for (var testFunc of gTestFuncs) {
+        yield testFunc;
+      }
+    })();
 
     
     Components.utils.import("resource://gre/modules/accessibility/AccessFu.jsm");
