@@ -1457,8 +1457,12 @@ void MediaDecoderStateMachine::RecomputeDuration()
   MOZ_ASSERT(OnTaskQueue());
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
-  TimeUnit duration;
+  
+  
+  
   bool fireDurationChanged = false;
+
+  TimeUnit duration;
   if (mExplicitDuration.Ref().isSome()) {
     double d = mExplicitDuration.Ref().ref();
     if (IsNaN(d)) {
@@ -1466,14 +1470,12 @@ void MediaDecoderStateMachine::RecomputeDuration()
       
       return;
     }
+    
+    
     duration = TimeUnit::FromSeconds(d);
   } else if (mEstimatedDuration.Ref().isSome()) {
     duration = mEstimatedDuration.Ref().ref();
-    
-    
-    if (duration.ToMicroseconds() != GetDuration()) {
-      fireDurationChanged = true;
-    }
+    fireDurationChanged = true;
   } else if (mInfo.mMetadataDuration.isSome()) {
     duration = mInfo.mMetadataDuration.ref();
   } else if (mInfo.mMetadataEndTime.isSome() && mStartTime >= 0) {
@@ -1486,11 +1488,10 @@ void MediaDecoderStateMachine::RecomputeDuration()
 
   if (duration < mObservedDuration.Ref()) {
     duration = mObservedDuration;
-    
-    
     fireDurationChanged = true;
   }
 
+  fireDurationChanged = fireDurationChanged && duration.ToMicroseconds() != GetDuration();
   SetDuration(duration);
 
   if (fireDurationChanged) {
