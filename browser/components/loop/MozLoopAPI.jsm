@@ -149,11 +149,16 @@ const injectObjectAPI = function(api, targetWindow) {
       
       
       if (callbackIsFunction) {
-        api[func](...params, function(...results) {
+        api[func](...params, function callback(...results) {
           
           
           if (callbackIsFunction && typeof lastParam != "function") {
             MozLoopService.log.debug(func + ": callback function was lost.");
+            
+            if (func == "on" && api.off) {
+              api.off(results[0], callback);
+              return;
+            }
             
             if (results[0]) {
               MozLoopService.log.error(func + " error:", results[0]);
