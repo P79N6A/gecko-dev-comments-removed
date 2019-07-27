@@ -1,0 +1,35 @@
+
+
+
+
+
+
+#define ANGLE_DISABLED 0
+#define ANGLE_ENABLED 1
+
+
+
+
+
+
+
+#if !defined(ANGLE_D3D9EX)
+#define ANGLE_D3D9EX ANGLE_ENABLED
+#endif
+
+
+
+
+#if !defined(ANGLE_VSYNC)
+#define ANGLE_VSYNC ANGLE_ENABLED
+#endif
+
+
+#if !defined(ANGLE_PROGRAM_BINARY_LOAD)
+#define ANGLE_PROGRAM_BINARY_LOAD ANGLE_ENABLED
+#endif
+
+
+#if !defined(ANGLE_SHADER_DEBUG_INFO)
+#define ANGLE_SHADER_DEBUG_INFO ANGLE_DISABLED
+#endif

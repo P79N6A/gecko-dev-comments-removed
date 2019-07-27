@@ -9,6 +9,8 @@
 
 #include "compiler/translator/IntermNode.h"
 
+#include "compiler/translator/Pragma.h"
+
 
 
 
@@ -27,7 +29,7 @@
 class TVersionGLSL : public TIntermTraverser
 {
   public:
-    TVersionGLSL(sh::GLenum type);
+    TVersionGLSL(sh::GLenum type, const TPragma &pragma);
 
     
     

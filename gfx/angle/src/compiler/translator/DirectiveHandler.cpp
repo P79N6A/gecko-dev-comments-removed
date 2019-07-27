@@ -13,10 +13,10 @@
 
 static TBehavior getBehavior(const std::string& str)
 {
-    static const std::string kRequire("require");
-    static const std::string kEnable("enable");
-    static const std::string kDisable("disable");
-    static const std::string kWarn("warn");
+    const char kRequire[] = "require";
+    const char kEnable[] = "enable";
+    const char kDisable[] = "disable";
+    const char kWarn[] = "warn";
 
     if (str == kRequire) return EBhRequire;
     else if (str == kEnable) return EBhEnable;
@@ -46,50 +46,61 @@ void TDirectiveHandler::handleError(const pp::SourceLocation& loc,
 
 void TDirectiveHandler::handlePragma(const pp::SourceLocation& loc,
                                      const std::string& name,
-                                     const std::string& value)
+                                     const std::string& value,
+                                     bool stdgl)
 {
-    static const std::string kSTDGL("STDGL");
-    static const std::string kOptimize("optimize");
-    static const std::string kDebug("debug");
-    static const std::string kOn("on");
-    static const std::string kOff("off");
-
-    bool invalidValue = false;
-    if (name == kSTDGL)
+    if (stdgl)
     {
+        const char kInvariant[] = "invariant";
+        const char kAll[] = "all";
+
+        if (name == kInvariant && value == kAll)
+            mPragma.stdgl.invariantAll = true;
+        
         
         
         return;
-    }
-    else if (name == kOptimize)
-    {
-        if (value == kOn) mPragma.optimize = true;
-        else if (value == kOff) mPragma.optimize = false;
-        else invalidValue = true;
-    }
-    else if (name == kDebug)
-    {
-        if (value == kOn) mPragma.debug = true;
-        else if (value == kOff) mPragma.debug = false;
-        else invalidValue = true;
     }
     else
     {
-        mDiagnostics.report(pp::Diagnostics::PP_UNRECOGNIZED_PRAGMA, loc, name);
-        return;
-    }
+        const char kOptimize[] = "optimize";
+        const char kDebug[] = "debug";
+        const char kOn[] = "on";
+        const char kOff[] = "off";
 
-    if (invalidValue)
-      mDiagnostics.writeInfo(pp::Diagnostics::PP_ERROR, loc,
-                             "invalid pragma value", value,
-                             "'on' or 'off' expected");
+        bool invalidValue = false;
+        if (name == kOptimize)
+        {
+            if (value == kOn) mPragma.optimize = true;
+            else if (value == kOff) mPragma.optimize = false;
+            else invalidValue = true;
+        }
+        else if (name == kDebug)
+        {
+            if (value == kOn) mPragma.debug = true;
+            else if (value == kOff) mPragma.debug = false;
+            else invalidValue = true;
+        }
+        else
+        {
+            mDiagnostics.report(pp::Diagnostics::PP_UNRECOGNIZED_PRAGMA, loc, name);
+            return;
+        }
+
+        if (invalidValue)
+        {
+            mDiagnostics.writeInfo(pp::Diagnostics::PP_ERROR, loc,
+                                   "invalid pragma value", value,
+                                   "'on' or 'off' expected");
+        }
+    }
 }
 
 void TDirectiveHandler::handleExtension(const pp::SourceLocation& loc,
                                         const std::string& name,
                                         const std::string& behavior)
 {
-    static const std::string kExtAll("all");
+    const char kExtAll[] = "all";
 
     TBehavior behaviorVal = getBehavior(behavior);
     if (behaviorVal == EBhUndefined)

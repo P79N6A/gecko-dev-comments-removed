@@ -9,18 +9,6 @@
 #include "compiler/translator/OutputGLSL.h"
 #include "compiler/translator/VersionGLSL.h"
 
-static void writeVersion(sh::GLenum type, TIntermNode* root,
-                         TInfoSinkBase& sink) {
-    TVersionGLSL versionGLSL(type);
-    root->traverse(&versionGLSL);
-    int version = versionGLSL.getVersion();
-    
-    
-    if (version > 110) {
-        sink << "#version " << version << "\n";
-    }
-}
-
 TranslatorGLSL::TranslatorGLSL(sh::GLenum type, ShShaderSpec spec)
     : TCompiler(type, spec, SH_GLSL_OUTPUT) {
 }
@@ -29,7 +17,9 @@ void TranslatorGLSL::translate(TIntermNode* root) {
     TInfoSinkBase& sink = getInfoSink().obj;
 
     
-    writeVersion(getShaderType(), root, sink);
+    writeVersion(root);
+
+    writePragma();
 
     
     writeExtensionBehavior();
@@ -44,6 +34,20 @@ void TranslatorGLSL::translate(TIntermNode* root) {
     
     TOutputGLSL outputGLSL(sink, getArrayIndexClampingStrategy(), getHashFunction(), getNameMap(), getSymbolTable(), getShaderVersion());
     root->traverse(&outputGLSL);
+}
+
+void TranslatorGLSL::writeVersion(TIntermNode *root)
+{
+    TVersionGLSL versionGLSL(getShaderType(), getPragma());
+    root->traverse(&versionGLSL);
+    int version = versionGLSL.getVersion();
+    
+    
+    if (version > 110)
+    {
+        TInfoSinkBase& sink = getInfoSink().obj;
+        sink << "#version " << version << "\n";
+    }
 }
 
 void TranslatorGLSL::writeExtensionBehavior() {

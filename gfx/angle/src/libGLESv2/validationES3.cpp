@@ -542,7 +542,8 @@ bool ValidateES3TexImageParameters(Context *context, GLenum target, GLint level,
             return false;
         }
 
-        size_t copyBytes = widthSize * heightSize * depthSize * pixelBytes;
+        const gl::InternalFormat &formatInfo = gl::GetInternalFormatInfo(sizedFormat);
+        size_t copyBytes = formatInfo.computeBlockSize(type, width, height);
         size_t offset = reinterpret_cast<size_t>(pixels);
 
         if (!rx::IsUnsignedAdditionSafe(offset, copyBytes) ||
@@ -555,12 +556,15 @@ bool ValidateES3TexImageParameters(Context *context, GLenum target, GLint level,
 
         
         
-        size_t dataBytesPerPixel = static_cast<size_t>(gl::GetTypeInfo(type).bytes);
-
-        if ((offset % dataBytesPerPixel) != 0)
+        if (!isCompressed)
         {
-            context->recordError(Error(GL_INVALID_OPERATION));
-            return false;
+            size_t dataBytesPerPixel = static_cast<size_t>(gl::GetTypeInfo(type).bytes);
+
+            if ((offset % dataBytesPerPixel) != 0)
+            {
+                context->recordError(Error(GL_INVALID_OPERATION));
+                return false;
+            }
         }
 
         

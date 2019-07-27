@@ -26,18 +26,12 @@ static const int GLSL_VERSION_120 = 120;
 
 
 
-
-
-
-
-
-
-
-
-
-TVersionGLSL::TVersionGLSL(sh::GLenum type)
-    : mVersion(GLSL_VERSION_110)
+TVersionGLSL::TVersionGLSL(sh::GLenum type, const TPragma &pragma)
 {
+    if (pragma.stdgl.invariantAll)
+        mVersion = GLSL_VERSION_120;
+    else
+        mVersion = GLSL_VERSION_110;
 }
 
 void TVersionGLSL::visitSymbol(TIntermSymbol *node)

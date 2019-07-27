@@ -17,41 +17,211 @@
 
 namespace gl
 {
-#if defined(ANGLE_ENABLE_PERF)
-typedef void (WINAPI *PerfOutputFunction)(D3DCOLOR, LPCWSTR);
-#else
-typedef void (*PerfOutputFunction)(unsigned int, const wchar_t*);
-#endif
+#if defined(ANGLE_ENABLE_DEBUG_ANNOTATIONS)
 
-static void output(bool traceFileDebugOnly, PerfOutputFunction perfFunc, const char *format, va_list vararg)
+class DebugAnnotationWrapper
 {
-#if defined(ANGLE_ENABLE_PERF) || defined(ANGLE_ENABLE_TRACE)
-    std::string formattedMessage = FormatString(format, vararg);
-#endif
+  public:
+    DebugAnnotationWrapper() { };
+    virtual ~DebugAnnotationWrapper() { };
+    virtual void beginEvent(const std::wstring &eventName) = 0;
+    virtual void endEvent() = 0;
+    virtual void setMarker(const std::wstring &markerName) = 0;
+    virtual bool getStatus() = 0;
+};
 
-#if defined(ANGLE_ENABLE_PERF)
-    if (perfActive())
+#if defined(ANGLE_ENABLE_D3D9)
+class D3D9DebugAnnotationWrapper : public DebugAnnotationWrapper
+{
+  public:
+    void beginEvent(const std::wstring &eventName)
+    {
+        D3DPERF_BeginEvent(0, eventName.c_str());
+    }
+
+    void endEvent()
+    {
+        D3DPERF_EndEvent();
+    }
+
+    void setMarker(const std::wstring &markerName)
+    {
+        D3DPERF_SetMarker(0, markerName.c_str());
+    }
+
+    bool getStatus()
+    {
+        return !!D3DPERF_GetStatus();
+    }
+};
+#endif 
+
+#if defined(ANGLE_ENABLE_D3D11)
+class D3D11DebugAnnotationWrapper : public DebugAnnotationWrapper
+{
+  public:
+
+    D3D11DebugAnnotationWrapper()
+      : mInitialized(false),
+        mD3d11Module(NULL),
+        mUserDefinedAnnotation(NULL)
     {
         
-        static std::wstring wideMessage;
-        if (wideMessage.capacity() < formattedMessage.length())
+        
+    }
+
+    ~D3D11DebugAnnotationWrapper()
+    {
+        if (mInitialized)
         {
-            wideMessage.reserve(formattedMessage.size());
+            SafeRelease(mUserDefinedAnnotation);
+            FreeLibrary(mD3d11Module);
         }
+    }
 
-        wideMessage.assign(formattedMessage.begin(), formattedMessage.end());
+    virtual void beginEvent(const std::wstring &eventName)
+    {
+        initializeDevice();
 
-        perfFunc(0, wideMessage.c_str());
+        mUserDefinedAnnotation->BeginEvent(eventName.c_str());
+    }
+
+    virtual void endEvent()
+    {
+        initializeDevice();
+
+        mUserDefinedAnnotation->EndEvent();
+    }
+
+    virtual void setMarker(const std::wstring &markerName)
+    {
+        initializeDevice();
+
+        mUserDefinedAnnotation->SetMarker(markerName.c_str());
+    }
+
+    virtual bool getStatus()
+    {
+        
+
+#if defined(_DEBUG) && defined(ANGLE_ENABLE_WINDOWS_STORE)
+        
+        
+        
+        IDXGraphicsAnalysis* graphicsAnalysis;
+        DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphicsAnalysis));
+        bool underCapture = (graphicsAnalysis != NULL);
+        SafeRelease(graphicsAnalysis);
+        return underCapture;
+#endif
+
+        
+        return true;
+    }
+
+  protected:
+
+    void initializeDevice()
+    {
+        if (!mInitialized)
+        {
+#if !defined(ANGLE_ENABLE_WINDOWS_STORE)
+            mD3d11Module = LoadLibrary(TEXT("d3d11.dll"));
+            ASSERT(mD3d11Module);
+
+            PFN_D3D11_CREATE_DEVICE D3D11CreateDevice = (PFN_D3D11_CREATE_DEVICE)GetProcAddress(mD3d11Module, "D3D11CreateDevice");
+            ASSERT(D3D11CreateDevice != NULL);
+#endif 
+
+            ID3D11Device* device = NULL;
+            ID3D11DeviceContext* context = NULL;
+
+            HRESULT hr = E_FAIL;
+
+            
+            hr =  D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_NULL, NULL, 0, NULL, 0, D3D11_SDK_VERSION, &device, NULL, &context);
+            ASSERT(SUCCEEDED(hr));
+
+            hr = context->QueryInterface(__uuidof(mUserDefinedAnnotation), reinterpret_cast<void**>(&mUserDefinedAnnotation));
+            ASSERT(SUCCEEDED(hr) && mUserDefinedAnnotation != NULL);
+
+            SafeRelease(device);
+            SafeRelease(context);
+
+            mInitialized = true;
+        }
+    }
+
+    bool mInitialized;
+    HMODULE mD3d11Module;
+    ID3DUserDefinedAnnotation* mUserDefinedAnnotation;
+};
+#endif 
+
+static DebugAnnotationWrapper* g_DebugAnnotationWrapper = NULL;
+
+void InitializeDebugAnnotations()
+{
+#if defined(ANGLE_ENABLE_D3D9)
+    g_DebugAnnotationWrapper = new D3D9DebugAnnotationWrapper();
+#elif defined(ANGLE_ENABLE_D3D11)
+    
+    
+    
+    
+    g_DebugAnnotationWrapper = new D3D11DebugAnnotationWrapper();
+#endif
+}
+
+void UninitializeDebugAnnotations()
+{
+    if (g_DebugAnnotationWrapper != NULL)
+    {
+        SafeDelete(g_DebugAnnotationWrapper);
+    }
+}
+
+#endif 
+
+enum DebugTraceOutputType
+{
+   DebugTraceOutputTypeNone,
+   DebugTraceOutputTypeSetMarker,
+   DebugTraceOutputTypeBeginEvent
+};
+
+static void output(bool traceInDebugOnly, DebugTraceOutputType outputType, const char *format, va_list vararg)
+{
+#if defined(ANGLE_ENABLE_DEBUG_ANNOTATIONS)
+    static std::vector<char> buffer(512);
+
+    if (perfActive())
+    {
+        size_t len = FormatStringIntoVector(format, vararg, buffer);
+        std::wstring formattedWideMessage(buffer.begin(), buffer.begin() + len);
+
+        switch (outputType)
+        {
+            case DebugTraceOutputTypeNone:
+                break;
+            case DebugTraceOutputTypeBeginEvent:
+                g_DebugAnnotationWrapper->beginEvent(formattedWideMessage);
+                break;
+            case DebugTraceOutputTypeSetMarker:
+                g_DebugAnnotationWrapper->setMarker(formattedWideMessage);
+                break;
+        }
     }
 #endif 
 
-#if defined(ANGLE_ENABLE_TRACE)
+#if defined(ANGLE_ENABLE_DEBUG_TRACE)
 #if defined(NDEBUG)
-    if (traceFileDebugOnly)
+    if (traceInDebugOnly)
     {
         return;
     }
 #endif 
+    std::string formattedMessage = FormatString(format, vararg);
 
     static std::ofstream file(TRACE_OUTPUT_FILE, std::ofstream::app);
     if (file)
@@ -60,25 +230,29 @@ static void output(bool traceFileDebugOnly, PerfOutputFunction perfFunc, const c
         file.flush();
     }
 
+#if defined(ANGLE_ENABLE_DEBUG_TRACE_TO_DEBUGGER)
+    OutputDebugStringA(formattedMessage.c_str());
+#endif 
+
 #endif 
 }
 
-void trace(bool traceFileDebugOnly, const char *format, ...)
+void trace(bool traceInDebugOnly, const char *format, ...)
 {
     va_list vararg;
     va_start(vararg, format);
-#if defined(ANGLE_ENABLE_PERF)
-    output(traceFileDebugOnly, D3DPERF_SetMarker, format, vararg);
+#if defined(ANGLE_ENABLE_DEBUG_ANNOTATIONS)
+    output(traceInDebugOnly, DebugTraceOutputTypeSetMarker, format, vararg);
 #else
-    output(traceFileDebugOnly, NULL, format, vararg);
+    output(traceInDebugOnly, DebugTraceOutputTypeNone, format, vararg);
 #endif
     va_end(vararg);
 }
 
 bool perfActive()
 {
-#if defined(ANGLE_ENABLE_PERF)
-    static bool active = D3DPERF_GetStatus() != 0;
+#if defined(ANGLE_ENABLE_DEBUG_ANNOTATIONS)
+    static bool active = g_DebugAnnotationWrapper->getStatus();
     return active;
 #else
     return false;
@@ -87,7 +261,7 @@ bool perfActive()
 
 ScopedPerfEventHelper::ScopedPerfEventHelper(const char* format, ...)
 {
-#if !defined(ANGLE_ENABLE_TRACE)
+#if !defined(ANGLE_ENABLE_DEBUG_TRACE)
     if (!perfActive())
     {
         return;
@@ -95,20 +269,20 @@ ScopedPerfEventHelper::ScopedPerfEventHelper(const char* format, ...)
 #endif 
     va_list vararg;
     va_start(vararg, format);
-#if defined(ANGLE_ENABLE_PERF)
-    output(true, reinterpret_cast<PerfOutputFunction>(D3DPERF_BeginEvent), format, vararg);
+#if defined(ANGLE_ENABLE_DEBUG_ANNOTATIONS)
+    output(true, DebugTraceOutputTypeBeginEvent, format, vararg);
 #else
-    output(true, NULL, format, vararg);
+    output(true, DebugTraceOutputTypeNone, format, vararg);
 #endif 
     va_end(vararg);
 }
 
 ScopedPerfEventHelper::~ScopedPerfEventHelper()
 {
-#if defined(ANGLE_ENABLE_PERF)
+#if defined(ANGLE_ENABLE_DEBUG_ANNOTATIONS)
     if (perfActive())
     {
-        D3DPERF_EndEvent();
+        g_DebugAnnotationWrapper->endEvent();
     }
 #endif
 }

@@ -31,6 +31,7 @@
 
 
 #include <assert.h>
+#include <set>
 
 #include "common/angleutils.h"
 #include "compiler/translator/InfoSink.h"
@@ -299,19 +300,21 @@ class TSymbolTableLevel
     tLevel level;
 };
 
-enum ESymbolLevel
-{
-    COMMON_BUILTINS = 0,
-    ESSL1_BUILTINS = 1,
-    ESSL3_BUILTINS = 2,
-    LAST_BUILTIN_LEVEL = ESSL3_BUILTINS,
-    GLOBAL_LEVEL = 3
-};
+
+
+
+typedef int ESymbolLevel;
+const int COMMON_BUILTINS = 0;
+const int ESSL1_BUILTINS = 1;
+const int ESSL3_BUILTINS = 2;
+const int LAST_BUILTIN_LEVEL = ESSL3_BUILTINS;
+const int GLOBAL_LEVEL = 3;
 
 class TSymbolTable
 {
   public:
     TSymbolTable()
+        : mGlobalInvariant(false)
     {
         
         
@@ -408,6 +411,25 @@ class TSymbolTable
     
     TPrecision getDefaultPrecision(TBasicType type) const;
 
+    
+    
+    void addInvariantVarying(const std::string &originalName)
+    {
+        mInvariantVaryings.insert(originalName);
+    }
+    
+    
+    
+    
+    bool isVaryingInvariant(const std::string &originalName) const
+    {
+      return (mGlobalInvariant ||
+              mInvariantVaryings.count(originalName) > 0);
+    }
+
+    void setGlobalInvariant() { mGlobalInvariant = true; }
+    bool getGlobalInvariant() const { return mGlobalInvariant; }
+
     static int nextUniqueId()
     {
         return ++uniqueIdCounter;
@@ -422,6 +444,9 @@ class TSymbolTable
     std::vector<TSymbolTableLevel *> table;
     typedef TMap<TBasicType, TPrecision> PrecisionStackLevel;
     std::vector< PrecisionStackLevel *> precisionStack;
+
+    std::set<std::string> mInvariantVaryings;
+    bool mGlobalInvariant;
 
     static int uniqueIdCounter;
 };

@@ -29,7 +29,8 @@ class DirectiveHandler
     
     virtual void handlePragma(const SourceLocation &loc,
                               const std::string &name,
-                              const std::string &value) = 0;
+                              const std::string &value,
+                              bool stdgl) = 0;
 
     virtual void handleExtension(const SourceLocation &loc,
                                  const std::string &name,

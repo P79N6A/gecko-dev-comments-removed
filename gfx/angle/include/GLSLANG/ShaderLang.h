@@ -27,6 +27,10 @@
 
 #include "KHR/khrplatform.h"
 
+#include <map>
+#include <string>
+#include <vector>
+
 
 
 
@@ -42,17 +46,16 @@ typedef unsigned int GLenum;
 
 #include "ShaderVars.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 
-
-#define ANGLE_SH_VERSION 130
+#define ANGLE_SH_VERSION 132
 
 typedef enum {
   SH_GLES2_SPEC = 0x8B40,
   SH_WEBGL_SPEC = 0x8B41,
+
+  SH_GLES3_SPEC = 0x8B86,
+  SH_WEBGL2_SPEC = 0x8B87,
 
   
   
@@ -84,31 +87,6 @@ typedef enum {
   SH_HLSL9_OUTPUT  = 0x8B47,
   SH_HLSL11_OUTPUT = 0x8B48
 } ShShaderOutput;
-
-typedef enum {
-  SH_PRECISION_HIGHP     = 0x5001,
-  SH_PRECISION_MEDIUMP   = 0x5002,
-  SH_PRECISION_LOWP      = 0x5003,
-  SH_PRECISION_UNDEFINED = 0
-} ShPrecisionType;
-
-typedef enum {
-  SH_INFO_LOG_LENGTH                = 0x8B84,
-  SH_OBJECT_CODE_LENGTH             = 0x8B88,  
-  SH_ACTIVE_UNIFORMS                = 0x8B86,
-  SH_ACTIVE_UNIFORM_MAX_LENGTH      = 0x8B87,
-  SH_ACTIVE_ATTRIBUTES              = 0x8B89,
-  SH_ACTIVE_ATTRIBUTE_MAX_LENGTH    = 0x8B8A,
-  SH_VARYINGS                       = 0x8BBB,
-  SH_VARYING_MAX_LENGTH             = 0x8BBC,
-  SH_MAPPED_NAME_MAX_LENGTH         = 0x6000,
-  SH_NAME_MAX_LENGTH                = 0x6001,
-  SH_HASHED_NAME_MAX_LENGTH         = 0x6002,
-  SH_HASHED_NAMES_COUNT             = 0x6003,
-  SH_SHADER_VERSION                 = 0x6004,
-  SH_RESOURCES_STRING_LENGTH        = 0x6005,
-  SH_OUTPUT_TYPE                    = 0x6006
-} ShShaderInfo;
 
 
 typedef enum {
@@ -210,12 +188,12 @@ typedef enum {
 
 
 
-COMPILER_EXPORT int ShInitialize();
+COMPILER_EXPORT bool ShInitialize();
 
 
 
 
-COMPILER_EXPORT int ShFinalize();
+COMPILER_EXPORT bool ShFinalize();
 
 
 
@@ -281,7 +259,9 @@ typedef struct
 
 
 
-COMPILER_EXPORT void ShInitBuiltInResources(ShBuiltInResources* resources);
+
+
+COMPILER_EXPORT void ShInitBuiltInResources(ShBuiltInResources *resources);
 
 
 
@@ -290,7 +270,7 @@ COMPILER_EXPORT void ShInitBuiltInResources(ShBuiltInResources* resources);
 
 
 
-typedef void* ShHandle;
+typedef void *ShHandle;
 
 
 
@@ -298,10 +278,7 @@ typedef void* ShHandle;
 
 
 
-
-
-
-COMPILER_EXPORT void ShGetBuiltInResourcesString(const ShHandle handle, size_t outStringLen, char *outStr);
+COMPILER_EXPORT const std::string &ShGetBuiltInResourcesString(const ShHandle handle);
 
 
 
@@ -319,7 +296,7 @@ COMPILER_EXPORT ShHandle ShConstructCompiler(
     sh::GLenum type,
     ShShaderSpec spec,
     ShShaderOutput output,
-    const ShBuiltInResources* resources);
+    const ShBuiltInResources *resources);
 COMPILER_EXPORT void ShDestruct(ShHandle handle);
 
 
@@ -346,123 +323,36 @@ COMPILER_EXPORT void ShDestruct(ShHandle handle);
 
 
 
-COMPILER_EXPORT int ShCompile(
+COMPILER_EXPORT bool ShCompile(
     const ShHandle handle,
-    const char* const shaderStrings[],
+    const char * const shaderStrings[],
     size_t numStrings,
-    int compileOptions
-    );
+    int compileOptions);
 
 
+COMPILER_EXPORT int ShGetShaderVersion(const ShHandle handle);
 
 
+COMPILER_EXPORT ShShaderOutput ShGetShaderOutputType(
+    const ShHandle handle);
 
 
 
 
+COMPILER_EXPORT const std::string &ShGetInfoLog(const ShHandle handle);
 
 
 
 
+COMPILER_EXPORT const std::string &ShGetObjectCode(const ShHandle handle);
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-COMPILER_EXPORT void ShGetInfo(const ShHandle handle,
-                               ShShaderInfo pname,
-                               size_t* params);
-
-
-
-
-
-
-
-
-
-COMPILER_EXPORT void ShGetInfoLog(const ShHandle handle, char* infoLog);
-
-
-
-
-
-
-
-
-
-COMPILER_EXPORT void ShGetObjectCode(const ShHandle handle, char* objCode);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-COMPILER_EXPORT void ShGetVariableInfo(const ShHandle handle,
-                                       ShShaderInfo variableType,
-                                       int index,
-                                       size_t* length,
-                                       int* size,
-                                       sh::GLenum* type,
-                                       ShPrecisionType* precision,
-                                       int* staticUse,
-                                       char* name,
-                                       char* mappedName);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-COMPILER_EXPORT void ShGetNameHashingEntry(const ShHandle handle,
-                                           int index,
-                                           char* name,
-                                           char* hashedName);
+COMPILER_EXPORT const std::map<std::string, std::string> *ShGetNameHashingMap(
+    const ShHandle handle);
 
 
 
@@ -490,9 +380,9 @@ typedef struct
 
 
 
-COMPILER_EXPORT int ShCheckVariablesWithinPackingLimits(
+COMPILER_EXPORT bool ShCheckVariablesWithinPackingLimits(
     int maxVectors,
-    ShVariableInfo* varInfoArray,
+    ShVariableInfo *varInfoArray,
     size_t varInfoArraySize);
 
 
@@ -503,7 +393,7 @@ COMPILER_EXPORT int ShCheckVariablesWithinPackingLimits(
 
 
 COMPILER_EXPORT bool ShGetInterfaceBlockRegister(const ShHandle handle,
-                                                 const char *interfaceBlockName,
+                                                 const std::string &interfaceBlockName,
                                                  unsigned int *indexOut);
 
 
@@ -515,11 +405,7 @@ COMPILER_EXPORT bool ShGetInterfaceBlockRegister(const ShHandle handle,
 
 
 COMPILER_EXPORT bool ShGetUniformRegister(const ShHandle handle,
-                                          const char *uniformName,
+                                          const std::string &uniformName,
                                           unsigned int *indexOut);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif 
