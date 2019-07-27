@@ -1004,6 +1004,34 @@ nsUnknownContentTypeDialog.prototype = {
     return file.leafName;
   },
 
+  finishChooseApp: function() {
+    if (this.chosenApp) {
+      
+      
+      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
+
+      
+      var otherHandler = this.dialogElement("otherHandler");
+      otherHandler.removeAttribute("hidden");
+      otherHandler.setAttribute("path", this.getPath(this.chosenApp.executable));
+#ifdef XP_WIN
+      otherHandler.label = this.getFileDisplayName(this.chosenApp.executable);
+#else
+      otherHandler.label = this.chosenApp.name;
+#endif
+      this.dialogElement("openHandler").selectedIndex = 1;
+      this.dialogElement("openHandler").setAttribute("lastSelectedItemID", "otherHandler");
+
+      this.dialogElement("mode").selectedItem = this.dialogElement("open");
+    }
+    else {
+      var openHandler = this.dialogElement("openHandler");
+      var lastSelectedID = openHandler.getAttribute("lastSelectedItemID");
+      if (!lastSelectedID)
+        lastSelectedID = "defaultHandler";
+      openHandler.selectedItem = this.dialogElement(lastSelectedID);
+    }
+  },
   
   chooseApp: function() {
 #ifdef XP_WIN
@@ -1047,7 +1075,23 @@ nsUnknownContentTypeDialog.prototype = {
         params.handlerApp.executable.isFile()) {
       
       this.chosenApp = params.handlerApp;
-
+    }
+#else
+#if MOZ_WIDGET_GTK == 3
+    var nsIApplicationChooser = Components.interfaces.nsIApplicationChooser;
+    var appChooser = Components.classes["@mozilla.org/applicationchooser;1"]
+                               .createInstance(nsIApplicationChooser);
+    appChooser.init(this.mDialog, this.dialogElement("strings").getString("chooseAppFilePickerTitle"));
+    var contentTypeDialogObj = this;
+    let appChooserCallback = function appChooserCallback_done(aResult) {
+      if (aResult) {
+         contentTypeDialogObj.chosenApp = aResult.QueryInterface(Components.interfaces.nsILocalHandlerApp);
+      }
+      contentTypeDialogObj.finishChooseApp();
+    };
+    appChooser.open(this.mLauncher.MIMEInfo.MIMEType, appChooserCallback);
+    
+    return;
 #else
     var nsIFilePicker = Components.interfaces.nsIFilePicker;
     var fp = Components.classes["@mozilla.org/filepicker;1"]
@@ -1065,29 +1109,11 @@ nsUnknownContentTypeDialog.prototype = {
                    createInstance(Components.interfaces.nsILocalHandlerApp);
       localHandlerApp.executable = fp.file;
       this.chosenApp = localHandlerApp;
-#endif
-
-      
-      
-      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
-
-      
-      var otherHandler = this.dialogElement("otherHandler");
-      otherHandler.removeAttribute("hidden");
-      otherHandler.setAttribute("path", this.getPath(this.chosenApp.executable));
-      otherHandler.label = this.getFileDisplayName(this.chosenApp.executable);
-      this.dialogElement("openHandler").selectedIndex = 1;
-      this.dialogElement("openHandler").setAttribute("lastSelectedItemID", "otherHandler");
-
-      this.dialogElement("mode").selectedItem = this.dialogElement("open");
     }
-    else {
-      var openHandler = this.dialogElement("openHandler");
-      var lastSelectedID = openHandler.getAttribute("lastSelectedItemID");
-      if (!lastSelectedID)
-        lastSelectedID = "defaultHandler";
-      openHandler.selectedItem = this.dialogElement(lastSelectedID);
-    }
+#endif 
+
+#endif 
+    this.finishChooseApp();
   },
 
   
