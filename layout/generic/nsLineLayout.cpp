@@ -195,11 +195,6 @@ nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
   psd->mIEnd = aICoord + aISize;
   mContainerWidth = aContainerWidth;
 
-  PerFrameData* pfd = NewPerFrameData(mBlockReflowState->frame);
-  pfd->mAscent = 0;
-  pfd->mSpan = psd;
-  psd->mFrame = pfd;
-
   
   
   if (!(LineContainerFrame()->GetStateBits() &
@@ -243,6 +238,11 @@ nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
 
     psd->mICoord += indent;
   }
+
+  PerFrameData* pfd = NewPerFrameData(mBlockReflowState->frame);
+  pfd->mAscent = 0;
+  pfd->mSpan = psd;
+  psd->mFrame = pfd;
 }
 
 void
@@ -2718,6 +2718,79 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD,
 
 
 
+
+void
+nsLineLayout::ExpandRubyBox(PerFrameData* aFrame, nscoord aReservedISize,
+                            nscoord aContainerWidth)
+{
+  int32_t opportunities = aFrame->mJustificationInfo.mInnerOpportunities;
+  
+  
+  
+  int32_t gaps = opportunities * 2 + 2;
+  JustificationApplicationState state(gaps, aReservedISize);
+  ApplyFrameJustification(aFrame->mSpan, state);
+
+  WritingMode lineWM = mRootSpan->mWritingMode;
+  aFrame->mBounds.ISize(lineWM) += aReservedISize;
+  aFrame->mFrame->SetRect(lineWM, aFrame->mBounds, aContainerWidth);
+}
+
+
+
+
+
+
+void
+nsLineLayout::ExpandRubyBoxWithAnnotations(PerFrameData* aFrame,
+                                           nscoord aContainerWidth)
+{
+  nscoord reservedISize = RubyUtils::GetReservedISize(aFrame->mFrame);
+  if (reservedISize) {
+    ExpandRubyBox(aFrame, reservedISize, aContainerWidth);
+  }
+
+  for (PerFrameData* annotation = aFrame->mNextAnnotation;
+       annotation; annotation = annotation->mNextAnnotation) {
+    nscoord reservedISize = RubyUtils::GetReservedISize(annotation->mFrame);
+    if (!reservedISize) {
+      continue;
+    }
+
+    MOZ_ASSERT(annotation->mSpan);
+    JustificationComputationState computeState;
+    ComputeFrameJustification(annotation->mSpan, computeState);
+    if (!computeState.mFirstParticipant) {
+      continue;
+    }
+    
+    computeState.mFirstParticipant->mJustificationAssignment.mGapsAtStart = 1;
+    computeState.mLastParticipant->mJustificationAssignment.mGapsAtEnd = 1;
+    ExpandRubyBox(annotation, reservedISize, aContainerWidth);
+    ExpandInlineRubyBoxes(annotation->mSpan);
+  }
+}
+
+
+
+
+
+void
+nsLineLayout::ExpandInlineRubyBoxes(PerSpanData* aSpan)
+{
+  nscoord containerWidth = ContainerWidthForSpan(aSpan);
+  for (PerFrameData* pfd = aSpan->mFirstFrame; pfd; pfd = pfd->mNext) {
+    if (RubyUtils::IsExpandableRubyBox(pfd->mFrame)) {
+      ExpandRubyBoxWithAnnotations(pfd, containerWidth);
+    }
+    if (pfd->mSpan) {
+      ExpandInlineRubyBoxes(pfd->mSpan);
+    }
+  }
+}
+
+
+
 void
 nsLineLayout::TextAlignLine(nsLineBox* aLine,
                             bool aIsLastLine)
@@ -2835,6 +2908,10 @@ nsLineLayout::TextAlignLine(nsLineBox* aLine,
         dx = remainingISize / 2;
         break;
     }
+  }
+
+  if (mHasRuby) {
+    ExpandInlineRubyBoxes(mRootSpan);
   }
 
   if (mPresContext->BidiEnabled() &&
