@@ -3,7 +3,7 @@
 
 
 
-let {BarGraphWidget} = devtools.require("devtools/shared/widgets/Graphs");
+let {BarGraphWidget} = Cu.import("resource:///modules/devtools/Graphs.jsm", {});
 let {Promise} = devtools.require("resource://gre/modules/Promise.jsm");
 
 const CATEGORIES = [
