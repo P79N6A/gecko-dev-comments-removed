@@ -737,21 +737,23 @@ template <typename S, typename T>
 void
 js::GCMarker::traverseEdge(S source, T target)
 {
+    
+    MOZ_ASSERT(!ThingIsPermanentAtomOrWellKnownSymbol(source));
+
+    
     MOZ_ASSERT_IF(!ThingIsPermanentAtomOrWellKnownSymbol(target),
                   target->zone()->isAtomsZone() || target->zone() == source->zone());
+
+    
+    
+    MOZ_ASSERT_IF(ThingIsPermanentAtomOrWellKnownSymbol(target), !target->maybeCompartment());
+    MOZ_ASSERT_IF(target->zoneFromAnyThread()->isAtomsZone(), !target->maybeCompartment());
+    
+    MOZ_ASSERT_IF(source->maybeCompartment() && target->maybeCompartment(),
+                  source->maybeCompartment() == target->maybeCompartment());
+
     traverse(target);
 }
-
-namespace js {
-
-template <>
-void
-GCMarker::traverseEdge(JSObject* source, JSObject* target)
-{
-    MOZ_ASSERT(target->compartment() == source->compartment());
-    traverse(target);
-}
-} 
 
 template <typename V, typename S> struct TraverseEdgeFunctor : public VoidDefaultAdaptor<V> {
     template <typename T> void operator()(T t, GCMarker* gcmarker, S s) {

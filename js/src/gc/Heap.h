@@ -230,6 +230,9 @@ struct Cell
     inline JSRuntime* runtimeFromAnyThread() const;
     inline JS::shadow::Runtime* shadowRuntimeFromAnyThread() const;
 
+    
+    inline JSCompartment* maybeCompartment() const { return nullptr; }
+
     inline StoreBuffer* storeBuffer() const;
 
     inline JSGCTraceKind getTraceKind() const;
