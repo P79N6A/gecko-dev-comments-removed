@@ -275,11 +275,12 @@ ArrayToIdVector(JSContext *cx, HandleObject proxy, HandleObject target, HandleVa
 
 
 bool
-ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
-                                              bool *succeeded) const
+ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
+
+    
     if (!handler) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
         return false;
@@ -295,7 +296,7 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::preventExtensions(cx, proxy, succeeded);
+        return DirectProxyHandler::preventExtensions(cx, proxy);
 
     
     Value argv[] = {
@@ -306,10 +307,9 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
         return false;
 
     
-    bool booleanTrapResult = ToBoolean(trapResult);
-
-    
-    if (booleanTrapResult) {
+    bool success = ToBoolean(trapResult);
+    if (success) {
+        
         bool extensible;
         if (!JSObject::isExtensible(cx, target, &extensible))
             return false;
@@ -317,11 +317,15 @@ ScriptedDirectProxyHandler::preventExtensions(JSContext *cx, HandleObject proxy,
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_REPORT_AS_NON_EXTENSIBLE);
             return false;
         }
+        
+        return true;
     }
 
     
-    *succeeded = booleanTrapResult;
-    return true;
+    
+    
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_CHANGE_EXTENSIBILITY);
+    return false;
 }
 
 

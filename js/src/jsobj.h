@@ -516,9 +516,8 @@ class JSObject : public js::gc::Cell
 
     
     
-    
     static bool
-    preventExtensions(JSContext *cx, js::HandleObject obj, bool *succeeded);
+    preventExtensions(JSContext *cx, js::HandleObject obj);
 
   private:
     enum ImmutabilityType { SEAL, FREEZE };
