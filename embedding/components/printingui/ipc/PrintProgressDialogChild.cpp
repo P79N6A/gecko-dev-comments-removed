@@ -18,14 +18,14 @@ NS_IMPL_ISUPPORTS(PrintProgressDialogChild,
                   nsIWebProgressListener,
                   nsIPrintProgressParams)
 
-MOZ_IMPLICIT PrintProgressDialogChild::PrintProgressDialogChild(
+PrintProgressDialogChild::PrintProgressDialogChild(
   nsIObserver* aOpenObserver) :
   mOpenObserver(aOpenObserver)
 {
   MOZ_COUNT_CTOR(PrintProgressDialogChild);
 }
 
-MOZ_IMPLICIT PrintProgressDialogChild::~PrintProgressDialogChild()
+PrintProgressDialogChild::~PrintProgressDialogChild()
 {
   
   
