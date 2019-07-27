@@ -608,16 +608,20 @@ function getCanStageUpdates() {
     return false;
   }
 
+
+  if (AppConstants.platform == "win" && isServiceInstalled() &&
+      shouldUseService()) {
+    
+    
+    LOG("getCanStageUpdates - able to stage updates because we'll use the service");
+    return true;
+  }
+
   
   
-  
-  if (AppConstants.platform == "win" || AppConstants.platform == "gonk") {
-    if (getPref("getBoolPref", PREF_APP_UPDATE_SERVICE_ENABLED, false)) {
-      
-      
-      LOG("getCanStageUpdates - able to stage updates because we'll use the service");
-      return true;
-    }
+  if (AppConstants.platform == "gonk") {
+    LOG("getCanStageUpdates - able to stage updates because this is gonk");
+    return true;
   }
 
   if (!hasUpdateMutex()) {
