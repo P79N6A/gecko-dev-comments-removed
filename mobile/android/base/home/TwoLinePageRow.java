@@ -50,6 +50,11 @@ public class TwoLinePageRow extends LinearLayout
             this.view = new WeakReference<FaviconView>(view);
         }
 
+        
+
+
+
+
         @Override
         public void onFaviconLoaded(String url, String faviconURL, Bitmap favicon) {
             FaviconView v = view.get();
@@ -96,23 +101,48 @@ public class TwoLinePageRow extends LinearLayout
 
     @Override
     protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+
         Tabs.registerOnTabsChangedListener(this);
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+
         
         
         Tabs.unregisterOnTabsChangedListener(this);
     }
 
+    
+
+
+
+
     @Override
     public void onTabChanged(final Tab tab, final Tabs.TabEvents msg, final Object data) {
-        switch(msg) {
+        
+        final String pageUrl = mPageUrl;
+        if (pageUrl == null) {
+            return;
+        }
+        final String tabUrl;
+        if (tab == null) {
+            return;
+        }
+        tabUrl = tab.getURL();
+        if (!pageUrl.equals(tabUrl)) {
+            return;
+        }
+
+        switch (msg) {
             case ADDED:
             case CLOSED:
             case LOCATION_CHANGE:
                 updateDisplayedUrl();
+                break;
+            default:
                 break;
         }
     }
@@ -181,32 +211,29 @@ public class TwoLinePageRow extends LinearLayout
         mShowIcons = showIcons;
     }
 
-    public void updateFromCursor(Cursor cursor) {
-        if (cursor == null) {
-            return;
-        }
+    
 
-        int titleIndex = cursor.getColumnIndexOrThrow(URLColumns.TITLE);
-        final String title = cursor.getString(titleIndex);
 
-        int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
-        final String url = cursor.getString(urlIndex);
 
+
+
+
+
+    public void update(String title, String url) {
+        update(title, url, 0);
+    }
+
+    protected void update(String title, String url, long bookmarkId) {
         if (mShowIcons) {
-            final int bookmarkIdIndex = cursor.getColumnIndex(Combined.BOOKMARK_ID);
-            if (bookmarkIdIndex != -1) {
-                final long bookmarkId = cursor.getLong(bookmarkIdIndex);
-
-                
-                
-                if (bookmarkId == 0) {
-                    setPageTypeIcon(NO_ICON);
-                } else {
-                    setPageTypeIcon(R.drawable.ic_url_bar_star);
-                }
-            } else {
+            
+            
+            if (bookmarkId == 0) {
                 setPageTypeIcon(NO_ICON);
+            } else {
+                setPageTypeIcon(R.drawable.ic_url_bar_star);
             }
+        } else {
+            setPageTypeIcon(NO_ICON);
         }
 
         
@@ -220,8 +247,38 @@ public class TwoLinePageRow extends LinearLayout
 
         
         mFavicon.clearImage();
+        Favicons.cancelFaviconLoad(mLoadFaviconJobId);
         mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(getContext(), url, mFaviconListener);
 
         updateDisplayedUrl(url);
+    }
+
+    
+
+
+
+
+
+
+    public void updateFromCursor(Cursor cursor) {
+        if (cursor == null) {
+            return;
+        }
+
+        int titleIndex = cursor.getColumnIndexOrThrow(URLColumns.TITLE);
+        final String title = cursor.getString(titleIndex);
+
+        int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
+        final String url = cursor.getString(urlIndex);
+
+        final long bookmarkId;
+        final int bookmarkIdIndex = cursor.getColumnIndex(Combined.BOOKMARK_ID);
+        if (bookmarkIdIndex != -1) {
+            bookmarkId = cursor.getLong(bookmarkIdIndex);
+        } else {
+            bookmarkId = 0;
+        }
+
+        update(title, url, bookmarkId);
     }
 }
