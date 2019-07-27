@@ -71,6 +71,12 @@ public:
                                      char strGuidUTF8[128]) = 0;
 
     
+    virtual int GetRecordingDeviceStatus(bool& isAvailable) = 0;
+
+    
+    virtual int GetPlayoutDeviceStatus(bool& isAvailable) = 0;
+
+    
     virtual int SetRecordingDevice(
         int index, StereoChannel recordingChannel = kStereoBoth) = 0;
 
@@ -84,22 +90,46 @@ public:
     virtual int GetAudioDeviceLayer(AudioLayers& audioLayer) = 0;
 
     
+    
+    virtual int GetCPULoad(int& loadPercent) = 0;
+
+    
+    virtual int ResetAudioDevice() = 0;
+
+    
+    virtual int AudioDeviceControl(
+        unsigned int par1, unsigned int par2, unsigned int par3) = 0;
+
+    
+    virtual int SetLoudspeakerStatus(bool enable) = 0;
+
+    
+    virtual int GetLoudspeakerStatus(bool& enabled) = 0;
+
+    
     virtual int SetRecordingSampleRate(unsigned int samples_per_sec) = 0;
     virtual int RecordingSampleRate(unsigned int* samples_per_sec) const = 0;
     virtual int SetPlayoutSampleRate(unsigned int samples_per_sec) = 0;
     virtual int PlayoutSampleRate(unsigned int* samples_per_sec) const = 0;
 
     
-    virtual int EnableBuiltInAEC(bool enable) { return -1; }
-    virtual bool BuiltInAECIsEnabled() const { return false; }
-    virtual int GetRecordingDeviceStatus(bool& isAvailable) { return -1; }
-    virtual int GetPlayoutDeviceStatus(bool& isAvailable) { return -1; }
-    virtual int ResetAudioDevice() { return -1; }
-    virtual int AudioDeviceControl(unsigned int par1, unsigned int par2,
-            unsigned int par3) { return -1; }
-    virtual int SetLoudspeakerStatus(bool enable) { return -1; }
-    virtual int GetLoudspeakerStatus(bool& enabled) { return -1; }
-    virtual int GetCPULoad(int& loadPercent) { return -1; }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual int EnableBuiltInAEC(bool enable) = 0;
+    virtual bool BuiltInAECIsEnabled() const = 0;
 
 
 protected:
