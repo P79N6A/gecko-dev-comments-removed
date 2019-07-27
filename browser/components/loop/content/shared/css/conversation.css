@@ -571,18 +571,17 @@
     background-color: rgba(0,0,0,.2)
   }
 
+
+
+
+
+html, .fx-embedded, #main,
+.video-layout-wrapper,
+.conversation {
+  height: 100%;
+}
+
 @media screen and (min-width:640px) {
-
-  
-
-
-
-  html, body, #main,
-  .video-layout-wrapper,
-  .conversation {
-    height: 100%;
-  }
-
   .standalone .conversation-toolbar {
     position: absolute;
     bottom: 0;
