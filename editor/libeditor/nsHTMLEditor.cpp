@@ -739,7 +739,7 @@ AssertParserServiceIsCorrect(nsIAtom* aTag, bool aIsBlock)
 
 
 bool
-nsHTMLEditor::NodeIsBlockStatic(const dom::Element* aElement)
+nsHTMLEditor::NodeIsBlockStatic(const nsINode* aElement)
 {
   MOZ_ASSERT(aElement);
 
@@ -795,7 +795,7 @@ nsHTMLEditor::NodeIsBlock(nsIDOMNode *aNode, bool *aIsBlock)
 bool
 nsHTMLEditor::IsBlockNode(nsINode *aNode)
 {
-  return aNode && aNode->IsElement() && NodeIsBlockStatic(aNode->AsElement());
+  return aNode && NodeIsBlockStatic(aNode);
 }
 
 
@@ -825,7 +825,7 @@ nsHTMLEditor::GetBlockNodeParent(nsINode* aNode)
   nsCOMPtr<nsINode> p = aNode->GetParentNode();
 
   while (p) {
-    if (p->IsElement() && NodeIsBlockStatic(p->AsElement())) {
+    if (NodeIsBlockStatic(p)) {
       return p.forget().downcast<Element>();
     }
     p = p->GetParentNode();
@@ -1731,59 +1731,48 @@ nsHTMLEditor::GetCSSBackgroundColorState(bool *aMixed, nsAString &aOutColor, boo
   
   
   nsRefPtr<Selection> selection = GetSelection();
-  NS_ENSURE_STATE(selection);
+  NS_ENSURE_STATE(selection && selection->GetRangeAt(0));
 
   
-  nsCOMPtr<nsIDOMNode> parent;
-  int32_t offset;
-  nsresult res = GetStartNodeAndOffset(selection, getter_AddRefs(parent),
-                                       &offset);
-  NS_ENSURE_SUCCESS(res, res);
+  nsCOMPtr<nsINode> parent = selection->GetRangeAt(0)->GetStartParent();
+  int32_t offset = selection->GetRangeAt(0)->StartOffset();
   NS_ENSURE_TRUE(parent, NS_ERROR_NULL_POINTER);
 
   
-  nsCOMPtr<nsIDOMNode> nodeToExamine;
+  nsCOMPtr<nsINode> nodeToExamine;
   if (selection->Collapsed() || IsTextNode(parent)) {
     
     nodeToExamine = parent;
   } else {
     
     
-    nodeToExamine = GetChildAt(parent, offset);
+    nodeToExamine = parent->GetChildAt(offset);
     
   }
   
   NS_ENSURE_TRUE(nodeToExamine, NS_ERROR_NULL_POINTER);
 
-  
-  bool isBlock;
-  res = NodeIsBlockStatic(nodeToExamine, &isBlock);
-  NS_ENSURE_SUCCESS(res, res);
-
-  nsCOMPtr<nsIDOMNode> tmp;
-
   if (aBlockLevel) {
     
     
-    nsCOMPtr<nsIDOMNode> blockParent = nodeToExamine;
-    if (!isBlock) {
+    nsCOMPtr<Element> blockParent;
+    if (NodeIsBlockStatic(nodeToExamine)) {
+      blockParent = nodeToExamine->AsElement();
+    } else {
       blockParent = GetBlockNodeParent(nodeToExamine);
-      NS_ENSURE_TRUE(blockParent, NS_OK);
     }
+    NS_ENSURE_TRUE(blockParent, NS_OK);
 
     
-    nsCOMPtr<nsIDOMElement> element;
     do {
       
-      mHTMLCSSUtils->GetComputedProperty(blockParent,
-                                         nsGkAtoms::backgroundColor,
+      mHTMLCSSUtils->GetComputedProperty(*blockParent,
+                                         *nsGkAtoms::backgroundColor,
                                          aOutColor);
-      tmp.swap(blockParent);
-      res = tmp->GetParentNode(getter_AddRefs(blockParent));
-      element = do_QueryInterface(blockParent);
+      blockParent = blockParent->GetParentElement();
       
       
-    } while (aOutColor.EqualsLiteral("transparent") && element);
+    } while (aOutColor.EqualsLiteral("transparent") && blockParent);
     if (aOutColor.EqualsLiteral("transparent")) {
       
       
@@ -1795,15 +1784,11 @@ nsHTMLEditor::GetCSSBackgroundColorState(bool *aMixed, nsAString &aOutColor, boo
     
     if (IsTextNode(nodeToExamine)) {
       
-      res = nodeToExamine->GetParentNode(getter_AddRefs(parent));
-      NS_ENSURE_SUCCESS(res, res);
-      nodeToExamine = parent;
+      nodeToExamine = nodeToExamine->GetParentNode();
     }
     do {
       
-      res = NodeIsBlockStatic(nodeToExamine, &isBlock);
-      NS_ENSURE_SUCCESS(res, res);
-      if (isBlock) {
+      if (NodeIsBlockStatic(nodeToExamine)) {
         
         aOutColor.AssignLiteral("transparent");
         break;
@@ -1811,16 +1796,14 @@ nsHTMLEditor::GetCSSBackgroundColorState(bool *aMixed, nsAString &aOutColor, boo
       else {
         
         
-        mHTMLCSSUtils->GetComputedProperty(nodeToExamine,
-                                           nsGkAtoms::backgroundColor,
+        mHTMLCSSUtils->GetComputedProperty(*nodeToExamine,
+                                           *nsGkAtoms::backgroundColor,
                                            aOutColor);
         if (!aOutColor.EqualsLiteral("transparent")) {
           break;
         }
       }
-      tmp.swap(nodeToExamine);
-      res = tmp->GetParentNode(getter_AddRefs(nodeToExamine));
-      NS_ENSURE_SUCCESS(res, res);
+      nodeToExamine = nodeToExamine->GetParentNode();
     } while ( aOutColor.EqualsLiteral("transparent") && nodeToExamine );
   }
   return NS_OK;

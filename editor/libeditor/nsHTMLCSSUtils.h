@@ -124,10 +124,10 @@ public:
 
 
 
-  nsresult    GetSpecifiedProperty(nsIDOMNode *aNode, nsIAtom *aProperty,
-                                   nsAString & aValue);
-  nsresult    GetComputedProperty(nsIDOMNode *aNode, nsIAtom *aProperty,
-                                  nsAString & aValue);
+  nsresult    GetSpecifiedProperty(nsINode& aNode, nsIAtom& aProperty,
+                                   nsAString& aValue);
+  nsresult    GetComputedProperty(nsINode& aNode, nsIAtom& aProperty,
+                                  nsAString& aValue);
 
   
 
@@ -400,8 +400,6 @@ private:
 
 
   nsresult GetCSSInlinePropertyBase(nsINode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, StyleType aStyleType);
-  nsresult GetCSSInlinePropertyBase(nsIDOMNode* aNode, nsIAtom* aProperty,
                                     nsAString& aValue, StyleType aStyleType);
 
 

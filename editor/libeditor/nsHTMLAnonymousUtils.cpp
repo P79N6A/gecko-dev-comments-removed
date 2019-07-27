@@ -416,7 +416,7 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
   if (!isPositioned) {
     
     nsAutoString positionStr;
-    mHTMLCSSUtils->GetComputedProperty(aElement, nsGkAtoms::position,
+    mHTMLCSSUtils->GetComputedProperty(*element, *nsGkAtoms::position,
                                        positionStr);
     isPositioned = positionStr.EqualsLiteral("absolute");
   }

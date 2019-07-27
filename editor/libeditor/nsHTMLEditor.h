@@ -257,7 +257,7 @@ public:
 
   
   
-  static bool NodeIsBlockStatic(const mozilla::dom::Element* aElement);
+  static bool NodeIsBlockStatic(const nsINode* aElement);
   static nsresult NodeIsBlockStatic(nsIDOMNode *aNode, bool *aIsBlock);
 protected:
   virtual ~nsHTMLEditor();
