@@ -173,6 +173,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "TabCrashReporter",
   "resource:///modules/TabCrashReporter.jsm");
 #endif
 
+XPCOMUtils.defineLazyModuleGetter(this, "FormValidationHandler",
+  "resource:///modules/FormValidationHandler.jsm");
+
 let gInitialPages = [
   "about:blank",
   "about:newtab",
@@ -665,104 +668,6 @@ var gPopupBlockerObserver = {
   }
 };
 
-const gFormSubmitObserver = {
-  QueryInterface : XPCOMUtils.generateQI([Ci.nsIFormSubmitObserver]),
-
-  panel: null,
-
-  init: function()
-  {
-    this.panel = document.getElementById('invalid-form-popup');
-  },
-
-  notifyInvalidSubmit : function (aFormElement, aInvalidElements)
-  {
-    
-    
-    
-    if (!aInvalidElements.length) {
-      return;
-    }
-
-    
-    if (gBrowser.contentDocument !=
-        aFormElement.ownerDocument.defaultView.top.document) {
-      return;
-    }
-
-    let element = aInvalidElements.queryElementAt(0, Ci.nsISupports);
-
-    if (!(element instanceof HTMLInputElement ||
-          element instanceof HTMLTextAreaElement ||
-          element instanceof HTMLSelectElement ||
-          element instanceof HTMLButtonElement)) {
-      return;
-    }
-
-    this.panel.firstChild.textContent = element.validationMessage;
-
-    element.focus();
-
-    
-    
-    
-    function blurHandler() {
-      gFormSubmitObserver.panel.hidePopup();
-    };
-    function inputHandler(e) {
-      if (e.originalTarget.validity.valid) {
-        gFormSubmitObserver.panel.hidePopup();
-      } else {
-        
-        
-        if (gFormSubmitObserver.panel.firstChild.textContent !=
-            e.originalTarget.validationMessage) {
-          gFormSubmitObserver.panel.firstChild.textContent =
-            e.originalTarget.validationMessage;
-        }
-      }
-    };
-    element.addEventListener("input", inputHandler, false);
-    element.addEventListener("blur", blurHandler, false);
-
-    
-    this.panel.addEventListener("popuphiding", function onPopupHiding(aEvent) {
-      aEvent.target.removeEventListener("popuphiding", onPopupHiding, false);
-      element.removeEventListener("input", inputHandler, false);
-      element.removeEventListener("blur", blurHandler, false);
-    }, false);
-
-    this.panel.hidden = false;
-
-    
-    
-    let offset = 0;
-    let position = "";
-
-    if (element.tagName == 'INPUT' &&
-        (element.type == 'radio' || element.type == 'checkbox')) {
-      position = "bottomcenter topleft";
-    } else {
-      let win = element.ownerDocument.defaultView;
-      let style = win.getComputedStyle(element, null);
-      let utils = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                     .getInterface(Components.interfaces.nsIDOMWindowUtils);
-
-      if (style.direction == 'rtl') {
-        offset = parseInt(style.paddingRight) + parseInt(style.borderRightWidth);
-      } else {
-        offset = parseInt(style.paddingLeft) + parseInt(style.borderLeftWidth);
-      }
-
-      offset = Math.round(offset * utils.fullZoom);
-
-      position = "after_start";
-    }
-
-    this.panel.openPopup(element, position, offset, 0);
-  }
-};
-
 function gKeywordURIFixup(fixupInfo, topic, data) {
   fixupInfo.QueryInterface(Ci.nsIURIFixupInfo);
 
@@ -1184,13 +1089,11 @@ var gBrowserInit = {
     Services.obs.addObserver(gXPInstallObserver, "addon-install-blocked", false);
     Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
     Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
-    Services.obs.addObserver(gFormSubmitObserver, "invalidformsubmit", false);
     Services.obs.addObserver(gKeywordURIFixup, "keyword-uri-fixup", false);
 
     BrowserOffline.init();
     OfflineApps.init();
     IndexedDBPromptHelper.init();
-    gFormSubmitObserver.init();
     gRemoteTabsUI.init();
 
     
@@ -1485,7 +1388,6 @@ var gBrowserInit = {
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-blocked");
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
       Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
-      Services.obs.removeObserver(gFormSubmitObserver, "invalidformsubmit");
       Services.obs.removeObserver(gKeywordURIFixup, "keyword-uri-fixup");
 
       try {
@@ -3781,9 +3683,7 @@ var XULBrowserWindow = {
     var location = aLocationURI ? aLocationURI.spec : "";
 
     
-    if (gFormSubmitObserver.panel) {
-      gFormSubmitObserver.panel.hidePopup();
-    }
+    FormValidationHandler.hidePopup();
 
     let pageTooltip = document.getElementById("aHTMLTooltip");
     let tooltipNode = pageTooltip.triggerNode;

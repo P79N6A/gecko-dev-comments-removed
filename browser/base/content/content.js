@@ -8,6 +8,8 @@ let {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
+  "resource://gre/modules/BrowserUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ContentLinkHandler",
   "resource:///modules/ContentLinkHandler.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LoginManagerContent",
@@ -18,11 +20,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "UITour",
   "resource:///modules/UITour.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FormSubmitObserver",
+  "resource:///modules/FormSubmitObserver.jsm");
 
 
-function makeURI(uri, originCharset, baseURI) {
-  return Services.io.newURI(uri, originCharset, baseURI);
-}
+var global = this;
+
+
+var formSubmitObserver = new FormSubmitObserver(content, this);
 
 addMessageListener("Browser:HideSessionRestoreButton", function (message) {
   
@@ -221,14 +226,14 @@ let AboutHomeListener = {
   },
 
   onPageHide: function(aEvent) {
-    if (aEvent.target.defaultView.frameElement) {
+    if (event.target.defaultView.frameElement) {
       return;
     }
     removeMessageListener("AboutHome:Update", this);
     removeEventListener("click", this, true);
     removeEventListener("pagehide", this, true);
-    if (aEvent.target.documentElement) {
-      aEvent.target.documentElement.removeAttribute("hasBrowserHandlers");
+    if (event.target.documentElement) {
+      event.target.documentElement.removeAttribute("hasBrowserHandlers");
     }
   },
 
@@ -327,9 +332,6 @@ let ContentSearchMediator = {
   },
 };
 ContentSearchMediator.init(this);
-
-
-var global = this;
 
 
 addMessageListener("Finder:Initialize", function () {
@@ -465,7 +467,7 @@ let ClickEventHandler = {
     
     
     
-    return [href ? makeURI(href, null, baseURI).spec : null, null];
+    return [href ? BrowserUtils.makeURI(href, null, baseURI).spec : null, null];
   }
 };
 ClickEventHandler.init();

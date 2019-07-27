@@ -15,6 +15,16 @@ this.BrowserUtils = {
   
 
 
+  dumpLn: function () {
+    for (let i = 0; i < arguments.length; i++) {
+      dump(arguments[i] + " ");
+    }
+    dump("\n");
+  },
+
+  
+
+
 
 
 
@@ -112,4 +122,31 @@ this.BrowserUtils = {
     return rect;
   },
 
+  
+
+
+
+
+
+
+
+  offsetToTopLevelWindow: function (aTopLevelWindow, aElement) {
+    let offsetX = 0;
+    let offsetY = 0;
+    let element = aElement;
+    while (element &&
+           element.ownerDocument &&
+           element.ownerDocument.defaultView != aTopLevelWindow) {
+      element = element.ownerDocument.defaultView.frameElement;
+      let rect = element.getBoundingClientRect();
+      offsetX += rect.left;
+      offsetY += rect.top;
+    }
+    let win = null;
+    if (element == aElement)
+      win = aTopLevelWindow;
+    else
+      win = element.contentDocument.defaultView;
+    return { targetWindow: win, offsetX: offsetX, offsetY: offsetY };
+  },
 };

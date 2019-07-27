@@ -683,6 +683,13 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   max-width: 280px;
 }
 
+.form-validation-anchor {
+  
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 #addon-progress-notification {
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#addon-progress-notification");
 }
