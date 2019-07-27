@@ -21,15 +21,8 @@ devtools.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
   "devtools/timeline/global", true);
 devtools.lazyRequireGetter(this, "L10N",
   "devtools/profiler/global", true);
-devtools.lazyRequireGetter(this, "PerformanceIO",
-  "devtools/performance/io", true);
 devtools.lazyRequireGetter(this, "RecordingModel",
   "devtools/performance/recording-model", true);
-devtools.lazyRequireGetter(this, "RECORDING_IN_PROGRESS",
-  "devtools/performance/recording-model", true);
-devtools.lazyRequireGetter(this, "RECORDING_UNAVAILABLE",
-  "devtools/performance/recording-model", true);
-
 devtools.lazyRequireGetter(this, "MarkersOverview",
   "devtools/timeline/markers-overview", true);
 devtools.lazyRequireGetter(this, "MemoryOverview",
@@ -81,6 +74,8 @@ const EVENTS = {
   
   RECORDING_STARTED: "Performance:RecordingStarted",
   RECORDING_STOPPED: "Performance:RecordingStopped",
+  RECORDING_WILL_START: "Performance:RecordingWillStart",
+  RECORDING_WILL_STOP: "Performance:RecordingWillStop",
 
   
   RECORDING_IMPORTED: "Performance:RecordingImported",
@@ -107,14 +102,14 @@ const EVENTS = {
   CALL_TREE_RENDERED: "Performance:UI:CallTreeRendered",
 
   
-  SOURCE_SHOWN_IN_JS_DEBUGGER: "Performance:UI:SourceShownInJsDebugger",
-  SOURCE_NOT_FOUND_IN_JS_DEBUGGER: "Performance:UI:SourceNotFoundInJsDebugger",
-
-  
   WATERFALL_RENDERED: "Performance:UI:WaterfallRendered",
 
   
-  FLAMEGRAPH_RENDERED: "Performance:UI:FlameGraphRendered"
+  FLAMEGRAPH_RENDERED: "Performance:UI:FlameGraphRendered",
+
+  
+  SOURCE_SHOWN_IN_JS_DEBUGGER: "Performance:UI:SourceShownInJsDebugger",
+  SOURCE_NOT_FOUND_IN_JS_DEBUGGER: "Performance:UI:SourceNotFoundInJsDebugger"
 };
 
 
@@ -225,11 +220,13 @@ let PerformanceController = {
 
 
   startRecording: Task.async(function *() {
-    let recording = this.createNewRecording();
-    this.setCurrentRecording(recording);
-    yield recording.startRecording();
+    let recording = this._createRecording();
 
+    this.emit(EVENTS.RECORDING_WILL_START, recording);
+    yield recording.startRecording({ withTicks: true, withMemory: true });
     this.emit(EVENTS.RECORDING_STARTED, recording);
+
+    this.setCurrentRecording(recording);
   }),
 
   
@@ -238,8 +235,9 @@ let PerformanceController = {
 
   stopRecording: Task.async(function *() {
     let recording = this._getLatestRecording();
-    yield recording.stopRecording();
 
+    this.emit(EVENTS.RECORDING_WILL_STOP, recording);
+    yield recording.stopRecording();
     this.emit(EVENTS.RECORDING_STOPPED, recording);
   }),
 
@@ -251,11 +249,10 @@ let PerformanceController = {
 
 
 
-  exportRecording: Task.async(function*(_, recording, file) {
-    let recordingData = recording.getAllData();
-    yield PerformanceIO.saveRecordingToFile(recordingData, file);
 
-    this.emit(EVENTS.RECORDING_EXPORTED, recordingData);
+  exportRecording: Task.async(function*(_, recording, file) {
+    yield recording.exportRecording(file);
+    this.emit(EVENTS.RECORDING_EXPORTED, recording);
   }),
 
   
@@ -264,8 +261,9 @@ let PerformanceController = {
 
 
 
+
   importRecording: Task.async(function*(_, file) {
-    let recording = this.createNewRecording();
+    let recording = this._createRecording();
     yield recording.importRecording(file);
 
     this.emit(EVENTS.RECORDING_IMPORTED, recording);
@@ -278,11 +276,8 @@ let PerformanceController = {
 
 
 
-  createNewRecording: function () {
-    let recording = new RecordingModel({
-      front: gFront,
-      performance: performance
-    });
+  _createRecording: function () {
+    let recording = new RecordingModel({ front: gFront, performance });
     this._recordings.push(recording);
 
     this.emit(EVENTS.RECORDING_CREATED, recording);

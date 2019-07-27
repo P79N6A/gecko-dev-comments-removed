@@ -19,7 +19,7 @@ const { getColor } = require("devtools/shared/theme");
 loader.lazyRequireGetter(this, "L10N",
   "devtools/timeline/global", true);
 
-const HTML_NS = "http://www.w3.org/1999/xhtml";
+const OVERVIEW_DAMPEN_VALUES = 0.95;
 
 const OVERVIEW_HEIGHT = 30; 
 const OVERVIEW_STROKE_WIDTH = 1; 
@@ -38,14 +38,10 @@ const OVERVIEW_SELECTION_LINE_COLOR = "#555";
 function MemoryOverview(parent) {
   LineGraphWidget.call(this, parent, { metric: L10N.getStr("graphs.memory") });
   this.setTheme();
-  this.once("ready", () => {
-    
-    this.setData({ interval: { startTime: 0, endTime: 1000 }, memory: [] });
-  });
 }
 
 MemoryOverview.prototype = Heritage.extend(LineGraphWidget.prototype, {
-  dampenValuesFactor: 0.95,
+  dampenValuesFactor: OVERVIEW_DAMPEN_VALUES,
   fixedHeight: OVERVIEW_HEIGHT,
   strokeWidth: OVERVIEW_STROKE_WIDTH,
   maximumLineColor: OVERVIEW_MAXIMUM_LINE_COLOR,
@@ -62,15 +58,7 @@ MemoryOverview.prototype = Heritage.extend(LineGraphWidget.prototype, {
   clearView: function() {
     this.selectionEnabled = false;
     this.dropSelection();
-    this.setData({ interval: { startTime: 0, endTime: 0 }, memory: [] });
-  },
-
-  
-
-
-  setData: function({ interval, memory }) {
-    this.dataOffsetX = interval.startTime;
-    LineGraphWidget.prototype.setData.call(this, memory);
+    this.setData([]);
   },
 
   

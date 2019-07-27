@@ -133,18 +133,13 @@ function convertLegacyData (legacyData) {
   
   
   let data = {
+    label: profilerData.profilerLabel,
+    duration: recordingDuration,
     markers: [],
     frames: [],
     memory: [],
     ticks: ticksData,
-    profilerData: profilerData,
-    
-    
-    
-    interval: {
-      startTime: profilerData.currentTime - recordingDuration,
-      endTime: profilerData.currentTime
-    }
+    profile: profilerData.profile
   };
 
   return data;

@@ -453,25 +453,58 @@ AbstractCanvasGraph.prototype = {
 
 
 
+  setMappedSelection: function(selection, mapping = {}) {
+    if (!this.hasData()) {
+      throw "A data source is necessary for retrieving a mapped selection.";
+    }
+    if (!selection || selection.start == null || selection.end == null) {
+      throw "Invalid selection coordinates";
+    }
+
+    let { mapStart, mapEnd } = mapping;
+    let startTime = (mapStart || (e => e.delta))(this._data[0]);
+    let endTime = (mapEnd || (e => e.delta))(this._data[this._data.length - 1]);
+
+    
+    
+    let min = Math.max(Math.min(selection.start, selection.end), startTime);
+    let max = Math.min(Math.max(selection.start, selection.end), endTime);
+    min = map(min, startTime, endTime, 0, this._width);
+    max = map(max, startTime, endTime, 0, this._width);
+
+    this.setSelection({ start: min, end: max });
+  },
+
+  
 
 
 
-  getMappedSelection: function(unpack = e => e.delta) {
-    if (!this.hasData() || !this.hasSelection()) {
+
+
+
+
+
+
+  getMappedSelection: function(mapping = {}) {
+    if (!this.hasData()) {
+      throw "A data source is necessary for retrieving a mapped selection.";
+    }
+    if (!this.hasSelection() && !this.hasSelectionInProgress()) {
       return { min: null, max: null };
     }
-    let selection = this.getSelection();
-    let totalTicks = this._data.length;
-    let firstTick = unpack(this._data[0]);
-    let lastTick = unpack(this._data[totalTicks - 1]);
+
+    let { mapStart, mapEnd } = mapping;
+    let startTime = (mapStart || (e => e.delta))(this._data[0]);
+    let endTime = (mapEnd || (e => e.delta))(this._data[this._data.length - 1]);
 
     
     
     
+    let selection = this.getSelection();
     let min = Math.max(Math.min(selection.start, selection.end), 0);
     let max = Math.min(Math.max(selection.start, selection.end), this._width);
-    min = map(min, 0, this._width, firstTick, lastTick);
-    max = map(max, 0, this._width, firstTick, lastTick);
+    min = map(min, 0, this._width, startTime, endTime);
+    max = map(max, 0, this._width, startTime, endTime);
 
     return { min: min, max: max };
   },
@@ -1229,6 +1262,11 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
 
 
 
+  dataDuration: 0,
+
+  
+
+
   dampenValuesFactor: LINE_GRAPH_DAMPEN_VALUES,
 
   
@@ -1297,7 +1335,8 @@ LineGraphWidget.prototype = Heritage.extend(AbstractCanvasGraph.prototype, {
       avgValue = sumValues / totalTicks;
     }
 
-    let dataScaleX = this.dataScaleX = width / (lastTick - this.dataOffsetX);
+    let duration = this.dataDuration || lastTick;
+    let dataScaleX = this.dataScaleX = width / (duration - this.dataOffsetX);
     let dataScaleY = this.dataScaleY = height / maxValue * this.dampenValuesFactor;
 
     

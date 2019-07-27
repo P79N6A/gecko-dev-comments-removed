@@ -1,9 +1,7 @@
 
 
 
-
 "use strict";
-
 
 
 
@@ -26,6 +24,7 @@ const protocol = require("devtools/server/protocol");
 const {method, Arg, RetVal, Option} = protocol;
 const events = require("sdk/event/core");
 const {setTimeout, clearTimeout} = require("sdk/timers");
+
 const {MemoryActor} = require("devtools/server/actors/memory");
 const {FramerateActor} = require("devtools/server/actors/framerate");
 const {StackFrameCache} = require("devtools/server/actors/utils/stack");
@@ -60,16 +59,14 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
 
 
-
-
-
     "markers" : {
       type: "markers",
-      markers: Arg(0, "array:json"),
+      markers: Arg(0, "json"),
       endTime: Arg(1, "number")
     },
 
     
+
 
 
 
@@ -83,11 +80,17 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
 
 
+
     "ticks" : {
       type: "ticks",
       delta: Arg(0, "number"),
       timestamps: Arg(1, "array-of-numbers-as-strings")
     },
+
+    
+
+
+
 
     "frames" : {
       type: "frames",
@@ -95,6 +98,9 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
       frames: Arg(1, "json")
     }
   },
+
+  
+
 
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
@@ -117,6 +123,9 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
   disconnect: function() {
     this.destroy();
   },
+
+  
+
 
   destroy: function() {
     this.stop();
@@ -241,10 +250,10 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
     }
 
     if (withMemory) {
-      this._memoryActor = new MemoryActor(this.conn, this.tabActor,
-                                          this._stackFrames);
+      this._memoryActor = new MemoryActor(this.conn, this.tabActor, this._stackFrames);
       events.emit(this, "memory", this._startTime, this._memoryActor.measure());
     }
+
     if (withTicks) {
       this._framerateActor = new FramerateActor(this.conn, this.tabActor);
       this._framerateActor.startRecording();
@@ -275,6 +284,7 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
     if (this._memoryActor) {
       this._memoryActor = null;
     }
+
     if (this._framerateActor) {
       this._framerateActor.stopRecording();
       this._framerateActor = null;
@@ -313,7 +323,6 @@ exports.TimelineFront = protocol.FrontClass(TimelineActor, {
     protocol.Front.prototype.initialize.call(this, client, {actor: timelineActor});
     this.manage(this);
   },
-
   destroy: function() {
     protocol.Front.prototype.destroy.call(this);
   },

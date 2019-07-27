@@ -32,6 +32,8 @@ let SharedPerformanceActors = new WeakMap();
 
 
 
+
+
 SharedPerformanceActors.forTarget = function(target) {
   if (this.has(target)) {
     return this.get(target);
@@ -140,12 +142,13 @@ PerformanceActorsConnection.prototype = {
       this._timeline = new TimelineFront(this._target.client, this._target.form);
     } else {
       this._timeline = {
-        start: () => {},
-        stop: () => {},
+        start: () => 0,
+        stop: () => 0,
         isRecording: () => false,
-        on: () => {},
-        off: () => {},
-        destroy: () => {}
+        on: () => null,
+        off: () => null,
+        once: () => promise.reject(),
+        destroy: () => null
       };
     }
   },
@@ -217,30 +220,35 @@ PerformanceFront.prototype = {
 
 
 
-  startRecording: Task.async(function*(options = {}) {
-    let { isActive, currentTime } = yield this._request("profiler", "isActive");
+  startRecording: Task.async(function*(timelineOptions = {}) {
+    let profilerStatus = yield this._request("profiler", "isActive");
+    let profilerStartTime;
 
     
     
     
     
-    if (!isActive) {
+    if (!profilerStatus.isActive) {
       
       let profilerOptions = extend({}, this._customProfilerOptions);
       yield this._request("profiler", "startProfiler", profilerOptions);
-      this._profilingStartTime = 0;
+      profilerStartTime = 0;
       this.emit("profiler-activated");
     } else {
-      this._profilingStartTime = currentTime;
+      profilerStartTime = profilerStatus.currentTime;
       this.emit("profiler-already-active");
     }
 
     
     
-    let startTime = yield this._request("timeline", "start", options);
+    let timelineStartTime = yield this._request("timeline", "start", timelineOptions);
 
     
-    return { startTime };
+    
+    return {
+      profilerStartTime,
+      timelineStartTime
+    };
   }),
 
   
@@ -251,19 +259,15 @@ PerformanceFront.prototype = {
 
 
   stopRecording: Task.async(function*() {
-    
-    
+    let timelineEndTime = yield this._request("timeline", "stop");
     let profilerData = yield this._request("profiler", "getProfile");
-    filterSamples(profilerData, this._profilingStartTime);
-    offsetSampleTimes(profilerData, this._profilingStartTime);
 
-    let endTime = yield this._request("timeline", "stop");
-
+    
     
     return {
-      recordingDuration: profilerData.currentTime - this._profilingStartTime,
-      profilerData: profilerData,
-      endTime: endTime
+      profile: profilerData.profile,
+      profilerEndTime: profilerData.currentTime,
+      timelineEndTime: timelineEndTime
     };
   }),
 
@@ -279,39 +283,6 @@ PerformanceFront.prototype = {
     features: ["js"]
   }
 };
-
-
-
-
-
-
-
-
-
-
-function filterSamples(profilerData, profilingStartTime) {
-  let firstThread = profilerData.profile.threads[0];
-
-  firstThread.samples = firstThread.samples.filter(e => {
-    return e.time >= profilingStartTime;
-  });
-}
-
-
-
-
-
-
-
-
-
-function offsetSampleTimes(profilerData, timeOffset) {
-  let firstThreadSamples = profilerData.profile.threads[0].samples;
-
-  for (let sample of firstThreadSamples) {
-    sample.time -= timeOffset;
-  }
-}
 
 
 

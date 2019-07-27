@@ -13,10 +13,10 @@ let DetailsView = {
   
 
 
-  viewIndexes: {
-    waterfall: 0,
-    calltree: 1,
-    flamegraph: 2
+  components: {
+    waterfall: { index: 0, view: WaterfallView },
+    calltree: { index: 1, view: CallTreeView },
+    flamegraph: { index: 2, view: FlameGraphView }
   },
 
   
@@ -32,8 +32,8 @@ let DetailsView = {
       button.addEventListener("command", this._onViewToggle);
     }
 
-    yield CallTreeView.initialize();
     yield WaterfallView.initialize();
+    yield CallTreeView.initialize();
     yield FlameGraphView.initialize();
 
     this.selectView(DEFAULT_DETAILS_SUBVIEW);
@@ -47,8 +47,8 @@ let DetailsView = {
       button.removeEventListener("command", this._onViewToggle);
     }
 
-    yield CallTreeView.destroy();
     yield WaterfallView.destroy();
+    yield CallTreeView.destroy();
     yield FlameGraphView.destroy();
   }),
 
@@ -59,19 +59,52 @@ let DetailsView = {
 
 
 
-  selectView: function (selectedView) {
-    this.el.selectedIndex = this.viewIndexes[selectedView];
+  selectView: function (viewName) {
+    this.el.selectedIndex = this.components[viewName].index;
 
     for (let button of $$("toolbarbutton[data-view]", this.toolbar)) {
-      if (button.getAttribute("data-view") === selectedView) {
+      if (button.getAttribute("data-view") === viewName) {
         button.setAttribute("checked", true);
       } else {
         button.removeAttribute("checked");
       }
     }
 
-    this.emit(EVENTS.DETAILS_VIEW_SELECTED, selectedView);
+    this.emit(EVENTS.DETAILS_VIEW_SELECTED, viewName);
   },
+
+  
+
+
+
+
+
+  isViewSelected: function(viewObject) {
+    let selectedIndex = this.el.selectedIndex;
+
+    for (let [, { index, view }] of Iterator(this.components)) {
+      if (index == selectedIndex && view == viewObject) {
+        return true;
+      }
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
+
+
+  whenViewSelected: Task.async(function*(viewObject) {
+    if (this.isViewSelected(viewObject)) {
+      return promise.resolve();
+    }
+    yield this.once(EVENTS.DETAILS_VIEW_SELECTED);
+    return this.whenViewSelected(viewObject);
+  }),
 
   
 

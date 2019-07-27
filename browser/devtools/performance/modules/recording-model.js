@@ -3,10 +3,14 @@
 
 "use strict";
 
-const { PerformanceIO } = require("devtools/performance/io");
+const { Cc, Ci, Cu, Cr } = require("chrome");
 
-const RECORDING_IN_PROGRESS = exports.RECORDING_IN_PROGRESS = -1;
-const RECORDING_UNAVAILABLE = exports.RECORDING_UNAVAILABLE = null;
+loader.lazyRequireGetter(this, "PerformanceIO",
+  "devtools/performance/io", true);
+loader.lazyRequireGetter(this, "RecordingUtils",
+  "devtools/performance/recording-utils", true);
+
+
 
 
 
@@ -19,17 +23,20 @@ const RecordingModel = function (options={}) {
 };
 
 RecordingModel.prototype = {
-  _localStartTime: RECORDING_UNAVAILABLE,
-  _startTime: RECORDING_UNAVAILABLE,
-  _endTime: RECORDING_UNAVAILABLE,
-  _markers: [],
-  _frames: [],
-  _ticks: [],
-  _memory: [],
-  _profilerData: {},
-  _label: "",
+  
   _imported: false,
-  _isRecording: false,
+  _recording: false,
+  _profilerStartTime: 0,
+  _timelineStartTime: 0,
+
+  
+  _label: "",
+  _duration: 0,
+  _markers: null,
+  _frames: null,
+  _ticks: null,
+  _memory: null,
+  _profile: null,
 
   
 
@@ -41,16 +48,13 @@ RecordingModel.prototype = {
     let recordingData = yield PerformanceIO.loadRecordingFromFile(file);
 
     this._imported = true;
-    this._label = recordingData.profilerData.profilerLabel || "";
-    this._startTime = recordingData.interval.startTime;
-    this._endTime = recordingData.interval.endTime;
+    this._label = recordingData.label || "";
+    this._duration = recordingData.duration;
     this._markers = recordingData.markers;
     this._frames = recordingData.frames;
     this._memory = recordingData.memory;
     this._ticks = recordingData.ticks;
-    this._profilerData = recordingData.profilerData;
-
-    return recordingData;
+    this._profile = recordingData.profile;
   }),
 
   
@@ -68,21 +72,21 @@ RecordingModel.prototype = {
 
 
 
-  startRecording: Task.async(function *() {
+
+
+
+  startRecording: Task.async(function *(options = {}) {
     
     
     
     
     this._localStartTime = this._performance.now();
 
-    let { startTime } = yield this._front.startRecording({
-      withTicks: true,
-      withMemory: true
-    });
-    this._isRecording = true;
+    let info = yield this._front.startRecording(options);
+    this._profilerStartTime = info.profilerStartTime;
+    this._timelineStartTime = info.timelineStartTime;
+    this._recording = true;
 
-    this._startTime = startTime;
-    this._endTime = RECORDING_IN_PROGRESS;
     this._markers = [];
     this._frames = [];
     this._memory = [];
@@ -92,24 +96,25 @@ RecordingModel.prototype = {
   
 
 
-
   stopRecording: Task.async(function *() {
-    let results = yield this._front.stopRecording();
-    this._isRecording = false;
+    let info = yield this._front.stopRecording();
+    this._profile = info.profile;
+    this._duration = info.profilerEndTime - this._profilerStartTime;
+    this._recording = false;
 
     
-    if (!results.endTime) {
-      results.endTime = this._startTime + this.getLocalElapsedTime();
-    }
+    
+    
+    RecordingUtils.filterSamples(this._profile, this._profilerStartTime);
+    RecordingUtils.offsetSampleTimes(this._profile, this._profilerStartTime);
 
-    this._endTime = results.endTime;
-    this._profilerData = results.profilerData;
-    this._markers = this._markers.sort((a,b) => (a.start > b.start));
-
-    return results;
+    
+    
+    this._markers = this._markers.sort((a, b) => (a.start > b.start));
   }),
 
   
+
 
 
   getLabel: function () {
@@ -119,34 +124,16 @@ RecordingModel.prototype = {
   
 
 
-  getLocalElapsedTime: function () {
-    return this._performance.now() - this._localStartTime;
-  },
-
-  
-
 
   getDuration: function () {
-    let { startTime, endTime } = this.getInterval();
-    return endTime - startTime;
-  },
-
-  
-
-
-
-  getInterval: function() {
-    let startTime = this._startTime;
-    let endTime = this._endTime;
-
     
     
     
-    if (endTime == RECORDING_IN_PROGRESS) {
-      endTime = startTime + this.getLocalElapsedTime();
+    if (this._recording) {
+      return this._performance.now() - this._localStartTime;
+    } else {
+      return this._duration;
     }
-
-    return { startTime, endTime };
   },
 
   
@@ -185,21 +172,22 @@ RecordingModel.prototype = {
 
 
 
-  getProfilerData: function() {
-    return this._profilerData;
+  getProfile: function() {
+    return this._profile;
   },
 
   
 
 
   getAllData: function() {
-    let interval = this.getInterval();
+    let label = this.getLabel();
+    let duration = this.getDuration();
     let markers = this.getMarkers();
     let frames = this.getFrames();
     let memory = this.getMemory();
     let ticks = this.getTicks();
-    let profilerData = this.getProfilerData();
-    return { interval, markers, frames, memory, ticks, profilerData };
+    let profile = this.getProfile();
+    return { label, duration, markers, frames, memory, ticks, profile };
   },
 
   
@@ -207,7 +195,7 @@ RecordingModel.prototype = {
 
 
   isRecording: function () {
-    return this._isRecording;
+    return this._recording;
   },
 
   
@@ -216,26 +204,35 @@ RecordingModel.prototype = {
   addTimelineData: function (eventName, ...data) {
     
     
-    if (!this.isRecording()) {
+    if (!this._recording) {
       return;
     }
 
     switch (eventName) {
       
+      
       case "markers":
         let [markers] = data;
+        RecordingUtils.offsetMarkerTimes(markers, this._timelineStartTime);
         Array.prototype.push.apply(this._markers, markers);
         break;
+
       
       case "frames":
         let [, frames] = data;
         Array.prototype.push.apply(this._frames, frames);
         break;
+
+      
       
       case "memory":
-        let [delta, measurement] = data;
-        this._memory.push({ delta, value: measurement.total / 1024 / 1024 });
+        let [currentTime, measurement] = data;
+        this._memory.push({
+          delta: currentTime - this._timelineStartTime,
+          value: measurement.total / 1024 / 1024
+        });
         break;
+
       
       case "ticks":
         let [, timestamps] = data;
