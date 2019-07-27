@@ -1097,6 +1097,13 @@ nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
         }
 
         
+        if (firstDotLoc == uint32_t(kNotFound) && lastSlashLoc != uint32_t(kNotFound) &&
+            hasAsciiAlpha && isValidAsciiHost) {
+            return NS_OK;
+        }
+
+
+        
         
         rv = TryKeywordFixupForURIInfo(aFixupInfo->mOriginalInput, aFixupInfo, aPostData);
     }
