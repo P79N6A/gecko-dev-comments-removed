@@ -55,8 +55,7 @@ public:
 
 
 
-    static void UpdateSubFrame(nsIContent* aContent,
-                               FrameMetrics& aMetrics);
+    static void UpdateSubFrame(FrameMetrics& aMetrics);
 
     
 

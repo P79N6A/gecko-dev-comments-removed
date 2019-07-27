@@ -562,13 +562,9 @@ TabChildBase::UpdateFrameHandler(const FrameMetrics& aFrameMetrics)
   } else {
     
     
-    nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(
-                                      aFrameMetrics.GetScrollId());
-    if (content) {
-      FrameMetrics newSubFrameMetrics(aFrameMetrics);
-      APZCCallbackHelper::UpdateSubFrame(content, newSubFrameMetrics);
-      return true;
-    }
+    FrameMetrics newSubFrameMetrics(aFrameMetrics);
+    APZCCallbackHelper::UpdateSubFrame(newSubFrameMetrics);
+    return true;
   }
   return true;
 }

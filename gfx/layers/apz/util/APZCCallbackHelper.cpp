@@ -227,18 +227,23 @@ APZCCallbackHelper::UpdateRootFrame(FrameMetrics& aMetrics)
 }
 
 void
-APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
-                                   FrameMetrics& aMetrics)
+APZCCallbackHelper::UpdateSubFrame(FrameMetrics& aMetrics)
 {
-  
-  MOZ_ASSERT(aContent);
+  if (aMetrics.GetScrollId() == FrameMetrics::NULL_SCROLL_ID) {
+    return;
+  }
+  nsIContent* content = nsLayoutUtils::FindContentFor(aMetrics.GetScrollId());
+  if (!content) {
+    return;
+  }
+
   MOZ_ASSERT(aMetrics.GetUseDisplayPortMargins());
 
   
   
-  ScrollFrame(aContent, aMetrics);
-  if (nsCOMPtr<nsIPresShell> shell = GetPresShell(aContent)) {
-    SetDisplayPortMargins(shell, aContent, aMetrics);
+  ScrollFrame(content, aMetrics);
+  if (nsCOMPtr<nsIPresShell> shell = GetPresShell(content)) {
+    SetDisplayPortMargins(shell, content, aMetrics);
   }
 }
 
