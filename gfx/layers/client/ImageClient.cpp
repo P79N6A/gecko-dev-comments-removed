@@ -165,8 +165,9 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
     
     
     
-    if (image->AsPlanarYCbCrImage()) {
-      const PlanarYCbCrData* data = image->AsPlanarYCbCrImage()->GetData();
+    if (image->GetFormat() == ImageFormat::PLANAR_YCBCR) {
+      PlanarYCbCrImage* ycbcr = static_cast<PlanarYCbCrImage*>(image);
+      const PlanarYCbCrData* data = ycbcr->GetData();
       if (!data) {
         return false;
       }

@@ -30,16 +30,6 @@ MOZ_BEGIN_ENUM_CLASS(ImageFormat)
 
 
 
-
-
-
-  GONK_CAMERA_IMAGE,
-
-  
-
-
-
-
   SHARED_RGB,
 
   
