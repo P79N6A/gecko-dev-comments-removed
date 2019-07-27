@@ -3587,6 +3587,7 @@ public:
         , forcePermissiveCOWs(false)
         , adoptedNode(false)
         , donatedNode(false)
+        , warnedAboutXrays(false)
         , scriptability(c)
         , scope(nullptr)
     {
@@ -3641,6 +3642,10 @@ public:
     
     bool adoptedNode;
     bool donatedNode;
+
+    
+    
+    bool warnedAboutXrays;
 
     
     Scriptability scriptability;
