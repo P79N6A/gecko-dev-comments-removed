@@ -1127,17 +1127,7 @@ EnvironmentCache.prototype = {
       
       
       adapters: [],
-      monitors: [],
     };
-
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
-    let gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
-    try {
-      gfxData.monitors = gfxInfo.getMonitors();
-    } catch (e) {
-      this._log.error("nsIGfxInfo.getMonitors() caught error", e);
-    }
-#endif
 
     
     gfxData.adapters.push(getGfxAdapter(""));
