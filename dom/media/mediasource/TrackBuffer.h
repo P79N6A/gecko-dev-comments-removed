@@ -182,6 +182,7 @@ private:
   nsTArray<nsRefPtr<SourceBufferDecoder>> mWaitingDecoders;
 
   
+  
   nsRefPtr<SourceBufferDecoder> mCurrentDecoder;
 
   nsRefPtr<MediaSourceDecoder> mParentDecoder;
