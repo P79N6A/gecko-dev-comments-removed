@@ -661,10 +661,9 @@ this.DOMApplicationRegistry = {
       } catch(e) {} 
 
       if (runUpdate) {
+
         
-        var appMigrator = Components.classes["@mozilla.org/app-migrator;1"]
-                           .createInstance(Components.interfaces.nsIObserver);
-        appMigrator.observe(null, "webapps-before-update-merge", null);
+        Services.obs.notifyObservers(null, "webapps-before-update-merge", null);
 
 #ifdef MOZ_WIDGET_GONK
         yield this.installSystemApps();
