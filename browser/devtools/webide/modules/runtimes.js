@@ -292,6 +292,35 @@ RuntimeScanners.add(DeprecatedAdbScanner);
 
 exports.DeprecatedAdbScanner = DeprecatedAdbScanner;
 
+
+
+
+
+
+
+let LazyAdbScanner = {
+
+  enable() {
+    Devices.emit("adb-start-polling");
+  },
+
+  disable() {
+    Devices.emit("adb-stop-polling");
+  },
+
+  scan() {
+    return promise.resolve();
+  },
+
+  listRuntimes: function() {
+    return [];
+  }
+
+};
+
+EventEmitter.decorate(LazyAdbScanner);
+RuntimeScanners.add(LazyAdbScanner);
+
 let WiFiScanner = {
 
   _runtimes: [],
