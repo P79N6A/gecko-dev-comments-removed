@@ -154,6 +154,9 @@ user_pref("layout.css.ruby.enabled", true);
 user_pref("layout.spammy_warnings.enabled", false);
 
 
+user_pref("media.mediasource.enabled", true);
+
+
 user_pref("dom.mozContacts.enabled", true);
 
 
