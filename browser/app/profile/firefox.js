@@ -271,6 +271,7 @@ pref("general.autoScroll", true);
 pref("browser.shell.checkDefaultBrowser", true);
 pref("browser.shell.shortcutFavicons",true);
 pref("browser.shell.mostRecentDateSetAsDefault", "");
+pref("browser.shell.windows10DefaultBrowserABTest", -1);
 
 
 
@@ -296,7 +297,7 @@ pref("browser.warnOnQuit", true);
 
 pref("browser.showQuitWarning", false);
 pref("browser.fullscreen.autohide", true);
-pref("browser.fullscreen.animateUp", 1);
+pref("browser.fullscreen.animate", true);
 pref("browser.overlink-delay", 80);
 
 #ifdef UNIX_BUT_NOT_MAC
