@@ -52,10 +52,10 @@ function check_telemetry() {
                     .getHistogramById("SSL_CERT_ERROR_OVERRIDES")
                     .snapshot();
   do_check_eq(histogram.counts[ 0], 0);
-  do_check_eq(histogram.counts[ 2], 8); 
+  do_check_eq(histogram.counts[ 2], 7); 
   do_check_eq(histogram.counts[ 3], 0); 
   do_check_eq(histogram.counts[ 4], 0); 
-  do_check_eq(histogram.counts[ 5], 0); 
+  do_check_eq(histogram.counts[ 5], 1); 
   do_check_eq(histogram.counts[ 6], 0); 
   do_check_eq(histogram.counts[ 7], 0); 
   do_check_eq(histogram.counts[ 8], 2); 
@@ -96,7 +96,7 @@ function add_simple_tests() {
                          getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
   add_cert_override_test("expiredissuer.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
+                         getXPCOMStatusFromNSS(SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE));
   add_cert_override_test("md5signature.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
                          getXPCOMStatusFromNSS(
