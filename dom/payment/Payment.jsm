@@ -301,7 +301,7 @@ let PaymentManager =  {
       
       
       
-      segments[1] = segments[1].replace("-", "+", "g").replace("_", "/", "g");
+      segments[1] = segments[1].replace(/-/g, "+").replace(/_/g, "/");
       let payload = atob(segments[1]);
       if (this._debug) {
         this.LOG("Payload " + payload);
