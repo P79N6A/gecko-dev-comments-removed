@@ -7,6 +7,8 @@
 
 #include "HttpLog.h"
 
+#include "mozilla/dom/nsCSPUtils.h"
+#include "mozilla/dom/nsCSPContext.h"
 #include "nsHttp.h"
 #include "nsHttpChannel.h"
 #include "nsHttpHandler.h"
@@ -53,6 +55,7 @@
 #include "nsIClassOfService.h"
 #include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
+#include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsISSLStatus.h"
 #include "nsISSLStatusProvider.h"
@@ -319,6 +322,47 @@ nsHttpChannel::Connect()
     NS_ENSURE_SUCCESS(rv,rv);
 
     if (!isHttps) {
+        
+        
+        
+        
+        if (mLoadInfo && mLoadInfo->GetUpgradeInsecureRequests()) {
+            
+            
+            
+            nsCOMPtr<nsIPrincipal> resultPrincipal;
+            nsContentUtils::GetSecurityManager()->
+                GetChannelResultPrincipal(this, getter_AddRefs(resultPrincipal));
+            bool crossOriginNavigation =
+                (mLoadInfo->GetContentPolicyType() == nsIContentPolicy::TYPE_DOCUMENT) &&
+                (!resultPrincipal->Equals(mLoadInfo->LoadingPrincipal()));
+
+            if (!crossOriginNavigation) {
+                
+                nsAutoCString spec, scheme;
+                mURI->GetSpec(spec);
+                mURI->GetScheme(scheme);
+                
+                scheme.AppendASCII("s");
+                NS_ConvertUTF8toUTF16 reportSpec(spec);
+                NS_ConvertUTF8toUTF16 reportScheme(scheme);
+
+                const char16_t* params[] = { reportSpec.get(), reportScheme.get() };
+                uint32_t innerWindowId = mLoadInfo ? mLoadInfo->GetInnerWindowID() : 0;
+                CSP_LogLocalizedStr(NS_LITERAL_STRING("upgradeInsecureRequest").get(),
+                                    params, ArrayLength(params),
+                                    EmptyString(), 
+                                    EmptyString(), 
+                                    0, 
+                                    0, 
+                                    nsIScriptError::warningFlag, "CSP",
+                                    innerWindowId);
+
+                Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 4);
+                return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
+            }
+        }
+
         
         nsISiteSecurityService* sss = gHttpHandler->GetSSService();
         NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
