@@ -5,6 +5,9 @@
 
 
 
+let browserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+let isMulet = "ResponsiveUI" in browserWindow;
+
 
 window.addEventListener('ContentStart', function() {
   
@@ -148,8 +151,14 @@ window.addEventListener('ContentStart', function() {
     }
     let chromewidth = window.outerWidth - window.innerWidth;
     let chromeheight = window.outerHeight - window.innerHeight + controlsHeight;
-    window.resizeTo(Math.round(width * scale) + chromewidth,
-                    Math.round(height * scale) + chromeheight);
+    if (isMulet) {
+      let responsive = browserWindow.gBrowser.selectedTab.__responsiveUI;
+      responsive.setSize((Math.round(width * scale) + 14*2),
+                        (Math.round(height * scale) + controlsHeight + 61));
+    } else {
+      window.resizeTo(Math.round(width * scale) + chromewidth,
+                      Math.round(height * scale) + chromeheight);
+    }
 
     let frameWidth = width, frameHeight = height;
     if (shouldFlip) {

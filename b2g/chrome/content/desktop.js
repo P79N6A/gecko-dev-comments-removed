@@ -2,6 +2,9 @@
 
 
 
+let browserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+let isMulet = "ResponsiveUI" in browserWindow;
+
 
 
 function enableTouch() {
@@ -72,8 +75,68 @@ function checkDebuggerPort() {
   }
 }
 
+
+function initResponsiveDesign() {
+  Cu.import('resource:///modules/devtools/responsivedesign.jsm');
+  ResponsiveUIManager.on('on', function(event, {tab:tab}) {
+    let responsive = tab.__responsiveUI;
+    let document = tab.ownerDocument;
+
+    
+    if (tab.linkedBrowser.contentWindow != window) {
+      return;
+    }
+
+    responsive.buildPhoneUI();
+
+    responsive.rotatebutton.addEventListener('command', function (evt) {
+      GlobalSimulatorScreen.flipScreen();
+      evt.stopImmediatePropagation();
+      evt.preventDefault();
+    }, true);
+
+    
+    browserWindow.gBrowser.selectedTab.__responsiveUI.enableTouch();
+  });
+
+  
+  let width = 320, height = 480;
+  
+  
+  width += 15*2; 
+  width += 1*2; 
+  height += 60; 
+  height += 1; 
+  let args = {'width': width, 'height': height};
+  let mgr = browserWindow.ResponsiveUI.ResponsiveUIManager;
+  mgr.toggle(browserWindow, browserWindow.gBrowser.selectedTab);
+  let responsive = browserWindow.gBrowser.selectedTab.__responsiveUI;
+  responsive.setSize(width, height);
+
+}
+
+function openDevtools() {
+  
+  Services.prefs.setIntPref('devtools.toolbox.sidebar.width',
+                            browserWindow.outerWidth - 550);
+  Services.prefs.setCharPref('devtools.toolbox.host', 'side');
+  let {gDevTools} = Cu.import('resource:///modules/devtools/gDevTools.jsm', {});
+  let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+  let target = devtools.TargetFactory.forTab(browserWindow.gBrowser.selectedTab);
+  gDevTools.showToolbox(target);
+}
+
 window.addEventListener('ContentStart', function() {
-  enableTouch();
+  
+  if (!isMulet) {
+    enableTouch();
+  }
   setupButtons();
   checkDebuggerPort();
+  
+  
+  if (isMulet) {
+    initResponsiveDesign(browserWindow);
+    openDevtools();
+  }
 });
