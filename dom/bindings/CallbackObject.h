@@ -30,7 +30,6 @@
 #include "nsWrapperCache.h"
 #include "nsJSEnvironment.h"
 #include "xpcpublic.h"
-#include "jsapi.h"
 
 namespace mozilla {
 namespace dom {
@@ -51,36 +50,15 @@ public:
   
   
   
-  
-  
-  
-  explicit CallbackObject(JSContext* aCx, JS::Handle<JSObject*> aCallback,
-                          nsIGlobalObject *aIncumbentGlobal)
+  explicit CallbackObject(JS::Handle<JSObject*> aCallback, nsIGlobalObject *aIncumbentGlobal)
   {
-    if (aCx && JS::RuntimeOptionsRef(aCx).asyncStack()) {
-      JS::RootedObject stack(aCx);
-      if (!JS::CaptureCurrentStack(aCx, &stack)) {
-        JS_ClearPendingException(aCx);
-      }
-      Init(aCallback, stack, aIncumbentGlobal);
-    } else {
-      Init(aCallback, nullptr, aIncumbentGlobal);
-    }
+    Init(aCallback, aIncumbentGlobal);
   }
 
   JS::Handle<JSObject*> Callback() const
   {
     JS::ExposeObjectToActiveJS(mCallback);
     return CallbackPreserveColor();
-  }
-
-  JSObject* GetCreationStack() const
-  {
-    JSObject* result = mCreationStack;
-    if (result) {
-      JS::ExposeObjectToActiveJS(result);
-    }
-    return result;
   }
 
   
@@ -130,8 +108,7 @@ protected:
 
   explicit CallbackObject(CallbackObject* aCallbackObject)
   {
-    Init(aCallbackObject->mCallback, aCallbackObject->mCreationStack,
-         aCallbackObject->mIncumbentGlobal);
+    Init(aCallbackObject->mCallback, aCallbackObject->mIncumbentGlobal);
   }
 
   bool operator==(const CallbackObject& aOther) const
@@ -144,14 +121,12 @@ protected:
   }
 
 private:
-  inline void Init(JSObject* aCallback, JSObject* aCreationStack,
-                   nsIGlobalObject* aIncumbentGlobal)
+  inline void Init(JSObject* aCallback, nsIGlobalObject* aIncumbentGlobal)
   {
     MOZ_ASSERT(aCallback && !mCallback);
     
     
     mCallback = aCallback;
-    mCreationStack = aCreationStack;
     if (aIncumbentGlobal) {
       mIncumbentGlobal = aIncumbentGlobal;
       mIncumbentJSGlobal = aIncumbentGlobal->GetGlobalJSObject();
@@ -168,14 +143,12 @@ protected:
     MOZ_ASSERT_IF(mIncumbentJSGlobal, mCallback);
     if (mCallback) {
       mCallback = nullptr;
-      mCreationStack = nullptr;
       mIncumbentJSGlobal = nullptr;
       mozilla::DropJSObjects(this);
     }
   }
 
   JS::Heap<JSObject*> mCallback;
-  JS::Heap<JSObject*> mCreationStack;
   
   
   
@@ -235,11 +208,6 @@ protected:
     
     
     Maybe<JS::Rooted<JSObject*> > mRootedCallable;
-
-    
-    Maybe<JS::Rooted<JSObject*>> mAsyncStack;
-    Maybe<JS::Rooted<JSString*>> mAsyncCause;
-    Maybe<JS::AutoSetAsyncStackForNewCalls> mAsyncStackSetter;
 
     
     

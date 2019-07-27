@@ -1132,10 +1132,6 @@ class Activation
 
     
     
-    bool asyncCallIsExplicit_;
-
-    
-    
     
     JS::dbg::AutoEntryMonitor* entryMonitor_;
 
@@ -1217,10 +1213,6 @@ class Activation
 
     JSString* asyncCause() {
         return asyncCause_;
-    }
-
-    bool asyncCallIsExplicit() const {
-        return asyncCallIsExplicit_;
     }
 
   private:

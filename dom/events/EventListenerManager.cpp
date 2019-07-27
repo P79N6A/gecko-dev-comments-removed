@@ -950,15 +950,15 @@ EventListenerManager::CompileEventHandlerInternal(Listener* aListener,
 
   if (jsEventHandler->EventName() == nsGkAtoms::onerror && win) {
     nsRefPtr<OnErrorEventHandlerNonNull> handlerCallback =
-      new OnErrorEventHandlerNonNull(nullptr, handler,  nullptr);
+      new OnErrorEventHandlerNonNull(handler,  nullptr);
     jsEventHandler->SetHandler(handlerCallback);
   } else if (jsEventHandler->EventName() == nsGkAtoms::onbeforeunload && win) {
     nsRefPtr<OnBeforeUnloadEventHandlerNonNull> handlerCallback =
-      new OnBeforeUnloadEventHandlerNonNull(nullptr, handler,  nullptr);
+      new OnBeforeUnloadEventHandlerNonNull(handler,  nullptr);
     jsEventHandler->SetHandler(handlerCallback);
   } else {
     nsRefPtr<EventHandlerNonNull> handlerCallback =
-      new EventHandlerNonNull(nullptr, handler,  nullptr);
+      new EventHandlerNonNull(handler,  nullptr);
     jsEventHandler->SetHandler(handlerCallback);
   }
 

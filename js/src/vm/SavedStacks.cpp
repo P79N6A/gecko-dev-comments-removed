@@ -912,17 +912,6 @@ SavedStacks::insertFrames(JSContext* cx, FrameIter& iter, MutableHandleSavedFram
     while (!iter.done()) {
         Activation& activation = *iter.activation();
 
-        if (asyncActivation && asyncActivation != &activation) {
-            
-            
-            
-            
-            
-            if (asyncActivation->asyncCallIsExplicit())
-                break;
-            asyncActivation = nullptr;
-        }
-
         if (!asyncActivation) {
             asyncStack = activation.asyncStack();
             if (asyncStack) {
@@ -934,6 +923,10 @@ SavedStacks::insertFrames(JSContext* cx, FrameIter& iter, MutableHandleSavedFram
                 asyncCause = activation.asyncCause();
                 asyncActivation = &activation;
             }
+        } else if (asyncActivation != &activation) {
+            
+            
+            break;
         }
 
         AutoLocationValueRooter location(cx);

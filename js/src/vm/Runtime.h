@@ -698,12 +698,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSString* asyncCauseForNewActivations;
 
     
-
-
-
-    bool asyncCallIsExplicit;
-
-    
     JS::dbg::AutoEntryMonitor* entryMonitor;
 
     js::Activation* const* addressOfActivation() const {
