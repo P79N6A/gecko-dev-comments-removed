@@ -1,12 +1,13 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PermissionRequestBase.h"
 
 #include "MainThreadUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Services.h"
+#include "mozilla/dom/Element.h"
 #include "nsIDOMWindow.h"
 #include "nsIObserverService.h"
 #include "nsIPrincipal.h"
@@ -44,15 +45,15 @@ AssertSanity()
   MOZ_ASSERT(NS_IsMainThread());
 }
 
-} 
+} // anonymous namespace
 
-PermissionRequestBase::PermissionRequestBase(nsPIDOMWindow* aWindow,
+PermissionRequestBase::PermissionRequestBase(Element* aOwnerElement,
                                              nsIPrincipal* aPrincipal)
-  : mWindow(aWindow)
+  : mOwnerElement(aOwnerElement)
   , mPrincipal(aPrincipal)
 {
   AssertSanity();
-  MOZ_ASSERT(aWindow);
+  MOZ_ASSERT(aOwnerElement);
   MOZ_ASSERT(aPrincipal);
 }
 
@@ -61,7 +62,7 @@ PermissionRequestBase::~PermissionRequestBase()
   AssertSanity();
 }
 
-
+// static
 nsresult
 PermissionRequestBase::GetCurrentPermission(nsIPrincipal* aPrincipal,
                                             PermissionValue* aCurrentValue)
@@ -95,7 +96,7 @@ PermissionRequestBase::GetCurrentPermission(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-
+// static
 auto
 PermissionRequestBase::PermissionValueForIntPermission(uint32_t aIntPermission)
   -> PermissionValue
@@ -123,10 +124,10 @@ PermissionRequestBase::PromptIfNeeded(PermissionValue* aCurrentValue)
   MOZ_ASSERT(aCurrentValue);
   MOZ_ASSERT(mPrincipal);
 
-  
-  
-  nsCOMPtr<nsPIDOMWindow> window;
-  mWindow.swap(window);
+  // Tricky, we want to release the window and principal in all cases except
+  // when we successfully prompt.
+  nsCOMPtr<Element> element;
+  mOwnerElement.swap(element);
 
   nsCOMPtr<nsIPrincipal> principal;
   mPrincipal.swap(principal);
@@ -145,16 +146,16 @@ PermissionRequestBase::PromptIfNeeded(PermissionValue* aCurrentValue)
       return NS_ERROR_FAILURE;
     }
 
-    
-    window.swap(mWindow);
+    // We're about to prompt so swap the members back.
+    element.swap(mOwnerElement);
     principal.swap(mPrincipal);
 
     rv = obsSvc->NotifyObservers(static_cast<nsIObserver*>(this),
                                  kPermissionPromptTopic,
                                  nullptr);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      
-      mWindow = nullptr;
+      // Finally release if we failed the prompt.
+      mOwnerElement = nullptr;
       mPrincipal = nullptr;
       return rv;
     }
@@ -182,7 +183,7 @@ PermissionRequestBase::SetExplicitPermission(nsIPrincipal* aPrincipal,
                                           kPermissionString,
                                           aIntPermission,
                                           nsIPermissionManager::EXPIRE_NEVER,
-                                           0);
+                                          /* aExpireTime */ 0);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -200,8 +201,8 @@ PermissionRequestBase::GetInterface(const nsIID& aIID,
     return QueryInterface(aIID, aResult);
   }
 
-  if (aIID.Equals(NS_GET_IID(nsIDOMWindow)) && mWindow) {
-    return mWindow->QueryInterface(aIID, aResult);
+  if (aIID.Equals(NS_GET_IID(nsIDOMNode)) && mOwnerElement) {
+    return mOwnerElement->QueryInterface(aIID, aResult);
   }
 
   *aResult = nullptr;
@@ -215,11 +216,11 @@ PermissionRequestBase::Observe(nsISupports* aSubject,
 {
   AssertSanity();
   MOZ_ASSERT(!strcmp(aTopic, kPermissionResponseTopic));
-  MOZ_ASSERT(mWindow);
+  MOZ_ASSERT(mOwnerElement);
   MOZ_ASSERT(mPrincipal);
 
-  nsCOMPtr<nsPIDOMWindow> window;
-  mWindow.swap(window);
+  nsCOMPtr<Element> element;
+  element.swap(mOwnerElement);
 
   nsCOMPtr<nsIPrincipal> principal;
   mPrincipal.swap(principal);
@@ -228,14 +229,14 @@ PermissionRequestBase::Observe(nsISupports* aSubject,
   uint32_t promptResult = nsDependentString(aData).ToInteger(&rv);
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(rv));
 
-  
-  
+  // The UI prompt code will only return one of these three values. We have to
+  // transform it to our values.
   MOZ_ASSERT(promptResult == kPermissionDefault ||
              promptResult == kPermissionAllowed ||
              promptResult == kPermissionDenied);
 
   if (promptResult != kPermissionDefault) {
-    
+    // Save explicitly allowed or denied permissions now.
     SetExplicitPermission(principal, promptResult);
   }
 
@@ -261,6 +262,6 @@ PermissionRequestBase::Observe(nsISupports* aSubject,
   return NS_OK;
 }
 
-} 
-} 
-} 
+} // namespace indexedDB
+} // namespace dom
+} // namespace mozilla
