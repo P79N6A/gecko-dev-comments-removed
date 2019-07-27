@@ -24,22 +24,34 @@ function run_test() {
     
     
     
-    
-    
-    if (Services.appinfo.OS == "Darwin") {
+    let probeUSMismatched, probeNonUSMismatched;
+    switch (Services.appinfo.OS) {
+      case "Darwin":
+        probeUSMismatched = "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_OSX";
+        probeNonUSMismatched = "SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_OSX";
+        break;
+      case "WINNT":
+        probeUSMismatched = "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_WIN";
+        probeNonUSMismatched = "SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_WIN";
+        break;
+      default:
+        break;
+    }
+
+    if (probeUSMismatched && probeNonUSMismatched) {
       let gfxInfo2 = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo2);
-      print("OSX says the country-code is", gfxInfo2.countryCode);
+      print("Platform says the country-code is", gfxInfo2.countryCode);
       let expectedResult;
       let hid;
       
       
       if (gfxInfo2.countryCode == "US") {
-        hid = "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_PLATFORM_OSX";
+        hid = probeUSMismatched;
         expectedResult = [0,1,0]; 
       } else {
         
         
-        hid = "SEARCH_SERVICE_NONUS_COUNTRY_MISMATCHED_PLATFORM_OSX";
+        hid = probeNonUSMismatched;
         expectedResult = gfxInfo2.countryCode == "AU" ? [1,0,0] : [0,1,0];
       }
 
