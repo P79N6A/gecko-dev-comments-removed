@@ -2602,130 +2602,97 @@ nsEditor::CreateTxnForJoinNode(nsINode& aLeftNode, nsINode& aRightNode)
 
 
 nsresult
-nsEditor::SplitNodeImpl(nsIDOMNode * aExistingRightNode,
-                        int32_t      aOffset,
-                        nsIDOMNode*  aNewLeftNode,
-                        nsIDOMNode*  aParent)
+nsEditor::SplitNodeImpl(nsIContent& aExistingRightNode,
+                        int32_t aOffset,
+                        nsIContent& aNewLeftNode)
 {
-  NS_ASSERTION(((nullptr!=aExistingRightNode) &&
-                (nullptr!=aNewLeftNode) &&
-                (nullptr!=aParent)),
-                "null arg");
-  nsresult result;
-  if ((nullptr!=aExistingRightNode) &&
-      (nullptr!=aNewLeftNode) &&
-      (nullptr!=aParent))
-  {
-    
-    nsCOMPtr<nsISelection> selection;
-    result = GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(result, result);
-    NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+  
+  nsRefPtr<Selection> selection = GetSelection();
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-    
-    nsCOMPtr<nsIDOMNode> selStartNode, selEndNode;
-    int32_t selStartOffset, selEndOffset;
-    result = GetStartNodeAndOffset(selection, getter_AddRefs(selStartNode), &selStartOffset);
-    if (NS_FAILED(result)) selStartNode = nullptr;  
-    result = GetEndNodeAndOffset(selection, getter_AddRefs(selEndNode), &selEndOffset);
-    if (NS_FAILED(result)) selStartNode = nullptr;  
+  
+  nsCOMPtr<nsINode> selStartNode, selEndNode;
+  int32_t selStartOffset = 0, selEndOffset = 0;
+  if (selection->GetRangeAt(0)) {
+    selStartNode = selection->GetRangeAt(0)->GetStartParent();
+    selStartOffset = selection->GetRangeAt(0)->StartOffset();
+    selEndNode = selection->GetRangeAt(0)->GetEndParent();
+    selEndOffset = selection->GetRangeAt(0)->EndOffset();
+  }
 
-    nsCOMPtr<nsIDOMNode> resultNode;
-    result = aParent->InsertBefore(aNewLeftNode, aExistingRightNode, getter_AddRefs(resultNode));
-    
-    if (NS_SUCCEEDED(result))
-    {
-      
-      
-      
-      if (0<=aOffset) 
-      {
-        
-        nsCOMPtr<nsIDOMCharacterData> rightNodeAsText( do_QueryInterface(aExistingRightNode) );
-        nsCOMPtr<nsIDOMCharacterData> leftNodeAsText( do_QueryInterface(aNewLeftNode) );
-        if (leftNodeAsText && rightNodeAsText)
-        {
-          
-          nsAutoString leftText;
-          rightNodeAsText->SubstringData(0, aOffset, leftText);
-          rightNodeAsText->DeleteData(0, aOffset);
-          
-          leftNodeAsText->SetData(leftText);
-          
-        }
-        else
-        {  
-           
-          nsCOMPtr<nsIDOMNodeList> childNodes;
-          result = aExistingRightNode->GetChildNodes(getter_AddRefs(childNodes));
-          if ((NS_SUCCEEDED(result)) && (childNodes))
-          {
-            int32_t i=aOffset-1;
-            for ( ; ((NS_SUCCEEDED(result)) && (0<=i)); i--)
-            {
-              nsCOMPtr<nsIDOMNode> childNode;
-              result = childNodes->Item(i, getter_AddRefs(childNode));
-              if ((NS_SUCCEEDED(result)) && (childNode))
-              {
-                result = aExistingRightNode->RemoveChild(childNode, getter_AddRefs(resultNode));
-                
-                if (NS_SUCCEEDED(result))
-                {
-                  nsCOMPtr<nsIDOMNode> firstChild;
-                  aNewLeftNode->GetFirstChild(getter_AddRefs(firstChild));
-                  result = aNewLeftNode->InsertBefore(childNode, firstChild, getter_AddRefs(resultNode));
-                  
-                }
-              }
-            }
-          }        
-        }
-        
-        nsCOMPtr<nsIPresShell> ps = GetPresShell();
-        if (ps)
-          ps->FlushPendingNotifications(Flush_Frames);
+  nsCOMPtr<nsINode> parent = aExistingRightNode.GetParentNode();
+  NS_ENSURE_TRUE(parent, NS_ERROR_NULL_POINTER);
 
-        if (GetShouldTxnSetSelection())
-        {
-          
-          selection->Collapse(aNewLeftNode, aOffset);
+  ErrorResult rv;
+  parent->InsertBefore(aNewLeftNode, &aExistingRightNode, rv);
+  NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+
+  
+  
+  
+  if (aOffset < 0) {
+    
+    return NS_OK;
+  }
+
+  
+  if (aExistingRightNode.GetAsText() && aNewLeftNode.GetAsText()) {
+    
+    nsAutoString leftText;
+    aExistingRightNode.GetAsText()->SubstringData(0, aOffset, leftText);
+    aExistingRightNode.GetAsText()->DeleteData(0, aOffset);
+    
+    aNewLeftNode.GetAsText()->SetData(leftText);
+  } else {
+    
+    
+    nsCOMPtr<nsINodeList> childNodes = aExistingRightNode.ChildNodes();
+    for (int32_t i = aOffset - 1; i >= 0; i--) {
+      nsCOMPtr<nsIContent> childNode = childNodes->Item(i);
+      if (childNode) {
+        aExistingRightNode.RemoveChild(*childNode, rv);
+        if (!rv.Failed()) {
+          nsCOMPtr<nsIContent> firstChild = aNewLeftNode.GetFirstChild();
+          aNewLeftNode.InsertBefore(*childNode, firstChild, rv);
         }
-        else if (selStartNode)   
-        {
-          
-          
-          if (selStartNode.get() == aExistingRightNode)
-          {
-            if (selStartOffset < aOffset)
-            {
-              selStartNode = aNewLeftNode;
-            }
-            else
-            {
-              selStartOffset -= aOffset;
-            }
-          }
-          if (selEndNode.get() == aExistingRightNode)
-          {
-            if (selEndOffset < aOffset)
-            {
-              selEndNode = aNewLeftNode;
-            }
-            else
-            {
-              selEndOffset -= aOffset;
-            }
-          }
-          selection->Collapse(selStartNode,selStartOffset);
-          selection->Extend(selEndNode,selEndOffset);
-        }
+      }
+      if (rv.Failed()) {
+        break;
       }
     }
   }
-  else
-    result = NS_ERROR_INVALID_ARG;
 
-  return result;
+  
+  nsCOMPtr<nsIPresShell> ps = GetPresShell();
+  if (ps) {
+    ps->FlushPendingNotifications(Flush_Frames);
+  }
+
+  if (GetShouldTxnSetSelection()) {
+    
+    selection->Collapse(&aNewLeftNode, aOffset);
+  } else if (selStartNode) {
+    
+    
+    if (selStartNode == &aExistingRightNode) {
+      if (selStartOffset < aOffset) {
+        selStartNode = &aNewLeftNode;
+      } else {
+        selStartOffset -= aOffset;
+      }
+    }
+    if (selEndNode == &aExistingRightNode) {
+      if (selEndOffset < aOffset) {
+        selEndNode = &aNewLeftNode;
+      } else {
+        selEndOffset -= aOffset;
+      }
+    }
+    selection->Collapse(selStartNode, selStartOffset);
+    selection->Extend(selEndNode, selEndOffset);
+  }
+
+  return NS_OK;
 }
 
 nsresult

@@ -448,10 +448,12 @@ public:
 
 
 
-  nsresult SplitNodeImpl(nsIDOMNode *aExistingRightNode,
-                         int32_t     aOffset,
-                         nsIDOMNode *aNewLeftNode,
-                         nsIDOMNode *aParent);
+
+
+
+  nsresult SplitNodeImpl(nsIContent& aExistingRightNode,
+                         int32_t aOffset,
+                         nsIContent& aNewLeftNode);
 
   
 
