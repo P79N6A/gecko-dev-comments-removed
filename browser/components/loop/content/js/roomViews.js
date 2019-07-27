@@ -10,24 +10,8 @@ var loop = loop || {};
 loop.roomViews = (function(mozL10n) {
   "use strict";
 
-  
-
-
-
-  var rootObject = window;
-
-  
-
-
-
-
-
-  function setRootObject(obj) {
-    rootObject = obj;
-  }
-
-  var EmptyRoomView = React.createClass({displayName: 'EmptyRoomView',
-    mixins: [Backbone.Events],
+  var DesktopRoomView = React.createClass({displayName: 'DesktopRoomView',
+    mixins: [Backbone.Events, loop.shared.mixins.DocumentTitleMixin],
 
     propTypes: {
       mozLoop:
@@ -45,28 +29,6 @@ loop.roomViews = (function(mozL10n) {
         this._onLocalRoomStoreChanged);
     },
 
-    componentDidMount: function() {
-      
-      
-      if (this.props.mozLoop.rooms && this.props.mozLoop.rooms.addCallback) {
-        this.props.mozLoop.rooms.addCallback(
-          this.state.localRoomId,
-          "RoomCreationError", this.onCreationError);
-      }
-    },
-
-    
-
-
-
-
-
-
-    onCreationError: function(err) {
-      
-      rootObject.console.error("EmptyRoomView creation error: ", err);
-    },
-
     
 
 
@@ -79,20 +41,11 @@ loop.roomViews = (function(mozL10n) {
 
     componentWillUnmount: function() {
       this.stopListening(this.props.localRoomStore);
-
-      
-      
-      if (this.props.mozLoop.rooms && this.props.mozLoop.rooms.removeCallback) {
-        this.props.mozLoop.rooms.removeCallback(
-          this.state.localRoomId,
-          "RoomCreationError", this.onCreationError);
-      }
     },
 
     render: function() {
-      
       if (this.state.serverData && this.state.serverData.roomName) {
-        rootObject.document.title = this.state.serverData.roomName;
+        this.setTitle(this.state.serverData.roomName);
       }
 
       return (
@@ -102,8 +55,7 @@ loop.roomViews = (function(mozL10n) {
   });
 
   return {
-    setRootObject: setRootObject,
-    EmptyRoomView: EmptyRoomView
+    DesktopRoomView: DesktopRoomView
   };
 
 })(document.mozL10n || navigator.mozL10n);;

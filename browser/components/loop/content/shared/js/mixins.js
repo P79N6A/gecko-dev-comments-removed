@@ -61,6 +61,17 @@ loop.shared.mixins = (function() {
 
 
 
+
+  var DocumentTitleMixin = {
+    setTitle: function(newTitle) {
+      rootObject.document.title = newTitle;
+    }
+  };
+
+  
+
+
+
   var DropdownMenuMixin = {
     get documentBody() {
       return rootObject.document.body;
@@ -184,6 +195,7 @@ loop.shared.mixins = (function() {
     DropdownMenuMixin: DropdownMenuMixin,
     DocumentVisibilityMixin: DocumentVisibilityMixin,
     DocumentLocationMixin: DocumentLocationMixin,
+    DocumentTitleMixin: DocumentTitleMixin,
     UrlHashChangeMixin: UrlHashChangeMixin
   };
 })();
