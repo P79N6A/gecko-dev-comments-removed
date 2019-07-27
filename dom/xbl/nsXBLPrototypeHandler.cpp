@@ -23,6 +23,7 @@
 #include "nsIDOMHTMLTextAreaElement.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsFocusManager.h"
+#include "nsIFormControl.h"
 #include "nsIDOMEventListener.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
@@ -475,34 +476,17 @@ nsXBLPrototypeHandler::DispatchXBLCommand(EventTarget* aTarget, nsIDOMEvent* aEv
         nsFocusManager::GetFocusedDescendant(windowToCheck, true, getter_AddRefs(focusedWindow));
     }
 
-    bool isLink = false;
-    nsIContent *content = focusedContent;
+    
+    if (focusedContent->IsEditable()) {
+      return NS_OK;
+    }
 
     
-    
-    
-    
-    if (focusedContent && focusedContent->GetParent()) {
-      while (content) {
-        if (content->IsHTMLElement(nsGkAtoms::a)) {
-          isLink = true;
-          break;
-        }
-
-        if (content->HasAttr(kNameSpaceID_XLink, nsGkAtoms::type)) {
-          isLink = content->AttrValueIs(kNameSpaceID_XLink, nsGkAtoms::type,
-                                        nsGkAtoms::simple, eCaseMatters);
-
-          if (isLink) {
-            break;
-          }
-        }
-
-        content = content->GetParent();
-      }
-
-      if (!isLink)
+    for (nsIContent* c = focusedContent; c; c = c->GetParent()) {
+      nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(c);
+      if (formControl) {
         return NS_OK;
+      }
     }
   }
 
