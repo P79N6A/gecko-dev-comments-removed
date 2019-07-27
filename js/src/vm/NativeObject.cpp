@@ -1034,18 +1034,35 @@ js::NativeLookupElement(JSContext* cx, HandleNativeObject obj, uint32_t index,
 
 
 
+
+
+
+
+
+
 static inline bool
 CallAddPropertyHook(ExclusiveContext* cx, HandleNativeObject obj, HandleShape shape,
-                    HandleValue value)
+                    HandleValue nominal)
 {
     if (JSAddPropertyOp addProperty = obj->getClass()->addProperty) {
+        MOZ_ASSERT(addProperty != JS_PropertyStub);
+
         if (!cx->shouldBeJSContext())
             return false;
 
-        RootedId id(cx, shape->propid());
-        if (!CallJSAddPropertyOp(cx->asJSContext(), addProperty, obj, id, value)) {
+        
+        RootedValue value(cx, nominal);
+
+        
+        
+        Rooted<jsid> id(cx, shape->propid());
+        if (!CallJSGetterOp(cx->asJSContext(), addProperty, obj, id, &value)) {
             obj->removeProperty(cx, shape->propid());
             return false;
+        }
+        if (value.get() != nominal) {
+            if (shape->hasSlot())
+                obj->setSlotWithType(cx, shape, value);
         }
     }
     return true;
@@ -1053,7 +1070,7 @@ CallAddPropertyHook(ExclusiveContext* cx, HandleNativeObject obj, HandleShape sh
 
 static inline bool
 CallAddPropertyHookDense(ExclusiveContext* cx, HandleNativeObject obj, uint32_t index,
-                         HandleValue value)
+                         HandleValue nominal)
 {
     
     if (obj->is<ArrayObject>()) {
@@ -1065,18 +1082,28 @@ CallAddPropertyHookDense(ExclusiveContext* cx, HandleNativeObject obj, uint32_t 
     }
 
     if (JSAddPropertyOp addProperty = obj->getClass()->addProperty) {
+        MOZ_ASSERT(addProperty != JS_PropertyStub);
+
         if (!cx->shouldBeJSContext())
             return false;
 
         if (!obj->maybeCopyElementsForWrite(cx))
             return false;
 
-        RootedId id(cx, INT_TO_JSID(index));
-        if (!CallJSAddPropertyOp(cx->asJSContext(), addProperty, obj, id, value)) {
+        
+        RootedValue value(cx, nominal);
+
+        
+        
+        Rooted<jsid> id(cx, INT_TO_JSID(index));
+        if (!CallJSGetterOp(cx->asJSContext(), addProperty, obj, id, &value)) {
             obj->setDenseElementHole(cx, index);
             return false;
         }
+        if (value.get() != nominal)
+            obj->setDenseElementWithType(cx, index, value);
     }
+
     return true;
 }
 
