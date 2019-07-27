@@ -169,10 +169,10 @@ IMEHandler::NotifyIME(nsWindow* aWindow,
         return nsTextStore::OnTextChange(aIMENotification);
       case NOTIFY_IME_OF_FOCUS:
         return nsTextStore::OnFocusChange(true, aWindow,
-                                          aWindow->GetInputContext());
+                 aWindow->GetInputContext().mIMEState);
       case NOTIFY_IME_OF_BLUR:
         return nsTextStore::OnFocusChange(false, aWindow,
-                                          aWindow->GetInputContext());
+                 aWindow->GetInputContext().mIMEState);
       case NOTIFY_IME_OF_MOUSE_BUTTON_EVENT:
         return nsTextStore::OnMouseButtonEvent(aIMENotification);
       case REQUEST_TO_COMMIT_COMPOSITION:
@@ -210,7 +210,7 @@ IMEHandler::NotifyIME(nsWindow* aWindow,
       
       if (nsTextStore::ThinksHavingFocus()) {
         return nsTextStore::OnFocusChange(false, aWindow,
-                                          aWindow->GetInputContext());
+                                          aWindow->GetInputContext().mIMEState);
       }
       return NS_ERROR_NOT_IMPLEMENTED;
 #endif 
@@ -289,7 +289,7 @@ IMEHandler::SetInputContext(nsWindow* aWindow,
   if (sIsInTSFMode) {
     nsTextStore::SetInputContext(aWindow, aInputContext, aAction);
     if (IsTSFAvailable()) {
-      aInputContext.mNativeIMEContext = nsTextStore::GetThreadManager();
+      aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
       if (sIsIMMEnabled) {
         
         AssociateIMEContext(aWindow, enable);
@@ -354,7 +354,7 @@ IMEHandler::InitInputContext(nsWindow* aWindow, InputContext& aInputContext)
     nsTextStore::SetInputContext(aWindow, aInputContext,
       InputContextAction(InputContextAction::CAUSE_UNKNOWN,
                          InputContextAction::GOT_FOCUS));
-    aInputContext.mNativeIMEContext = nsTextStore::GetThreadManager();
+    aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
     MOZ_ASSERT(aInputContext.mNativeIMEContext);
     
     if (!sIsIMMEnabled) {
