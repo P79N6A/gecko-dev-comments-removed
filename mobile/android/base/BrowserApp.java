@@ -1958,7 +1958,7 @@ public class BrowserApp extends GeckoApp
 
     private void enterEditingMode(String url) {
         if (url == null) {
-            throw new IllegalArgumentException("Cannot handle null URLs in enterEditingMode");
+            url = "";
         }
 
         if (mBrowserToolbar.isEditing() || mBrowserToolbar.isAnimating()) {
