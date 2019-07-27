@@ -18,6 +18,16 @@
 namespace mozilla {
 namespace image {
 
+enum class MatchType : uint8_t
+{
+  NOT_FOUND,  
+  PENDING,    
+  EXACT,      
+  SUBSTITUTE_BECAUSE_NOT_FOUND,  
+  SUBSTITUTE_BECAUSE_PENDING     
+                                 
+};
+
 
 
 
@@ -25,25 +35,36 @@ namespace image {
 class MOZ_STACK_CLASS LookupResult
 {
 public:
-  LookupResult()
-    : mIsExactMatch(false)
-  { }
+  explicit LookupResult(MatchType aMatchType)
+    : mMatchType(aMatchType)
+  {
+    MOZ_ASSERT(mMatchType == MatchType::NOT_FOUND ||
+               mMatchType == MatchType::PENDING,
+               "Only NOT_FOUND or PENDING make sense with no surface");
+  }
 
   LookupResult(LookupResult&& aOther)
     : mDrawableRef(Move(aOther.mDrawableRef))
-    , mIsExactMatch(aOther.mIsExactMatch)
+    , mMatchType(aOther.mMatchType)
   { }
 
-  LookupResult(DrawableFrameRef&& aDrawableRef, bool aIsExactMatch)
+  LookupResult(DrawableFrameRef&& aDrawableRef, MatchType aMatchType)
     : mDrawableRef(Move(aDrawableRef))
-    , mIsExactMatch(aIsExactMatch)
-  { }
+    , mMatchType(aMatchType)
+  {
+    MOZ_ASSERT(!mDrawableRef || !(mMatchType == MatchType::NOT_FOUND ||
+                                  mMatchType == MatchType::PENDING),
+               "Only NOT_FOUND or PENDING make sense with no surface");
+    MOZ_ASSERT(mDrawableRef || mMatchType == MatchType::NOT_FOUND ||
+                               mMatchType == MatchType::PENDING,
+               "NOT_FOUND or PENDING do not make sense with a surface");
+  }
 
   LookupResult& operator=(LookupResult&& aOther)
   {
     MOZ_ASSERT(&aOther != this, "Self-move-assignment is not supported");
     mDrawableRef = Move(aOther.mDrawableRef);
-    mIsExactMatch = aOther.mIsExactMatch;
+    mMatchType = aOther.mMatchType;
     return *this;
   }
 
@@ -54,16 +75,16 @@ public:
   explicit operator bool() const { return bool(mDrawableRef); }
 
   
-  bool IsExactMatch() const { return mIsExactMatch; }
+  MatchType Type() const { return mMatchType; }
 
 private:
   LookupResult(const LookupResult&) = delete;
 
   DrawableFrameRef mDrawableRef;
-  bool mIsExactMatch;
+  MatchType mMatchType;
 };
 
 } 
 } 
 
-#endif 
+#endif

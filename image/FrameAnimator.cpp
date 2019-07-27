@@ -273,8 +273,7 @@ FrameAnimator::GetCompositedFrame(uint32_t aFrameNum)
 
   
   if (mLastCompositedFrameIndex == int32_t(aFrameNum)) {
-    return LookupResult(mCompositingFrame->DrawableRef(),
-                         true);
+    return LookupResult(mCompositingFrame->DrawableRef(), MatchType::EXACT);
   }
 
   

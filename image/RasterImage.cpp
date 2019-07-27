@@ -526,7 +526,8 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
     return DrawableFrameRef();
   }
 
-  if (!result || !result.IsExactMatch()) {
+  if (!result || result.Type() == MatchType::SUBSTITUTE_BECAUSE_NOT_FOUND) {
+    
     
     MOZ_ASSERT(!mAnim, "Animated frames should be locked");
 
